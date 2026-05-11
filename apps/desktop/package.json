@@ -1,0 +1,17 @@
+{
+  "name": "ru-soam-desktop",
+  "version": "0.1.0",
+  "description": "ru-soam practitioner desktop workbench",
+  "homepage": "https://ru-soam.com",
+  "author": {
+    "email": "meersajidh@gmail.com",
+    "name": "meer"
+  },
+  "private": true,
+  "license": "private",
+  "type": "module",
+  "main": "dist/main/index.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

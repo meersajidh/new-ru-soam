@@ -1,0 +1,12 @@
+{
+  "name": "ru-soam-web",
+  "version": "0.1.0",
+  "description": "ru-soam clients web application",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "private",
+  "type": "module"
+}

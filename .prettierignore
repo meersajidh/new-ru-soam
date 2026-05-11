@@ -1,0 +1,15 @@
+# Dependencies
+node_modules
+dist
+out
+release
+
+# Electron specific
+*.asar
+
+# Vite/Build
+build
+coverage
+
+# Misc  
+*.log
