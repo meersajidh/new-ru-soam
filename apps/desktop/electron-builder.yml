@@ -1,0 +1,30 @@
+appId: ru-soam
+productName: ru-soam
+npmRebuild: false
+icon: src/assets/icon.png
+
+directories:
+  output: dist/release
+  buildResources: src/assets
+
+files:
+  - dist/main/**
+  - dist/preload/**
+  - dist/renderer/**
+  - package.json
+
+win:
+  target: nsis
+
+linux:
+  target:
+    - AppImage
+  category: Utility
+  executableName: vs-exp
+  desktop:
+    entry:
+      Name: ru-soam
+      StartupNotify: 'true'
+
+mac:
+  target: dmg

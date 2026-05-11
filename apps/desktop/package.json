@@ -12,10 +12,11 @@
   "type": "module",
   "main": "dist/main/index.mjs",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsr generate && tsc -b && vite build && vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts",
+    "dev": "tsr generate && tsc -b && node scripts/dev.mjs",
+    "dist": "pnpm build && electron-builder",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "postinstall": "electron-builder install-app-deps",
     "route-gen": "tsr generate"
   },
   "devDependencies": {
