@@ -1,0 +1,77 @@
+# Logs
+logs
+*.log
+*.log*
+pnpm-debug.log*
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Code coverage profiles and other test artifacts
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work.sum
+
+# Go build artifacts
+**/bin
+**/tmp
+
+# Node.js dependencies & distributions
+node_modules
+**/node_modules
+dist
+**/dist
+
+# JWT keys (do not commit!)
+**/config/keys/*.pem
+
+# Environment files
+*.local
+.env
+*.pem
+# Allow example files to be committed as templates
+!.env.example
+!**/.env.example
+
+# Frontend build cache
+.tanstack
+
+# Editor/IDE
+.idea/
+.idea
+.vscode/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local Env directories and files
+deploy/dev/**/*.yml
+!deploy/dev/**/*.example
+
+# Others
+.notes/
+.gemini/
+.claude/
+.codex/
+.codex
+.pi/
+.agents/

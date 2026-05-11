@@ -1,0 +1,22 @@
+{
+	"name": "ru-soam",
+	"version": "0.1.1",
+	"description": "ru-soam mono-repo",
+	"author": {
+		"name": "meer",
+		"email": "meersajidh@gmail.com"
+	},
+	"private": true,
+	"license": "private license",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"devEngines": {
+		"packageManager": {
+			"name": "pnpm",
+			"version": "^11.0.9",
+			"onFail": "download"
+		}
+	},
+	"type": "module"
+}
