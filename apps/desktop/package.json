@@ -13,7 +13,7 @@
   "main": "dist/main/index.mjs",
   "scripts": {
     "build": "tsr generate && tsc -b && vite build && vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts",
-    "dev": "tsr generate && tsc -b && node scripts/dev.mjs",
+    "dev": "tsr generate && node scripts/dev.mjs",
     "dist": "pnpm build && electron-builder",
     "lint": "eslint .",
     "postinstall": "electron-builder install-app-deps",

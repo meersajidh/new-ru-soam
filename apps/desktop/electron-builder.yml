@@ -20,7 +20,7 @@ linux:
   target:
     - AppImage
   category: Utility
-  executableName: vs-exp
+  executableName: ru-soam
   desktop:
     entry:
       Name: ru-soam
