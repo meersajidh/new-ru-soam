@@ -87,6 +87,22 @@ async function main() {
   });
 
   await build({
+    configFile: path.join(root, 'vite.bundle-host.config.ts'),
+    mode: 'development',
+    clearScreen: false,
+    logLevel: 'error',
+    build: { watch: {} },
+    plugins: [
+      {
+        name: 'bundle-host-log',
+        closeBundle() {
+          console.log('[bundle-host] rebuilt');
+        },
+      },
+    ],
+  });
+
+  await build({
     configFile: path.join(root, 'vite.main.config.ts'),
     mode: 'development',
     clearScreen: false,

@@ -1,7 +1,9 @@
-type IpcResult<T> = { ok: true; data: T } | { ok: false; error: string };
+import type { Soam } from '../electron/preload/soam';
 
-interface Window {
-  electronAPI: {
-    platform: string;
-  };
+declare global {
+  interface Window {
+    readonly soam: Soam;
+  }
 }
+
+export {};

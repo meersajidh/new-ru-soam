@@ -3,5 +3,10 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo"
   },
-  "include": ["vite.config.ts", "vite.main.config.ts", "vite.preload.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "vite.main.config.ts",
+    "vite.preload.config.ts",
+    "vite.bundle-host.config.ts"
+  ]
 }

@@ -55,7 +55,7 @@ The ADRs are layered: later ones rest on earlier ones. A newcomer should read in
 19. **[ADR-412](ADRs/412-services-in-renderer.md)** — renderer service registry + TanStack Query for capability data. How components consume the rest.
 20. **[ADR-413](ADRs/413-theming-and-icons.md)** — themes and icons as data contributions. Zero-attack-surface visual layer.
 
-Companion guides ([feature-development](Guides/feature-development.md), [disposable-pattern](Guides/disposable-pattern.md), [data-encryption-and-recovery](Guides/data-encryption-and-recovery.md)) and references ([Local-first pattern](References/Local_First_Pattern.md), [PHI backup and encryption reasoning](References/PHI_Backup_And_Encryption_Reasoning.md), [Bundle host process reasoning](References/Bundle_Host_Process_Reasoning.md), [Core shell vs first-party bundle reasoning](References/Core_Shell_vs_First_Party_Bundle_Reasoning.md)) elaborate the operational and reasoning sides; they are best read alongside the relevant ADRs.
+Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development](Guides/feature-development.md), [disposable-pattern](Guides/disposable-pattern.md), [data-encryption-and-recovery](Guides/data-encryption-and-recovery.md)) and references ([Local-first pattern](References/Local_First_Pattern.md), [PHI backup and encryption reasoning](References/PHI_Backup_And_Encryption_Reasoning.md), [Bundle host process reasoning](References/Bundle_Host_Process_Reasoning.md), [Core shell vs first-party bundle reasoning](References/Core_Shell_vs_First_Party_Bundle_Reasoning.md)) elaborate the operational and reasoning sides; they are best read alongside the relevant ADRs.
 
 ## Table of Contents
 
@@ -121,6 +121,7 @@ Companion guides ([feature-development](Guides/feature-development.md), [disposa
 
 ### Guides
 
+- [Core concepts: Capability, Bundle, Contribution](Guides/core-concepts.md) — First-principles primer on the three load-bearing concepts. Read before `feature-development.md`.
 - [Feature development](Guides/feature-development.md) — Checklist for adding a feature without re-litigating the architecture each time.
 - [Disposable pattern](Guides/disposable-pattern.md) — Platform-wide convention for cleanup.
 - [Data encryption, key management, and recovery](Guides/data-encryption-and-recovery.md) — Operational companion to ADR-302/303/304/306.

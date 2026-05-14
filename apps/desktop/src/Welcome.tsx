@@ -3,9 +3,26 @@ import reactLogo from './assets/react.svg';
 import viteLogo from './assets/vite.svg';
 import heroImg from './assets/hero.png';
 
+type PingResult = {
+  echo: string;
+  pid: number;
+  ts: number;
+};
+
+const cap = await window.soam.bindCapability('platform.ping', '1.0');
+// renderer-side helper
+async function pingHost(message: string) {
+  return (await cap.call('ping', message)) as PingResult;
+}
+
 export default function Welcome() {
   const [count, setCount] = useState(0);
+  const [result, setResult] = useState<PingResult>({ echo: 'Welcome', pid: 0, ts: 0 });
 
+  async function handlePing(count?: number) {
+    const res = await pingHost(`Hello:${count}`);
+    setResult(res);
+  }
   return (
     <>
       <section id="center">
@@ -20,9 +37,19 @@ export default function Welcome() {
             Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
           </p>
         </div>
-        <button type="button" className="counter" onClick={() => setCount((count) => count + 1)}>
+        <button
+          type="button"
+          className="counter"
+          onClick={() => {
+            setCount((count) => count + 1);
+            handlePing(count + 1);
+          }}
+        >
           Count is {count}
         </button>
+        <span>
+          {result.pid} said {result.echo} at {new Date(result.ts).toLocaleTimeString()}
+        </span>
       </section>
 
       <div className="ticks"></div>

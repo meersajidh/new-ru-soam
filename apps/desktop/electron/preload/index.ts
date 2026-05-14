@@ -1,22 +1,6 @@
 import { contextBridge } from 'electron';
+import { soam } from './soam';
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  platform: process.platform,
-});
-
-// import { contextBridge, ipcRenderer, webFrame } from 'electron';
-
-// contextBridge.exposeInMainWorld('electronAPI', {
-//   platform: process.platform,
-// });
-
-// contextBridge.exposeInMainWorld('zoomAPI', {
-//   set: (factor: number) => webFrame.setZoomFactor(factor),
-//   get: () => webFrame.getZoomFactor(),
-// });
-
-// contextBridge.exposeInMainWorld('windowControls', {
-//   minimize: () => ipcRenderer.send('window:minimize'),
-//   maximize: () => ipcRenderer.send('window:maximize'),
-//   close: () => ipcRenderer.send('window:close'),
-// });
+// Per ADR-202: the renderer's only platform surface is `window.soam`.
+// Anything else exposed here is a regression of the trust boundary.
+contextBridge.exposeInMainWorld('soam', soam);

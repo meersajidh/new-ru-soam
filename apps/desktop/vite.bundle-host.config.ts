@@ -15,19 +15,16 @@ export default defineConfig(({ mode }) => {
       ),
     },
     build: {
-      // Preload must be CJS: Electron drops ESM preloads when the renderer is
-      // sandboxed (ADR-201 O11/O15). Sandbox is non-negotiable, so the module
-      // format adapts.
       lib: {
-        entry: 'electron/preload/index.ts',
-        formats: ['cjs'],
-        fileName: () => 'index.cjs',
+        entry: 'electron/bundle-host/index.ts',
+        formats: ['es'],
+        fileName: () => 'index.mjs',
       },
-      outDir: 'dist/preload',
+      outDir: 'dist/bundle-host',
       emptyOutDir: true,
       sourcemap: true,
       rollupOptions: {
-        output: { format: 'cjs' },
+        output: { format: 'es' },
         external: ['electron', ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
       },
     },
