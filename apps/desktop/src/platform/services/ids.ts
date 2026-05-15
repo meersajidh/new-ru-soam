@@ -3,17 +3,22 @@ import type { ILayoutService } from '../layout/layout-service';
 import type { IThemeService } from '../theme/theme-service';
 import type { IStatusBarService } from '../statusbar/statusbar-service';
 import type { IFontService } from '../font/font-service';
+import type { ICommandService } from '../command/command-service';
+import type { IContextKeyService } from '../context-key/context-key-service';
+import type { IKeybindingService } from '../keybinding/keybinding-service';
+import { createContext } from 'react';
+import type { ServiceRegistry } from './registry';
 
 // Phase 2
-export const LayoutServiceId    = serviceId<ILayoutService>('workbench.layout');
-export const ThemeServiceId     = serviceId<IThemeService>('workbench.theme');
+export const LayoutServiceId = serviceId<ILayoutService>('workbench.layout');
+export const ThemeServiceId = serviceId<IThemeService>('workbench.theme');
 export const StatusBarServiceId = serviceId<IStatusBarService>('workbench.statusbar');
-export const FontServiceId      = serviceId<IFontService>('workbench.font');
+export const FontServiceId = serviceId<IFontService>('workbench.font');
 
 // Phase 3
-export const CommandServiceId    = serviceId<unknown>('workbench.command');
-export const ContextKeyServiceId = serviceId<unknown>('workbench.contextKey');
-export const KeybindingServiceId = serviceId<unknown>('workbench.keybinding');
+export const CommandServiceId = serviceId<ICommandService>('workbench.command');
+export const ContextKeyServiceId = serviceId<IContextKeyService>('workbench.contextKey');
+export const KeybindingServiceId = serviceId<IKeybindingService>('workbench.keybinding');
 
 // Phase 4
 export const WorkspaceServiceId = serviceId<unknown>('workbench.workspace');
@@ -29,3 +34,5 @@ export const NotificationServiceId = serviceId<unknown>('workbench.notification'
 
 // Phase 11
 export const RouterServiceId = serviceId<unknown>('workbench.router');
+
+export const RegistryContext = createContext<ServiceRegistry | null>(null);

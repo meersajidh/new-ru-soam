@@ -6,11 +6,20 @@ export function registerWindowControlsCapability(getWindow: () => BrowserWindow 
     const win = getWindow();
     if (!win) throw new Error('No window available');
     switch (method) {
-      case 'minimize': win.minimize(); return null;
-      case 'toggleMaximize': win.isMaximized() ? win.unmaximize() : win.maximize(); return null;
-      case 'close': win.close(); return null;
-      case 'isMaximized': return win.isMaximized();
-      default: throw new Error(`Method not found: ${method}`);
+      case 'minimize':
+        win.minimize();
+        return null;
+      case 'toggleMaximize':
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        win.isMaximized() ? win.unmaximize() : win.maximize();
+        return null;
+      case 'close':
+        win.close();
+        return null;
+      case 'isMaximized':
+        return win.isMaximized();
+      default:
+        throw new Error(`Method not found: ${method}`);
     }
   });
 }
