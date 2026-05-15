@@ -1,0 +1,32 @@
+/* Fallback token values (dark theme) applied before ThemeService runs. */
+:root {
+  --soam-color-background-workbench: #1e1e2e;
+  --soam-color-background-titlebar:  #181825;
+  --soam-color-background-banner:    #313244;
+  --soam-color-background-sidebar:   #181825;
+  --soam-color-background-editor:    #1e1e2e;
+  --soam-color-background-panel:     #181825;
+  --soam-color-background-statusbar: #181825;
+  --soam-color-foreground-primary:   #cdd6f4;
+  --soam-color-foreground-secondary: #a6adc8;
+  --soam-color-foreground-muted:     #6c7086;
+  --soam-color-border-default:       #313244;
+  --soam-color-border-focus:         #89b4fa;
+  --soam-color-accent-default:       #89b4fa;
+  --soam-color-accent-hover:         #b4d0fb;
+  --soam-color-accent-pressed:       #74a8f9;
+  --soam-color-semantic-info:        #89dceb;
+  --soam-color-semantic-warning:     #f9e2af;
+  --soam-color-semantic-error:       #f38ba8;
+  --soam-color-semantic-success:     #a6e3a1;
+  --soam-space-1: 4px;
+  --soam-space-2: 8px;
+  --soam-space-3: 12px;
+  --soam-space-4: 16px;
+  --soam-space-6: 24px;
+  --soam-space-8: 32px;
+  --soam-radius-sm: 4px;
+  --soam-radius-md: 8px;
+  --soam-font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --soam-font-mono: ui-monospace, Consolas, monospace;
+}

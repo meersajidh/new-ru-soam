@@ -7,9 +7,8 @@ import { installCsp } from './security';
 import { createWorkbenchWindow } from './window-factory';
 import { installSoamChannel } from './ipc/soam-channel';
 import { registerPlatformWindow } from './ipc/sender-validate';
-import { registerPlatformPing } from './capability/platform-ping';
-import { registerPlatformHostPing } from './capability/host-ping';
 import { shutdownHost } from './bundle-host/manager';
+import { registerWindowControlsCapability } from './capability/window-controls';
 
 const DEV = !app.isPackaged;
 const DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
@@ -39,8 +38,7 @@ protocol.registerSchemesAsPrivileged([
 app.whenReady().then(() => {
   installCsp(session.defaultSession, DEV);
   installSoamChannel();
-  registerPlatformPing();
-  registerPlatformHostPing();
+  registerWindowControlsCapability(() => mainWindow);
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);

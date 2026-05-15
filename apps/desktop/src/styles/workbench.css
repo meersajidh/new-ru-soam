@@ -1,0 +1,211 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.workbench {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--soam-color-background-workbench);
+  color: var(--soam-color-foreground-primary);
+  font-family: var(--soam-font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* TitleBar */
+.part-titlebar {
+  flex: 0 0 auto;
+  height: 32px;
+  background: var(--soam-color-background-titlebar);
+  border-bottom: 1px solid var(--soam-color-border-default);
+  display: flex;
+  align-items: stretch;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.titlebar-drag-region {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--soam-space-2);
+}
+
+.titlebar-name {
+  font-size: 12px;
+  color: var(--soam-color-foreground-secondary);
+}
+
+.titlebar-controls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-btn {
+  width: 46px;
+  border: none;
+  background: transparent;
+  color: var(--soam-color-foreground-secondary);
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  padding: 0;
+  transition: background 0.1s;
+}
+
+.titlebar-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.titlebar-btn-close:hover {
+  background: #c0392b;
+  color: #fff;
+}
+
+/* Banner — auto height collapses to 0 when empty */
+.part-banner {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+/* Middle */
+.part-middle {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.middle-center {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ActivityBar */
+.part-activitybar {
+  flex: 0 0 48px;
+  background: var(--soam-color-background-sidebar);
+  border-right: 1px solid var(--soam-color-border-default);
+}
+
+/* Side Bars */
+.part-sidebar {
+  flex: 0 0 240px;
+  background: var(--soam-color-background-sidebar);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.part-sidebar-primary {
+  border-right: 1px solid var(--soam-color-border-default);
+}
+
+.part-sidebar-aux {
+  border-left: 1px solid var(--soam-color-border-default);
+}
+
+.sidebar-empty-state {
+  padding: var(--soam-space-4);
+  color: var(--soam-color-foreground-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+/* Editor Area */
+.part-editor-area {
+  flex: 1 1 auto;
+  background: var(--soam-color-background-editor);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.part-empty-editor {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-editor-hint {
+  color: var(--soam-color-foreground-muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+/* Panel */
+.part-panel {
+  flex: 0 0 200px;
+  background: var(--soam-color-background-panel);
+  border-top: 1px solid var(--soam-color-border-default);
+  overflow: hidden;
+}
+
+.panel-empty-state {
+  padding: var(--soam-space-4);
+  color: var(--soam-color-foreground-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+/* StatusBar */
+.part-statusbar {
+  flex: 0 0 auto;
+  height: 22px;
+  background: var(--soam-color-background-statusbar);
+  border-top: 1px solid var(--soam-color-border-default);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--soam-space-2);
+  user-select: none;
+}
+
+.statusbar-region {
+  display: flex;
+  align-items: center;
+  gap: var(--soam-space-1);
+  height: 100%;
+}
+
+.statusbar-left {
+  flex: 1 1 auto;
+}
+
+.statusbar-right {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.statusbar-entry {
+  font-size: 11px;
+  color: var(--soam-color-foreground-secondary);
+  padding: 0 var(--soam-space-1);
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  border-radius: var(--soam-radius-sm);
+}
+
+.statusbar-entry:hover {
+  background: rgba(255, 255, 255, 0.08);
+}

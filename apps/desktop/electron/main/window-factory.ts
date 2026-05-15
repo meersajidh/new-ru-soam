@@ -2,6 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { BrowserWindow, shell } from 'electron';
 import { RENDERER_WEB_PREFERENCES, isAllowedNavigation } from './security';
+import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -24,11 +25,19 @@ export function createWorkbenchWindow(opts: CreateWorkbenchWindowOptions): Brows
   const win = new BrowserWindow({
     width: opts.width ?? 1280,
     height: opts.height ?? 800,
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.cjs'),
       ...RENDERER_WEB_PREFERENCES,
     },
   });
+
+  win.on('maximize', () =>
+    win.webContents.send(SOAM_EVENT_CHANNEL, { name: 'window.maximized', payload: true }),
+  );
+  win.on('unmaximize', () =>
+    win.webContents.send(SOAM_EVENT_CHANNEL, { name: 'window.maximized', payload: false }),
+  );
 
   win.webContents.on('will-navigate', (event, url) => {
     if (!isAllowedNavigation(url, opts.devServerUrl, opts.isDev)) {
