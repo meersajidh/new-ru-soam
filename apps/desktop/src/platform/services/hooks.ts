@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import {
   ContextKeyServiceId,
+  EditorServiceId,
   FontServiceId,
   LayoutServiceId,
   StatusBarServiceId,
@@ -13,6 +14,7 @@ import type { FontSetDescriptor } from '../font/font-service';
 import type { StatusBarEntry } from '../statusbar/statusbar-service';
 import type { CtxValue } from '../context-key/context-key-service';
 import type { ServiceId } from './service-id';
+import type { EditorGroup, EditorLayoutNode } from '../editor/editor-service';
 
 export function useService<T>(id: ServiceId<T>): T {
   const registry = useContext(RegistryContext);
@@ -75,4 +77,30 @@ export function useStatusBarEntries(region: 'left' | 'right'): StatusBarEntry[] 
     [statusBar, region],
   );
   return entries;
+}
+
+export function useEditorState(): { layout: EditorLayoutNode; focusedGroupId: string | null } {
+  const editor = useService(EditorServiceId);
+  const [state, setState] = useState(() => ({
+    layout: editor.getLayout(),
+    focusedGroupId: editor.getFocusedGroupId(),
+  }));
+  useEffect(
+    () => editor.onDidChange(() => setState({
+      layout: editor.getLayout(),
+      focusedGroupId: editor.getFocusedGroupId(),
+    })),
+    [editor],
+  );
+  return state;
+}
+
+export function useEditorGroup(groupId: string): EditorGroup | undefined {
+  const editor = useService(EditorServiceId);
+  const [group, setGroup] = useState(() => editor.getGroup(groupId));
+  useEffect(
+    () => editor.onDidChange(() => setGroup(editor.getGroup(groupId))),
+    [editor, groupId],
+  );
+  return group;
 }

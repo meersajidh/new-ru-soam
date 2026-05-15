@@ -99,15 +99,55 @@ This document slices the committed ADRs (100 / 200 / 300 / 400 / 500 ranges) int
 
 ## Phase 5 — Editor area + resource URIs
 
+**Status:** Complete.
+
 **Goal:** editor mechanism lands before any concrete editor type.
 
-**Deliverable:** EditorService, tabs, splits (nested grid in the central column), `editors` contribution-point loader (still no bundles), one built-in placeholder editor that takes a `placeholder://...` URI and renders text. Read-only editor surface verified.
+**Deliverable:** EditorService (recursive split-tree `EditorLayoutNode`: `group | split`; groups + tabs with `open / close / splitGroup / moveTab` lifecycle; auto-collapse of empty groups when >1 group exists); `EditorArea` walks the tree recursively, splits render as CSS flex with fixed 0.5 ratio; `EditorGroup` tab strip with HTML5 drag-and-drop, routes resource URI to a renderer; built-in `placeholder://` scheme + `PlaceholderEditor`; three commands wired (`editors.openPlaceholder`, `editors.splitRight` = `ctrl+\`, `editors.closeActive` = `ctrl+w`); `editor.activeResource` context key synced on every change.
 
 **ADRs:** ADR-404.
 
-**Open items:** O73–O77.
+**Open items:** O73–O77 (unchanged); O108–O112 added — see Phase 5.5.
 
-**Exit:** open two placeholder editors side-by-side; drag tab between groups; close all → empty editor area placeholder shows.
+**Exit:** open two placeholder editors side-by-side via Command Palette + keybinding; drag tab between groups (HTML5 D&D); close last tab in a non-sole group → group auto-collapses; close all → editor area empty hint shows; `editor.activeResource` reflects focused tab in context-key snapshot. Verified live in Electron via Chrome DevTools Protocol on `localhost:9333` (agent-browser).
+
+### React-19 re-render pattern (caveat captured)
+
+Initial implementation used `[, tick] = useState(0)` + `tick(n => n + 1)` in `useEditorState` / `useEditorGroup` and read live data via `editor.getGroup(id)` during render. Tabs did not appear after `open()` despite `getGroups()` reflecting the new tab.
+
+Fix: store the snapshot in state (`const [group, setGroup] = useState(() => editor.getGroup(groupId))`) and call `setGroup(editor.getGroup(groupId))` from the `onDidChange` listener — same pattern as every other hook in the codebase.
+
+Caveat: the initial Phase-5 summary blamed React 18 concurrent mode for "silently dropping" `tick(n => n + 1)` updates. **That diagnosis is not load-bearing and should not be cited going forward** — `setState(n => n + 1)` does re-render under both React 18 and React 19. The actual root cause was probably mount-order / subscription-timing: the listener was set up after the first emit fired, or the live-read pattern depended on a Map ref that mutated in place. The new "snapshot in state" pattern is correct regardless, captures identity at subscription time, and is the canonical style — keep using it. Do not reintroduce the `[, tick]` pattern.
+
+## Phase 5.5 — Editor UX parity polish (trimmed)
+
+**Goal:** close the highest-value UX gaps between "Phase 5 functional" and "feels like VSCode" before Phase 6 mechanism layers on top. Deliberately narrow — anything that needs a new mechanism, new persistence path, or open-ended event surface is deferred to the Phase 12 polish pass (see below). 5.5 is paint + one tiny correctness fix + the two interactions that hurt most when missing (split-clones-active, keyboard tab cycle).
+
+**Already landed during the Phase-5 review pass:**
+- `.editor-group--focused` CSS rule (previously applied as a class with no matching selector → focused group was invisible). Active-tab styling sharpened: active tab matches editor surface, inactive tabs sit on darker strip bg, accent stripe uses `--color-accent` for focused-group / `--color-fg-muted` for unfocused-group.
+- `EditorService._emit` snapshots `[...this._listeners]` before iterating, to keep synchronous re-subscription inside a listener from mutating the Set mid-iteration.
+- `EditorService.setActiveTab(groupId, instanceId)` added — tab click handler now addresses by instance ID, not resource string. Fixes the bug where clicking a duplicate-resource tab activated the first match instead of the clicked one.
+- `editors.openPlaceholder` command appends a per-session counter (`placeholder://new-tab-1`, `-2`, …) so repeated invocations create distinct tabs instead of tripping `open()`'s resource-dedup branch.
+- Tab cursor + close-button cursor switched to `pointer`. Tabstrip pinned to `min-height: 30px` so close-last-tab does not cause layout jump.
+
+**Remaining (trimmed scope):**
+- **Split clones active editor.** `editors.splitRight` currently creates an empty group. Match VSCode: after `splitGroup`, if the source group had an active tab, `open(sameResource, { groupId: newGroupId })` so the split lands with the active editor mirrored side-by-side. If no active tab, the new group stays empty.
+- **Dirty dot in tab.** `EditorInstance.isDirty` field already exists. Render a `•` in the close-button slot when `isDirty && !hover`; reveal `×` on hover. No new state, no new API — pure render-time + CSS hover swap.
+- **Keyboard nav: Ctrl+Tab / Ctrl+Shift+Tab cycle within focused group.** Two new platform commands (`editors.nextTab`, `editors.previousTab`) + keybindings. Within-group only; cross-group nav deferred to Phase 12.
+- **Refactor: extract `_removeTabFromGroup(groupId, instanceId)` private helper** — `close()` and `moveTab()` currently duplicate the collapse / focus-reassign logic. Mechanical, no behaviour change.
+
+**ADRs:** ADR-404 (no normative change; UX-polish-only).
+
+**Open items added (404-range):**
+- **O108** — Editor service event granularity. Single `onDidChange` re-renders every consumer on every mutation. VSCode's editor service has per-axis events (`onDidAddGroup`, `onDidActiveEditorChange`, `onDidChangeGroupModel`). Decide between (a) split-emitter API now, (b) version-number selectors, (c) defer until Phase 12 when a real bundle dogfoods the editor.
+- **O109** — `editor.activeResource` context-key scrubbing for ADR-407. Currently `''` for `placeholder://` URIs. Once real schemes land (`patient://abc-123`, `session://...`), the value will contain PHI-adjacent IDs and **must** appear on the Phase 9 audit-payload scrub list. Tracked alongside O95.
+- **O110** — Tab dedup policy. `open(resource)` currently dedups by resource-string equality. The placeholder counter is a temporary workaround; decide if a `forceNew` option, a `pinned` flag, or a richer key (resource + view-state hash) is the right shape before any real editor opts in.
+- **O111** — Split-ratio persistence. Phase 5 hard-codes `ratio: 0.5`. Once O108 ships per-axis events and split-divider drag lands (Phase 12 polish), persist ratio per workspace via the Phase 4 layout-persistence path.
+- **O112** — Tab context menu surface. Right-click, middle-click-close, pin/unpin, "close others / close to the right / close all". Belongs to the command + context-key spine (ADR-406/407); waits on the command-menu mechanism scheduled with Phase 12 polish.
+
+**Exit:** focused group visually distinct from unfocused (✓); active tab visually distinct from inactive (✓); split clones active editor into new group; dirty dot appears in tab when `isDirty`; Ctrl+Tab cycles forward within group, Ctrl+Shift+Tab cycles backward; `close()` and `moveTab()` route through the shared `_removeTabFromGroup` helper.
+
+**Explicitly deferred to the Phase 12 polish pass** (see Phase 12 below): drag preview / drop indicator, split-divider drag handle + ratio persistence, tab context menu, Alt+1..9 group switch, Ctrl+PgUp/PgDn alias, `_insertSplit` defensive short-circuit (low-impact correctness, no behaviour delta until a malformed tree shows up).
 
 ## Pre-Phase-6 gate — 100-range amendment pass
 
@@ -192,17 +232,24 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 
 **Exit:** fresh install → Onboarding → workspace created → KEK set → recovery codes captured → Settings reachable; existing install → Recovery flow restores access from a recovery code.
 
-## Phase 12 — Audit Viewer bundle (first first-party bundle)
+## Phase 12 — Audit Viewer bundle (first first-party bundle) + editor polish pass
 
-**Goal:** dogfood the whole stack with the only first-party bundle anchored in the ADR set (ADR-502).
+**Goal:** dogfood the whole stack with the only first-party bundle anchored in the ADR set (ADR-502). Audit Viewer is the forcing function that finally renders real bundle content inside the editor area — so this phase also picks up the editor UX items deferred from Phase 5.5, since they only start to bite once a non-trivial editor is actually being looked at.
 
-**Deliverable:** Audit Viewer ships as a bundle (not built into the shell). Bundle manifest, activation, view hosted in the Primary Side Bar or Editor Area (decision in the bundle's design doc), reads audit store via capability, respects redaction.
+**Deliverable:**
+- Audit Viewer ships as a bundle (not built into the shell). Bundle manifest, activation, view hosted in the Primary Side Bar or Editor Area (decision in the bundle's design doc), reads audit store via capability, respects redaction.
+- Editor polish items deferred from Phase 5.5 (land alongside, prioritised against Audit-Viewer-specific gaps surfaced during dogfooding):
+  - Drag preview + drop indicator (`editor-tab--dragging` class on `dragstart`, `editor-group--drop-target` outline on `dragenter`, insertion indicator between tabs). Likely co-evolves with the O108 event-granularity decision.
+  - Split-divider drag handle on `editor-split-divider` — mouse-drag to resize, snap at min widths. Resolves O111 (ratio persistence via the Phase-4 layout path).
+  - Tab context menu surface (right-click, middle-click-close, pin/unpin, "close others / close to the right / close all"). Resolves O112; depends on the command-menu mechanism this phase needs anyway for the Audit Viewer's row actions.
+  - Cross-group keyboard nav: Alt+1..9 (jump to group N) + Ctrl+PgUp/PgDn (alias for within-group cycle already shipped in 5.5).
+  - `_insertSplit` defensive short-circuit (stop recursing once the target group is found; cleanup that pays off once split-divider drag exercises the tree more aggressively).
 
-**ADRs:** ADR-502, ADR-405, ADR-411.
+**ADRs:** ADR-502, ADR-405, ADR-411 (Audit Viewer); ADR-404 amendment if O108 lands here.
 
-**Open items:** any audit-viewer-specific items raised when the bundle is designed.
+**Open items:** any audit-viewer-specific items raised when the bundle is designed; O108 / O111 / O112 resolved or formally re-deferred during this phase.
 
-**Exit:** Audit Viewer activates on demand, runs in the Bundle Host, renders in a sandboxed iframe, reads only through capabilities, has no privileged path back to the renderer.
+**Exit:** Audit Viewer activates on demand, runs in the Bundle Host, renders in a sandboxed iframe, reads only through capabilities, has no privileged path back to the renderer. Editor area drag-drop shows preview + drop indicator; split dividers are draggable and ratios persist per workspace; tab right-click opens a context menu; Alt+N switches groups.
 
 ## Cross-cutting workstreams
 

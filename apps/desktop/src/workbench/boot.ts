@@ -1,7 +1,8 @@
 import { ServiceRegistry } from '../platform/services/registry';
 import {
-  CommandServiceId, ContextKeyServiceId, FontServiceId,
+  CommandServiceId, ContextKeyServiceId, EditorServiceId, FontServiceId,
   KeybindingServiceId, LayoutServiceId, StatusBarServiceId, ThemeServiceId,
+  WorkspaceServiceId,
 } from '../platform/services/ids';
 import { LayoutService } from '../platform/layout/layout-service';
 import { ThemeService } from '../platform/theme/theme-service';
@@ -10,6 +11,8 @@ import { FontService } from '../platform/font/font-service';
 import { ContextKeyService } from '../platform/context-key/context-key-service';
 import { CommandService } from '../platform/command/command-service';
 import { KeybindingService } from '../platform/keybinding/keybinding-service';
+import { WorkspaceService } from '../platform/workspace/workspace-service';
+import { EditorService } from '../platform/editor/editor-service';
 import { BUILT_IN_THEMES } from '../platform/theme/themes/built-in';
 import { BUILT_IN_FONT_SETS } from '../platform/font/font-sets/built-in';
 import { ANCHORED_ENTRIES } from '../platform/statusbar/anchored-ids';
@@ -64,7 +67,40 @@ export function boot(): ServiceRegistry {
   const keybindings = new KeybindingService(commands, contextKeys);
   registry.register(KeybindingServiceId, keybindings);
 
-  registerPlatformCommands(layout, contextKeys, commands, keybindings, theme);
+  // ── Phase 4 ───────────────────────────────────────────────────────────────
+
+  const workspace = new WorkspaceService(layout, contextKeys);
+  registry.register(WorkspaceServiceId, workspace);
+
+  workspace.onDidOpen(state => {
+    statusBar.update('workbench.workspace.entity', {
+      text: state.entityId,
+      tooltip: `Workspace: ${state.entityId} (${state.entityType})`,
+    });
+  });
+  workspace.onDidClose(() => {
+    statusBar.update('workbench.workspace.entity', {
+      text: 'No workspace',
+      tooltip: 'No workspace open',
+    });
+  });
+
+  // ── Phase 5 ───────────────────────────────────────────────────────────────
+
+  const editor = new EditorService();
+  registry.register(EditorServiceId, editor);
+  contextKeys.set('editor.activeResource', '');
+  editor.onDidChange(() => {
+    const gid = editor.getFocusedGroupId();
+    const group = gid ? editor.getGroup(gid) : undefined;
+    const inst = group?.activeTabId ? group.tabs.find(t => t.id === group.activeTabId) : undefined;
+    contextKeys.set('editor.activeResource', inst?.resource ?? '');
+  });
+
+  registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, workspace, editor);
+
+  // Open mock workspace — real identity comes in Phase 8+
+  workspace.open('entity-mock-001', 'individual');
 
   return registry;
 }

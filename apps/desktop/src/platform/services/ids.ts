@@ -6,6 +6,8 @@ import type { IFontService } from '../font/font-service';
 import type { ICommandService } from '../command/command-service';
 import type { IContextKeyService } from '../context-key/context-key-service';
 import type { IKeybindingService } from '../keybinding/keybinding-service';
+import type { IWorkspaceService } from '../workspace/workspace-service';
+import type { IEditorService } from '../editor/editor-service';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -21,10 +23,10 @@ export const ContextKeyServiceId = serviceId<IContextKeyService>('workbench.cont
 export const KeybindingServiceId = serviceId<IKeybindingService>('workbench.keybinding');
 
 // Phase 4
-export const WorkspaceServiceId = serviceId<unknown>('workbench.workspace');
+export const WorkspaceServiceId = serviceId<IWorkspaceService>('workbench.workspace');
 
 // Phase 5
-export const EditorServiceId = serviceId<unknown>('workbench.editor');
+export const EditorServiceId = serviceId<IEditorService>('workbench.editor');
 
 // Phase 6
 export const BundleServiceId = serviceId<unknown>('workbench.bundle');

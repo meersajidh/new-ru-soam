@@ -7,6 +7,8 @@ export interface ILayoutService {
   isVisible(slotId: SlotId): boolean;
   setVisibility(slotId: SlotId, visible: boolean): void;
   toggleVisibility(slotId: SlotId): void;
+  getVisibilitySnapshot(): Partial<Record<SlotId, boolean>>;
+  restoreVisibility(snapshot: Partial<Record<SlotId, boolean>>): void;
   onDidChangeLayout(listener: () => void): () => void;
   onDidChangePartVisibility(listener: (slotId: SlotId, visible: boolean) => void): () => void;
 }
@@ -41,10 +43,21 @@ export class LayoutService implements ILayoutService {
     if (this._visibility.get(slotId) === visible) return;
     this._visibility.set(slotId, visible);
     this._emitVisibility(slotId, visible);
+    this._emitLayout();
   }
 
   toggleVisibility(slotId: SlotId): void {
     this.setVisibility(slotId, !this.isVisible(slotId));
+  }
+
+  getVisibilitySnapshot(): Partial<Record<SlotId, boolean>> {
+    return Object.fromEntries(this._visibility) as Partial<Record<SlotId, boolean>>;
+  }
+
+  restoreVisibility(snapshot: Partial<Record<SlotId, boolean>>): void {
+    for (const [slotId, visible] of Object.entries(snapshot)) {
+      if (visible !== undefined) this.setVisibility(slotId as SlotId, visible);
+    }
   }
 
   onDidChangeLayout(listener: () => void): () => void {
