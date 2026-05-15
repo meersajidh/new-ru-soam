@@ -2,11 +2,13 @@ import { serviceId } from './service-id';
 import type { ILayoutService } from '../layout/layout-service';
 import type { IThemeService } from '../theme/theme-service';
 import type { IStatusBarService } from '../statusbar/statusbar-service';
+import type { IFontService } from '../font/font-service';
 
 // Phase 2
-export const LayoutServiceId   = serviceId<ILayoutService>('workbench.layout');
-export const ThemeServiceId    = serviceId<IThemeService>('workbench.theme');
+export const LayoutServiceId    = serviceId<ILayoutService>('workbench.layout');
+export const ThemeServiceId     = serviceId<IThemeService>('workbench.theme');
 export const StatusBarServiceId = serviceId<IStatusBarService>('workbench.statusbar');
+export const FontServiceId      = serviceId<IFontService>('workbench.font');
 
 // Phase 3
 export const CommandServiceId    = serviceId<unknown>('workbench.command');

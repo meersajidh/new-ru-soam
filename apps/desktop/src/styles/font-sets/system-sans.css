@@ -1,0 +1,6 @@
+/* System Sans — default system font stack */
+
+.font-set-system-sans {
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+}

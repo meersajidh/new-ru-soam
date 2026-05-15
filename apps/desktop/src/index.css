@@ -1,4 +1,10 @@
-@import './styles/tokens.css';
+@import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/themes/bamboo.css";
+@import "./styles/themes/stone.css";
+@import "./styles/themes/geist.css";
+@import "./styles/font-sets/system-sans.css";
+@import "./styles/workbench.css";
 
 :root {
   font-synthesis: none;

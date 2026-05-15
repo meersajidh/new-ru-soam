@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useService } from './context';
-import { LayoutServiceId, StatusBarServiceId, ThemeServiceId } from './ids';
+import { FontServiceId, LayoutServiceId, StatusBarServiceId, ThemeServiceId } from './ids';
 import type { SlotId } from '../layout/slots';
-import type { ThemeContribution } from '../theme/tokens';
+import type { ThemeDescriptor } from '../theme/tokens';
+import type { FontSetDescriptor } from '../font/font-service';
 import type { StatusBarEntry } from '../statusbar/statusbar-service';
 
 export function useLayoutVisible(slotId: SlotId): boolean {
@@ -15,10 +16,24 @@ export function useLayoutVisible(slotId: SlotId): boolean {
   return visible;
 }
 
-export function useTheme(): ThemeContribution {
+export function useTheme(): ThemeDescriptor {
   const theme = useService(ThemeServiceId);
   const [current, setCurrent] = useState(() => theme.getActive());
   useEffect(() => theme.onThemeChange(setCurrent), [theme]);
+  return current;
+}
+
+export function useDarkMode(): [boolean, (dark: boolean) => void] {
+  const theme = useService(ThemeServiceId);
+  const [dark, setDark] = useState(() => theme.isDark());
+  useEffect(() => theme.onDarkModeChange(setDark), [theme]);
+  return [dark, (d) => theme.setDarkMode(d)];
+}
+
+export function useFontSet(): FontSetDescriptor {
+  const font = useService(FontServiceId);
+  const [current, setCurrent] = useState(() => font.getActive());
+  useEffect(() => font.onFontSetChange(setCurrent), [font]);
   return current;
 }
 

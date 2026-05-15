@@ -1,32 +1,47 @@
-/* Fallback token values (dark theme) applied before ThemeService runs. */
+/* Design token declarations — overridden at runtime by theme + font-set classes on <html>. */
+/* Defaults are bamboo dark (matches the app's cold-start appearance). */
+
+@theme {
+  /* Surfaces */
+  --color-surface-base:     oklch(0.160 0.025 95.0);
+  --color-surface-panel:    oklch(0.195 0.030 95.0);
+  --color-surface-elevated: oklch(0.230 0.035 95.0);
+  --color-surface-active:   oklch(0.300 0.045 130.0);
+
+  /* Foreground */
+  --color-fg-primary:   oklch(0.950 0.0072 95.0);
+  --color-fg-secondary: oklch(0.750 0.0090 95.0);
+  --color-fg-muted:     oklch(0.560 0.0114 95.0);
+
+  /* Borders */
+  --color-border:       oklch(0.320 0.032 95.0);
+  --color-border-focus: oklch(0.740 0.1105 130.0);
+
+  /* Accent */
+  --color-accent:         oklch(0.740 0.1105 130.0);
+  --color-accent-fg:      oklch(0.141 0.0168 95.0);
+  --color-accent-hover:   oklch(0.768 0.0985 130.0);
+  --color-accent-pressed: oklch(0.692 0.0985 130.0);
+
+  /* Semantic */
+  --color-info:    oklch(0.720 0.1001 200.0);
+  --color-success: oklch(0.740 0.0897 145.0);
+  --color-warning: oklch(0.800 0.1105 75.0);
+  --color-error:   oklch(0.700 0.1300 25.0);
+
+  /* Fonts */
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+}
+
+/* Spacing and radius — structural, not theme-switched */
 :root {
-  --soam-color-background-workbench: #1e1e2e;
-  --soam-color-background-titlebar:  #181825;
-  --soam-color-background-banner:    #313244;
-  --soam-color-background-sidebar:   #181825;
-  --soam-color-background-editor:    #1e1e2e;
-  --soam-color-background-panel:     #181825;
-  --soam-color-background-statusbar: #181825;
-  --soam-color-foreground-primary:   #cdd6f4;
-  --soam-color-foreground-secondary: #a6adc8;
-  --soam-color-foreground-muted:     #6c7086;
-  --soam-color-border-default:       #313244;
-  --soam-color-border-focus:         #89b4fa;
-  --soam-color-accent-default:       #89b4fa;
-  --soam-color-accent-hover:         #b4d0fb;
-  --soam-color-accent-pressed:       #74a8f9;
-  --soam-color-semantic-info:        #89dceb;
-  --soam-color-semantic-warning:     #f9e2af;
-  --soam-color-semantic-error:       #f38ba8;
-  --soam-color-semantic-success:     #a6e3a1;
-  --soam-space-1: 4px;
-  --soam-space-2: 8px;
-  --soam-space-3: 12px;
-  --soam-space-4: 16px;
-  --soam-space-6: 24px;
-  --soam-space-8: 32px;
-  --soam-radius-sm: 4px;
-  --soam-radius-md: 8px;
-  --soam-font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --soam-font-mono: ui-monospace, Consolas, monospace;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
 }

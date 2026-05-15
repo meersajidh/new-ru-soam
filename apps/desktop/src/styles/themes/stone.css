@@ -1,0 +1,41 @@
+/* Stone — warm amber palette */
+
+.theme-stone {
+  --color-surface-base:     oklch(0.985 0.012 80.0);
+  --color-surface-panel:    oklch(0.965 0.018 80.0);
+  --color-surface-elevated: oklch(0.998 0.008 80.0);
+  --color-surface-active:   oklch(0.935 0.030 60.0);
+  --color-fg-primary:       oklch(0.245 0.018 80.0);
+  --color-fg-secondary:     oklch(0.460 0.016 80.0);
+  --color-fg-muted:         oklch(0.660 0.012 80.0);
+  --color-border:           oklch(0.900 0.018 80.0);
+  --color-border-focus:     oklch(0.550 0.1100 60.0);
+  --color-accent:           oklch(0.550 0.1100 60.0);
+  --color-accent-fg:        oklch(0.990 0.0030 80.0);
+  --color-accent-hover:     oklch(0.578 0.0990 60.0);
+  --color-accent-pressed:   oklch(0.502 0.0990 60.0);
+  --color-info:             oklch(0.600 0.1012 230.0);
+  --color-success:          oklch(0.600 0.0935 155.0);
+  --color-warning:          oklch(0.720 0.1100 55.0);
+  --color-error:            oklch(0.600 0.1353 25.0);
+}
+
+.theme-stone.dark {
+  --color-surface-base:     oklch(0.160 0.018 80.0);
+  --color-surface-panel:    oklch(0.195 0.022 80.0);
+  --color-surface-elevated: oklch(0.230 0.026 80.0);
+  --color-surface-active:   oklch(0.300 0.036 60.0);
+  --color-fg-primary:       oklch(0.950 0.0048 80.0);
+  --color-fg-secondary:     oklch(0.750 0.0060 80.0);
+  --color-fg-muted:         oklch(0.560 0.0076 80.0);
+  --color-border:           oklch(0.320 0.022 80.0);
+  --color-border-focus:     oklch(0.740 0.0935 60.0);
+  --color-accent:           oklch(0.740 0.0935 60.0);
+  --color-accent-fg:        oklch(0.135 0.0072 60.0);
+  --color-accent-hover:     oklch(0.768 0.0840 60.0);
+  --color-accent-pressed:   oklch(0.692 0.0840 60.0);
+  --color-info:             oklch(0.720 0.0847 230.0);
+  --color-success:          oklch(0.740 0.0759 155.0);
+  --color-warning:          oklch(0.800 0.0935 55.0);
+  --color-error:            oklch(0.700 0.1100 25.0);
+}

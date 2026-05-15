@@ -1,10 +1,11 @@
 import { ServiceRegistry } from '../platform/services/registry';
-import { LayoutServiceId, ThemeServiceId, StatusBarServiceId } from '../platform/services/ids';
+import { FontServiceId, LayoutServiceId, StatusBarServiceId, ThemeServiceId } from '../platform/services/ids';
 import { LayoutService } from '../platform/layout/layout-service';
 import { ThemeService } from '../platform/theme/theme-service';
 import { StatusBarService } from '../platform/statusbar/statusbar-service';
-import { defaultDark } from '../platform/theme/themes/default-dark';
-import { defaultLight } from '../platform/theme/themes/default-light';
+import { FontService } from '../platform/font/font-service';
+import { BUILT_IN_THEMES } from '../platform/theme/themes/built-in';
+import { BUILT_IN_FONT_SETS } from '../platform/font/font-sets/built-in';
 import { ANCHORED_ENTRIES } from '../platform/statusbar/anchored-ids';
 import { SlotId } from '../platform/layout/slots';
 
@@ -17,16 +18,13 @@ export function boot(): ServiceRegistry {
   layout.setVisibility(SlotId.Panel, false);
   registry.register(LayoutServiceId, layout);
 
-  // Theme — detect active theme same way as applyInitialTheme to stay in sync
-  let stored: string | null = null;
-  try { stored = localStorage.getItem('soam.theme'); } catch { /* ignore */ }
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const initialThemeId =
-    stored === 'default-light' || stored === 'default-dark'
-      ? stored
-      : prefersDark ? 'default-dark' : 'default-light';
-  const theme = new ThemeService(document.documentElement, [defaultDark, defaultLight], initialThemeId);
+  // Theme — reads active state from DOM classes already applied by applyInitialTheme()
+  const theme = new ThemeService(document.documentElement, BUILT_IN_THEMES);
   registry.register(ThemeServiceId, theme);
+
+  // Font — reads active font-set class already applied by applyInitialTheme()
+  const font = new FontService(document.documentElement, BUILT_IN_FONT_SETS);
+  registry.register(FontServiceId, font);
 
   // StatusBar — seed six ADR-409 anchored entries
   const statusBar = new StatusBarService();

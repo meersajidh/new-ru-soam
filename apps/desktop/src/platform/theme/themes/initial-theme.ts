@@ -1,26 +1,25 @@
-import { TOKEN_PREFIX } from '../tokens';
-import { defaultDark } from './default-dark';
-import { defaultLight } from './default-light';
-import type { ThemeContribution, TokenMap } from '../tokens';
+const VALID_THEMES = new Set(['bamboo', 'stone', 'geist']);
+const VALID_FONT_SETS = new Set(['system-sans']);
 
-const THEMES: Record<string, ThemeContribution> = {
-  [defaultDark.id]: defaultDark,
-  [defaultLight.id]: defaultLight,
-};
-
-// Called synchronously in main.tsx before createRoot.render to avoid FOUC.
-export function applyInitialTheme(root: HTMLElement): void {
-  let stored: string | null = null;
-  try { stored = localStorage.getItem('soam.theme'); } catch { /* ignore */ }
-  const resolved: ThemeContribution | undefined = stored !== null ? THEMES[stored] : undefined;
-  const theme =
-    resolved ??
-    (window.matchMedia('(prefers-color-scheme: dark)').matches ? defaultDark : defaultLight);
-  applyTokens(root, theme.tokens);
+function safeGetItem(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
 }
 
-export function applyTokens(root: HTMLElement, tokens: TokenMap): void {
-  for (const [name, value] of Object.entries(tokens)) {
-    root.style.setProperty(`${TOKEN_PREFIX}${name.replace(/\./g, '-')}`, value);
-  }
+// Called synchronously in main.tsx before createRoot.render to avoid FOUC.
+// Applies three independent CSS classes to <html>: theme-<id>, dark, font-set-<id>.
+export function applyInitialTheme(root: HTMLElement): void {
+  const storedTheme = safeGetItem('soam.theme') ?? 'bamboo';
+  const themeId = VALID_THEMES.has(storedTheme) ? storedTheme : 'bamboo';
+
+  const storedDark = safeGetItem('soam.dark');
+  const dark = storedDark !== null
+    ? storedDark === 'true'
+    : window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  const storedFontSet = safeGetItem('soam.fontSet') ?? 'system-sans';
+  const fontSetId = VALID_FONT_SETS.has(storedFontSet) ? storedFontSet : 'system-sans';
+
+  root.classList.add(`theme-${themeId}`);
+  if (dark) root.classList.add('dark');
+  root.classList.add(`font-set-${fontSetId}`);
 }

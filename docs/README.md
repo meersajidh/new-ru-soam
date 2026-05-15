@@ -182,7 +182,7 @@ Architectural questions deferred for later decision. Each item names a parking l
 | O54 | Workspace-scoped bundle enable | ADR-403     | Deferred | Clinic admin disables a bundle for whole Entity. Settings shape question for ADR-407 follow-ups.       |
 | O55 | Workspace settings sync policy | ADR-403     | Deferred | Layout / recents / explicit settings: which are Operational (cloud-mirrored) vs device-local-only.      |
 | O56 | Workspace setting trust prompt | ADR-403     | Deferred | Bundle settings pointing to external endpoints — VSCode-workspace-trust analogue, post-MVP only.        |
-| O57 | Window chrome (native/custom)  | ADR-401     | Deferred | Native title bar vs frameless custom chrome. UX call; title-bar Part shape unaffected.                 |
+| O57 | Window chrome (native/custom)  | ADR-401     | Resolved | Frameless (`frame: false`). Custom renderer TitleBar Part; window controls via `platform.window@1.0` capability. Resolved Phase 2. |
 | O58 | Grid engine / library          | ADR-401     | Deferred | Custom SerializableGrid analogue, `allotment`, plain CSS grid, or other.                                |
 | O59 | Banner contribution scope      | ADR-401     | Deferred | Platform-only at first; consider opening to bundles. Overlaps with ADR-104 O7 catalogue.                |
 | O60 | Aux Side Bar nav strip         | ADR-402     | Deferred | Whether Auxiliary Side Bar grows its own Activity-Bar-equivalent. Default: no, stays context-driven.    |
@@ -221,7 +221,7 @@ Architectural questions deferred for later decision. Each item names a parking l
 | O93 | Bundle context-key authority   | ADR-407     | Deferred | Rate limit on `set` calls; quota on declared keys per bundle.                                           |
 | O94 | PHI-adjacent context-key priv  | ADR-407     | Deferred | Crash-dump scrub, telemetry redaction, consent-gated bridge propagation for `patient.*` / `record.*`.    |
 | O95 | Expression evaluator perf      | ADR-407     | Deferred | Per-re-evaluation cost budget under realistic clause counts (hundreds to low thousands).                 |
-| O96 | Service id mechanism           | ADR-412     | Deferred | `Symbol` vs branded string vs class-as-key. Affects bundling, tree-shaking, collision.                   |
+| O96 | Service id mechanism           | ADR-412     | Resolved | Branded string: `interface ServiceId<T> { readonly _t: T; readonly id: string }`. Resolved Phase 2.   |
 | O97 | TanStack Query key convention  | ADR-412     | Deferred | Per-capability prefix; per-resource invalidation scope; key versioning when capability evolves.          |
 | O98 | Workspace lifecycle reset matrix | ADR-412   | Deferred | Definitive list: which services reset on close, which persist, which partial.                            |
 | O99 | Suspense / loading discipline  | ADR-412     | Deferred | When to use `<Suspense>` vs skeletons; default UX for slow capability calls.                              |
@@ -232,7 +232,7 @@ Architectural questions deferred for later decision. Each item names a parking l
 | O104 | Status-bar priority scheme     | ADR-409     | Deferred | Free-form integers vs banded ranges (core / first-party / third-party).                                  |
 | O105 | Status-bar update rate-limit   | ADR-409     | Deferred | Default 4/s; per-entry override case.                                                                   |
 | O106 | Status-bar context menu        | ADR-409     | Deferred | Right-click menu: hide-entry, show-all, configure.                                                      |
-| O107 | Theme token catalogue          | ADR-413     | Deferred | Full list, types, intended use. Lands as reference doc; updated as new platform surfaces appear.        |
+| O107 | Theme token catalogue          | ADR-413     | Resolved | v1: 17 color tokens + 2 font tokens. Three palettes (Bamboo/Stone/Geist). Defined in `apps/desktop/src/styles/tokens.css`. Resolved Phase 2.5. |
 | O108 | Icon rendering mechanism       | ADR-413     | Deferred | Inline SVG vs sprite vs font. Affects bundle-author asset format and bundle size.                       |
 | O109 | A11y theme contrast budget     | ADR-413     | Deferred | WCAG AA minimum starting point; per-surface tuning.                                                     |
 | O110 | Theme propagation cost         | ADR-413     | Deferred | Push to many active iframes on theme switch; verify no perceptible flicker.                              |

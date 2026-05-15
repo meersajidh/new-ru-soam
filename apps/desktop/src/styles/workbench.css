@@ -14,9 +14,9 @@ body,
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--soam-color-background-workbench);
-  color: var(--soam-color-foreground-primary);
-  font-family: var(--soam-font-sans);
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+  font-family: var(--font-sans);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -25,8 +25,8 @@ body,
 .part-titlebar {
   flex: 0 0 auto;
   height: 32px;
-  background: var(--soam-color-background-titlebar);
-  border-bottom: 1px solid var(--soam-color-border-default);
+  background: var(--color-surface-panel);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: stretch;
   user-select: none;
@@ -37,12 +37,12 @@ body,
   flex: 1 1 auto;
   display: flex;
   align-items: center;
-  padding: 0 var(--soam-space-2);
+  padding: 0 var(--space-2);
 }
 
 .titlebar-name {
   font-size: 12px;
-  color: var(--soam-color-foreground-secondary);
+  color: var(--color-fg-secondary);
 }
 
 .titlebar-controls {
@@ -56,7 +56,7 @@ body,
   width: 46px;
   border: none;
   background: transparent;
-  color: var(--soam-color-foreground-secondary);
+  color: var(--color-fg-secondary);
   cursor: default;
   display: flex;
   align-items: center;
@@ -67,12 +67,12 @@ body,
 }
 
 .titlebar-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-surface-active);
 }
 
 .titlebar-btn-close:hover {
-  background: #c0392b;
-  color: #fff;
+  background: var(--color-error);
+  color: var(--color-fg-primary);
 }
 
 /* Banner — auto height collapses to 0 when empty */
@@ -101,30 +101,30 @@ body,
 /* ActivityBar */
 .part-activitybar {
   flex: 0 0 48px;
-  background: var(--soam-color-background-sidebar);
-  border-right: 1px solid var(--soam-color-border-default);
+  background: var(--color-surface-panel);
+  border-right: 1px solid var(--color-border);
 }
 
 /* Side Bars */
 .part-sidebar {
   flex: 0 0 240px;
-  background: var(--soam-color-background-sidebar);
+  background: var(--color-surface-panel);
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .part-sidebar-primary {
-  border-right: 1px solid var(--soam-color-border-default);
+  border-right: 1px solid var(--color-border);
 }
 
 .part-sidebar-aux {
-  border-left: 1px solid var(--soam-color-border-default);
+  border-left: 1px solid var(--color-border);
 }
 
 .sidebar-empty-state {
-  padding: var(--soam-space-4);
-  color: var(--soam-color-foreground-muted);
+  padding: var(--space-4);
+  color: var(--color-fg-muted);
   font-size: 12px;
   margin: 0;
 }
@@ -132,7 +132,7 @@ body,
 /* Editor Area */
 .part-editor-area {
   flex: 1 1 auto;
-  background: var(--soam-color-background-editor);
+  background: var(--color-surface-base);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -146,7 +146,7 @@ body,
 }
 
 .empty-editor-hint {
-  color: var(--soam-color-foreground-muted);
+  color: var(--color-fg-muted);
   font-size: 13px;
   margin: 0;
 }
@@ -154,14 +154,14 @@ body,
 /* Panel */
 .part-panel {
   flex: 0 0 200px;
-  background: var(--soam-color-background-panel);
-  border-top: 1px solid var(--soam-color-border-default);
+  background: var(--color-surface-panel);
+  border-top: 1px solid var(--color-border);
   overflow: hidden;
 }
 
 .panel-empty-state {
-  padding: var(--soam-space-4);
-  color: var(--soam-color-foreground-muted);
+  padding: var(--space-4);
+  color: var(--color-fg-muted);
   font-size: 12px;
   margin: 0;
 }
@@ -170,18 +170,18 @@ body,
 .part-statusbar {
   flex: 0 0 auto;
   height: 22px;
-  background: var(--soam-color-background-statusbar);
-  border-top: 1px solid var(--soam-color-border-default);
+  background: var(--color-surface-panel);
+  border-top: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  padding: 0 var(--soam-space-2);
+  padding: 0 var(--space-2);
   user-select: none;
 }
 
 .statusbar-region {
   display: flex;
   align-items: center;
-  gap: var(--soam-space-1);
+  gap: var(--space-1);
   height: 100%;
 }
 
@@ -196,16 +196,16 @@ body,
 
 .statusbar-entry {
   font-size: 11px;
-  color: var(--soam-color-foreground-secondary);
-  padding: 0 var(--soam-space-1);
+  color: var(--color-fg-secondary);
+  padding: 0 var(--space-1);
   cursor: default;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
-  border-radius: var(--soam-radius-sm);
+  border-radius: var(--radius-sm);
 }
 
 .statusbar-entry:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-surface-active);
 }

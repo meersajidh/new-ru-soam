@@ -40,15 +40,38 @@ This document slices the committed ADRs (100 / 200 / 300 / 400 / 500 ranges) int
 
 ## Phase 2 — Workbench shell + Parts + theming
 
+**Status:** Complete.
+
 **Goal:** workbench renders empty slots. No bundles, no editors. Theme tokens flow.
 
-**Deliverable:** TitleBar / Banner / Middle (five slots) / StatusBar. LayoutService + ThemeService + ServiceRegistry + `useService` hook. Default Dark + Default Light themes load. Two-region StatusBar with one placeholder entry per region.
+**Deliverable:** TitleBar / Banner / Middle (five slots) / StatusBar. LayoutService + ThemeService + ServiceRegistry + `useService` hook. Three-region StatusBar with six ADR-409 anchored entries as inert stubs. Custom frameless TitleBar (`frame: false`) with window controls routed through the `platform.window@1.0` capability — no new IPC channels (O57 resolved here).
 
 **ADRs:** ADR-401, ADR-402, ADR-409, ADR-412, ADR-413.
 
-**Open items:** O57–O63, O96–O100, O104–O110.
+**Open items resolved:** O57 (custom titlebar, frameless + renderer Part), O96 (ServiceId: branded string).
 
 **Exit:** can toggle Primary Side Bar / Panel / Aux Side Bar via keyboard; theme swap is live with no flicker; ServiceRegistry resolves typed identifiers.
+
+## Phase 2.5 — Tailwind v4 + multi-palette theming + font axis
+
+**Status:** Complete.
+
+**Goal:** replace `style.setProperty` theming with CSS class-based theming on `<html>`. Add Tailwind v4. Introduce three orthogonal axes (palette / luminance / font set). Land first three built-in palettes.
+
+**Deliverable:**
+- Tailwind v4 via `@tailwindcss/vite`; `@theme {}` block in `tokens.css` defines 17 color tokens + 2 font tokens → generates `bg-*` / `text-*` utilities.
+- Three built-in palettes as CSS class files: **Bamboo** (warm green, OKLCH h≈95/130), **Stone** (warm amber, OKLCH h≈60/80), **Geist** (achromatic, zero chroma, blue accent h≈258).
+- Each palette defines `.theme-<id>` (light) and `.theme-<id>.dark` variants — palette and luminance are orthogonal.
+- `ThemeService` rewritten: `setTheme()` swaps `theme-*` class; `setDarkMode()` toggles `.dark`; `getTokenSnapshot()` reads via `getComputedStyle`. No more `setProperty` loops.
+- `FontService` + `IFontService`: `font-set-*` class axis on `<html>`. Built-in: `system-sans`. `FontServiceId` added to service registry.
+- `initial-theme.ts` applies all three classes synchronously before `createRoot.render` (no FOUC).
+- `workbench.css` updated to new token names (`--color-*`, `--space-*`, `--font-*`).
+
+**ADRs:** ADR-413 (theming), ADR-412 (services-in-renderer).
+
+**Open items resolved:** O107 (theme token catalogue v1 — 17 color tokens, documented in `tokens.css`).
+
+**Exit:** `setTheme('bamboo'|'stone'|'geist')` + `setDarkMode(true|false)` swap live with no flicker, no React remount; three palettes visually distinct; font axis independent of palette and luminance; type-check passes.
 
 ## Phase 3 — Command + context-key + keybinding spine
 
