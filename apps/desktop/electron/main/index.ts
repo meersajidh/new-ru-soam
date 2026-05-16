@@ -9,8 +9,10 @@ import { installSoamChannel } from './ipc/soam-channel';
 import { registerPlatformWindow } from './ipc/sender-validate';
 import { shutdownHost } from './bundle-host/manager';
 import { installBundleCrashEventBridge, loadAndActivateBundles } from './bundle-host/loader';
+import { registerViewProtocol } from './bundle-host/view-protocol';
 import { registerWindowControlsCapability } from './capability/window-controls';
 import { registerBundlesOutputCapability } from './capability/bundles-output';
+import { registerBundleViewsCapability } from './capability/bundle-views';
 
 const DEV = !app.isPackaged;
 const DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
@@ -35,13 +37,25 @@ protocol.registerSchemesAsPrivileged([
     scheme: 'app',
     privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true },
   },
+  {
+    // ADR-411: bundle view assets. `standard: true` so URLs parse with a
+    // hostname (the bundleId). Each bundleId becomes a distinct origin —
+    // same-origin policy isolates bundles from each other and from the
+    // workbench shell at `app://`. `corsEnabled: true` because Electron
+    // treats non-CORS-enabled schemes as opaque resources that can't be
+    // loaded into cross-origin iframes.
+    scheme: 'view',
+    privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true },
+  },
 ]);
 
 app.whenReady().then(() => {
   installCsp(session.defaultSession, DEV);
   installSoamChannel();
+  registerViewProtocol();
   registerWindowControlsCapability(() => mainWindow);
   registerBundlesOutputCapability();
+  registerBundleViewsCapability();
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);

@@ -17,18 +17,32 @@ export interface CapabilityManifestEntry {
 
 export type ActivationEvent = 'eager' | 'lazy' | 'onCommand' | 'onEvent';
 
+/**
+ * View contribution per ADR-411. The bundle supplies an HTML entry under
+ * `view-assets/`; the `view://` protocol serves it from there. `id` is the
+ * stable identifier the platform uses to address this view. `path` is the
+ * relative file under `view-assets/`. Both are validated to deny `..`
+ * traversal and absolute paths.
+ */
+export interface ViewManifestEntry {
+  readonly id: string;
+  readonly path: string;
+}
+
 export interface BundleManifest {
   readonly id: string;
   readonly version: string;
   readonly entry: string;
   readonly activationEvents: ReadonlyArray<ActivationEvent>;
   readonly capabilities: ReadonlyArray<CapabilityManifestEntry>;
+  readonly views: ReadonlyArray<ViewManifestEntry>;
 }
 
 export interface DiscoveredBundle {
   readonly manifest: BundleManifest;
   readonly bundleDir: string;
   readonly entryPath: string;
+  readonly viewAssetsDir: string;
 }
 
 const KNOWN_EVENTS: ReadonlySet<ActivationEvent> = new Set(['eager', 'lazy', 'onCommand', 'onEvent']);
@@ -82,12 +96,36 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
     caps.push({ name: cap.name, version: cap.version });
   }
 
+  const views: ViewManifestEntry[] = [];
+  if (m.views !== undefined) {
+    if (!Array.isArray(m.views)) {
+      throw new ManifestError(manifestPath, '`views` must be an array if present');
+    }
+    for (const v of m.views) {
+      if (!v || typeof v !== 'object') {
+        throw new ManifestError(manifestPath, 'view entry must be an object');
+      }
+      const view = v as Record<string, unknown>;
+      if (!isString(view.id) || !isString(view.path)) {
+        throw new ManifestError(manifestPath, 'view requires `id` and `path` strings');
+      }
+      if (!/^[a-z0-9][a-z0-9_-]*$/i.test(view.id)) {
+        throw new ManifestError(manifestPath, `view id "${view.id}" must match /^[a-z0-9][a-z0-9_-]*$/i`);
+      }
+      if (view.path.includes('..') || view.path.startsWith('/') || view.path.startsWith('\\')) {
+        throw new ManifestError(manifestPath, `view path "${view.path}" must be relative without ".." segments`);
+      }
+      views.push({ id: view.id, path: view.path });
+    }
+  }
+
   return {
     id: m.id,
     version: m.version,
     entry: m.entry,
     activationEvents: events,
     capabilities: caps,
+    views,
   };
 }
 
@@ -128,7 +166,8 @@ export function discoverBundles(rootDir: string): ReadonlyArray<DiscoveredBundle
       continue;
     }
 
-    out.push({ manifest, bundleDir, entryPath });
+    const viewAssetsDir = path.join(bundleDir, 'view-assets');
+    out.push({ manifest, bundleDir, entryPath, viewAssetsDir });
   }
   return out;
 }

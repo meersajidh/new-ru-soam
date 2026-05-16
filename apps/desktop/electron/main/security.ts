@@ -39,6 +39,10 @@ export function buildCsp(dev: boolean): string {
     'img-src': ["'self'", 'app:', 'data:', 'blob:'],
     'font-src': ["'self'", 'app:', 'data:', 'https://fonts.gstatic.com'],
     'connect-src': connectSrc,
+    // ADR-411: workbench must be allowed to embed `view://<bundleId>` iframes.
+    // Bundle views run cross-origin under the `view:` scheme; each bundleId is
+    // its own origin, structurally isolated from the workbench shell.
+    'frame-src': ["view:"],
     'object-src': ["'none'"],
     'base-uri': ["'none'"],
     'frame-ancestors': ["'none'"],
@@ -60,6 +64,15 @@ export function buildCsp(dev: boolean): string {
 export function installCsp(session: Session, dev: boolean): void {
   const csp = buildCsp(dev);
   session.webRequest.onHeadersReceived((details, callback) => {
+    // ADR-411: bundle view documents (`view://`) carry their own CSP set by
+    // the view protocol handler. Overwriting it with the workbench CSP would
+    // (a) apply `frame-ancestors 'none'` and prevent the workbench from
+    // embedding them, and (b) widen view privileges to whatever the
+    // workbench allows. Leave view responses alone.
+    if (details.url.startsWith('view://')) {
+      callback({});
+      return;
+    }
     const headers = { ...details.responseHeaders };
     for (const key of Object.keys(headers)) {
       if (key.toLowerCase() === 'content-security-policy') delete headers[key];

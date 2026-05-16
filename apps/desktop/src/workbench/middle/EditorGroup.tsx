@@ -1,6 +1,7 @@
 import { useEditorGroup, useService } from '../../platform/services/hooks';
 import { EditorServiceId } from '../../platform/services/ids';
 import PlaceholderEditor from './PlaceholderEditor';
+import BundleViewIframe from './BundleViewIframe';
 
 interface Props {
   groupId: string;
@@ -55,16 +56,19 @@ export default function EditorGroupView({ groupId, isFocused }: Props) {
         </div>
       )}
       <div className="editor-content">
-        {activeInstance ? renderEditor(activeInstance.resource) : <EmptyGroup />}
+        {activeInstance ? renderEditor(activeInstance.resource, activeInstance.id) : <EmptyGroup />}
       </div>
     </div>
   );
 }
 
-function renderEditor(resource: string) {
+function renderEditor(resource: string, instanceId: string) {
   try {
     const url = new URL(resource);
     if (url.protocol === 'placeholder:') return <PlaceholderEditor resource={resource} />;
+    if (url.protocol === 'view:') {
+      return <BundleViewIframe key={instanceId} resource={resource} instanceId={instanceId} />;
+    }
   } catch { /* fall through */ }
   return <div className="editor-unknown">Unknown editor: {resource}</div>;
 }

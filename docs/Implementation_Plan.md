@@ -233,17 +233,62 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - ✅ Cap error codes match end-to-end (`cap.not_found` post-crash; `cap.handler_threw` for handler throws).
 - ✅ `getOutput('echo-test')` returns timestamped error-attribution lines.
 
-## Phase 7 — View hosting: `view://` + iframe + bridge
+## Phase 7 — View hosting: `view://` + iframe + bridge — Complete
 
 **Goal:** bundles render UI in a sandboxed iframe.
 
-**Deliverable:** `view://` protocol handler in Main, sandbox + CSP applied, bridge surface (`bindCapability`, lifecycle events, theme snapshot, resource snapshot), theme propagation to the iframe document root. Test bundle ships a view that calls its own capability through the bridge.
+**Trimmed scope (landed):**
 
-**ADRs:** ADR-411.
+- **`view://` protocol** registered as a privileged scheme (`standard`, `secure`, `corsEnabled`); handler resolves `view://<bundleId>/<assetPath>` against the bundle's `view-assets/` directory. HTML responses get the bridge `<script>` tag and CSP injected; non-HTML assets pass through. Reserved host `_platform_/bridge.js` serves the in-iframe bridge.
+- **Manifest schema** extended with `views: [{ id, path }]`. Path traversal denied at parse time. Bundles declaring no views skip view registration entirely.
+- **CSP for view documents**: `default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; font-src view: data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'`. `frame-ancestors` deliberately omitted — workbench is on a different origin and must be able to embed. Refinement → **O81** (existing).
+- **Workbench CSP** updated with `frame-src view:` so the shell can host view iframes. `installCsp` skips view: responses so per-view CSP isn't overwritten.
+- **Sandbox flags**: `allow-scripts allow-forms`. `allow-pointer-lock` deferred → **O80** (existing).
+- **Bridge script** (`window.soamView`): `bindCapability`, `events.onActivate / onDeactivate`, `theme` snapshot (CSS variables, applied to `documentElement`), `requestClose / requestFocus`. Lifecycle: `view.ready` (out) → `init` + `activate` (in) → `cap.call` / `cap.response` round-trips → `deactivate` (in) on unmount.
+- **Renderer relay (`BundleViewIframe`)**: hosts one iframe per editor tab whose resource is a `view://` URL. Forwards `cap.call` to `window.soam.bindCapability`, pushes CSS-variable snapshot at init and on every theme / dark-mode change, handles `request.close` via `EditorService.close`. Renderer does not interpret payloads — Main is the broker, per ADR-411 §Communication discipline.
+- **EditorGroup** dispatches the `view:` scheme to `BundleViewIframe`; the existing `placeholder:` path is untouched.
+- **`platform.views@1.0`** capability with `resolve(bundleId, viewId)` so the Renderer can ask Main for a fully-formed `view://` URL — keeps the view registry in Main, where it's populated alongside the bundle loader.
+- **Test bundle**: `echo-test` ships `view-assets/echo-view.html` (manifest entry `views: [{ id: 'main', path: 'echo-view.html' }]`) with an auto-ping on `activate`, manual buttons, and in-iframe hardening probes that report results back to the parent via `postMessage`.
+- **Dev command** `developer.bundles.openEchoView` resolves the URL through `platform.views` and opens it as a new editor tab.
 
-**Open items:** O78–O85.
+**Verification (CDP 9333, agent-browser):**
 
-**Exit:** test bundle view opens in the Editor Area and in the Panel; theme swap propagates to the iframe; the iframe cannot reach `window.soam`, the renderer ServiceRegistry, or `require('electron')`.
+- Bridge loads inside iframe — parent receives `view.ready` postMessage with `origin: "null"` (sandbox without `allow-same-origin`, as designed).
+- `init` push delivers full theme snapshot (17 CSS variables); iframe applies them to `documentElement`.
+- On `activate`, iframe auto-pings `echo.ping@1.0` via bridge: reply round-trips through relay → Main → Bundle Host → back, includes `hostPid` matching the same utilityProcess that serves the eager `echo.ping`.
+- In-iframe probes deny everything:
+  - `window.soam` → `undefined`
+  - `window.parent.document` → blocked (cross-origin)
+  - `window.require` / `window.process` → `undefined`
+  - `window.top.location` → blocked (cross-origin)
+  - `window.origin === "null"`
+- Theme swap (`workbench.theme.bamboo` ↔ `stone`) and dark-mode toggle each trigger one fresh `theme` postMessage into the iframe; computed `--color-surface-base` flips appropriately (`oklch(0.985 …)` ↔ `oklch(0.160 …)`).
+- `pnpm exec tsc -b` clean.
+
+**ADRs:** ADR-411 (load-bearing). Workbench CSP carve-out and view-CSP omission of `frame-ancestors` documented in `electron/main/security.ts` and `electron/main/bundle-host/view-protocol.ts`.
+
+**Open items landed / still in flight from ADR-411 list:**
+- **O78** — scheme name resolved (`view://`, with reserved `_platform_` host for the bridge).
+- **O79** — bridge shape committed for Phase 7 surface; further methods land per **O141** (new) below as needed.
+- **O80, O81, O82, O83, O84, O85** — unchanged from ADR-411.
+
+**Open items newly raised:**
+- **O138** — Side bar / Panel slot iframe mounting. Mechanism identical, separate wiring + manifest contribution points (`contributes.views.sidebar`, `…panel`) and per-slot bridge events. Lands **Phase 9.0** (first clinical-bundle phase that needs a sidebar view).
+- **O139** — Crash placeholder UI for orphaned iframes after Bundle Host crash. The renderer keeps the iframe DOM intact post-crash; pending `cap.call` promises hang. Replace with a timeout-aware placeholder ("view inactive — bundle host crashed"). **Phase 9.0**.
+- **O140** — Full `view.activate(viewId, ctx)` lifecycle hook in bundle (ADR-411 §View lifecycle step 6). Phase 7 stubs activation at the renderer/Main boundary only; the bundle's Node code is unaware a view exists. First clinical view phase implements. **Phase 9.0**.
+- **O141** — `events.onResize`, `events.onResourceChange`, `notifyDirty`, `notifyTitle`, `announce` (a11y live region). Land when first view actually needs each. **Phase 9.X**.
+- **O142** — `ThemeTokens` typed surface on `window.soamView.theme`. Phase 7 ships raw CSS-variable record; typed object lands when RuEdit / clinical views need named-token access. **Phase 7.5**.
+- **O143** — Tighten view CSP `script-src` / `style-src` — Phase 7 allows `'unsafe-inline'` for ergonomics; refine alongside O81 once first non-test bundle ships a real view. **Phase 9.X**.
+
+**Why this lands at Phase 7 trimmed:**
+- Editor-Area-only mount surface is sufficient to prove the mechanism end-to-end; sidebar/panel use the same code path with extra slot plumbing (deferred to first real consumer per [[feedback_scope_discipline]]).
+- A11y patterns, declarative views, and full event surface land alongside real bundle views, not against a synthetic test bundle.
+
+**Exit:** met.
+- ✅ `developer.bundles.openEchoView` opens a sandboxed iframe in the Editor Area; bridge initialises and round-trips a capability call.
+- ✅ Theme swap and dark-mode toggle propagate CSS variables into the iframe.
+- ✅ Iframe cannot reach `window.soam`, `window.parent.document`, `window.top.location`, `require`, or `process`.
+- ✅ `pnpm exec tsc -b` clean across renderer, main, preload, bundle-host.
 
 ## Phase 7.5 — RuEdit core skeleton
 

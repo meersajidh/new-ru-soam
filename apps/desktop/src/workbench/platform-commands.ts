@@ -159,6 +159,29 @@ export function registerPlatformCommands(
   );
 
   commands.register(
+    'developer.bundles.openEchoView',
+    'Developer: Open echo-test view',
+    async () => {
+      const proxy = await window.soam.bindCapability('platform.views', '1.0');
+      try {
+        const res = (await proxy.call('resolve', 'echo-test', 'main')) as
+          | { found: false }
+          | { found: true; url: string };
+        if (!res.found) {
+          console.error('[echo-view] resolve returned not-found for echo-test/main');
+          return;
+        }
+        editor.open(res.url, { title: 'echo-test view' });
+      } catch (err) {
+        console.error('[echo-view] open failed:', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Developer' },
+  );
+
+  commands.register(
     'developer.bundles.dumpOutput',
     'Developer: Dump bundle Output ring buffer',
     async () => {

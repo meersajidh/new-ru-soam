@@ -372,6 +372,14 @@ body,
 
 .editor-group-empty p { margin: 0; }
 
+.bundle-view-iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--color-surface-base);
+}
+
 .editor-placeholder {
   flex: 1 1 auto;
   display: flex;

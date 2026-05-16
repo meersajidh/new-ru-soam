@@ -5,5 +5,8 @@
   "activationEvents": ["eager"],
   "capabilities": [
     { "name": "echo.ping", "version": "1.0" }
+  ],
+  "views": [
+    { "id": "main", "path": "echo-view.html" }
   ]
 }
