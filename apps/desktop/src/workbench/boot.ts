@@ -102,5 +102,17 @@ export function boot(): ServiceRegistry {
   // Open mock workspace — real identity comes in Phase 8+
   workspace.open('entity-mock-001', 'individual');
 
+  // Phase 6: surface bundle-crash events so a host crash is observable in the
+  // renderer. Banner contribution lands Phase 7; for now console + context key.
+  contextKeys.set('bundles.lastCrash', '');
+  window.soam.events.on((event) => {
+    if (event.name === 'bundle.crashed') {
+      const payload = event.payload as { bundleIds?: ReadonlyArray<string> };
+      const ids = payload?.bundleIds ?? [];
+      console.error('[workbench] bundle(s) crashed, marked inactive:', ids);
+      contextKeys.set('bundles.lastCrash', ids.join(','));
+    }
+  });
+
   return registry;
 }

@@ -1,11 +1,11 @@
 # Bundle activation lifecycle
 
 **ID:** ADR-105
-**Status:** Accepted
+**Status:** Accepted _(amended 2026-05-16 — `activate(...)` runs in the Bundle Host; disposable held by Main as IPC reference per ADR-410)_
 **Date:** 2026-05-12
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-103, ADR-104
+**Related:** ADR-103, ADR-104, ADR-410
 
 ## Context
 
@@ -29,6 +29,10 @@ A bundle exports a single activation function. It registers contributions, binds
 
 The activation function is async. It may fail.
 
+### Execution site
+
+Per ADR-410, `activate(...)` executes inside the **Bundle Host** — the dedicated Node.js process Main spawns lazily for bundle code — not inside Main and not inside the Renderer. The disposable returned by `activate(...)` is held by Main as a remote reference; `dispose()` is an IPC call from Main into the Bundle Host that runs the bundle's local cleanup. Manifest-declared contributions are registered by Main from the manifest snapshot (per ADR-104 amendment) before `activate(...)` runs; the activation function performs runtime-only registration (e.g., dynamic command handlers, capability implementations) against the same registry through the Main-mediated bridge.
+
 ### Disposable convention
 
 The platform adopts a uniform **disposable** convention. Every registration in the platform — contribution registration, capability binding, event subscription — returns a value with a single, idempotent `dispose()` operation that releases what it holds. Disposables are composable: a bundle accumulates them during activation and returns one aggregate disposable to the platform, which calls it on deactivation.
@@ -45,11 +49,11 @@ A bundle may declare dependencies on other bundles. The platform activates depen
 
 If a bundle's activation function throws, the platform:
 
-- does not register any of that bundle's contributions,
+- does not register any of that bundle's **runtime** contributions (manifest-declared contributions registered at boot remain in the registry but route invocations to a "bundle inactive" error until activation succeeds — see ADR-410 crash semantics),
 - emits a user-visible error scoped to that bundle,
 - continues activating other bundles. A failed bundle does not bring down the shell.
 
-Consumers of contributions that never registered see an empty contribution set, not a crash.
+A Bundle Host process crash is detected by Main and surfaced through the same failure path (ADR-410). Consumers of contributions whose owning bundle failed or crashed see an empty result or a typed error, not a workbench crash.
 
 ### Idempotency
 

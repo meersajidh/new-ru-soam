@@ -1,11 +1,11 @@
 # Three authority zones: Renderer, Main, Cloud Backend
 
 **ID:** ADR-101
-**Status:** Final
+**Status:** Final _(amended 2026-05-16 — added Bundle Host as fourth trust zone per ADR-410)_
 **Date:** 2026-05-12
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-301
+**Related:** ADR-301, ADR-410
 
 ## Context
 
@@ -38,6 +38,16 @@ _The Cloud Backend is stubbed in the current implementation. This ADR declares i
 - **Trust:** _cloud-trusted_. Server-side environment under organizational control.
 - **Role:** account systems, billing, quotas, app-owned secrets, app-owned third-party provider orchestration, operational data sync.
 - **Does not own:** PHI (see ADR-301), user-provided third-party keys.
+
+### Bundle Host — third-party-trust authority
+
+_Added by amendment per ADR-410. The Bundle Host is the dedicated Node.js process Main spawns lazily to host bundle code; it sits structurally below Main and is unreachable from the Renderer except via Main mediation._
+
+- **Trust:** _third-party-trust_. Hosts unprivileged third-party (and first-party) bundle code; treated as untrusted-by-default and granted only the capabilities its manifest declares and Main accepts.
+- **Owns:** execution of bundle `activate(...)` functions, bundle-supplied capability implementations, bundle stdout/stderr lifetime.
+- **Does not own:** DOM access, `BrowserWindow` / Electron renderer APIs, direct filesystem or network access, direct IPC to the Renderer, the `electron` module, the capability registry itself. All platform interactions traverse a Main-mediated typed contract.
+
+Bundle Host is strictly less privileged than Main (no capabilities by default) and structurally less reachable than Renderer (no DOM, no user-input pathway). Detailed process model, hardening surface, and crash semantics are in ADR-410.
 
 ## Consequences
 

@@ -1,11 +1,11 @@
 # Capability-based service model
 
 **ID:** ADR-103
-**Status:** Accepted
+**Status:** Accepted _(amended 2026-05-16 — capability implementations may live in the Bundle Host per ADR-410)_
 **Date:** 2026-05-12
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-101, ADR-102, ADR-104 _(planned: contribution model)_
+**Related:** ADR-101, ADR-102, ADR-104, ADR-410
 
 ## Context
 
@@ -46,11 +46,11 @@ Capabilities are the only sanctioned way to cross zone or module boundaries. Dir
 
 ### Service
 
-A service registers itself with the capability registry under its declared capability names. A service may live in the Main process or in a utility process. A service in Main may, as an implementation detail, forward calls to the Cloud Backend; from the consumer's perspective the capability is still Main-hosted. Services are smaller-grained than features and typically expose one or a small number of related capabilities.
+A service registers itself with the capability registry under its declared capability names. A service may live in the Main process, in a utility process, **or in the Bundle Host** (per ADR-410, for bundle-supplied implementations). A service in Main may, as an implementation detail, forward calls to the Cloud Backend; from the consumer's perspective the capability is still Main-hosted. Bundle-hosted implementations are equally invisible to the consumer — Main brokers the call. Services are smaller-grained than features and typically expose one or a small number of related capabilities.
 
 ### Registry and binding — Renderer view
 
-The Renderer sees a single registry, exposed by Main through the preload bridge (subject of ADR-202). All capabilities reachable from the Renderer resolve through Main. The Renderer does not know — and is not told — whether a given capability's implementation lives entirely in Main, in a utility process, or behind a Cloud Backend call that Main is brokering. Cloud Backend existence is not part of the Renderer's mental model.
+The Renderer sees a single registry, exposed by Main through the preload bridge (subject of ADR-202). All capabilities reachable from the Renderer resolve through Main. The Renderer does not know — and is not told — whether a given capability's implementation lives entirely in Main, in a utility process, in a Bundle Host (per ADR-410), or behind a Cloud Backend call that Main is brokering. Neither Bundle Host nor Cloud Backend existence is part of the Renderer's mental model.
 
 A Renderer consumer requests a capability by name and receives a typed **proxy** to its implementation. The proxy:
 
@@ -60,7 +60,7 @@ A Renderer consumer requests a capability by name and receives a typed **proxy**
 
 ### Registry and binding — Main view
 
-Main holds the authoritative registry. Main-resident services bind in-process. Main may itself act as a consumer of Cloud-Backend-hosted capabilities through a Main-internal bridge; that bridge is the only place where Cloud Backend addresses, credentials, and transport details exist. The Renderer never participates in that bridge.
+Main holds the authoritative registry. Main-resident services bind in-process. Bundle-resident services bind through Main's bridge to the Bundle Host (per ADR-410): when a call resolves to a bundle-owned capability, Main forwards it over IPC to the Bundle Host, awaits the result, and returns it to the consumer. The Renderer-to-Main hop is unchanged; the Main-to-Bundle-Host hop is internal to Main's brokering. Main may itself act as a consumer of Cloud-Backend-hosted capabilities through a Main-internal bridge; that bridge is the only place where Cloud Backend addresses, credentials, and transport details exist. The Renderer never participates in either bridge.
 
 ### Async by construction
 

@@ -8,6 +8,7 @@ import { createWorkbenchWindow } from './window-factory';
 import { installSoamChannel } from './ipc/soam-channel';
 import { registerPlatformWindow } from './ipc/sender-validate';
 import { shutdownHost } from './bundle-host/manager';
+import { installBundleCrashEventBridge, loadAndActivateBundles } from './bundle-host/loader';
 import { registerWindowControlsCapability } from './capability/window-controls';
 
 const DEV = !app.isPackaged;
@@ -59,6 +60,11 @@ app.whenReady().then(() => {
   mainWindow = createWorkbenchWindow({ devServerUrl: DEV_SERVER_URL, isDev: DEV });
   registerPlatformWindow(mainWindow);
 
+  installBundleCrashEventBridge(() => mainWindow);
+  void loadAndActivateBundles().catch((err) =>
+    console.error('[bundles] loader failed:', err instanceof Error ? err.stack : err),
+  );
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       mainWindow = createWorkbenchWindow({ devServerUrl: DEV_SERVER_URL, isDev: DEV });
@@ -67,8 +73,16 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('before-quit', () => {
-  void shutdownHost();
+let shutdownStarted = false;
+app.on('before-quit', (event) => {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+  event.preventDefault();
+  shutdownHost()
+    .catch((err) =>
+      console.error('[bundle-host] shutdown error:', err instanceof Error ? err.message : err),
+    )
+    .finally(() => app.quit());
 });
 
 app.on('window-all-closed', () => {

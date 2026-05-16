@@ -1,0 +1,9 @@
+{
+  "id": "echo-test",
+  "version": "0.1.0",
+  "entry": "index.mjs",
+  "activationEvents": ["eager"],
+  "capabilities": [
+    { "name": "echo.ping", "version": "1.0" }
+  ]
+}

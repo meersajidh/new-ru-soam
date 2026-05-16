@@ -54,6 +54,53 @@ export function registerPlatformCommands(
   );
 
   commands.register(
+    'developer.bundles.pingEcho',
+    'Developer: Ping echo-test bundle',
+    async () => {
+      const proxy = await window.soam.bindCapability('echo.ping', '1.0');
+      try {
+        const reply = await proxy.call('echo', `hello @ ${new Date().toISOString()}`);
+        console.log('[echo-test] pong:', reply);
+      } catch (err) {
+        console.error('[echo-test] ping failed:', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Developer' },
+  );
+  commands.register(
+    'developer.bundles.echoCrashHandler',
+    'Developer: echo-test crash inside handler',
+    async () => {
+      const proxy = await window.soam.bindCapability('echo.ping', '1.0');
+      try {
+        await proxy.call('crash');
+      } catch (err) {
+        console.warn('[echo-test] handler-crash surfaced (expected):', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Developer' },
+  );
+  commands.register(
+    'developer.bundles.echoKillHost',
+    'Developer: echo-test crash Bundle Host',
+    async () => {
+      const proxy = await window.soam.bindCapability('echo.ping', '1.0');
+      try {
+        await proxy.call('fatal');
+      } catch (err) {
+        console.warn('[echo-test] fatal call surfaced (expected reject):', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Developer' },
+  );
+
+  commands.register(
     'workbench.theme.bamboo',
     'Color Theme: Bamboo',
     () => theme.setTheme('bamboo'),

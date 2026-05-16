@@ -1,11 +1,11 @@
 # Contribution model for bundle registration
 
 **ID:** ADR-104
-**Status:** Accepted
+**Status:** Accepted _(amended 2026-05-16 — manifests are read by Main; Renderer receives the contribution registry as a data payload per ADR-410)_
 **Date:** 2026-05-12
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-102, ADR-103, ADR-105 _(planned: bundle activation lifecycle)_
+**Related:** ADR-102, ADR-103, ADR-105, ADR-410
 
 ## Context
 
@@ -58,7 +58,11 @@ This concretises ADR-102 §"Validation: convenience vs enforcement". There is no
 
 ### Activation and declaration form
 
-The lifecycle that governs when a bundle is loaded, when its contributions go live, and when they are torn down, is the subject of ADR-105 (planned). The shape in which contributions are declared (programmatic, manifest, hybrid) is also deferred — see Open Items.
+The lifecycle that governs when a bundle is loaded, when its contributions go live, and when they are torn down, is the subject of ADR-105. The shape in which contributions are declared (programmatic, manifest, hybrid) is also deferred — see Open Items.
+
+### Manifest read site
+
+Per ADR-410, bundle **manifests are read by Main at boot**, not by Renderer-side import. Main parses each manifest as data, populates the platform-side contribution registry, and sends a snapshot of the registry to the Renderer over IPC. The Renderer never imports or executes bundle code in order to know what a bundle contributes; menus, commands, view-container entries, and other manifest-declared contributions are populated from the snapshot. Bundle code itself runs only later, in the Bundle Host, when activation fires (per ADR-105 / ADR-410).
 
 ## Consequences
 

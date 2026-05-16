@@ -153,24 +153,59 @@ Caveat: the initial Phase-5 summary blamed React 18 concurrent mode for "silentl
 
 Before Phase 6 starts referencing the wrong text, apply the deferred amendments to the 100-range:
 
-- **ADR-101** — add Bundle Host as the fourth trust zone (alongside Main / Renderer / web-trust).
+- **ADR-101** — add Bundle Host as the fourth trust zone (third-party-trust), alongside Renderer / Main / Cloud Backend.
 - **ADR-103** — capability implementations may live in the Bundle Host; routing through Main.
 - **ADR-104** — manifest read by Main, registry sent to Renderer at boot.
 - **ADR-105** — `activate(...)` runs in the Bundle Host.
 
 This is a documentation-only pass; no code changes. It is a hard gate, not a side task.
 
-## Phase 6 — Bundle Host real: manifest, activation, capabilities
+## Phase 6 — Bundle Host real: manifest, activation, capabilities — Complete
+
+**Status:** Complete (2026-05-16). Trimmed scope landed; lazy activation + host hardening deferred to Phase 6.5 (below).
 
 **Goal:** Bundle Host runs real bundle code end-to-end (no UI yet). Capability calls route Renderer → Main → Host and back.
 
-**Deliverable:** manifest reader in Main, registry pushed to Renderer at boot, activation triggers spawn + `activate(...)`, capability binding + invocation. Test bundle: registers one capability (`echo.ping`); Renderer calls it via `useCapability`.
+**Deliverable (landed):**
+- Wire protocol extended (`host.activate` / `host.deactivate` / `host.cap.invoke` / `host.cap.result|error` / `host.activated|activate.failed|deactivated`) — `electron/shared/host-protocol.ts`.
+- Bundle Host runtime: dynamic ESM `import()` of bundle entry, `activate(ctx)` with `registerCapability`, dispatcher for `host.cap.invoke`, disposable held + invoked on `host.deactivate`, handler errors caught and reported as `cap.handler_threw`, host-level `uncaughtException` ⇒ `process.exit(1)` ⇒ Main detects + marks all hosted bundles inactive — `electron/bundle-host/index.ts`.
+- Main manager extended: single id-namespace pending map across ping / activate / deactivate / cap.invoke; activated-bundle bookkeeping; `setOnBundlesCrashed` callback drives renderer event; graceful `shutdownHost()` deactivates each known bundle before sending `host.shutdown` — `electron/main/bundle-host/manager.ts`.
+- Manifest reader: hand-rolled validator over `{ id, version, entry, activationEvents, capabilities[] }`, scans `<RU_SOAM_BUNDLES_DIR | app.getAppPath()/bundles | resourcesPath/bundles>` — `electron/main/bundle-host/manifest.ts`.
+- Boot loader: registers a Main-side routing capability handler per declared bundle capability that forwards via `manager.invokeBundleCapability`; activates each `eager` bundle on boot; installs the `bundle.crashed` `soam:event` bridge — `electron/main/bundle-host/loader.ts`.
+- Graceful quit: `before-quit` preventDefault → `shutdownHost()` → `app.quit()`, so dispose handlers run before exit — `electron/main/index.ts`.
+- Renderer: three Developer commands (`developer.bundles.pingEcho` / `.echoCrashHandler` / `.echoKillHost`) + a `bundle.crashed` event listener in `boot.ts` (sets `bundles.lastCrash` context key + console error). Banner contribution waits for Phase 7.
+- Test bundle: `apps/desktop/bundles/echo-test/{manifest.json,index.mjs}` registering `echo.ping@1.0` with `echo` / `crash` / `fatal` methods (latter two are test hooks for the failure paths).
 
 **ADRs:** ADR-103, ADR-104, ADR-105, ADR-410.
 
-**Open items:** O65 (host hardening surface), O68 (activation timing).
+**Open items raised:**
+- **O113** — Manifest schema hardening: zod schema, signature/integrity policy, bundle-id namespacing rules, prod packaging path. Currently `validate()` is hand-rolled and JSON-parser permissive. Lands with the first third-party bundle work or Phase 12 polish, whichever comes first.
 
-**Exit:** test bundle echoes Renderer call; bundle crash is isolated (workbench survives); deactivation tears down the host process cleanly.
+**Open items remaining:** O65 (host hardening surface — partially staged, full deny set in Phase 6.5), O68 (activation timing — `lazy` / `onCommand` / `onEvent` triggers in Phase 6.5).
+
+**Exit (verified live via agent-browser CDP 9333):**
+- ✓ `echo.ping` `echo` returns `{ pong, hostPid, ts }` — Renderer → Main → Bundle Host two-hop confirmed.
+- ✓ Handler-throw (`crash` method) surfaces as `[cap.handler_threw] echo.ping requested-crash` to the Renderer; host process keeps running.
+- ✓ Fatal in-host throw (`fatal` method) takes down the host process; workbench keeps running; subsequent `echo.ping` call returns `Bundle inactive: echo-test` (mapped through `cap.handler_threw` for now — proper code passthrough is part of O113).
+- ✓ `shutdownHost()` deactivates each bundle then exits Bundle Host cleanly.
+
+**Known follow-ups (tracked):**
+- Code-mapping in routing handler: today the inner `cap.not_found` from `invokeBundleCapability` is reflattened to `cap.handler_threw` by the registry. Cleaner mapping lands with Phase 6.5 alongside O68.
+- Production bundle packaging path: dev mode resolves `apps/desktop/bundles/`. Packaged-app path (`process.resourcesPath/bundles`) is wired but bundles are not yet copied by `electron-builder`. File alongside O113.
+
+## Phase 6.5 — Bundle Host follow-ups (lazy activation + hardening)
+
+**Goal:** close out the deferred Phase 6 items so Phase 7's `view://` work has a hardened, lazy-activating host underneath it.
+
+**Scope:**
+- **Lazy activation triggers (O68).** `lazy` (first capability bind) and `onCommand` (first execution of a manifest-declared command id). `onEvent` waits for a concrete event surface (deferred again if no consumer needs it yet).
+- **Host hardening (O65).** Default-deny for `electron`, raw `fs`, raw `net`, `child_process`, `process.exit` mutation outside the host loader. Concrete shape: a curated globals shim + module-resolution wrapper inside `electron/bundle-host/index.ts`. Verify by trying each from the `echo-test` bundle and asserting failure.
+- **Cap-error code passthrough.** Registry routing should preserve the inner `cap.not_found` / `cap.handler_threw` codes from the host instead of re-wrapping. One-line behaviour change in `loader.ts` + a small switch in `registry.ts`.
+- **Per-bundle Output capture stub.** Route Bundle Host stdout / stderr into a per-bundle in-memory ring buffer (UI lands Phase 7 with the Panel content model); Main exposes a `platform.bundles@1.0 getOutput(bundleId)` capability so a Phase 7 view can render it.
+
+**Open items:** O65, O68.
+
+**Exit:** lazy bundle does not load until first command invocation; host-side `import('electron')` from a bundle throws; cap error codes match end-to-end; `getOutput('echo-test')` returns the bundle's stderr from the latest `fatal` call.
 
 ## Phase 7 — View hosting: `view://` + iframe + bridge
 
