@@ -5,6 +5,7 @@ import { ruEditSchema } from './schema';
 import { ensureStableIds, stableIdPlugin } from './id-plugin';
 import { buildRuEditKeymaps } from './keymap';
 import { nodeFromJSON, nodeToJSON, RuEditSchemaError, type RuEditDoc } from './json';
+import { computeActiveState, type RuEditActiveState } from './active-state';
 
 export interface MountRuEditOptions {
   initial?: RuEditDoc;
@@ -12,11 +13,15 @@ export interface MountRuEditOptions {
   onChange?: (doc: RuEditDoc) => void;
 }
 
+export type RuEditUnsubscribe = () => void;
+
 export interface RuEditHandle {
   getDoc(): RuEditDoc;
   setDoc(doc: RuEditDoc): void;
   focus(): void;
   dispose(): void;
+  getActiveState(): RuEditActiveState;
+  subscribe(listener: (state: RuEditActiveState) => void): RuEditUnsubscribe;
   readonly view: EditorView;
 }
 
@@ -54,6 +59,13 @@ export function mountRuEdit(container: HTMLElement, opts: MountRuEditOptions = {
     plugins: buildPlugins(),
   });
 
+  const listeners = new Set<(s: RuEditActiveState) => void>();
+  const notify = () => {
+    if (listeners.size === 0) return;
+    const snapshot = computeActiveState(view.state);
+    for (const l of listeners) l(snapshot);
+  };
+
   const dispatchTransaction: DirectEditorProps['dispatchTransaction'] = (tr) => {
     if (disposed) return;
     const next = view.state.apply(tr);
@@ -61,6 +73,7 @@ export function mountRuEdit(container: HTMLElement, opts: MountRuEditOptions = {
     if (tr.docChanged && opts.onChange) {
       opts.onChange(nodeToJSON(next.doc));
     }
+    notify();
   };
 
   const view = new EditorView(container, {
@@ -80,12 +93,21 @@ export function mountRuEdit(container: HTMLElement, opts: MountRuEditOptions = {
         plugins: buildPlugins(),
       });
       view.updateState(newState);
+      notify();
     },
     focus: () => view.focus(),
     dispose: () => {
       if (disposed) return;
       disposed = true;
+      listeners.clear();
       view.destroy();
+    },
+    getActiveState: () => computeActiveState(view.state),
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
   };
 }

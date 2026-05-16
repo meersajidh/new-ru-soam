@@ -12,7 +12,14 @@ export {
   mountRuEdit,
   type MountRuEditOptions,
   type RuEditHandle,
+  type RuEditUnsubscribe,
 } from './mount';
+export {
+  computeActiveState,
+  type RuEditActiveState,
+  type RuEditBlockKind,
+  type RuEditMarkActiveMap,
+} from './active-state';
 export {
   toggleStrong,
   toggleEm,

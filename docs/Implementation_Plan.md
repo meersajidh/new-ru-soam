@@ -353,10 +353,10 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - `pnpm exec tsc -b apps/desktop packages/editor` clean.
 
 **Open items raised (Phase 7.5b):**
-- **O148** — Mark / heading **active-state** highlighting on toolbar buttons. Requires a plugin view subscription or React-side state mirror that observes `view.state.selection` and `markActive`. **Defer reason:** scratch demo functions without it; first clinical consumer is the real driver. **Target:** Phase 7.5c, or absorb into the first clinical bundle.
-- **O149** — Read-only mode UI toggle on scratch. `mountRuEdit` already accepts `readOnly`; surfacing it in the toolbar is cosmetic for the developer scratch. **Target:** Phase 7.5c.
+- **O148** — *(resolved in 7.5c)* Mark / heading **active-state** highlighting on toolbar buttons.
+- **O149** — Read-only mode UI toggle on scratch. `mountRuEdit` already accepts `readOnly`; surfacing it in the toolbar is cosmetic for the developer scratch. **Target:** first clinical consumer.
 - **O150** — Command-palette commands for the toolbar actions ("Editor: Toggle Bold", "Editor: Insert Heading 1", …). Routes through `IRuEditService.getActive()`. **Defer reason:** keyboard shortcuts already cover the surface; palette commands gain value once non-scratch consumers exist. **Target:** first clinical consumer.
-- **O151** — Auto-coerce heading → paragraph when wrapping in a list. `list_item` content matches `paragraph block*`, so `wrapInBulletList` no-ops when the active block is a heading. UX expectation is "wrap whatever is selected"; ergonomic helper would first run `setBlockType(paragraph)` before `wrapInList`. **Target:** first non-developer consumer.
+- **O151** — *(resolved in 7.5c)* Auto-coerce heading → paragraph when wrapping in a list.
 
 **Open items raised (carried from full plan):**
 - **O128** — SmartText engine (trigger char, phrase registry capability, placeholder navigation). Lands Phase 8 (renumbered alongside Phase 7.5; current "Phase 8 — Crypto" becomes Phase 9; downstream shifts by +1) — **or** keep crypto numbering and SmartText lands as Phase 7.6. Numbering policy decision deferred to the gate before SmartText work starts.
@@ -369,6 +369,27 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - **O120** — Voice dictation adapter interface (Web Speech / Dragon / Deepgram Medical).
 - **O121** — Multi-clinician collab via Yjs + Cloud Backend awareness. Single-clinician-per-record is the assumption through the foreseeable phases.
 - **O122** — Template authoring UI inside ru-soam.
+
+## Phase 7.5c — RuEdit toolbar polish — Complete
+
+**Goal:** make the scratch toolbar reflect live editor state and stop silently no-op-ing on heading→list wraps. Closes O148 and O151 from 7.5b.
+
+**Landed:**
+
+- **O148 — Active-state highlighting.** New `packages/editor/src/active-state.ts` exports `RuEditActiveState` + `computeActiveState(state)`. Snapshot covers active marks (`strong/em/underline/code`), block kind + heading level, list ancestry (`inBulletList`/`inOrderedList`), and history depth (`canUndo`/`canRedo`). `mountRuEdit` handle gains `getActiveState()` and `subscribe(listener) → unsubscribe`; the dispatch-transaction hook notifies subscribers after every applied tr (including selection-only moves and `setDoc`). `ScratchRuEdit` subscribes on `onHandle` and feeds `active` into `RuEditToolbar`. Toolbar adds `.is-active` + `aria-pressed` per inline-mark / heading-level / list button and `disabled` on Undo/Redo when their depth is zero. CSS adds `.is-active` accent-styled state and `:disabled` opacity in `workbench.css`.
+- **O151 — Heading auto-coerce on list wrap.** `commands.ts` adds `wrapInListCoerced(listType, paragraph)` used by both `wrapInBulletList` and `wrapInOrderedList`. When the active block is a heading, a single transaction does `tr.setBlockType($from.before(), $from.after(), paragraph)` then `tr.wrap(range, findWrapping(...))`. Result: a single history entry — one `Ctrl+Z` reverses both the paragraph conversion and the wrap.
+
+**Verification (CDP 9333, agent-browser):**
+
+- `getActive().handle.getActiveState()` returns the documented shape; reflects `canUndo:true` after typing, `marks.strong:true` after `Ctrl+B`, `block:"heading"` + `headingLevel:2` after `Ctrl+2`, `inBulletList:true` after wrap.
+- DOM snapshot of toolbar buttons confirms only the matching button carries `is-active` + `aria-pressed="true"` (e.g. after `Ctrl+2`: `H2` is the only active button; `Redo` is `disabled:true` until an undo is applied).
+- Clicking `• List` while the cursor is in an `<h2>` produces `bullet_list → list_item → paragraph` (verified via `getDoc()`); a single `Ctrl+Z` restores the original heading-only doc (single tr → single history step).
+- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+
+**Open items deferred (still open after 7.5c):**
+- **O146** — Heap-snapshot dispose-leak harness. Still targeted at the Phase 8 hardening pass.
+- **O149** — Read-only mode UI toggle. Still cosmetic-only on scratch; target first clinical consumer.
+- **O150** — Command-palette commands for toolbar actions. Target first clinical consumer.
 
 ## Phase 7.5 — RuEdit core skeleton (original full scope; superseded by 7.5a above; remainder tracked as 7.5b)
 

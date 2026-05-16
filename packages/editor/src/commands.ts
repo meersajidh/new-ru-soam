@@ -1,6 +1,7 @@
 import { setBlockType, toggleMark } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
 import { wrapInList } from 'prosemirror-schema-list';
+import { findWrapping } from 'prosemirror-transform';
 import type { Command, EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import type { MarkType, NodeType } from 'prosemirror-model';
@@ -44,17 +45,54 @@ export function setHeading(handle: RuEditHandle, level: 1 | 2 | 3): boolean {
   });
 }
 
+/**
+ * Wrap-in-list with heading auto-coerce: if the active block is a heading,
+ * convert it to a paragraph in the same transaction before wrapping.
+ * Reason: `list_item` content matches `paragraph block*`, so a raw
+ * `wrapInList` no-ops on a heading block (O151).
+ */
+function wrapInListCoerced(listType: NodeType, paragraph: NodeType): Command {
+  return (state, dispatch) => {
+    const { $from, $to } = state.selection;
+    const range = $from.blockRange($to);
+    if (!range) return false;
+
+    const isHeading = $from.parent.type.name === 'heading';
+    if (!isHeading) {
+      return wrapInList(listType)(state, dispatch);
+    }
+
+    // Build a single tr: set paragraph, recompute range, then wrap.
+    // `setBlockType` preserves positions, so blockRange offsets stay valid.
+    const tr = state.tr.setBlockType($from.before(), $from.after(), paragraph);
+    const interim = state.apply(tr);
+    const newRange = interim.selection.$from.blockRange(interim.selection.$to);
+    if (!newRange) return false;
+    const wrapping = findWrapping(newRange, listType);
+    if (!wrapping) return false;
+    if (dispatch) {
+      tr.wrap(newRange, wrapping);
+      dispatch(tr.scrollIntoView());
+    }
+    return true;
+  };
+}
+
 export function wrapInBulletList(handle: RuEditHandle): boolean {
   return runOnView(handle, (schema) => {
     const list = schema.nodes.bullet_list;
-    return list ? (wrapInList(list) as Command) : null;
+    const paragraph = schema.nodes.paragraph;
+    if (!list || !paragraph) return null;
+    return wrapInListCoerced(list, paragraph);
   });
 }
 
 export function wrapInOrderedList(handle: RuEditHandle): boolean {
   return runOnView(handle, (schema) => {
     const list = schema.nodes.ordered_list;
-    return list ? (wrapInList(list) as Command) : null;
+    const paragraph = schema.nodes.paragraph;
+    if (!list || !paragraph) return null;
+    return wrapInListCoerced(list, paragraph);
   });
 }
 

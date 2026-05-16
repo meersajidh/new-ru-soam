@@ -431,6 +431,17 @@ body,
 }
 .ru-edit-toolbar-btn:hover { background: var(--color-surface-active); }
 .ru-edit-toolbar-btn:active { transform: translateY(1px); }
+.ru-edit-toolbar-btn.is-active,
+.ru-edit-toolbar-btn[aria-pressed="true"] {
+  background: var(--color-accent-subtle, var(--color-surface-active));
+  border-color: var(--color-accent, var(--color-fg-primary));
+  color: var(--color-accent, var(--color-fg-primary));
+}
+.ru-edit-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ru-edit-toolbar-btn:disabled:hover { background: var(--color-surface-elevated); }
 
 .ru-edit-scratch-resource {
   font-family: var(--font-mono, monospace);
