@@ -5,6 +5,7 @@ import type { IKeybindingService } from '../platform/keybinding/keybinding-servi
 import type { IThemeService } from '../platform/theme/theme-service';
 import type { IWorkspaceService } from '../platform/workspace/workspace-service';
 import type { IEditorService } from '../platform/editor/editor-service';
+import type { ISnippetService } from '../platform/snippet/snippet-service';
 import { SlotId } from '../platform/layout/slots';
 
 export function registerPlatformCommands(
@@ -15,6 +16,7 @@ export function registerPlatformCommands(
   theme: IThemeService,
   workspace: IWorkspaceService,
   editor: IEditorService,
+  snippets: ISnippetService,
 ): void {
   commands.register(
     'workbench.togglePrimarySideBar',
@@ -309,6 +311,51 @@ export function registerPlatformCommands(
       editor.setActiveTab(gid, group.tabs[prevIdx].id);
     },
     { category: 'View' },
+  );
+
+  // ── Phase 8: Snippet seed command ─────────────────────────────────────────
+  commands.register(
+    'developer.snippets.seed',
+    'Developer: Seed Snippet Registry',
+    () => {
+      const reg = snippets.registry();
+      // Snippet 1: plain text, no placeholders.
+      reg.add({
+        id: 'seed-hello',
+        abbrev: 'hello',
+        label: 'Hello World',
+        body: { kind: 'text', template: 'Hello, world!' },
+        placeholders: [],
+      });
+      // Snippet 2: text placeholder.
+      reg.add({
+        id: 'seed-hpi',
+        abbrev: 'hpi',
+        label: 'History of Present Illness',
+        body: { kind: 'text', template: 'Patient reports {{chief_complaint}} and has had symptoms for {{duration}}.' },
+        placeholders: [
+          { name: 'chief_complaint', type: 'text', default: 'chief complaint' },
+          { name: 'duration', type: 'text', default: '3 days' },
+        ],
+      });
+      // Snippet 3: picklist placeholder.
+      reg.add({
+        id: 'seed-disp',
+        abbrev: 'disp',
+        label: 'Disposition',
+        body: { kind: 'text', template: 'Disposition: {{disposition}}.' },
+        placeholders: [
+          {
+            name: 'disposition',
+            type: 'picklist',
+            default: 'discharge home',
+            options: ['discharge home', 'admit to observation', 'admit inpatient', 'transfer to ED', 'refer to specialist'],
+          },
+        ],
+      });
+      console.log('[snippets] seeded 3 snippets (hello, hpi, disp). Type /hello, /hpi, or /disp in a scratch tab.');
+    },
+    { category: 'Developer' },
   );
 
   keybindings.registerKeybinding('ctrl+b',       'workbench.togglePrimarySideBar');

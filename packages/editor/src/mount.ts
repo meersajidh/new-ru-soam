@@ -6,11 +6,14 @@ import { ensureStableIds, stableIdPlugin } from './id-plugin';
 import { buildRuEditKeymaps } from './keymap';
 import { nodeFromJSON, nodeToJSON, RuEditSchemaError, type RuEditDoc } from './json';
 import { computeActiveState, type RuEditActiveState } from './active-state';
+import { createSnippetPlugin, placeholderNodeViews, type SnippetRegistry } from './snippets';
 
 export interface MountRuEditOptions {
   initial?: RuEditDoc;
   readOnly?: boolean;
   onChange?: (doc: RuEditDoc) => void;
+  /** Snippet registry for the '/' trigger and placeholder walk (Phase 8). Absent = trigger inert. */
+  snippets?: SnippetRegistry;
 }
 
 export type RuEditUnsubscribe = () => void;
@@ -25,8 +28,13 @@ export interface RuEditHandle {
   readonly view: EditorView;
 }
 
-function buildPlugins(): Plugin[] {
-  return [stableIdPlugin(), ...buildRuEditKeymaps(ruEditSchema)];
+function buildPlugins(snippets?: SnippetRegistry): Plugin[] {
+  const keymaps = buildRuEditKeymaps(ruEditSchema);
+  if (snippets) {
+    // Snippet plugin first so its handleKeyDown runs before list/base keymaps.
+    return [createSnippetPlugin(snippets), stableIdPlugin(), ...keymaps];
+  }
+  return [stableIdPlugin(), ...keymaps];
 }
 
 function emptyDoc(): PMNode {
@@ -56,7 +64,7 @@ export function mountRuEdit(container: HTMLElement, opts: MountRuEditOptions = {
   const state = EditorState.create({
     schema: ruEditSchema,
     doc: initialNode,
-    plugins: buildPlugins(),
+    plugins: buildPlugins(opts.snippets),
   });
 
   const listeners = new Set<(s: RuEditActiveState) => void>();
@@ -80,6 +88,7 @@ export function mountRuEdit(container: HTMLElement, opts: MountRuEditOptions = {
     state,
     editable: () => editable,
     dispatchTransaction,
+    nodeViews: opts.snippets ? placeholderNodeViews : {},
   });
 
   return {
@@ -90,7 +99,7 @@ export function mountRuEdit(container: HTMLElement, opts: MountRuEditOptions = {
       const newState = EditorState.create({
         schema: ruEditSchema,
         doc: next,
-        plugins: buildPlugins(),
+        plugins: buildPlugins(opts.snippets),
       });
       view.updateState(newState);
       notify();

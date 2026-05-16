@@ -19,12 +19,13 @@ export function getScratchDoc(resource: string): RuEditDoc | undefined {
   try {
     const raw = sessionStorage.getItem(keyFor(resource));
     if (!raw) return undefined;
-    const parsed = JSON.parse(raw) as RuEditDoc;
-    if (!parsed || typeof parsed !== 'object' || parsed.schemaVersion !== 1) {
+    const parsed = JSON.parse(raw) as { schemaVersion?: unknown; doc?: unknown };
+    const v = parsed.schemaVersion;
+    if (!parsed || typeof parsed !== 'object' || (v !== 1 && v !== 2)) {
       sessionStorage.removeItem(keyFor(resource));
       return undefined;
     }
-    return parsed;
+    return parsed as RuEditDoc;
   } catch {
     return undefined;
   }

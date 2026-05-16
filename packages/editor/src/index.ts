@@ -32,3 +32,13 @@ export {
   runRedo,
   runCommand,
 } from './commands';
+export {
+  SnippetRegistry,
+  createSnippetPlugin,
+  snippetPluginKey,
+  placeholderNodeViews,
+  type SnippetDef,
+  type SnippetPlaceholder,
+  type SnippetBody,
+  type SnippetPluginState,
+} from './snippets';

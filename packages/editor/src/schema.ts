@@ -53,6 +53,40 @@ const nodes: Record<string, NodeSpec> = {
     parseDOM: [{ tag: 'br' }],
     toDOM: () => ['br'],
   },
+
+  // Schema v2: snippet expansion placeholder (atomic inline node).
+  // Rendered as a chip; replaced by text/picklist selection on finalize.
+  placeholder: {
+    inline: true,
+    group: 'inline',
+    atom: true,
+    attrs: {
+      name: {},
+      type: { default: 'text' as 'text' | 'picklist' },
+      default: { default: null as string | null },
+      options: { default: null as string[] | null },
+      value: { default: null as string | null },
+    },
+    parseDOM: [{
+      tag: 'span[data-snippet-ph]',
+      getAttrs: (dom) => {
+        if (typeof dom === 'string') return false;
+        return {
+          name: dom.getAttribute('data-snippet-ph'),
+          type: dom.getAttribute('data-ph-type') ?? 'text',
+          default: dom.getAttribute('data-ph-default') ?? null,
+          options: null,
+          value: null,
+        };
+      },
+    }],
+    toDOM: (node) => ['span', {
+      'data-snippet-ph': String(node.attrs.name),
+      'data-ph-type': String(node.attrs.type),
+      ...(node.attrs.default ? { 'data-ph-default': String(node.attrs.default) } : {}),
+      class: `ru-snippet-placeholder ru-snippet-placeholder--${String(node.attrs.type)}`,
+    }],
+  },
 };
 
 // addListNodes injects ordered_list, bullet_list, list_item per schema-list defaults.

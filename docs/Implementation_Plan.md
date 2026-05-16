@@ -89,7 +89,7 @@ This document slices the committed ADRs (100 / 200 / 300 / 400 / 500 ranges) int
 
 **Goal:** Workspace = Entity. Open / close / lock lifecycle reaches services that care.
 
-**Deliverable:** WorkspaceService, workspace open / close events, `workspace.entityId` context key, persisted-layout reload on workspace open, lock-state stub (real KEK lands in Phase 8).
+**Deliverable:** WorkspaceService, workspace open / close events, `workspace.entityId` context key, persisted-layout reload on workspace open, lock-state stub (real KEK lands in Phase 9).
 
 **ADRs:** ADR-403; ADR-501 referenced but not implemented.
 
@@ -121,7 +121,7 @@ Caveat: the initial Phase-5 summary blamed React 18 concurrent mode for "silentl
 
 ## Phase 5.5 — Editor UX parity polish (trimmed)
 
-**Goal:** close the highest-value UX gaps between "Phase 5 functional" and "feels like VSCode" before Phase 6 mechanism layers on top. Deliberately narrow — anything that needs a new mechanism, new persistence path, or open-ended event surface is deferred to the Phase 12 polish pass (see below). 5.5 is paint + one tiny correctness fix + the two interactions that hurt most when missing (split-clones-active, keyboard tab cycle).
+**Goal:** close the highest-value UX gaps between "Phase 5 functional" and "feels like VSCode" before Phase 6 mechanism layers on top. Deliberately narrow — anything that needs a new mechanism, new persistence path, or open-ended event surface is deferred to the Phase 13 polish pass (see below). 5.5 is paint + one tiny correctness fix + the two interactions that hurt most when missing (split-clones-active, keyboard tab cycle).
 
 **Already landed during the Phase-5 review pass:**
 - `.editor-group--focused` CSS rule (previously applied as a class with no matching selector → focused group was invisible). Active-tab styling sharpened: active tab matches editor surface, inactive tabs sit on darker strip bg, accent stripe uses `--color-accent` for focused-group / `--color-fg-muted` for unfocused-group.
@@ -133,21 +133,21 @@ Caveat: the initial Phase-5 summary blamed React 18 concurrent mode for "silentl
 **Remaining (trimmed scope):**
 - **Split clones active editor.** `editors.splitRight` currently creates an empty group. Match VSCode: after `splitGroup`, if the source group had an active tab, `open(sameResource, { groupId: newGroupId })` so the split lands with the active editor mirrored side-by-side. If no active tab, the new group stays empty.
 - **Dirty dot in tab.** `EditorInstance.isDirty` field already exists. Render a `•` in the close-button slot when `isDirty && !hover`; reveal `×` on hover. No new state, no new API — pure render-time + CSS hover swap.
-- **Keyboard nav: Ctrl+Tab / Ctrl+Shift+Tab cycle within focused group.** Two new platform commands (`editors.nextTab`, `editors.previousTab`) + keybindings. Within-group only; cross-group nav deferred to Phase 12.
+- **Keyboard nav: Ctrl+Tab / Ctrl+Shift+Tab cycle within focused group.** Two new platform commands (`editors.nextTab`, `editors.previousTab`) + keybindings. Within-group only; cross-group nav deferred to Phase 13.
 - **Refactor: extract `_removeTabFromGroup(groupId, instanceId)` private helper** — `close()` and `moveTab()` currently duplicate the collapse / focus-reassign logic. Mechanical, no behaviour change.
 
 **ADRs:** ADR-404 (no normative change; UX-polish-only).
 
 **Open items added (404-range):**
-- **O108** — Editor service event granularity. Single `onDidChange` re-renders every consumer on every mutation. VSCode's editor service has per-axis events (`onDidAddGroup`, `onDidActiveEditorChange`, `onDidChangeGroupModel`). Decide between (a) split-emitter API now, (b) version-number selectors, (c) defer until Phase 12 when a real bundle dogfoods the editor.
-- **O109** — `editor.activeResource` context-key scrubbing for ADR-407. Currently `''` for `placeholder://` URIs. Once real schemes land (`patient://abc-123`, `session://...`), the value will contain PHI-adjacent IDs and **must** appear on the Phase 9 audit-payload scrub list. Tracked alongside O95.
+- **O108** — Editor service event granularity. Single `onDidChange` re-renders every consumer on every mutation. VSCode's editor service has per-axis events (`onDidAddGroup`, `onDidActiveEditorChange`, `onDidChangeGroupModel`). Decide between (a) split-emitter API now, (b) version-number selectors, (c) defer until Phase 13 when a real bundle dogfoods the editor.
+- **O109** — `editor.activeResource` context-key scrubbing for ADR-407. Currently `''` for `placeholder://` URIs. Once real schemes land (`patient://abc-123`, `session://...`), the value will contain PHI-adjacent IDs and **must** appear on the Phase 10 audit-payload scrub list. Tracked alongside O95.
 - **O110** — Tab dedup policy. `open(resource)` currently dedups by resource-string equality. The placeholder counter is a temporary workaround; decide if a `forceNew` option, a `pinned` flag, or a richer key (resource + view-state hash) is the right shape before any real editor opts in.
-- **O111** — Split-ratio persistence. Phase 5 hard-codes `ratio: 0.5`. Once O108 ships per-axis events and split-divider drag lands (Phase 12 polish), persist ratio per workspace via the Phase 4 layout-persistence path.
-- **O112** — Tab context menu surface. Right-click, middle-click-close, pin/unpin, "close others / close to the right / close all". Belongs to the command + context-key spine (ADR-406/407); waits on the command-menu mechanism scheduled with Phase 12 polish.
+- **O111** — Split-ratio persistence. Phase 5 hard-codes `ratio: 0.5`. Once O108 ships per-axis events and split-divider drag lands (Phase 13 polish), persist ratio per workspace via the Phase 4 layout-persistence path.
+- **O112** — Tab context menu surface. Right-click, middle-click-close, pin/unpin, "close others / close to the right / close all". Belongs to the command + context-key spine (ADR-406/407); waits on the command-menu mechanism scheduled with Phase 13 polish.
 
 **Exit:** focused group visually distinct from unfocused (✓); active tab visually distinct from inactive (✓); split clones active editor into new group; dirty dot appears in tab when `isDirty`; Ctrl+Tab cycles forward within group, Ctrl+Shift+Tab cycles backward; `close()` and `moveTab()` route through the shared `_removeTabFromGroup` helper.
 
-**Explicitly deferred to the Phase 12 polish pass** (see Phase 12 below): drag preview / drop indicator, split-divider drag handle + ratio persistence, tab context menu, Alt+1..9 group switch, Ctrl+PgUp/PgDn alias, `_insertSplit` defensive short-circuit (low-impact correctness, no behaviour delta until a malformed tree shows up).
+**Explicitly deferred to the Phase 13 polish pass** (see Phase 13 below): drag preview / drop indicator, split-divider drag handle + ratio persistence, tab context menu, Alt+1..9 group switch, Ctrl+PgUp/PgDn alias, `_insertSplit` defensive short-circuit (low-impact correctness, no behaviour delta until a malformed tree shows up).
 
 ## Pre-Phase-6 gate — 100-range amendment pass
 
@@ -179,7 +179,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 **ADRs:** ADR-103, ADR-104, ADR-105, ADR-410.
 
 **Open items raised:**
-- **O113** — Manifest schema hardening: zod schema, signature/integrity policy, bundle-id namespacing rules, prod packaging path. Currently `validate()` is hand-rolled and JSON-parser permissive. Lands with the first third-party bundle work or Phase 12 polish, whichever comes first.
+- **O113** — Manifest schema hardening: zod schema, signature/integrity policy, bundle-id namespacing rules, prod packaging path. Currently `validate()` is hand-rolled and JSON-parser permissive. Lands with the first third-party bundle work or Phase 13 polish, whichever comes first.
 
 **Open items remaining:** O65 (host hardening surface — partially staged, full deny set in Phase 6.5), O68 (activation timing — `lazy` / `onCommand` / `onEvent` triggers in Phase 6.5).
 
@@ -273,12 +273,12 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - **O80, O81, O82, O83, O84, O85** — unchanged from ADR-411.
 
 **Open items newly raised:**
-- **O138** — Side bar / Panel slot iframe mounting. Mechanism identical, separate wiring + manifest contribution points (`contributes.views.sidebar`, `…panel`) and per-slot bridge events. Lands **Phase 9.0** (first clinical-bundle phase that needs a sidebar view).
-- **O139** — Crash placeholder UI for orphaned iframes after Bundle Host crash. The renderer keeps the iframe DOM intact post-crash; pending `cap.call` promises hang. Replace with a timeout-aware placeholder ("view inactive — bundle host crashed"). **Phase 9.0**.
-- **O140** — Full `view.activate(viewId, ctx)` lifecycle hook in bundle (ADR-411 §View lifecycle step 6). Phase 7 stubs activation at the renderer/Main boundary only; the bundle's Node code is unaware a view exists. First clinical view phase implements. **Phase 9.0**.
-- **O141** — `events.onResize`, `events.onResourceChange`, `notifyDirty`, `notifyTitle`, `announce` (a11y live region). Land when first view actually needs each. **Phase 9.X**.
+- **O138** — Side bar / Panel slot iframe mounting. Mechanism identical, separate wiring + manifest contribution points (`contributes.views.sidebar`, `…panel`) and per-slot bridge events. Lands **first clinical-bundle phase** (first clinical-bundle phase that needs a sidebar view; sequenced after Phase 13 Audit Viewer, exact number set at that phase's gate).
+- **O139** — Crash placeholder UI for orphaned iframes after Bundle Host crash. The renderer keeps the iframe DOM intact post-crash; pending `cap.call` promises hang. Replace with a timeout-aware placeholder ("view inactive — bundle host crashed"). **First clinical-bundle phase.**
+- **O140** — Full `view.activate(viewId, ctx)` lifecycle hook in bundle (ADR-411 §View lifecycle step 6). Phase 7 stubs activation at the renderer/Main boundary only; the bundle's Node code is unaware a view exists. **First clinical view phase implements.**
+- **O141** — `events.onResize`, `events.onResourceChange`, `notifyDirty`, `notifyTitle`, `announce` (a11y live region). Land when first view actually needs each. **Per-clinical-bundle phase, as need arises.**
 - **O142** — `ThemeTokens` typed surface on `window.soamView.theme`. Phase 7 ships raw CSS-variable record; typed object lands when RuEdit / clinical views need named-token access. **Phase 7.5**.
-- **O143** — Tighten view CSP `script-src` / `style-src` — Phase 7 allows `'unsafe-inline'` for ergonomics; refine alongside O81 once first non-test bundle ships a real view. **Phase 9.X**.
+- **O143** — Tighten view CSP `script-src` / `style-src` — Phase 7 allows `'unsafe-inline'` for ergonomics; refine alongside O81 once first non-test bundle ships a real view. **Lands at first non-test bundle view, sequenced after Phase 13.**
 
 **Why this lands at Phase 7 trimmed:**
 - Editor-Area-only mount surface is sufficient to prove the mechanism end-to-end; sidebar/panel use the same code path with extra slot plumbing (deferred to first real consumer per [[feedback_scope_discipline]]).
@@ -327,7 +327,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 **Open items raised (Phase 7.5a):**
 - **O144** — *(resolved in 7.5b)* `IRuEditService` / `RuEditServiceId` workbench primitive registered in `boot.ts`.
 - **O145** — *(resolved in 7.5b)* Reload-survival via `sessionStorage` (serialize → reload → deserialize, IDs preserved).
-- **O146** — Heap-snapshot dispose-leak harness. Phase 7.5a verified dispose tears the DOM down; formal CI-shaped harness lands when leak-gating becomes valuable. **Target:** Phase 8 hardening pass.
+- **O146** — Heap-snapshot dispose-leak harness. Phase 7.5a verified dispose tears the DOM down; formal CI-shaped harness lands when leak-gating becomes valuable. **Target:** Phase 9 hardening pass.
 - **O147** — *(resolved in 7.5b)* RuEdit toolbar UI (mark / heading / list / undo / redo buttons).
 
 ## Phase 7.5b — RuEdit primitive integration — Complete
@@ -359,8 +359,8 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - **O151** — *(resolved in 7.5c)* Auto-coerce heading → paragraph when wrapping in a list.
 
 **Open items raised (carried from full plan):**
-- **O128** — SmartText engine (trigger char, phrase registry capability, placeholder navigation). Lands Phase 8 (renumbered alongside Phase 7.5; current "Phase 8 — Crypto" becomes Phase 9; downstream shifts by +1) — **or** keep crypto numbering and SmartText lands as Phase 7.6. Numbering policy decision deferred to the gate before SmartText work starts.
-- **O129** — Custom atomic blocks (Vitals first, then Allergies / MedList / picklist). Lives in the phase after SmartText.
+- **O128** — _Closed by ADR-416._ Originally "SmartText engine"; renamed **Snippet engine** (Epic's `Smart*` family is trademarked — see ADR-416 §Vocabulary). Lands as renumbered **Phase 8**; previous Phase 8 (Crypto) and all downstream phases shifted +1.
+- **O129** — Custom atomic blocks (Vitals first, then Allergies / MedList). Lives in the phase after Phase 8 Snippet engine; numbering set at that phase's gate. Picklist *placeholder* (a single field inside a Snippet) ships in Phase 8 per ADR-416; richer structured blocks live here.
 - **O130** — React-in-nodeView strategy revisit (vanilla DOM vs `@handlewithcare/react-prosemirror` / `@nytimes/react-prosemirror`). Decide at custom-block phase entry per ADR-415's recorded criteria.
 - **O131** — Stable ID revisit (UUID v4 → v7 when per-block revision history lands).
 - **O132** — Print pipeline (JSON → print-React → Puppeteer-in-Main → PDF, page templates, signature block). Lives in the phase after custom blocks.
@@ -387,7 +387,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - `pnpm exec tsc -b apps/desktop packages/editor` clean.
 
 **Open items deferred (still open after 7.5c):**
-- **O146** — Heap-snapshot dispose-leak harness. Still targeted at the Phase 8 hardening pass.
+- **O146** — Heap-snapshot dispose-leak harness. Still targeted at the Phase 9 hardening pass.
 - **O149** — Read-only mode UI toggle. Still cosmetic-only on scratch; target first clinical consumer.
 - **O150** — Command-palette commands for toolbar actions. Target first clinical consumer.
 
@@ -419,8 +419,8 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 **ADRs:** ADR-414 (RuEdit primitive), ADR-415 (React/PM boundary). ADR-404 amended to reflect that prose-bearing editor types now compose RuEdit.
 
 **Open items raised:**
-- **O128** — SmartText engine (trigger char, phrase registry capability, placeholder navigation). Lands Phase 8 (renumbered alongside Phase 7.5; current "Phase 8 — Crypto" becomes Phase 9; downstream shifts by +1) — **or** keep crypto numbering and SmartText lands as Phase 7.6. Numbering policy decision deferred to the gate before SmartText work starts.
-- **O129** — Custom atomic blocks (Vitals first, then Allergies / MedList / picklist). Lives in the phase after SmartText.
+- **O128** — _Closed by ADR-416._ Originally "SmartText engine"; renamed **Snippet engine** (Epic's `Smart*` family is trademarked — see ADR-416 §Vocabulary). Lands as renumbered **Phase 8**; previous Phase 8 (Crypto) and all downstream phases shifted +1.
+- **O129** — Custom atomic blocks (Vitals first, then Allergies / MedList). Lives in the phase after Phase 8 Snippet engine; numbering set at that phase's gate. Picklist *placeholder* (a single field inside a Snippet) ships in Phase 8 per ADR-416; richer structured blocks live here.
 - **O130** — React-in-nodeView strategy revisit (vanilla DOM vs `@handlewithcare/react-prosemirror` / `@nytimes/react-prosemirror`). Decide at custom-block phase entry per ADR-415's recorded criteria.
 - **O131** — Stable ID revisit (UUID v4 → v7 when per-block revision history lands).
 - **O132** — Print pipeline (JSON → print-React → Puppeteer-in-Main → PDF, page templates, signature block). Lives in the phase after custom blocks.
@@ -443,31 +443,94 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - Phase 7's view hosting is the surface inside which iframe-hosted editor-type views will mount RuEdit at the first clinical-bundle phase.
 - RuEdit itself is renderer-trust code in the workbench shell; the first scratch demo could run earlier in principle, but the first *clinical* RuEdit instance requires both 6.5 and 7 to be load-bearing.
 
-## Phase 8 — Crypto + KEK + workspace lock / unlock
+## Phase 8 — Snippet engine
+
+**Goal:** clinician-grade snippet expansion in RuEdit. Type `/abbrev` + Tab → snippet body inserts, cursor lands on first placeholder, Tab walks placeholders, Esc aborts, last Tab/Enter finalises. Closes ADR-414 O128 via ADR-416.
+
+**Naming-policy note:** Epic's `Smart*` family (SmartPhrase, SmartText, SmartList, SmartLink, SmartTools) is trademarked. Across docs, code, and product surfaces we use generic vocabulary: **Snippet** (Epic: SmartPhrase), **Template** (Epic: SmartText, future phase), **Picklist** (Epic: SmartList; ships in this phase as a Snippet placeholder type), **DataLink** (Epic: SmartLink; reserved type name, no implementation until chart/FHIR phase). See ADR-416 §Vocabulary.
+
+**Trigger character:** `/`. Rationale recorded in ADR-416.
+
+**Deliverable:**
+
+- New module `packages/editor/src/snippets/`:
+  - `registry.ts` — `SnippetRegistry` (in-memory map `abbrev → SnippetDef`), `SnippetDef`, `SnippetPlaceholder` types. Placeholder types in this phase: `text`, `picklist`. Reserved (not implemented): `number`, `date`, `datalink`.
+  - `trigger-plugin.ts` — ProseMirror plugin: detects `/` mid-prose, opens completion-popup decoration, accepts on Tab/Enter/click.
+  - `expand.ts` — single-transaction expansion: remove trigger text, insert body fragment + placeholder nodes, set selection to first placeholder.
+  - `placeholders.ts` — placeholder keymap (Tab next, Shift+Tab prev, Enter finalize-last, Esc abort-to-history).
+  - `picklist-view.ts` — vanilla DOM `NodeView` for picklist placeholders (per ADR-415: no React in content).
+- Schema **v1 → v2** in `@ru-soam/editor`: adds atomic inline node `placeholder` with attrs `{ name, type: "text" | "picklist", default?, options?, value? }`. Codec v1→v2 migration: no-op for docs without placeholders. Schema-mismatch errors named per ADR-414.
+- `mountRuEdit` gains optional `snippets: SnippetRegistry` option; trigger plugin attaches only when supplied.
+- `ISnippetService` + `SnippetServiceId` registered in `workbench/boot.ts`, sibling to `RuEditServiceId`. Exposes `registry()` only; mutation API deferred to capability-surface phase (O416c).
+- Developer command `developer.snippets.seed` populates the registry with three fixed test snippets:
+  - `/hello` — plain-text body, no placeholders.
+  - `/hpi` — body with one `text` placeholder (e.g. "Patient reports {{chief_complaint}}.").
+  - `/disp` — body with one `picklist` placeholder (e.g. disposition options).
+- Context keys: `snippet.active` (cursor inside snippet with unfinalized placeholders) and `snippet.placeholder.type` (`text` | `picklist`). Mirror `ruEdit.activeInstance` from 7.5b.
+- Scratch RuEdit pulls registry from `SnippetService` and passes into mount. Toolbar from 7.5c unchanged.
+
+**ADRs:** **ADR-416** (Snippet engine — new). ADR-414 amended (O128 closed, vocabulary policy added). ADR-415 amended (NodeView phase reference symbolised; picklist nodeView added as Phase 8 instance of the imperative-DOM rule).
+
+**Verification (CDP 9333, agent-browser):**
+
+- Type `/hello` + Tab → trigger text removed, snippet body inserted, doc round-trips schema v2 codec.
+- Type `/hpi` + Tab → cursor lands on `{{chief_complaint}}` placeholder. Type "headache" → Tab finalizes. Doc contains zero `placeholder` nodes; `headache` is plain text.
+- Type `/disp` + Tab → picklist dropdown opens. Arrow keys + Enter select option. Tab finalizes / advances.
+- `Ctrl+Z` immediately after `/hpi` expansion fully reverses (one history step). Esc mid-walk also reverts to pre-expansion doc.
+- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+
+**Exit criteria:**
+
+- All three seeded snippets expand, walk, finalize, abort as documented.
+- Schema v2 codec round-trips docs both with and without placeholders. Mismatched-version error is named and recoverable.
+- Picklist nodeView is vanilla DOM (no React in content path); confirmed by inspection.
+- Heap snapshot before / after a mount + dispose with snippets in the doc shows no leaked `EditorView`.
+- `pnpm exec tsc -b` clean for both `apps/desktop` and `packages/editor`.
+
+**Open items raised (sequenced past Phase 8):**
+
+- **O416a** — Type-constrained placeholders (`number`, `date`, regex-validated text). Lands with first clinical consumer requiring them.
+- **O416b** — Shared / clinic-level snippet registries + persistence. Local-workspace persistence aligns with Phase 10 (Local Store); multi-clinician sharing with Phase 11 (Sync).
+- **O416c** — Snippet authoring UI (clinician edits own library inside ru-soam). Renamed from ADR-414 O122; long-range product phase.
+- **O416d** — Snippet recursion (snippet body containing a `/abbrev` that re-triggers on finalize). Defer until use case.
+- **O416e** — DataLink placeholder type (Epic-equivalent of SmartLink). Reserved type name in Phase 8; full implementation requires chart/FHIR phase with capability-mediated data access.
+- **O416f** — Template phase (Epic-equivalent of SmartText): whole-document default scaffolds per note type. Distinct ADR; sequenced when editor-type views with note-typed resources land.
+- **O416g** — Trigger-character override per workspace setting. Default `/` locked; override is long-range.
+- **O416h** — Completion popup UX (filter ordering, recent-first, descriptions, fuzzy match). Phase 8 ships minimal list; richer UX once snippet libraries grow.
+- **O130** (ADR-415) — React-in-nodeView decision shifts forward by one concrete data point: how the Phase 8 picklist nodeView felt to build informs the criteria, but the decision still lives at the custom-blocks phase (O129) entry.
+
+**Why this lands now, ahead of Crypto (Phase 9):**
+
+- RuEdit primitive surface and PM transaction pattern is freshly built (7.5a–7.5c); keymap, plugin, schema, and codec internals are hot for the team.
+- Snippet expansion exercises the schema-v2 migration path before the heavier O129 atomic blocks land, de-risking that phase.
+- Snippet has zero dependency on Crypto, Local Store, or Sync; persistence is explicitly out of scope this phase.
+- The clinical phases (post-13) want snippets and templates as table stakes for any prose-bearing editor-type view; landing the engine here unblocks future product scoping.
+
+## Phase 9 — Crypto + KEK + workspace lock / unlock
 
 **Goal:** PHI gate lands before any patient / session schema goes near disk.
 
-**Deliverable:** KEK derivation, workspace unlock UI, KEK relock command, encryption-at-rest primitives (key handling, envelope format, table-level encryption hooks ready for Phase 9), "KEK locked" StatusBar entry live, PHI capability calls refused while locked.
+**Deliverable:** KEK derivation, workspace unlock UI, KEK relock command, encryption-at-rest primitives (key handling, envelope format, table-level encryption hooks ready for Phase 10), "KEK locked" StatusBar entry live, PHI capability calls refused while locked.
 
-**ADRs:** ADR-301 (crypto), ADR-303 (KEK / recovery; recovery UX lands Phase 11), ADR-403 (lock state).
+**ADRs:** ADR-301 (crypto), ADR-303 (KEK / recovery; recovery UX lands Phase 12), ADR-403 (lock state).
 
 **Open items:** crypto-domain open items (300-range; tracked in the ADRs).
 
 **Exit:** force-restart → must unlock to access PHI; relock works mid-session; cold storage of the still-empty PHI tables shows ciphertext only; lock state is a context key consumed by when-clauses.
 
-## Phase 9 — Local Store + audit log + TanStack Query data wiring
+## Phase 10 — Local Store + audit log + TanStack Query data wiring
 
 **Goal:** capability-backed data flow real; audit spine in place; encryption-at-rest applied from the first write.
 
 **Deliverable:** SQLite-backed Local Store in Main, change-event capability, TanStack Query invalidation bridge, one demo capability that reads/writes a non-sensitive table (e.g., user preferences). Audit log capability: append-only store, redaction discipline (no PHI-adjacent context keys in audit payloads), every capability invocation that should audit, does.
 
-**ADRs:** ADR-302 (Local Store), ADR-403 (workspace settings cascade), ADR-407 (PHI-adjacent key scrubbing), ADR-412, ADR-502 (audit infrastructure; viewer bundle ships Phase 12).
+**ADRs:** ADR-302 (Local Store), ADR-403 (workspace settings cascade), ADR-407 (PHI-adjacent key scrubbing), ADR-412, ADR-502 (audit infrastructure; viewer bundle ships Phase 13).
 
 **Open items:** O55, O97, O100, O95 (context-key scrub list).
 
 **Exit:** prefs survive restart; mutation invalidates query; demo proves the pipeline without touching PHI; audit table records every audited capability call; redaction verified by test.
 
-## Phase 10 — Sync queue + cloud mirror
+## Phase 11 — Sync queue + cloud mirror
 
 **Goal:** local-first writes propagate; conflict policy committed.
 
@@ -479,7 +542,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 
 **Exit:** offline edit → reconnect → mirror converges; conflict surfaced in UI; cloud receives ciphertext only (structural enforcement per ADR-301).
 
-## Phase 11 — Recovery + Onboarding + Settings surfaces
+## Phase 12 — Recovery + Onboarding + Settings surfaces
 
 **Goal:** three of the four core Activity Bar items real (Recovery, Onboarding, Settings). Bundles surface lands here as the fourth.
 
@@ -491,7 +554,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 
 **Exit:** fresh install → Onboarding → workspace created → KEK set → recovery codes captured → Settings reachable; existing install → Recovery flow restores access from a recovery code.
 
-## Phase 12 — Audit Viewer bundle (first first-party bundle) + editor polish pass
+## Phase 13 — Audit Viewer bundle (first first-party bundle) + editor polish pass
 
 **Goal:** dogfood the whole stack with the only first-party bundle anchored in the ADR set (ADR-502). Audit Viewer is the forcing function that finally renders real bundle content inside the editor area — so this phase also picks up the editor UX items deferred from Phase 5.5, since they only start to bite once a non-trivial editor is actually being looked at.
 
@@ -516,7 +579,7 @@ These run alongside the phases, not in sequence with them.
 
 ### Product-scoping doc (Open Item O72)
 
-Owner: product, not architecture. Must land **before Phase 13** (first product bundle beyond the Audit Viewer). Defines the first-party bundle catalogue (Patients / Sessions / Calendar / Tasks / Library / etc.) with anchored sources for each.
+Owner: product, not architecture. Must land **before Phase 14** (first product bundle beyond the Audit Viewer). Defines the first-party bundle catalogue (Patients / Sessions / Calendar / Tasks / Library / etc.) with anchored sources for each.
 
 ### Theme token catalogue (Open Item O107)
 
@@ -528,7 +591,7 @@ Each phase that lands new mechanism updates the corresponding ADR's Open Items l
 
 ### Security review cadence
 
-After Phase 7 (view hosting), Phase 8 (crypto), Phase 9 (audit), and Phase 10 (sync), a focused security pass on the just-landed surface. PHI never reaches cloud in plaintext is the load-bearing invariant; each pass re-verifies it structurally, not by inspection.
+After Phase 7 (view hosting), Phase 9 (crypto), Phase 10 (audit), and Phase 11 (sync), a focused security pass on the just-landed surface. PHI never reaches cloud in plaintext is the load-bearing invariant; each pass re-verifies it structurally, not by inspection.
 
 ## What this plan deliberately does not cover
 

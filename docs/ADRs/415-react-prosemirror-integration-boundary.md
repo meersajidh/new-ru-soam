@@ -5,7 +5,7 @@
 **Date:** 2026-05-16
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-401, ADR-404, ADR-411, ADR-412, ADR-414
+**Related:** ADR-401, ADR-404, ADR-411, ADR-412, ADR-414, ADR-416
 
 ## Context
 
@@ -59,22 +59,22 @@ export function RuEditView({ value, readOnly, onChange }: Props): JSX.Element {
 
 The chrome — toolbars, status indicators, side panels, command palette integration — is normal React. It communicates with the editor through the `RuEditHandle` returned by `mountRuEdit`, not through React state inside the content.
 
-### NodeViews are imperative DOM through Phase 9
+### NodeViews are imperative DOM through the custom-blocks phase
 
-ProseMirror's `NodeView` API lets the schema attach a custom DOM rendering for a node type. Through Phase 9 (custom atomic blocks: Vitals, Allergies, etc.), node views are implemented as **vanilla TypeScript / DOM**, not React components. They construct their DOM with `document.createElement`, listen for events directly, and re-render in response to PM transactions.
+ProseMirror's `NodeView` API lets the schema attach a custom DOM rendering for a node type. Through the custom atomic blocks phase (O129: Vitals, Allergies, MedList, etc.; numbering not yet locked — sequenced after Phase 8 Snippet engine per ADR-416), node views are implemented as **vanilla TypeScript / DOM**, not React components. They construct their DOM with `document.createElement`, listen for events directly, and re-render in response to PM transactions.
 
 This is more code than rendering a React component inside a node view, but the cost is bounded: the first concrete custom block (Vitals) is a shallow form — four typed cells, a label, basic validation. The benefit is **zero React-PM boundary inside the document**, which means zero tearing surface.
 
-### Phase 9 decision point (O130)
+### O130 decision point: at the custom-blocks phase entry
 
-At Phase 9 entry — when the first custom atomic blocks (Vitals, Allergies, MedList, picklist) start to require richer in-content UI — we re-evaluate. Two paths:
+At the custom-blocks phase entry — when the first custom atomic blocks (Vitals, Allergies, MedList) start to require richer in-content UI — we re-evaluate. Two paths:
 
 - **(a) Stay imperative.** Continue building node views as vanilla DOM. Adopt utility helpers if needed (a small DOM-builder, fine-grained state subscriptions). No React-in-content, no maintenance burden, no tearing risk. Cost: every node view is hand-rolled.
 - **(b) Adopt `@handlewithcare/react-prosemirror` (or `@nytimes/react-prosemirror`).** Replace `prosemirror-view` with the React-aware fork. Gain: React components inside node views work correctly, state tearing prevented at the framework level. Cost: a non-trivial dependency, tracking upstream PM evolution at one remove, learning the fork's API for the team.
 
-The decision criteria, recorded for Phase 9's planning pass:
+The decision criteria, recorded for that phase's planning pass:
 
-- If Phase 8 SmartText + the first three custom blocks are buildable in vanilla DOM in days, not weeks → stay imperative.
+- If the Phase 8 Snippet engine (ADR-416) — including its `placeholder` atomic inline node and picklist vanilla nodeView — plus the first three custom blocks are buildable in vanilla DOM in days, not weeks → stay imperative.
 - If we hit a wall where React-context-bearing components (theme tokens, command service, capability proxies) need to live inside node views and the imperative workaround feels structurally wrong → adopt the React fork.
 - The decision is reversible in either direction; we don't lock ourselves out.
 
@@ -106,15 +106,15 @@ This pattern intentionally diverges from React's typical "controlled component" 
 
 - Zero state-tearing surface in Phase 7.5: no React inside content means no two-clock problem.
 - Implementation is simple and short: a `useRef` + two `useEffect`s.
-- The decision is reversible. If Phase 9 demands React-in-node-views, we adopt the React-aware fork without rewriting the engine or schema.
+- The decision is reversible. If the custom-blocks phase demands React-in-node-views, we adopt the React-aware fork without rewriting the engine or schema.
 - The chrome side of the editor remains idiomatic React with full access to `useService`, the command palette, theme tokens, status bar — all normal patterns.
 - We do not take on the maintenance cost of `@handlewithcare/react-prosemirror` (or `@nytimes/react-prosemirror`) at this stage, while keeping the door open.
 
 ### Negative
 
-- Custom block UIs through Phase 9 are vanilla DOM, not React. More code per block; less ecosystem to lean on.
+- Custom block UIs through the custom-blocks phase are vanilla DOM, not React. More code per block; less ecosystem to lean on.
 - The uncontrolled-with-replacement React pattern is non-standard; reviewers and new contributors need the explanation in this ADR (and a code comment at the boundary) to avoid "fixing" the pattern into a controlled component.
-- If Phase 9 forces the React-fork adoption, we pay a migration cost on node views written before it.
+- If the custom-blocks phase forces the React-fork adoption, we pay a migration cost on node views written before it (including the Phase 8 picklist nodeView from ADR-416).
 
 ### Neutral
 
@@ -123,9 +123,9 @@ This pattern intentionally diverges from React's typical "controlled component" 
 ## Considered Options
 
 - **Render the entire editor with React, controlled-component style** — _Rejected_: textbook state-tearing scenario; Moore's piece is the long-form rejection.
-- **Adopt `@handlewithcare/react-prosemirror` (or `@nytimes/react-prosemirror`) from Phase 7.5** — _Rejected for Phase 7.5_: introduces a non-trivial dependency before we know whether the chrome-vs-content separation alone is sufficient. Door explicitly left open for Phase 9 (O130).
-- **Vanilla `prosemirror-view` for content; React for chrome; uncontrolled with explicit replacement; imperative node views through Phase 9** _(chosen)_ — Smallest possible boundary, zero tearing, reversible.
+- **Adopt `@handlewithcare/react-prosemirror` (or `@nytimes/react-prosemirror`) from Phase 7.5** — _Rejected for Phase 7.5_: introduces a non-trivial dependency before we know whether the chrome-vs-content separation alone is sufficient. Door explicitly left open for the custom-blocks phase (O130).
+- **Vanilla `prosemirror-view` for content; React for chrome; uncontrolled with explicit replacement; imperative node views through the custom-blocks phase** _(chosen)_ — Smallest possible boundary, zero tearing, reversible.
 
 ## Open Items
 
-- **O130** — React-in-nodeView strategy revisit at Phase 9 entry. Criteria documented above. Outcome either "stay vanilla" or "adopt React fork" with a brief follow-up ADR amendment.
+- **O130** — React-in-nodeView strategy revisit at the custom-blocks phase entry (O129; lands after Phase 8 Snippet engine per ADR-416, exact numbering set at that phase's gate). Criteria documented above. Outcome either "stay vanilla" or "adopt React fork" with a brief follow-up ADR amendment.

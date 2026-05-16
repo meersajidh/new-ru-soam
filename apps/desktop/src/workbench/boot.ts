@@ -1,8 +1,8 @@
 import { ServiceRegistry } from '../platform/services/registry';
 import {
   CommandServiceId, ContextKeyServiceId, EditorServiceId, FontServiceId,
-  KeybindingServiceId, LayoutServiceId, RuEditServiceId, StatusBarServiceId,
-  ThemeServiceId, WorkspaceServiceId,
+  KeybindingServiceId, LayoutServiceId, RuEditServiceId, SnippetServiceId,
+  StatusBarServiceId, ThemeServiceId, WorkspaceServiceId,
 } from '../platform/services/ids';
 import { LayoutService } from '../platform/layout/layout-service';
 import { ThemeService } from '../platform/theme/theme-service';
@@ -14,6 +14,7 @@ import { KeybindingService } from '../platform/keybinding/keybinding-service';
 import { WorkspaceService } from '../platform/workspace/workspace-service';
 import { EditorService } from '../platform/editor/editor-service';
 import { RuEditService } from '../platform/ru-edit/ru-edit-service';
+import { SnippetService } from '../platform/snippet/snippet-service';
 import { BUILT_IN_THEMES } from '../platform/theme/themes/built-in';
 import { BUILT_IN_FONT_SETS } from '../platform/font/font-sets/built-in';
 import { ANCHORED_ENTRIES } from '../platform/statusbar/anchored-ids';
@@ -103,6 +104,15 @@ export function boot(): ServiceRegistry {
   const ruEdit = new RuEditService();
   registry.register(RuEditServiceId, ruEdit);
   contextKeys.set('ruEdit.activeInstance', '');
+
+  // ── Phase 8 ────────────────────────────────────────────────────────────────
+
+  const snippet = new SnippetService();
+  registry.register(SnippetServiceId, snippet);
+  // Context keys for snippet.active / snippet.placeholder.type are deferred:
+  // they require a subscription path from the PM plugin to the registry, which
+  // lands when the first snippet command needs when-clause gating (O416h).
+
   // Sync active RuEdit instance to focused editor tab when applicable.
   editor.onDidChange(() => {
     const gid = editor.getFocusedGroupId();
@@ -118,7 +128,7 @@ export function boot(): ServiceRegistry {
     contextKeys.set('ruEdit.activeInstance', reg ? inst.id : '');
   });
 
-  registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, workspace, editor);
+  registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, workspace, editor, snippet);
 
   // Open mock workspace — real identity comes in Phase 8+
   workspace.open('entity-mock-001', 'individual');

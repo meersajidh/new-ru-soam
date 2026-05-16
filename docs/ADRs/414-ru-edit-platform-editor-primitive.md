@@ -5,7 +5,7 @@
 **Date:** 2026-05-16
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-103, ADR-401, ADR-402, ADR-404, ADR-410, ADR-411, ADR-412, ADR-415
+**Related:** ADR-103, ADR-401, ADR-402, ADR-404, ADR-410, ADR-411, ADR-412, ADR-415, ADR-416
 
 ## Context
 
@@ -13,10 +13,10 @@ ADR-404 commits the Editor Area as a generic container — every editor is a "cu
 
 > "Generic container" means there is no privileged text editor like Monaco. Each editor type carries its own view, including text-editing concerns if any. Mitigated if bundles share a common rich-text package (likely a future first-party utility bundle).
 
-The intervening design work for clinical documentation (vitals, allergies, ICD-10 picklists, SmartText-style snippet expansion, structured/free-prose hybrid records) makes the "each bundle ships its own rich-text engine" path untenable in practice:
+The intervening design work for clinical documentation (vitals, allergies, ICD-10 picklists, dot-/slash-trigger snippet expansion, structured/free-prose hybrid records) makes the "each bundle ships its own rich-text engine" path untenable in practice:
 
 - **Schema rigor**: clinical data must round-trip through a typed JSON schema (FHIR/HL7/SNOMED layers downstream). HTML or open-shape JSON is unfit; off-the-shelf editors that target Notion-style ergonomics (BlockNote, Tiptap-StarterKit) provide neither validation nor immutable structural fields.
-- **UX shape**: clinicians type fast, hate mouse, expect SmartText/SmartList ergonomics (Epic). Notion-style hover toolbars and drag handles are the wrong default. We need a keyboard-first chrome we control.
+- **UX shape**: clinicians type fast, hate mouse, expect snippet-and-picklist ergonomics analogous to Epic's clinical surface. Notion-style hover toolbars and drag handles are the wrong default. We need a keyboard-first chrome we control.
 - **Print fidelity**: clinical notes become signed legal records. Print-quality PDF is required; `html2pdf.js`-grade output is not acceptable. Free OSS rich-text packages either omit export entirely or paywall it (BlockNote XL is GPL-3 / commercial).
 - **React integration**: ProseMirror's synchronous DOM ownership conflicts with React's two-phase async render cycle (documented in Smoores 2024, recorded as ADR-415). Choosing a wrapper that hides this mismatch from us is a long-term reliability bet against ourselves.
 - **Licensing**: every paid tier in a dep chain is a future migration. The platform's "batteries-included free core" charter demands MIT/MPL deps only.
@@ -40,9 +40,9 @@ RuEdit is built on **raw ProseMirror** (`prosemirror-model`, `prosemirror-state`
 Why raw ProseMirror, not a wrapper:
 
 - **Schema-validated document model**: ProseMirror enforces structural invariants at the engine level (e.g., "a Vitals block contains exactly four typed cells"). Wrappers (Tiptap, BlockNote) expose this but layer their own abstractions on top; for a Monaco-equivalent we own the abstraction layer ourselves.
-- **Atomic nodes and locked ranges**: first-class. SmartText placeholders, immutable template scaffolding, Vitals/Allergies/MedList cells, picklist nodes — all expressible without leaving the engine.
+- **Atomic nodes and locked ranges**: first-class. Snippet placeholders, immutable template scaffolding, Vitals/Allergies/MedList cells, picklist nodes — all expressible without leaving the engine.
 - **Decoration API**: in-place widgets (validation underlines, picklist chips, snippet hints) without polluting the document.
-- **Transaction model**: composite operations (SmartText expansion = insert template + insert placeholders + position selection on first placeholder) are one atomic step; undo behaves correctly.
+- **Transaction model**: composite operations (snippet expansion = insert template + insert placeholders + position selection on first placeholder) are one atomic step; undo behaves correctly.
 - **Licence**: MIT, no paid tier, no commercial track. Maintained by independent contributors with predictable release cadence.
 - **Track record**: used in Notion, Atlassian, Substack, New York Times, ProseMirror itself. The engine is battle-proven at clinical scale.
 
@@ -120,12 +120,12 @@ In Phase 7.5 (initial landing):
 - the `IRuEditService` registration
 - one developer scratch command for verification
 
-In later phases (numbering deferred — either renumber the existing Phase 8+ chain by +1 to give SmartText "Phase 8", or interleave as Phase 7.6 / 7.7 / 7.8 and preserve the existing chain; decision lives in the Implementation Plan gate before SmartText work starts):
+In later phases (numbering locked: Snippet engine lands as renumbered **Phase 8**; previous Phase 8 — Crypto — and all downstream phases shift +1):
 
-- **SmartText engine** (O128) — trigger character, phrase registry capability, placeholder navigation, abort / finalize.
-- **Custom atomic blocks** (O129) — Vitals as first concrete block, schema validation via Zod, SmartList picklist node, ICD-10 mock registry.
+- **Snippet engine** (Phase 8; closes O128, see **ADR-416**) — `/`-trigger snippet expansion, placeholder navigation, picklist placeholder type, abort / finalize.
+- **Custom atomic blocks** (O129) — Vitals as first concrete block, schema validation via Zod, ICD-10 mock registry. Picklist *placeholder* (single field inside a snippet) lands with the Snippet engine; richer structured blocks (Vitals/Allergies/MedList) live here.
 - **Print pipeline** (O132) — Puppeteer-in-Main capability, JSON-to-print-React, page template, signature block.
-- **Voice dictation adapter** (O120), **multi-clinician collab** (O121, deferred indefinite), **template authoring UI** (O122).
+- **Voice dictation adapter** (O120), **multi-clinician collab** (O121, deferred indefinite), **snippet authoring UI** (was O122; renamed and re-scoped as ADR-416 O416c).
 
 ### What RuEdit does not own
 
@@ -149,7 +149,7 @@ RuEdit itself is renderer-trust code in the workbench shell, not Bundle Host cod
 ### Positive
 
 - One canonical, owned, MIT-licensed rich-text surface for the whole platform. No per-bundle reinvention.
-- Schema-validated JSON at the engine level — clinical structural fields, SmartText placeholders, picklist chips, all expressible without DSL.
+- Schema-validated JSON at the engine level — clinical structural fields, snippet placeholders, picklist chips, all expressible without DSL.
 - Long-term flexibility: every editor-related UX decision (keymap, validation, print, voice) lands in one package we control.
 - Bundles benefit from RuEdit without depending on a paid tier or a Notion-style abstraction they have to fight.
 - Reverses ADR-404's "no Monaco" stance for prose-bearing editor types; the Audit Viewer remains read-only and bespoke, unaffected.
@@ -166,7 +166,7 @@ RuEdit itself is renderer-trust code in the workbench shell, not Bundle Host cod
 
 ## Considered Options
 
-- **Reuse ADR-404's "every editor is a custom editor" status quo; each bundle ships its own engine** — _Rejected_: cost multiplies per bundle, no canonical clinical schema emerges, version drift across bundles, no shared SmartText / picklist primitives. Worst possible outcome for an EMR workbench.
+- **Reuse ADR-404's "every editor is a custom editor" status quo; each bundle ships its own engine** — _Rejected_: cost multiplies per bundle, no canonical clinical schema emerges, version drift across bundles, no shared snippet / picklist primitives. Worst possible outcome for an EMR workbench.
 - **Adopt BlockNote as the de facto editor; ship it inside the first clinical bundle** — _Rejected_: Notion UX wrong for clinicians; XL paywall on exports; locks us into Mantine and BlockNote's release cadence; React-PM mismatch hidden behind the wrapper, not solved.
 - **Adopt Tiptap as a managed ProseMirror layer** — _Rejected_: adds an abstraction the platform doesn't need; Tiptap Pro tier exists and would tempt future features into a paid tier.
 - **Adopt Lexical (Meta) for "React-native" reasons** — _Rejected_: schema model weaker than ProseMirror's; atomic embedded forms harder; Meta-controlled cadence.
@@ -174,11 +174,11 @@ RuEdit itself is renderer-trust code in the workbench shell, not Bundle Host cod
 
 ## Open Items
 
-- **O128** — SmartText engine. Trigger character, phrase registry capability surface, placeholder navigation (Tab / Shift+Tab / Esc / Enter), type-constrained placeholders (number, date, picklist). Lands in the phase immediately after RuEdit core (Phase 7.5).
+- **O128** — _Closed by ADR-416._ Originally "SmartText engine"; renamed to **Snippet engine** (Epic's `Smart*` family is trademarked, see ADR-416 §Vocabulary). Lands as renumbered **Phase 8**.
 - **O129** — Custom atomic blocks. Vitals as first concrete block; Allergies, MedList, picklist node follow. Schema validation via Zod layer between editor doc and persistence.
 - **O130** — React-in-nodeView strategy. At the custom-block phase's entry, decide between (a) imperative DOM nodeViews or (b) adopting `@handlewithcare/react-prosemirror` (or `@nytimes/react-prosemirror`). Per ADR-415.
 - **O131** — Stable ID strategy revisit. Phase 7.5 uses UUID v4. Revisit UUID v7 (time-ordered) when per-block revision history lands.
 - **O132** — Print pipeline. JSON-to-print-React, Puppeteer-in-Main capability, page templates (header / footer / signature line / page numbers / encounter watermark), per-organization theming. Lands after custom blocks.
 - **O120** — Voice dictation adapter. Engine-agnostic interface; Web Speech for free-tier, Dragon / Deepgram Medical for paid. Deferred long-range.
 - **O121** — Multi-clinician collab via Yjs + Cloud Backend awareness. Deferred indefinite; single-clinician-per-record is the assumption through the foreseeable phases.
-- **O122** — Template authoring UI. Clinicians edit their own SmartText library inside ru-soam; clinic-level shared templates land later. Deferred to a product phase.
+- **O122** — _Renamed and re-scoped as ADR-416 O416c (Snippet authoring UI)._ Clinicians edit their own snippet library inside ru-soam; clinic-level shared snippets land later. Deferred to a product phase. A separate template-authoring UI (whole-doc default scaffolds per note type, Epic-equivalent of SmartText) is tracked as ADR-416 O416f.
