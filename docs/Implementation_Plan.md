@@ -290,7 +290,59 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - ✅ Iframe cannot reach `window.soam`, `window.parent.document`, `window.top.location`, `require`, or `process`.
 - ✅ `pnpm exec tsc -b` clean across renderer, main, preload, bundle-host.
 
-## Phase 7.5 — RuEdit core skeleton
+## Phase 7.5a — RuEdit core skeleton — Complete
+
+**Goal:** ship the platform's editor primitive — `@ru-soam/editor` (RuEdit), a raw-ProseMirror surface analogous to Monaco-in-VSCode — so every later prose-bearing editor type (session notes, intake narratives, discharge summaries) and every clinical bundle composes the same engine. No clinical schema yet; foundation only.
+
+**Landed (Phase 7.5a):**
+
+- New workspace package `packages/editor/` (`@ru-soam/editor`), MIT/BSD ProseMirror deps only (`prosemirror-{model,state,view,transform,commands,keymap,history,schema-list,inputrules}` + `orderedmap`). `pnpm-workspace.yaml` widened to `packages/*`; root `tsconfig.json` references the new package.
+- ProseMirror schema v1 (`packages/editor/src/schema.ts`): `doc`, `paragraph`, `heading` (levels 1–3), `bullet_list`, `ordered_list`, `list_item`, `blockquote`, `horizontal_rule`, `hard_break`, `text`. Marks: `strong`, `em`, `underline`, `code`. Stable per-block `_id` attr (UUID v4) emitted as `data-soam-id` in the DOM.
+- Stable-ID plugin (`id-plugin.ts`): `appendTransaction` stamps fresh UUIDs onto id-bearing blocks lacking one or sharing an id (split-sibling case). `ensureStableIds(doc)` normalizes a doc tree synchronously so `getDoc()` is stable before the first transaction.
+- Versioned JSON envelope (`json.ts`): `{ schemaVersion: 1, doc }`. `nodeToJSON` / `nodeFromJSON`; schema-version mismatch and unknown-node-type both throw a named `RuEditSchemaError` (with `cause`), never silent coercion.
+- Imperative mount API (`mount.ts`): `mountRuEdit(container, { initial, readOnly, onChange })` → `RuEditHandle { getDoc, setDoc, focus, dispose, view }`. `dispose()` tears down the `EditorView`.
+- Default keymap (`keymap.ts`): history (Mod-Z / Mod-Shift-Z / Mod-Y), list nav (Tab / Shift-Tab indent, Enter split), marks (Mod-B / Mod-I / Mod-U / Mod-`), heading toggles (Mod-1/2/3 ↔ paragraph), hard-break (Shift-Enter), input rules for Markdown-style `#`/`##`/`###` heading + `-`/`*` bullet + `1.` ordered list.
+- Renderer-side React chrome (`apps/desktop/src/platform/ru-edit/RuEditView.tsx`) per ADR-415: vanilla PM in a `ref`-mounted div, React never reaches inside the content, uncontrolled-with-explicit-replacement; remount only on `instanceId` change.
+- `apps/desktop/src/workbench/middle/ScratchRuEdit.tsx` host with in-memory doc cache (`platform/ru-edit/scratch-store.ts`) so docs survive tab switches; `onChange` dumps JSON to devtools; "Log JSON" button forces a `getDoc()` dump.
+- `EditorGroup` dispatches the `ru-edit-scratch:` scheme to `ScratchRuEdit`.
+- Developer command `developer.editor.openScratch` ("Developer: Open RuEdit Scratch") opens `ru-edit-scratch://scratch-<n>` tabs.
+- Workbench CSS for `.ru-edit-host` (host sizing, padding, scroll) and `.ru-edit-scratch` (toolbar chrome) plus `.ProseMirror` typography (headings, lists with explicit `list-style: disc/decimal`, blockquote, inline code).
+
+**Verification (CDP 9333, agent-browser):**
+
+- Scratch tab mounts; `document.querySelector(".ru-edit-host .ProseMirror")` present.
+- Typing into the editor produces correct DOM ("Hello RuEdit" → `<p data-soam-id="…">Hello RuEdit</p>`).
+- Input rule `# ` rewrites to `<h1>` with a stable id.
+- Bullet input rule `- ` + Tab nests; `data-soam-id` present on every `<li>`, `<ul>`, and `<p>`.
+- `Mod-B` toggles `<strong>` across selection (4 strong wrappers across the populated doc), `Mod-Z` removes them, `Mod-Shift-Z` restores them.
+- `ensureStableIds` assigns a UUID v4 to an id-less paragraph supplied via `initial`; `getDoc()` immediately after mount returns an id-bearing envelope.
+- `nodeFromJSON({ schemaVersion: 99, … })` throws `RuEditSchemaError: RuEdit schemaVersion mismatch: expected 1, got 99`.
+- `nodeFromJSON({ schemaVersion: 1, doc: { type: "doc", content: [{ type: "made_up_node" }] } })` throws `RuEditSchemaError: RuEdit doc failed schema validation: Unknown node type: made_up_node`.
+- Full setDoc round-trip: `getDoc()` → `JSON.stringify` → `JSON.parse` → `setDoc()` → `getDoc()`; second dump identical to first (string equality on a doc containing `heading`, `bullet_list`, two `list_item`s — 675 bytes).
+- `mountRuEdit` → `dispose()` removes `.ProseMirror` from the host (manual leak smoke-test; formal heap-snapshot harness deferred to O146).
+- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+
+**ADRs:** ADR-414 (RuEdit primitive), ADR-415 (React/PM boundary). ADR-404 amended to reflect that prose-bearing editor types now compose RuEdit.
+
+**Open items raised (Phase 7.5a):**
+- **O144** — `IRuEditService` / `RuEditServiceId` workbench primitive registered in `boot.ts`. **Defer reason:** single consumer (scratch tab) doesn't need DI seam yet. **Target:** Phase 7.5b (gate before first clinical bundle), or absorb into first non-scratch RuEdit surface.
+- **O145** — Reload-survival round-trip test (sessionStorage serialize → reload → deserialize, IDs preserved). **Defer reason:** scratch docs are in-memory only; durable persistence comes with the first non-scratch consumer. **Target:** Phase 7.5b.
+- **O146** — Heap-snapshot dispose-leak harness. Phase 7.5a verified dispose tears the DOM down; formal CI-shaped harness lands when leak-gating becomes valuable. **Target:** Phase 8 hardening pass.
+- **O147** — RuEdit toolbar UI (mark buttons, heading dropdown, list buttons). Not required for keyboard-only scratch demo. **Target:** Phase 7.5b or first clinical consumer.
+
+**Open items raised (carried from full plan):**
+- **O128** — SmartText engine (trigger char, phrase registry capability, placeholder navigation). Lands Phase 8 (renumbered alongside Phase 7.5; current "Phase 8 — Crypto" becomes Phase 9; downstream shifts by +1) — **or** keep crypto numbering and SmartText lands as Phase 7.6. Numbering policy decision deferred to the gate before SmartText work starts.
+- **O129** — Custom atomic blocks (Vitals first, then Allergies / MedList / picklist). Lives in the phase after SmartText.
+- **O130** — React-in-nodeView strategy revisit (vanilla DOM vs `@handlewithcare/react-prosemirror` / `@nytimes/react-prosemirror`). Decide at custom-block phase entry per ADR-415's recorded criteria.
+- **O131** — Stable ID revisit (UUID v4 → v7 when per-block revision history lands).
+- **O132** — Print pipeline (JSON → print-React → Puppeteer-in-Main → PDF, page templates, signature block). Lives in the phase after custom blocks.
+
+**Open items deferred long-range:**
+- **O120** — Voice dictation adapter interface (Web Speech / Dragon / Deepgram Medical).
+- **O121** — Multi-clinician collab via Yjs + Cloud Backend awareness. Single-clinician-per-record is the assumption through the foreseeable phases.
+- **O122** — Template authoring UI inside ru-soam.
+
+## Phase 7.5 — RuEdit core skeleton (original full scope; superseded by 7.5a above; remainder tracked as 7.5b)
 
 **Goal:** ship the platform's editor primitive — `@ru-soam/editor` (RuEdit), a raw-ProseMirror surface analogous to Monaco-in-VSCode — so every later prose-bearing editor type (session notes, intake narratives, discharge summaries) and every clinical bundle composes the same engine. No clinical schema yet; foundation only.
 

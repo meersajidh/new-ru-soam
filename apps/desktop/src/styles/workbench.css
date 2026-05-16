@@ -380,6 +380,77 @@ body,
   background: var(--color-surface-base);
 }
 
+.ru-edit-scratch {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+}
+
+.ru-edit-scratch-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+  color: var(--color-fg-muted);
+}
+
+.ru-edit-scratch-resource {
+  font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ru-edit-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-4);
+}
+
+.ru-edit-host .ProseMirror {
+  outline: none;
+  min-height: 100%;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ru-edit-host .ProseMirror p,
+.ru-edit-host .ProseMirror h1,
+.ru-edit-host .ProseMirror h2,
+.ru-edit-host .ProseMirror h3,
+.ru-edit-host .ProseMirror blockquote,
+.ru-edit-host .ProseMirror ul,
+.ru-edit-host .ProseMirror ol { margin: 0 0 0.5em; }
+
+.ru-edit-host .ProseMirror h1 { font-size: 1.6em; font-weight: 600; }
+.ru-edit-host .ProseMirror h2 { font-size: 1.3em; font-weight: 600; }
+.ru-edit-host .ProseMirror h3 { font-size: 1.1em; font-weight: 600; }
+.ru-edit-host .ProseMirror blockquote {
+  border-left: 3px solid var(--color-border);
+  padding-left: var(--space-3);
+  color: var(--color-fg-muted);
+}
+.ru-edit-host .ProseMirror code {
+  font-family: var(--font-mono, monospace);
+  background: var(--color-surface-elevated);
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+.ru-edit-host .ProseMirror ul,
+.ru-edit-host .ProseMirror ol { padding-left: 1.5em; }
+.ru-edit-host .ProseMirror ul { list-style: disc; }
+.ru-edit-host .ProseMirror ol { list-style: decimal; }
+.ru-edit-host .ProseMirror li { margin: 0; }
+.ru-edit-host .ProseMirror li > p { margin: 0; }
+
 .editor-placeholder {
   flex: 1 1 auto;
   display: flex;

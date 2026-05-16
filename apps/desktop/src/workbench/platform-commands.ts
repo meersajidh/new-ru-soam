@@ -249,6 +249,16 @@ export function registerPlatformCommands(
     () => editor.open(`placeholder://new-tab-${++placeholderCounter}`, { title: 'New Tab' }),
     { category: 'View' },
   );
+
+  let scratchCounter = 0;
+  commands.register(
+    'developer.editor.openScratch',
+    'Developer: Open RuEdit Scratch',
+    () => editor.open(`ru-edit-scratch://scratch-${++scratchCounter}`, {
+      title: `RuEdit Scratch ${scratchCounter}`,
+    }),
+    { category: 'Developer' },
+  );
   commands.register(
     'editors.splitRight',
     'Editor: Split Right',

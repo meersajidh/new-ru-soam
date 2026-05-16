@@ -2,6 +2,7 @@ import { useEditorGroup, useService } from '../../platform/services/hooks';
 import { EditorServiceId } from '../../platform/services/ids';
 import PlaceholderEditor from './PlaceholderEditor';
 import BundleViewIframe from './BundleViewIframe';
+import ScratchRuEdit from './ScratchRuEdit';
 
 interface Props {
   groupId: string;
@@ -68,6 +69,9 @@ function renderEditor(resource: string, instanceId: string) {
     if (url.protocol === 'placeholder:') return <PlaceholderEditor resource={resource} />;
     if (url.protocol === 'view:') {
       return <BundleViewIframe key={instanceId} resource={resource} instanceId={instanceId} />;
+    }
+    if (url.protocol === 'ru-edit-scratch:') {
+      return <ScratchRuEdit key={instanceId} resource={resource} instanceId={instanceId} />;
     }
   } catch { /* fall through */ }
   return <div className="editor-unknown">Unknown editor: {resource}</div>;
