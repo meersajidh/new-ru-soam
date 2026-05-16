@@ -325,10 +325,38 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 **ADRs:** ADR-414 (RuEdit primitive), ADR-415 (React/PM boundary). ADR-404 amended to reflect that prose-bearing editor types now compose RuEdit.
 
 **Open items raised (Phase 7.5a):**
-- **O144** — `IRuEditService` / `RuEditServiceId` workbench primitive registered in `boot.ts`. **Defer reason:** single consumer (scratch tab) doesn't need DI seam yet. **Target:** Phase 7.5b (gate before first clinical bundle), or absorb into first non-scratch RuEdit surface.
-- **O145** — Reload-survival round-trip test (sessionStorage serialize → reload → deserialize, IDs preserved). **Defer reason:** scratch docs are in-memory only; durable persistence comes with the first non-scratch consumer. **Target:** Phase 7.5b.
+- **O144** — *(resolved in 7.5b)* `IRuEditService` / `RuEditServiceId` workbench primitive registered in `boot.ts`.
+- **O145** — *(resolved in 7.5b)* Reload-survival via `sessionStorage` (serialize → reload → deserialize, IDs preserved).
 - **O146** — Heap-snapshot dispose-leak harness. Phase 7.5a verified dispose tears the DOM down; formal CI-shaped harness lands when leak-gating becomes valuable. **Target:** Phase 8 hardening pass.
-- **O147** — RuEdit toolbar UI (mark buttons, heading dropdown, list buttons). Not required for keyboard-only scratch demo. **Target:** Phase 7.5b or first clinical consumer.
+- **O147** — *(resolved in 7.5b)* RuEdit toolbar UI (mark / heading / list / undo / redo buttons).
+
+## Phase 7.5b — RuEdit primitive integration — Complete
+
+**Goal:** make the RuEdit primitive workbench-addressable, durable across renderer reload, and usable without keyboard memorization. Closes the three trim-deferred items from 7.5a (O144, O145, O147).
+
+**Landed:**
+
+- **O144 — `IRuEditService` primitive.** `apps/desktop/src/platform/ru-edit/ru-edit-service.ts` defines `IRuEditService` with `register(reg)`, `unregister(instanceId)`, `setActive(instanceId | null)`, `getActive()`, `forResource(resource)`, `forInstance(instanceId)`, `list()`. `RuEditServiceId` registered in `platform/services/ids.ts`; instance created and registered in `workbench/boot.ts` ("Phase 7.5b" section). `ScratchRuEdit` calls `register({ resource, instanceId, handle })` + `setActive(instanceId)` on mount via the `onHandle` callback, and `unregister(instanceId)` on unmount. `boot.ts` subscribes to `editor.onDidChange` to sync the active RuEdit instance to the focused editor tab, and mirrors the live id into the context key `ruEdit.activeInstance`.
+- **O145 — `sessionStorage`-backed reload-survival.** `scratch-store.ts` replaces the in-memory `Map` with a `sessionStorage` cache keyed by `ru-edit-scratch:<resource>`. Hydration on mount restores the envelope; `onChange` persists the latest doc; corrupt entries are dropped silently. Renderer `Ctrl+R` reload preserves both the tab list (via `EditorService`) and per-tab doc content (incl. every `_id`).
+- **O147 — Minimal toolbar.** New command helpers in `packages/editor/src/commands.ts`: `toggleStrong`, `toggleEm`, `toggleUnderline`, `toggleCode`, `setHeading(level)`, `wrapInBulletList`, `wrapInOrderedList`, `runUndo`, `runRedo`, plus a generic `runCommand(handle, cmd)` escape hatch. New renderer `apps/desktop/src/platform/ru-edit/RuEditToolbar.tsx` renders 4 grouped clusters (inline marks · headings · lists · history) of 11 buttons total; each button preserves selection with `onMouseDown=preventDefault` then dispatches through `handle.view`. `ScratchRuEdit` renders the toolbar above the editor host. Toolbar CSS lives alongside other editor styles in `workbench.css`.
+
+**Verification (CDP 9333, agent-browser):**
+
+- Toolbar renders 11 buttons in correct order: `B | I | U | <> | H1 | H2 | H3 | • List | 1. List | Undo | Redo`.
+- Clicking `B` after `Ctrl+A` wraps the selection in `<strong>`.
+- Clicking `H2` on a non-empty selection promotes the block to `<h2 data-soam-id="…">`; with an empty selection and the cursor already in an `<h2>` of the same level, clicking `H2` again toggles back to `<p>`.
+- Clicking `• List` on a paragraph wraps it in `<ul><li><p>…</p></li></ul>` with fresh `_id`s on the new `ul` and `li`; clicking `Undo` reverses the wrap.
+- `sessionStorage` after edits contains a single key `ru-edit-scratch:ru-edit-scratch://scratch-1` whose value is a `{schemaVersion:1, doc:…}` envelope.
+- `Ctrl+R` (renderer reload) → tab "RuEdit Scratch 1" reopens with the bullet-list content intact; `data-soam-id` of the top `<ul>` matches the value captured before reload (`63970f10-…` → `63970f10-…`).
+- `window.__soamRegistry.get({ id: "workbench.ruEdit" }).getActive()` returns `{ resource: "ru-edit-scratch://scratch-1", instanceId: "instance-1", handle: { getDoc: [Function], … } }`.
+- `getActive().handle.getDoc()` → `setDoc(doc)` → `getDoc()` returns byte-identical serialization (384 bytes).
+- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+
+**Open items raised (Phase 7.5b):**
+- **O148** — Mark / heading **active-state** highlighting on toolbar buttons. Requires a plugin view subscription or React-side state mirror that observes `view.state.selection` and `markActive`. **Defer reason:** scratch demo functions without it; first clinical consumer is the real driver. **Target:** Phase 7.5c, or absorb into the first clinical bundle.
+- **O149** — Read-only mode UI toggle on scratch. `mountRuEdit` already accepts `readOnly`; surfacing it in the toolbar is cosmetic for the developer scratch. **Target:** Phase 7.5c.
+- **O150** — Command-palette commands for the toolbar actions ("Editor: Toggle Bold", "Editor: Insert Heading 1", …). Routes through `IRuEditService.getActive()`. **Defer reason:** keyboard shortcuts already cover the surface; palette commands gain value once non-scratch consumers exist. **Target:** first clinical consumer.
+- **O151** — Auto-coerce heading → paragraph when wrapping in a list. `list_item` content matches `paragraph block*`, so `wrapInBulletList` no-ops when the active block is a heading. UX expectation is "wrap whatever is selected"; ergonomic helper would first run `setBlockType(paragraph)` before `wrapInList`. **Target:** first non-developer consumer.
 
 **Open items raised (carried from full plan):**
 - **O128** — SmartText engine (trigger char, phrase registry capability, placeholder navigation). Lands Phase 8 (renumbered alongside Phase 7.5; current "Phase 8 — Crypto" becomes Phase 9; downstream shifts by +1) — **or** keep crypto numbering and SmartText lands as Phase 7.6. Numbering policy decision deferred to the gate before SmartText work starts.

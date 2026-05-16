@@ -8,6 +8,7 @@ import type { IContextKeyService } from '../context-key/context-key-service';
 import type { IKeybindingService } from '../keybinding/keybinding-service';
 import type { IWorkspaceService } from '../workspace/workspace-service';
 import type { IEditorService } from '../editor/editor-service';
+import type { IRuEditService } from '../ru-edit/ru-edit-service';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -27,6 +28,9 @@ export const WorkspaceServiceId = serviceId<IWorkspaceService>('workbench.worksp
 
 // Phase 5
 export const EditorServiceId = serviceId<IEditorService>('workbench.editor');
+
+// Phase 7.5b
+export const RuEditServiceId = serviceId<IRuEditService>('workbench.ruEdit');
 
 // Phase 6
 export const BundleServiceId = serviceId<unknown>('workbench.bundle');

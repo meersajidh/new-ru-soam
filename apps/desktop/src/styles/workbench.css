@@ -400,6 +400,38 @@ body,
   color: var(--color-fg-muted);
 }
 
+.ru-edit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-base);
+  flex-wrap: wrap;
+}
+
+.ru-edit-toolbar-group {
+  display: flex;
+  gap: 2px;
+  padding: 0 4px;
+  border-right: 1px solid var(--color-border);
+}
+.ru-edit-toolbar-group:last-child { border-right: 0; }
+
+.ru-edit-toolbar-btn {
+  background: var(--color-surface-elevated);
+  color: var(--color-fg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  min-width: 28px;
+}
+.ru-edit-toolbar-btn:hover { background: var(--color-surface-active); }
+.ru-edit-toolbar-btn:active { transform: translateY(1px); }
+
 .ru-edit-scratch-resource {
   font-family: var(--font-mono, monospace);
   white-space: nowrap;

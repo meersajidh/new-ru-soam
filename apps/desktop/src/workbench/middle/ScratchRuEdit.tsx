@@ -1,7 +1,10 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import RuEditView from '../../platform/ru-edit/RuEditView';
+import RuEditToolbar from '../../platform/ru-edit/RuEditToolbar';
 import type { RuEditDoc, RuEditHandle } from '@ru-soam/editor';
 import { getScratchDoc, setScratchDoc } from '../../platform/ru-edit/scratch-store';
+import { useService } from '../../platform/services/hooks';
+import { RuEditServiceId } from '../../platform/services/ids';
 
 interface Props {
   readonly resource: string;
@@ -9,14 +12,20 @@ interface Props {
 }
 
 export default function ScratchRuEdit({ resource, instanceId }: Props) {
+  const ruEdit = useService(RuEditServiceId);
   const handleRef = useRef<RuEditHandle | null>(null);
   const initial = getScratchDoc(resource);
 
   const onChange = (doc: RuEditDoc) => {
     setScratchDoc(resource, doc);
-    // Phase 7.5a: dump JSON to devtools per plan.
-    console.log('[ru-edit-scratch]', resource, doc);
   };
+
+  // Register handle once mounted; unregister on unmount.
+  useEffect(() => {
+    return () => {
+      ruEdit.unregister(instanceId);
+    };
+  }, [ruEdit, instanceId]);
 
   return (
     <div className="ru-edit-scratch">
@@ -33,11 +42,20 @@ export default function ScratchRuEdit({ resource, instanceId }: Props) {
           Log JSON
         </button>
       </div>
+      <RuEditToolbar getHandle={() => handleRef.current} />
       <RuEditView
         instanceId={instanceId}
         initial={initial}
         onChange={onChange}
-        onHandle={(h) => { handleRef.current = h; }}
+        onHandle={(h) => {
+          handleRef.current = h;
+          if (h) {
+            ruEdit.register({ resource, instanceId, handle: h });
+            ruEdit.setActive(instanceId);
+          } else {
+            ruEdit.unregister(instanceId);
+          }
+        }}
       />
     </div>
   );

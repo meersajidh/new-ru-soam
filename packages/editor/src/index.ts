@@ -13,3 +13,15 @@ export {
   type MountRuEditOptions,
   type RuEditHandle,
 } from './mount';
+export {
+  toggleStrong,
+  toggleEm,
+  toggleUnderline,
+  toggleCode,
+  setHeading,
+  wrapInBulletList,
+  wrapInOrderedList,
+  runUndo,
+  runRedo,
+  runCommand,
+} from './commands';

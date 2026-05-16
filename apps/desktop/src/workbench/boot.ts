@@ -1,8 +1,8 @@
 import { ServiceRegistry } from '../platform/services/registry';
 import {
   CommandServiceId, ContextKeyServiceId, EditorServiceId, FontServiceId,
-  KeybindingServiceId, LayoutServiceId, StatusBarServiceId, ThemeServiceId,
-  WorkspaceServiceId,
+  KeybindingServiceId, LayoutServiceId, RuEditServiceId, StatusBarServiceId,
+  ThemeServiceId, WorkspaceServiceId,
 } from '../platform/services/ids';
 import { LayoutService } from '../platform/layout/layout-service';
 import { ThemeService } from '../platform/theme/theme-service';
@@ -13,6 +13,7 @@ import { CommandService } from '../platform/command/command-service';
 import { KeybindingService } from '../platform/keybinding/keybinding-service';
 import { WorkspaceService } from '../platform/workspace/workspace-service';
 import { EditorService } from '../platform/editor/editor-service';
+import { RuEditService } from '../platform/ru-edit/ru-edit-service';
 import { BUILT_IN_THEMES } from '../platform/theme/themes/built-in';
 import { BUILT_IN_FONT_SETS } from '../platform/font/font-sets/built-in';
 import { ANCHORED_ENTRIES } from '../platform/statusbar/anchored-ids';
@@ -95,6 +96,26 @@ export function boot(): ServiceRegistry {
     const group = gid ? editor.getGroup(gid) : undefined;
     const inst = group?.activeTabId ? group.tabs.find(t => t.id === group.activeTabId) : undefined;
     contextKeys.set('editor.activeResource', inst?.resource ?? '');
+  });
+
+  // ── Phase 7.5b ────────────────────────────────────────────────────────────
+
+  const ruEdit = new RuEditService();
+  registry.register(RuEditServiceId, ruEdit);
+  contextKeys.set('ruEdit.activeInstance', '');
+  // Sync active RuEdit instance to focused editor tab when applicable.
+  editor.onDidChange(() => {
+    const gid = editor.getFocusedGroupId();
+    const group = gid ? editor.getGroup(gid) : undefined;
+    const inst = group?.activeTabId ? group.tabs.find(t => t.id === group.activeTabId) : undefined;
+    if (!inst) {
+      ruEdit.setActive(null);
+      contextKeys.set('ruEdit.activeInstance', '');
+      return;
+    }
+    const reg = ruEdit.forInstance(inst.id);
+    ruEdit.setActive(reg ? inst.id : null);
+    contextKeys.set('ruEdit.activeInstance', reg ? inst.id : '');
   });
 
   registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, workspace, editor);
