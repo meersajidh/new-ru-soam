@@ -10,6 +10,7 @@ import { registerPlatformWindow } from './ipc/sender-validate';
 import { shutdownHost } from './bundle-host/manager';
 import { installBundleCrashEventBridge, loadAndActivateBundles } from './bundle-host/loader';
 import { registerWindowControlsCapability } from './capability/window-controls';
+import { registerBundlesOutputCapability } from './capability/bundles-output';
 
 const DEV = !app.isPackaged;
 const DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
@@ -40,6 +41,7 @@ app.whenReady().then(() => {
   installCsp(session.defaultSession, DEV);
   installSoamChannel();
   registerWindowControlsCapability(() => mainWindow);
+  registerBundlesOutputCapability();
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);

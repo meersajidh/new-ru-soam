@@ -193,19 +193,45 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - Code-mapping in routing handler: today the inner `cap.not_found` from `invokeBundleCapability` is reflattened to `cap.handler_threw` by the registry. Cleaner mapping lands with Phase 6.5 alongside O68.
 - Production bundle packaging path: dev mode resolves `apps/desktop/bundles/`. Packaged-app path (`process.resourcesPath/bundles`) is wired but bundles are not yet copied by `electron-builder`. File alongside O113.
 
-## Phase 6.5 — Bundle Host follow-ups (lazy activation + hardening)
+## Phase 6.5 — Bundle Host follow-ups (lazy activation + hardening) — Complete
+
+**Status:** Complete (2026-05-16). Trimmed scope landed; `onCommand` / `onEvent` activation triggers + full per-line stdout/stderr attribution deferred (see open items below).
 
 **Goal:** close out the deferred Phase 6 items so Phase 7's `view://` work has a hardened, lazy-activating host underneath it.
 
-**Scope:**
-- **Lazy activation triggers (O68).** `lazy` (first capability bind) and `onCommand` (first execution of a manifest-declared command id). `onEvent` waits for a concrete event surface (deferred again if no consumer needs it yet).
-- **Host hardening (O65).** Default-deny for `electron`, raw `fs`, raw `net`, `child_process`, `process.exit` mutation outside the host loader. Concrete shape: a curated globals shim + module-resolution wrapper inside `electron/bundle-host/index.ts`. Verify by trying each from the `echo-test` bundle and asserting failure.
-- **Cap-error code passthrough.** Registry routing should preserve the inner `cap.not_found` / `cap.handler_threw` codes from the host instead of re-wrapping. One-line behaviour change in `loader.ts` + a small switch in `registry.ts`.
-- **Per-bundle Output capture stub.** Route Bundle Host stdout / stderr into a per-bundle in-memory ring buffer (UI lands Phase 7 with the Panel content model); Main exposes a `platform.bundles@1.0 getOutput(bundleId)` capability so a Phase 7 view can render it.
+**Landed deliverables:**
+- **Cap-error code passthrough (`registry.ts`).** `invokeCapability` extracts a recognised `CapErrCode` from a thrown handler error's `.code` and returns it instead of always re-wrapping as `cap.handler_threw`. Bundle-routing handlers now surface `cap.not_found` for an inactive bundle end-to-end. Unknown codes still fall through to `cap.handler_threw`.
+- **Lazy activation event (O68, partial).** Manifest accepts `activationEvents: ["lazy"]`. Loader still registers routing handlers at boot for every declared capability; for a `lazy` bundle the handler awaits `ensureActivated(bundleId, entryPath)` before invoking. Concurrent first invocations share one activation promise (per-bundle in-flight lock). After a host crash, a `lazy` bundle auto-reactivates on next call; an `eager` bundle does not (eager remains one-shot, preserving the Phase 6 crash semantics).
+- **Bundle Host hardening (O65, main slice).**
+  - Two-layer module deny in `bundle-host/index.ts`: CJS `Module._load` patch *and* an ESM `module.register()` resolve hook delivered as a data URL. Both reject `electron`, `child_process`, `fs`, `net`, `dgram`, `worker_threads`, `vm` (with or without `node:` prefix; sub-paths covered by head-matching).
+  - Globals neutered via `Object.defineProperty` (configurable/writable both false): `process.exit`, `process.dlopen`, `process.binding` throw `<name> denied` when called from bundle code. The host captures the real `process.exit` BEFORE neutering and uses it for its own shutdown + crash paths.
+  - `process.env` replaced with a frozen snapshot — reads pass through; writes/deletes throw.
+- **Per-bundle Output ring buffer (`manager.ts`).** 256-line in-memory ring per `bundleId`. Populated by two reply kinds only: `host.cap.error` (attributed via the pending-request `bundleId`) and `host.activate.failed` (attributed via the reply's `bundleId`). Each line is ISO-timestamped. Full per-line stdout/stderr attribution deferred — see O136.
+- **`platform.bundles@1.0` capability.** New `electron/main/capability/bundles-output.ts` exposes `getOutput(bundleId): { lines }` and `listActivated(): { bundleIds }`. Registered alongside `platform.window` in `main/index.ts`.
+- **Test surfaces.**
+  - `echo-test` bundle gains `try-electron` / `try-fs` / `try-child-process` / `try-process-exit` methods.
+  - New `echo-lazy` bundle (`bundles/echo-lazy/`) with `activationEvents: ["lazy"]`, `echo.lazy@1.0`, single method `whoami` returning `activatedAt` for re-activation detection.
+- **Developer commands (`platform-commands.ts`).** `developer.bundles.tryElectron`, `tryFs`, `tryChildProcess`, `tryProcessExit`, `pingLazy`, `dumpOutput`.
 
-**Open items:** O65, O68.
+**Verification (agent-browser CDP 9333):**
+- All four `try-*` probes return `ok: false` with rejection messages `module denied: <name>` (imports) and `process.exit denied`.
+- `pingLazy` first call activates `echo-lazy`; second call reuses (same `activatedAt`); both in the same host pid as eager `echo-test`.
+- After `fatal` crash: `listActivated.bundleIds = []`; next `echo.ping` call returns `cap.not_found: Bundle inactive: echo-test`; next `echo.lazy` call **auto-reactivates** in a fresh host pid.
+- `getOutput('echo-test')` after a handler crash returns an ISO-timestamped line `[err] cap.handler_threw: echo.ping requested-crash`.
 
-**Exit:** lazy bundle does not load until first command invocation; host-side `import('electron')` from a bundle throws; cap error codes match end-to-end; `getOutput('echo-test')` returns the bundle's stderr from the latest `fatal` call.
+**Open items raised:**
+- **O134** — `onCommand` activation trigger. Needs manifest `commands: [...]` field + renderer CommandService → bundle-activation lookup at command exec. Lands **Phase 7** alongside `view://` (first bundle views will likely contribute commands).
+- **O135** — `onEvent` activation trigger. No consumer exists yet. Deferred indefinitely; lands with first event-driven bundle.
+- **O136** — Full per-line stdout/stderr attribution. Needs `AsyncLocalStorage`-tagged capture inside the host (wrap each handler invocation in a context scope; redirect `process.stdout.write` / `process.stderr.write` to attribute to the current scope's bundleId). Lands when first third-party bundle work begins OR when the Phase 7 Panel UI demands richer output.
+- **O137** — ESM-side hardening depth. The Module._load patch + data-URL resolve hook cover ordinary CJS / ESM imports but not `Function()` / base64-eval smuggling, nor process-API surfaces beyond `exit/dlopen/binding`. Deeper sandbox (vm isolate, full process freeze, syscall restrictions) lands when **first untrusted bundle** ships.
+
+**Open items remaining:** O65 (composite — hardening will tighten further at O137), O68 (composite — partial; O134 / O135 carry the rest).
+
+**Exit:** met.
+- ✅ Lazy bundle does not load until first capability invocation; `[bundles] lazy-activating echo-lazy` log fires on first call only.
+- ✅ Host-side denial of `electron` / `fs` / `child_process` / `process.exit` from bundle code, end-to-end via agent-browser probe.
+- ✅ Cap error codes match end-to-end (`cap.not_found` post-crash; `cap.handler_threw` for handler throws).
+- ✅ `getOutput('echo-test')` returns timestamped error-attribution lines.
 
 ## Phase 7 — View hosting: `view://` + iframe + bridge
 
@@ -218,6 +244,58 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 **Open items:** O78–O85.
 
 **Exit:** test bundle view opens in the Editor Area and in the Panel; theme swap propagates to the iframe; the iframe cannot reach `window.soam`, the renderer ServiceRegistry, or `require('electron')`.
+
+## Phase 7.5 — RuEdit core skeleton
+
+**Goal:** ship the platform's editor primitive — `@ru-soam/editor` (RuEdit), a raw-ProseMirror surface analogous to Monaco-in-VSCode — so every later prose-bearing editor type (session notes, intake narratives, discharge summaries) and every clinical bundle composes the same engine. No clinical schema yet; foundation only.
+
+**Trimmed scope** (anything that touches a registry capability, a paid tier, or open-ended block design is deferred — see open items below):
+
+- New workspace package `packages/editor/` (`@ru-soam/editor`). Deps: `prosemirror-{model,state,view,transform,commands,keymap,history,schema-list,inputrules}`. MIT/BSD only. No Tiptap, no BlockNote, no Lexical.
+- ProseMirror schema v1: `doc`, `paragraph`, `heading` (levels 1–3), `bullet_list`, `ordered_list`, `list_item`, `blockquote`, `horizontal_rule`, `hard_break`, `text`. Marks: `strong`, `em`, `underline`, `code`. Stable per-block `_id` attribute assigned by an `appendTransaction` plugin (UUID v4 in this phase; v7 revisit at O131).
+- Versioned JSON envelope: `{ schemaVersion: 1, doc }`. `toJSON(handle)` and `fromJSON(json, schema)`. Schema-version mismatch raises a named recoverable error, never silent coercion.
+- Imperative mount API:
+  ```ts
+  mountRuEdit(container: HTMLElement, opts: {
+    initial?: RuEditDoc;
+    readOnly?: boolean;
+    onChange?: (doc: RuEditDoc) => void;
+  }): RuEditHandle;
+  ```
+  `RuEditHandle` exposes `getDoc()`, `setDoc(doc)`, `focus()`, `dispose()`.
+- Default keymap: history (Ctrl+Z / Ctrl+Shift+Z), list nav (Tab / Shift+Tab indent, Enter split), marks (Ctrl+B / Ctrl+I / Ctrl+U / Ctrl+`), heading shortcuts (Ctrl+1/2/3 toggle), hard-break (Shift+Enter), input rules for Markdown-style `#` heading + `-`/`*` bullet + `1.` ordered.
+- Renderer-side React chrome wrapper `RuEditView` (in `apps/desktop/src/platform/ru-edit/`) per ADR-415: vanilla PM in a `ref`-mounted div; React owns chrome, never reaches inside content; uncontrolled-with-explicit-replacement pattern.
+- Workbench primitive `IRuEditService` (`RuEditServiceId`) registered in `boot.ts`. Sibling to `EditorServiceId` — distinct concern: tabs/groups vs. rich-text instances.
+- One developer command `developer.editor.openScratch` opening a `ru-edit-scratch://` resource. `EditorGroup` dispatches that scheme to `RuEditView`. Doc held in-memory; `onChange` dumps JSON to devtools.
+
+**Deliverable:** clinician (or developer) opens scratch tab → types, indents lists, toggles marks, applies headings, undo/redo, save/restore JSON round-trip — all functional. Type-check + lint clean; agent-browser CDP 9333 verifies the demo end-to-end.
+
+**ADRs:** ADR-414 (RuEdit primitive), ADR-415 (React/PM boundary). ADR-404 amended to reflect that prose-bearing editor types now compose RuEdit.
+
+**Open items raised:**
+- **O128** — SmartText engine (trigger char, phrase registry capability, placeholder navigation). Lands Phase 8 (renumbered alongside Phase 7.5; current "Phase 8 — Crypto" becomes Phase 9; downstream shifts by +1) — **or** keep crypto numbering and SmartText lands as Phase 7.6. Numbering policy decision deferred to the gate before SmartText work starts.
+- **O129** — Custom atomic blocks (Vitals first, then Allergies / MedList / picklist). Lives in the phase after SmartText.
+- **O130** — React-in-nodeView strategy revisit (vanilla DOM vs `@handlewithcare/react-prosemirror` / `@nytimes/react-prosemirror`). Decide at custom-block phase entry per ADR-415's recorded criteria.
+- **O131** — Stable ID revisit (UUID v4 → v7 when per-block revision history lands).
+- **O132** — Print pipeline (JSON → print-React → Puppeteer-in-Main → PDF, page templates, signature block). Lives in the phase after custom blocks.
+
+**Open items deferred long-range:**
+- **O120** — Voice dictation adapter interface (Web Speech / Dragon / Deepgram Medical).
+- **O121** — Multi-clinician collab via Yjs + Cloud Backend awareness. Single-clinician-per-record is the assumption through the foreseeable phases.
+- **O122** — Template authoring UI inside ru-soam.
+
+**Exit:**
+- `developer.editor.openScratch` opens a tab containing a working RuEdit instance.
+- Typing, list indent/outdent, mark toggles, heading toggles, undo/redo all work via keyboard.
+- JSON envelope round-trips across reload: serialize, store in `sessionStorage`, reload page, deserialize, content identical (including stable `_id`s on every block).
+- Schema-rejected inputs (unknown node type, missing required attrs) fail loudly with a named error, not silent drop.
+- Devtools heap snapshot before / after a mount + dispose shows no leaked `EditorView` (dispose-safe verified).
+- `pnpm exec tsc -b` clean for both `apps/desktop` and `packages/editor`.
+
+**Why this lands at 7.5 and not earlier:**
+- Phase 6.5 hardens the Bundle Host so a misbehaving editor-bearing bundle does not crash the workbench.
+- Phase 7's view hosting is the surface inside which iframe-hosted editor-type views will mount RuEdit at the first clinical-bundle phase.
+- RuEdit itself is renderer-trust code in the workbench shell; the first scratch demo could run earlier in principle, but the first *clinical* RuEdit instance requires both 6.5 and 7 to be load-bearing.
 
 ## Phase 8 — Crypto + KEK + workspace lock / unlock
 

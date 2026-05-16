@@ -28,6 +28,7 @@ const HOST_ENTRY = path.join(__dirname, '../bundle-host/index.mjs');
 interface PendingRequest {
   resolve: (value: HostToMainMessage) => void;
   reject: (err: Error) => void;
+  bundleId?: string;
 }
 
 interface ActivatedBundle {
@@ -35,12 +36,36 @@ interface ActivatedBundle {
   readonly capabilities: ReadonlyArray<CapabilityDescriptor>;
 }
 
+const OUTPUT_RING_CAPACITY = 256;
+
 let child: UtilityProcess | null = null;
 let pending = new Map<number, PendingRequest>();
 let nextId = 1;
 let shuttingDown = false;
 let activated = new Map<string, ActivatedBundle>();
 let onBundlesCrashed: ((bundleIds: ReadonlyArray<string>) => void) | null = null;
+
+// Per-bundle in-memory ring buffer of error-attribution lines. Phase 6.5 stub
+// scope (see Implementation_Plan.md): populated by host.cap.error and
+// host.activate.failed replies. Full per-line stdout/stderr attribution is
+// deferred to O136.
+const outputRings = new Map<string, string[]>();
+
+function appendBundleOutput(bundleId: string, line: string): void {
+  let ring = outputRings.get(bundleId);
+  if (!ring) {
+    ring = [];
+    outputRings.set(bundleId, ring);
+  }
+  ring.push(`${new Date().toISOString()} ${line}`);
+  if (ring.length > OUTPUT_RING_CAPACITY) {
+    ring.splice(0, ring.length - OUTPUT_RING_CAPACITY);
+  }
+}
+
+export function getBundleOutput(bundleId: string): ReadonlyArray<string> {
+  return outputRings.get(bundleId) ?? [];
+}
 
 export function setOnBundlesCrashed(
   cb: (bundleIds: ReadonlyArray<string>) => void,
@@ -59,6 +84,11 @@ function spawn(): UtilityProcess {
     const req = pending.get(msg.id);
     if (!req) return;
     pending.delete(msg.id);
+    if (msg.kind === 'host.cap.error' && req.bundleId !== undefined) {
+      appendBundleOutput(req.bundleId, `[err] ${msg.code}: ${msg.message}`);
+    } else if (msg.kind === 'host.activate.failed') {
+      appendBundleOutput(msg.bundleId, `[activate-failed] ${msg.message}`);
+    }
     req.resolve(msg);
   });
 
@@ -103,11 +133,16 @@ function ensureChild(): UtilityProcess {
 
 function send<R extends HostToMainMessage>(
   build: (id: number) => MainToHostMessage,
+  bundleId?: string,
 ): Promise<R> {
   const proc = ensureChild();
   const id = nextId++;
   return new Promise<R>((resolve, reject) => {
-    pending.set(id, { resolve: resolve as (v: HostToMainMessage) => void, reject });
+    pending.set(id, {
+      resolve: resolve as (v: HostToMainMessage) => void,
+      reject,
+      bundleId,
+    });
     proc.postMessage(build(id));
   });
 }
@@ -140,12 +175,10 @@ export async function activateBundle(
   if (activated.has(bundleId)) {
     throw new Error(`Bundle already activated: ${bundleId}`);
   }
-  const reply = await send<HostToMainMessage>((id) => ({
-    kind: 'host.activate',
-    id,
+  const reply = await send<HostToMainMessage>(
+    (id) => ({ kind: 'host.activate', id, bundleId, modulePath }),
     bundleId,
-    modulePath,
-  }));
+  );
   if (reply.kind === 'host.activate.failed') {
     throw new Error(`Bundle activation failed (${bundleId}): ${reply.message}`);
   }
@@ -158,11 +191,10 @@ export async function activateBundle(
 
 export async function deactivateBundle(bundleId: string): Promise<void> {
   if (!activated.has(bundleId)) return;
-  const reply = await send<HostToMainMessage>((id) => ({
-    kind: 'host.deactivate',
-    id,
+  const reply = await send<HostToMainMessage>(
+    (id) => ({ kind: 'host.deactivate', id, bundleId }),
     bundleId,
-  }));
+  );
   if (reply.kind !== 'host.deactivated') {
     throw new Error(`Unexpected reply for host.deactivate: ${reply.kind}`);
   }
@@ -185,15 +217,18 @@ export async function invokeBundleCapability(
     (err as { code: string }).code = 'cap.not_found';
     throw err;
   }
-  const reply = await send<HostToMainMessage>((id) => ({
-    kind: 'host.cap.invoke',
-    id,
+  const reply = await send<HostToMainMessage>(
+    (id) => ({
+      kind: 'host.cap.invoke',
+      id,
+      bundleId,
+      capability,
+      version,
+      method,
+      args,
+    }),
     bundleId,
-    capability,
-    version,
-    method,
-    args,
-  }));
+  );
   if (reply.kind === 'host.cap.result') return reply.data;
   if (reply.kind === 'host.cap.error') {
     const err = new Error(reply.message) as InvokeBundleCapabilityError;
@@ -205,6 +240,10 @@ export async function invokeBundleCapability(
 
 export function listActivatedBundleIds(): ReadonlyArray<string> {
   return [...activated.keys()];
+}
+
+export function isBundleActivated(bundleId: string): boolean {
+  return activated.has(bundleId);
 }
 
 export async function shutdownHost(): Promise<void> {

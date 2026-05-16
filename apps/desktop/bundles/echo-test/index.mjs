@@ -1,6 +1,22 @@
 // First first-party bundle. Proves Renderer → Main → Bundle Host
 // round-trip via the capability proxy. No platform internals imported;
 // the bundle only sees what `activate(ctx)` hands it.
+//
+// Phase 6.5 adds the `try-*` hardening probes. Each attempts a denied
+// surface (electron, fs, child_process, process.exit) and reports
+// success/failure back to the Renderer. The host's default-deny posture
+// (Module._load patch + ESM loader hook + locked process props) must
+// make every probe return ok=false.
+
+async function probeImport(specifier) {
+  try {
+    await import(specifier);
+    return { ok: true, errCode: 'none', message: 'IMPORT SUCCEEDED — hardening failed' };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, errCode: 'import-rejected', message };
+  }
+}
 
 export function activate(ctx) {
   ctx.registerCapability('echo.ping', '1.0', async (method, args) => {
@@ -18,6 +34,20 @@ export function activate(ctx) {
         // verify crash isolation (workbench must survive).
         setTimeout(() => { throw new Error('echo.ping requested-fatal'); }, 0);
         return null;
+      case 'try-electron':
+        return probeImport('electron');
+      case 'try-fs':
+        return probeImport('fs');
+      case 'try-child-process':
+        return probeImport('child_process');
+      case 'try-process-exit':
+        try {
+          process.exit(0);
+          return { ok: true, errCode: 'none', message: 'process.exit SUCCEEDED — hardening failed' };
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          return { ok: false, errCode: 'process-exit-rejected', message };
+        }
       default:
         throw new Error(`echo.ping: unknown method ${method}`);
     }

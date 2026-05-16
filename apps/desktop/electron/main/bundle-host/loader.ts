@@ -4,6 +4,7 @@ import { discoverBundles, type DiscoveredBundle } from './manifest';
 import {
   activateBundle,
   invokeBundleCapability,
+  isBundleActivated,
   setOnBundlesCrashed,
 } from './manager';
 import { registerCapability } from '../capability/registry';
@@ -14,9 +15,28 @@ import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol';
  * Main reads manifests, populates the registry, and only later does any
  * bundle code run (in the Bundle Host).
  *
- * Phase 6 scope: eager activation only. `onCommand` / `onEvent` triggers
- * land in Phase 6.5 (O68).
+ * Phase 6.5 scope: eager and `lazy` activation events. `lazy` bundles have
+ * their routing handlers registered at boot but the bundle itself is not
+ * activated until the first capability invocation. `onCommand` / `onEvent`
+ * triggers remain deferred — see O134 / O135.
  */
+
+const activationLocks = new Map<string, Promise<void>>();
+
+async function ensureActivated(bundleId: string, entryPath: string): Promise<void> {
+  if (isBundleActivated(bundleId)) return;
+  let inflight = activationLocks.get(bundleId);
+  if (!inflight) {
+    inflight = activateBundle(bundleId, entryPath)
+      .then(() => undefined)
+      .finally(() => {
+        activationLocks.delete(bundleId);
+      });
+    activationLocks.set(bundleId, inflight);
+    console.log(`[bundles] lazy-activating ${bundleId}`);
+  }
+  return inflight;
+}
 
 function resolveBundlesDir(): string {
   const override = process.env['RU_SOAM_BUNDLES_DIR'];
@@ -26,9 +46,13 @@ function resolveBundlesDir(): string {
 }
 
 function registerRoutingHandlers(bundle: DiscoveredBundle): void {
+  const isLazy = bundle.manifest.activationEvents.includes('lazy');
   for (const cap of bundle.manifest.capabilities) {
     try {
       registerCapability(cap.name, cap.version, async (method, args) => {
+        if (isLazy) {
+          await ensureActivated(bundle.manifest.id, bundle.entryPath);
+        }
         return invokeBundleCapability(
           bundle.manifest.id,
           cap.name,

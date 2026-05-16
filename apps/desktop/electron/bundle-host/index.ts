@@ -1,9 +1,116 @@
 import { pathToFileURL } from 'url';
+import Module, { register } from 'node:module';
 import type {
   CapabilityDescriptor,
   HostToMainMessage,
   MainToHostMessage,
 } from '../shared/host-protocol';
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * Phase 6.5 — Bundle Host hardening (O65, partial)
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * Default-deny dangerous Node surface BEFORE any bundle module is imported.
+ * Two layers:
+ *   - CJS `require()` denial via `Module._load` patch.
+ *   - ESM `import` denial via a `module.register()` resolve hook (data URL).
+ *
+ * Globals neutered: `process.exit`, `process.dlopen`, `process.binding`.
+ * The host's own shutdown / crash paths capture `process.exit` BEFORE the
+ * neuter so internal exits still work; bundle-side calls throw.
+ *
+ * Defense-in-depth, not airtight sandbox. A determined adversary can still
+ * smuggle via base64-eval, `Function()`, etc. — those holes are explicitly
+ * out of scope for this phase. See O137 for deeper ESM loader-hook
+ * hardening when the first untrusted bundle ships.
+ */
+
+const DENIED_MODULES: ReadonlySet<string> = new Set([
+  'electron',
+  'child_process',
+  'fs',
+  'net',
+  'dgram',
+  'worker_threads',
+  'vm',
+]);
+
+function isDeniedModuleSpecifier(specifier: string): boolean {
+  if (typeof specifier !== 'string') return false;
+  const stripped = specifier.startsWith('node:') ? specifier.slice(5) : specifier;
+  const head = stripped.split('/')[0];
+  return DENIED_MODULES.has(head);
+}
+
+// CJS denial — patches `Module._load`. `_load` is a Node internal not
+// exposed in @types/node; cast through unknown.
+type ModuleLoad = (request: string, parent: unknown, isMain: boolean) => unknown;
+const mod = Module as unknown as { _load: ModuleLoad };
+const origLoad: ModuleLoad = mod._load;
+mod._load = function patchedLoad(request, parent, isMain) {
+  if (isDeniedModuleSpecifier(request)) {
+    throw new Error(`module denied: ${request}`);
+  }
+  return origLoad.call(this, request, parent, isMain);
+};
+
+// ESM denial — `register()` a resolve hook delivered as a data URL.
+const LOADER_HOOK_SOURCE = `
+const DENIED = new Set(${JSON.stringify([...DENIED_MODULES])});
+function isDenied(specifier) {
+  if (typeof specifier !== 'string') return false;
+  const stripped = specifier.startsWith('node:') ? specifier.slice(5) : specifier;
+  const head = stripped.split('/')[0];
+  return DENIED.has(head);
+}
+export async function resolve(specifier, context, nextResolve) {
+  if (isDenied(specifier)) {
+    throw new Error('module denied: ' + specifier);
+  }
+  return nextResolve(specifier, context);
+}
+`;
+register(`data:text/javascript,${encodeURIComponent(LOADER_HOOK_SOURCE)}`);
+
+// Capture internal exit BEFORE neutering — host's own crash + shutdown
+// paths use this; bundle-side calls to `process.exit` throw.
+const realExit: (code?: number) => never = process.exit.bind(process);
+
+function defineLockedProp<K extends keyof NodeJS.Process>(
+  key: K,
+  value: NodeJS.Process[K],
+): void {
+  Object.defineProperty(process, key, {
+    value,
+    configurable: false,
+    writable: false,
+  });
+}
+
+defineLockedProp('exit', (() => {
+  throw new Error('process.exit denied');
+}) as NodeJS.Process['exit']);
+defineLockedProp('dlopen', (() => {
+  throw new Error('process.dlopen denied');
+}) as NodeJS.Process['dlopen']);
+
+interface ProcessWithBinding {
+  binding?: (mod: string) => unknown;
+}
+const procExt = process as unknown as ProcessWithBinding;
+if (typeof procExt.binding === 'function') {
+  Object.defineProperty(process, 'binding', {
+    value: () => {
+      throw new Error('process.binding denied');
+    },
+    configurable: false,
+    writable: false,
+  });
+}
+
+// `process.env` snapshot — reads pass through; writes / deletes throw.
+defineLockedProp('env', Object.freeze({ ...process.env }) as NodeJS.ProcessEnv);
 
 /**
  * Bundle Host process entry — runs in `utilityProcess` per ADR-410.
@@ -188,7 +295,7 @@ process.parentPort.on('message', (e) => {
       send({ kind: 'host.pong', id: msg.id, echo: msg.message, pid: process.pid });
       return;
     case 'host.shutdown':
-      process.exit(0);
+      realExit(0);
       return;
     case 'host.activate':
       void activate(msg.id, msg.bundleId, msg.modulePath);
@@ -211,7 +318,7 @@ process.parentPort.on('message', (e) => {
 
 process.on('uncaughtException', (err) => {
   process.stderr.write(`[bundle-host] uncaughtException: ${err.stack ?? err.message}\n`);
-  process.exit(1);
+  realExit(1);
 });
 
 process.on('unhandledRejection', (reason) => {

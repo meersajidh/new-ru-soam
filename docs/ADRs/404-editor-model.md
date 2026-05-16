@@ -1,11 +1,13 @@
 # Editor model: generic container for clinical artefacts
 
 **ID:** ADR-404
-**Status:** Accepted
+**Status:** Accepted (amended 2026-05-16 — see note below)
 **Date:** 2026-05-13
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-104, ADR-302, ADR-402, ADR-403, ADR-410, ADR-411
+**Related:** ADR-104, ADR-302, ADR-402, ADR-403, ADR-410, ADR-411, ADR-414, ADR-415
+
+> **Amendment (2026-05-16):** This ADR's **Negative** consequence anticipated that bundles would share a "common rich-text package (likely a future first-party utility bundle)" once one was needed. ADR-414 (RuEdit) commits that package — as a workbench primitive, not a bundle. The Editor Area contract in this ADR is unchanged: every editor type is still a custom editor contributed by a bundle (or by the platform). Editor types that handle prose-bearing resources now compose RuEdit (`IRuEditService`) inside their view; the Audit Viewer and other non-prose editor types are unaffected. The renderer-side React/PM boundary that RuEdit imposes inside such editor types is committed in ADR-415.
 
 ## Context
 

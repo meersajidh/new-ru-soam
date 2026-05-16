@@ -15,7 +15,7 @@ export interface CapabilityManifestEntry {
   readonly version: string;
 }
 
-export type ActivationEvent = 'eager' | 'onCommand' | 'onEvent';
+export type ActivationEvent = 'eager' | 'lazy' | 'onCommand' | 'onEvent';
 
 export interface BundleManifest {
   readonly id: string;
@@ -31,7 +31,7 @@ export interface DiscoveredBundle {
   readonly entryPath: string;
 }
 
-const KNOWN_EVENTS: ReadonlySet<ActivationEvent> = new Set(['eager', 'onCommand', 'onEvent']);
+const KNOWN_EVENTS: ReadonlySet<ActivationEvent> = new Set(['eager', 'lazy', 'onCommand', 'onEvent']);
 
 export class ManifestError extends Error {
   constructor(manifestPath: string, message: string) {

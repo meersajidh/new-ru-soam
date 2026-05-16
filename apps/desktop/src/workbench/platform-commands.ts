@@ -100,6 +100,87 @@ export function registerPlatformCommands(
     { category: 'Developer' },
   );
 
+  // ── Phase 6.5 ─────────────────────────────────────────────────────────────
+  // Hardening probes — every try-* method must return ok=false. A truthy ok
+  // means the deny-list patch is bypassed and is a regression to escalate.
+
+  async function runTryProbe(label: string, method: string): Promise<void> {
+    const proxy = await window.soam.bindCapability('echo.ping', '1.0');
+    try {
+      const result = await proxy.call(method);
+      console.log(`[hardening] ${label}:`, result);
+    } catch (err) {
+      console.error(`[hardening] ${label} call failed:`, err);
+    } finally {
+      proxy.dispose();
+    }
+  }
+
+  commands.register(
+    'developer.bundles.tryElectron',
+    'Developer: hardening — try import("electron")',
+    () => runTryProbe('try-electron', 'try-electron'),
+    { category: 'Developer' },
+  );
+  commands.register(
+    'developer.bundles.tryFs',
+    'Developer: hardening — try import("fs")',
+    () => runTryProbe('try-fs', 'try-fs'),
+    { category: 'Developer' },
+  );
+  commands.register(
+    'developer.bundles.tryChildProcess',
+    'Developer: hardening — try import("child_process")',
+    () => runTryProbe('try-child-process', 'try-child-process'),
+    { category: 'Developer' },
+  );
+  commands.register(
+    'developer.bundles.tryProcessExit',
+    'Developer: hardening — try process.exit()',
+    () => runTryProbe('try-process-exit', 'try-process-exit'),
+    { category: 'Developer' },
+  );
+
+  commands.register(
+    'developer.bundles.pingLazy',
+    'Developer: Ping echo-lazy bundle',
+    async () => {
+      const proxy = await window.soam.bindCapability('echo.lazy', '1.0');
+      try {
+        const reply = await proxy.call('whoami', `hello @ ${new Date().toISOString()}`);
+        console.log('[echo-lazy] whoami:', reply);
+      } catch (err) {
+        console.error('[echo-lazy] ping failed:', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Developer' },
+  );
+
+  commands.register(
+    'developer.bundles.dumpOutput',
+    'Developer: Dump bundle Output ring buffer',
+    async () => {
+      const proxy = await window.soam.bindCapability('platform.bundles', '1.0');
+      try {
+        const [echoTest, echoLazy, activated] = await Promise.all([
+          proxy.call('getOutput', 'echo-test'),
+          proxy.call('getOutput', 'echo-lazy'),
+          proxy.call('listActivated'),
+        ]);
+        console.log('[platform.bundles] listActivated:', activated);
+        console.log('[platform.bundles] echo-test output:', echoTest);
+        console.log('[platform.bundles] echo-lazy output:', echoLazy);
+      } catch (err) {
+        console.error('[platform.bundles] dumpOutput failed:', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Developer' },
+  );
+
   commands.register(
     'workbench.theme.bamboo',
     'Color Theme: Bamboo',

@@ -1,0 +1,9 @@
+{
+  "id": "echo-lazy",
+  "version": "0.1.0",
+  "entry": "index.mjs",
+  "activationEvents": ["lazy"],
+  "capabilities": [
+    { "name": "echo.lazy", "version": "1.0" }
+  ]
+}

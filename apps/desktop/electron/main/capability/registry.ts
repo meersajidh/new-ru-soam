@@ -6,7 +6,22 @@ import { CapErr, type CapErrCode } from '../../shared/ipc-protocol';
  * Phase 1 scope: in-process registration + dispatch. Permission scope (O4),
  * versioning policy (O3), and Bundle-Host-resident capabilities (ADR-410)
  * land later phases.
+ *
+ * Phase 6.5: handlers that throw an Error with a recognised `.code` matching
+ * a known CapErrCode have that code passed through to the response, so
+ * Bundle-Host-resident handlers (routed via `loader.ts`) can surface
+ * `cap.not_found` for an inactive bundle instead of seeing it re-wrapped as
+ * `cap.handler_threw`.
  */
+
+const KNOWN_CAP_ERR_CODES: ReadonlySet<string> = new Set(Object.values(CapErr));
+
+function extractCapErrCode(err: unknown): CapErrCode | null {
+  if (!err || typeof err !== 'object') return null;
+  const code = (err as { code?: unknown }).code;
+  if (typeof code !== 'string') return null;
+  return KNOWN_CAP_ERR_CODES.has(code) ? (code as CapErrCode) : null;
+}
 
 export type CapabilityHandler = (
   method: string,
@@ -68,6 +83,7 @@ export async function invokeCapability(
     return { ok: true, value: { data } };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { ok: false, value: { code: CapErr.HandlerThrew, message } };
+    const code = extractCapErrCode(err) ?? CapErr.HandlerThrew;
+    return { ok: false, value: { code, message } };
   }
 }
