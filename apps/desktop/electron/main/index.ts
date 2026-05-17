@@ -13,6 +13,9 @@ import { registerViewProtocol } from './bundle-host/view-protocol';
 import { registerWindowControlsCapability } from './capability/window-controls';
 import { registerBundlesOutputCapability } from './capability/bundles-output';
 import { registerBundleViewsCapability } from './capability/bundle-views';
+import { setLockServiceGetter } from './capability/registry';
+import { registerPhiDemoEchoCapability } from './capability/phi-demo-echo';
+import { registerPlatformDevCapability } from './capability/platform-dev';
 // Phase 9: crypto + credentials + lock + workspace
 import { credentialStore } from './credentials/index';
 import { ensureLocalStoreDbKey } from './credentials/db-key';
@@ -126,9 +129,16 @@ app.whenReady().then(async () => {
   installCsp(session.defaultSession, DEV);
   installSoamChannel();
   registerViewProtocol();
+
+  // Phase 9b: inject the lock-service getter into the capability registry so
+  // PHI-flagged capabilities can check the lock state before dispatching.
+  setLockServiceGetter(getActiveLockService);
+
   registerWindowControlsCapability(() => mainWindow);
   registerBundlesOutputCapability();
   registerBundleViewsCapability();
+  registerPhiDemoEchoCapability();
+  registerPlatformDevCapability();
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);

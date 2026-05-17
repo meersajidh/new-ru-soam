@@ -426,15 +426,24 @@ export function registerPlatformCommands(
       'developer.setup.reset',
       'Developer: Reset Workspace Setup (DEV ONLY)',
       async () => {
-        // Sign out (relock + clear active pointer)
-        await window.soam.workspace.signOut();
-        // platform.dev capability lands Phase 9b; for now log a manual hint
-        console.warn(
-          '[setup] workspace signed out. To fully reset, also remove:\n' +
-          '  rm -rf ~/.config/Ru-Soam/workspaces/<uuid>\n' +
-          '  rm -f ~/.config/Ru-Soam/active-workspace.json\n' +
-          'then restart the app.',
-        );
+        try {
+          const proxy = await window.soam.bindCapability('platform.dev', '1.0');
+          try {
+            await proxy.call('resetActiveWorkspace');
+            // app.relaunch() + app.quit() are called by the capability; no further action needed.
+          } catch (err) {
+            const code = (err as { code?: string }).code;
+            if (code === 'cap.not_found') {
+              console.warn('[setup] developer.setup.reset: platform.dev capability not available (production build?)');
+            } else {
+              console.error('[setup] developer.setup.reset failed:', err);
+            }
+          } finally {
+            proxy.dispose();
+          }
+        } catch (err) {
+          console.error('[setup] could not bind platform.dev capability:', err);
+        }
       },
       { category: 'Developer' },
     );
@@ -445,6 +454,27 @@ export function registerPlatformCommands(
     'Workspace: Lock',
     async () => {
       await window.soam.lock.relock();
+    },
+    { category: 'Workspace' },
+  );
+
+  commands.register(
+    'workbench.workspace.signOut',
+    'Workspace: Sign Out',
+    async () => {
+      await window.soam.workspace.signOut();
+    },
+    { category: 'Workspace' },
+  );
+
+  commands.register(
+    'workbench.workspace.changePassphrase',
+    'Workspace: Change Passphrase',
+    () => {
+      // Opens via the UserAvatar menu directly (no separate dialog service yet).
+      // This command is here for completeness; the UI path is UserAvatar → ChangePassphraseDialog.
+      // A full DialogService per ADR-412 is deferred to a later phase.
+      console.log('[workspace] change-passphrase command: use the user avatar menu to access this feature.');
     },
     { category: 'Workspace' },
   );

@@ -91,7 +91,7 @@ export class LockService {
   getState(): LockState {
     const setupComplete = metadataExists(this._workspaceId);
     const locked = this._kek === null;
-    return { locked, setupComplete };
+    return { locked, setupComplete, mustResetPassphrase: this._mustResetPassphrase };
   }
 
   isLocked(): boolean {
@@ -266,6 +266,7 @@ export class LockService {
         wrapped_KEK_passphrase: newWrappedKEKPassphrase,
       });
       this._mustResetPassphrase = false;
+      this._emit();
       return { ok: true };
     } finally {
       if (newWrapKey) newWrapKey.fill(0);

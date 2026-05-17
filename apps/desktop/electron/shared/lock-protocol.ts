@@ -9,6 +9,7 @@
 export interface LockState {
   readonly locked: boolean;
   readonly setupComplete: boolean;
+  readonly mustResetPassphrase: boolean;
 }
 
 export type UnlockResult =

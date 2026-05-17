@@ -49,7 +49,7 @@ function emitLockChanged(getWindow: GetWindow, getActiveLockService: GetActiveLo
   const win = getWindow();
   if (!win || win.isDestroyed()) return;
   const svc = getActiveLockService();
-  const state = svc ? svc.getState() : { locked: true, setupComplete: false };
+  const state = svc ? svc.getState() : { locked: true, setupComplete: false, mustResetPassphrase: false };
   win.webContents.send(SOAM_EVENT_CHANNEL, {
     name: 'lock.changed',
     payload: state,
@@ -85,7 +85,7 @@ export function installLockChannel(
   ipcMain.handle('soam:lock:state', (event) => {
     if (!isPlatformSender(event)) return null;
     const svc = getActiveLockService();
-    if (!svc) return { locked: true, setupComplete: false };
+    if (!svc) return { locked: true, setupComplete: false, mustResetPassphrase: false };
     return svc.getState();
   });
 

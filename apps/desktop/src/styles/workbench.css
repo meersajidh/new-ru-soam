@@ -45,6 +45,14 @@ body,
   color: var(--color-fg-secondary);
 }
 
+.titlebar-avatar-slot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  -webkit-app-region: no-drag;
+}
+
 .titlebar-controls {
   flex: 0 0 auto;
   display: flex;

@@ -1,4 +1,5 @@
 import { CapErr, type CapErrCode } from '../../shared/ipc-protocol';
+import type { LockService } from '../lock/service';
 
 /**
  * Main-side capability registry per ADR-103.
@@ -12,6 +13,11 @@ import { CapErr, type CapErrCode } from '../../shared/ipc-protocol';
  * Bundle-Host-resident handlers (routed via `loader.ts`) can surface
  * `cap.not_found` for an inactive bundle instead of seeing it re-wrapped as
  * `cap.handler_threw`.
+ *
+ * Phase 9b: `phi` flag on registration config — when true the registry checks
+ * the active lock service before dispatching and rejects with `cap.locked` if
+ * the workspace is locked. Pass `getActiveLockService` via `setLockServiceGetter`
+ * before any PHI-flagged capability is invoked.
  */
 
 const KNOWN_CAP_ERR_CODES: ReadonlySet<string> = new Set(Object.values(CapErr));
@@ -28,13 +34,35 @@ export type CapabilityHandler = (
   args: ReadonlyArray<unknown>,
 ) => Promise<unknown>;
 
+/** Registration-time config for a capability. */
+export interface CapabilityConfig {
+  /**
+   * When true, the capability is PHI-flagged per ADR-307.
+   * Invocations are rejected with `cap.locked` whenever the active
+   * workspace is locked. The lock check runs before the handler.
+   */
+  readonly phi?: boolean;
+}
+
 interface CapabilityEntry {
   readonly name: string;
   readonly version: string;
   readonly handler: CapabilityHandler;
+  readonly phi: boolean;
 }
 
 const registry = new Map<string, CapabilityEntry>();
+
+/** Getter supplied by main/index.ts — set once at boot. */
+let _getLockService: (() => LockService | null) | null = null;
+
+/**
+ * Inject the active-lock-service getter.
+ * Must be called before any PHI-flagged capability is invoked.
+ */
+export function setLockServiceGetter(getter: () => LockService | null): void {
+  _getLockService = getter;
+}
 
 function key(name: string, version: string): string {
   return `${name}@${version}`;
@@ -44,12 +72,13 @@ export function registerCapability(
   name: string,
   version: string,
   handler: CapabilityHandler,
+  config?: CapabilityConfig,
 ): void {
   const k = key(name, version);
   if (registry.has(k)) {
     throw new Error(`Capability already registered: ${k}`);
   }
-  registry.set(k, { name, version, handler });
+  registry.set(k, { name, version, handler, phi: config?.phi ?? false });
 }
 
 export interface CapabilityInvokeFailure {
@@ -78,6 +107,19 @@ export async function invokeCapability(
       value: { code: CapErr.NotFound, message: `Capability not registered: ${name}@${version}` },
     };
   }
+
+  // PHI lock-gate check: if this capability is PHI-flagged and the workspace is
+  // locked, reject immediately without invoking the handler (ADR-307).
+  if (entry.phi && _getLockService !== null) {
+    const lockSvc = _getLockService();
+    if (!lockSvc || lockSvc.isLocked()) {
+      return {
+        ok: false,
+        value: { code: CapErr.Locked, message: 'Workspace locked' },
+      };
+    }
+  }
+
   try {
     const data = await entry.handler(method, args);
     return { ok: true, value: { data } };

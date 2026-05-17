@@ -46,6 +46,7 @@
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
     "@ru-soam/editor": "workspace:*",
-    "@scure/bip39": "^2.2.0"
+    "@scure/bip39": "^2.2.0",
+    "@zxcvbn-ts/core": "^3.0.4"
   }
 }

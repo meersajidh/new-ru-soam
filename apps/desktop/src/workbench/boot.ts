@@ -20,6 +20,7 @@ import { BUILT_IN_FONT_SETS } from '../platform/font/font-sets/built-in';
 import { ANCHORED_ENTRIES } from '../platform/statusbar/anchored-ids';
 import { SlotId } from '../platform/layout/slots';
 import { registerPlatformCommands } from './platform-commands';
+import { mountHeartbeat } from './heartbeat';
 
 const SLOT_TO_CTX_KEY: Partial<Record<SlotId, string>> = {
   [SlotId.PrimarySideBar]: 'sideBar.visible',
@@ -167,25 +168,85 @@ export function boot(): ServiceRegistry {
   // Seed initial values; updated on every lock.changed / workspace.changed event.
   contextKeys.set('workspace.kekLocked', true);
   contextKeys.set('workspace.setupComplete', false);
+  contextKeys.set('workspace.mustResetPassphrase', false);
   contextKeys.set('workspace.activeId', '');
   contextKeys.set('workspace.nickname', '');
+
+  // ── Phase 9b: DEV-mode StatusBar entry ────────────────────────────────────
+  // Use import.meta.env.DEV as an approximation of "not packaged".
+  // Note: this is a build-time constant, so the entry will never appear in a
+  // production bundle even without the app.isPackaged check.
+  if (import.meta.env.DEV) {
+    statusBar.update('workbench.dev-mode', { visible: true });
+  }
+
+  // Heartbeat — mount once; will be disposed on sign-out
+  let heartbeatDisposable = mountHeartbeat();
+
+  // Helper to update lock-related StatusBar entries from the current context key state
+  function syncLockStatusBar(locked: boolean, setupComplete: boolean, nickname: string): void {
+    if (setupComplete) {
+      // Show lock indicator
+      statusBar.update('workbench.lock', {
+        visible: true,
+        text: locked ? '[L]' : '[U]',
+        tooltip: locked ? 'Workspace locked — enter passphrase to unlock' : 'Workspace unlocked — click to lock',
+        command: locked ? undefined : 'workbench.workspace.relock',
+      });
+      // Show nickname only when unlocked
+      statusBar.update('workbench.workspace.nickname', {
+        visible: !locked && nickname.length > 0,
+        text: nickname,
+        tooltip: `Active workspace: ${nickname}`,
+      });
+    } else {
+      // Pre-setup: hide both entries
+      statusBar.update('workbench.lock', { visible: false });
+      statusBar.update('workbench.workspace.nickname', { visible: false });
+    }
+  }
 
   // Subscribe to lock state changes emitted by Main
   window.soam.lock.onChange((state) => {
     contextKeys.set('workspace.kekLocked', state.locked);
     contextKeys.set('workspace.setupComplete', state.setupComplete);
+    contextKeys.set('workspace.mustResetPassphrase', state.mustResetPassphrase);
+    const nick = contextKeys.get('workspace.nickname') as string ?? '';
+    syncLockStatusBar(state.locked, state.setupComplete, nick);
+
+    // Mount/unmount heartbeat based on whether we have an active workspace
+    if (state.locked) {
+      heartbeatDisposable.dispose();
+      heartbeatDisposable = { dispose: () => { /* already disposed */ } };
+    } else {
+      // Re-mount heartbeat when workspace becomes unlocked
+      heartbeatDisposable.dispose();
+      heartbeatDisposable = mountHeartbeat();
+    }
   });
 
   // Subscribe to workspace changes emitted by Main
   window.soam.workspace.onChange((e) => {
     contextKeys.set('workspace.activeId', e.activeId ?? '');
     contextKeys.set('workspace.nickname', e.nickname);
+    const locked = contextKeys.get('workspace.kekLocked') as boolean ?? true;
+    const setupComplete = contextKeys.get('workspace.setupComplete') as boolean ?? false;
+    syncLockStatusBar(locked, setupComplete, e.nickname);
+
+    // If no active workspace, ensure heartbeat is stopped
+    if (!e.activeId) {
+      heartbeatDisposable.dispose();
+      heartbeatDisposable = { dispose: () => { /* no-op */ } };
+    }
   });
 
   // Fetch the current lock state immediately (in case the initial event already fired)
   window.soam.lock.state().then((state) => {
     contextKeys.set('workspace.kekLocked', state.locked);
     contextKeys.set('workspace.setupComplete', state.setupComplete);
+    contextKeys.set('workspace.mustResetPassphrase', state.mustResetPassphrase);
+    const nick = contextKeys.get('workspace.nickname') as string ?? '';
+    syncLockStatusBar(state.locked, state.setupComplete, nick);
   }).catch((err) => {
     console.error('[workbench] failed to fetch initial lock state:', err);
   });
@@ -198,6 +259,9 @@ export function boot(): ServiceRegistry {
       const meta = allWorkspaces.find((w) => w.workspaceId === activeId);
       if (meta) {
         contextKeys.set('workspace.nickname', meta.nickname);
+        const locked = contextKeys.get('workspace.kekLocked') as boolean ?? true;
+        const setupComplete = contextKeys.get('workspace.setupComplete') as boolean ?? false;
+        syncLockStatusBar(locked, setupComplete, meta.nickname);
       }
     }
   }).catch((err) => {

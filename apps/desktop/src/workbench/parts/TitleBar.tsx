@@ -1,7 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 
-export default function TitleBar() {
+interface TitleBarProps {
+  /**
+   * Optional slot for the user-avatar dropdown (Phase 9b).
+   * Rendered between the drag region and the window controls.
+   */
+  avatarSlot?: ReactNode;
+}
+
+export default function TitleBar({ avatarSlot }: TitleBarProps = {}) {
   const [maximized, setMaximized] = useState(false);
   const proxy = useRef<SoamCapabilityProxy | null>(null);
 
@@ -21,6 +29,11 @@ export default function TitleBar() {
       <div className="titlebar-drag-region">
         <span className="titlebar-name">Ru-Soam</span>
       </div>
+      {avatarSlot != null && (
+        <div className="titlebar-avatar-slot">
+          {avatarSlot}
+        </div>
+      )}
       <div className="titlebar-controls">
         <button
           className="titlebar-btn"
