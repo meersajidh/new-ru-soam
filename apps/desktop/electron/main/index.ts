@@ -13,6 +13,15 @@ import { registerViewProtocol } from './bundle-host/view-protocol';
 import { registerWindowControlsCapability } from './capability/window-controls';
 import { registerBundlesOutputCapability } from './capability/bundles-output';
 import { registerBundleViewsCapability } from './capability/bundle-views';
+// Phase 9: crypto + credentials + lock + workspace
+import { credentialStore } from './credentials/index';
+import { ensureLocalStoreDbKey } from './credentials/db-key';
+import { LockService } from './lock/service';
+import { metadataExists } from './lock/storage';
+import { workspaceRegistry } from './workspace/registry';
+import { maybeProvision, DEV_WORKSPACE_ID } from './workspace/dev-provision';
+import { installLockChannel, createAutoLockHandleRef, rebindAutoLock } from './ipc/lock-channel';
+import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
 
 const DEV = !app.isPackaged;
 const DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
@@ -49,7 +58,71 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
-app.whenReady().then(() => {
+// ── Bootstrap state ───────────────────────────────────────────────────────────
+// Mutable active LockService reference — swapped by set-active / sign-out.
+let _activeLockService: LockService | null = null;
+
+function getActiveLockService(): LockService | null {
+  return _activeLockService;
+}
+
+function setActiveLockService(svc: LockService | null): void {
+  _activeLockService = svc;
+}
+
+const autoLockHandleRef = createAutoLockHandleRef();
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+
+app.whenReady().then(async () => {
+  // ── Phase 9 bootstrap per Implementation_Plan.md §Phase 9a pinned decisions ──
+  //
+  // Order:
+  //   1. CredentialStore init (fail-fast on Linux if safeStorage unavailable)
+  //   2. WorkspaceRegistry (singleton; no init step needed)
+  //   3. maybeProvision (DEV+!isPackaged+zero-workspaces only)
+  //   4. Resolve initial active LockService
+  //   5. Start auto-lock (if active service exists)
+  //   6. Install IPC channels
+  //   7. Existing setup (window, bundles, etc.)
+  //   8. Emit initial context-key events after did-finish-load
+
+  // 1. CredentialStore
+  credentialStore.init();
+
+  // 2. WorkspaceRegistry — singleton, available immediately via import
+
+  // 3. DEV auto-provision — returns the auto-unlocked LockService if provisioning ran
+  const devProvisionedSvc = await maybeProvision();
+
+  // 4. Resolve active LockService
+  if (devProvisionedSvc) {
+    // Dev provision just ran and returned an already-unlocked service
+    setActiveLockService(devProvisionedSvc);
+    ensureLocalStoreDbKey(DEV_WORKSPACE_ID);
+  } else {
+    const activeId = workspaceRegistry.getActive();
+    if (activeId && metadataExists(activeId)) {
+      const svc = new LockService(activeId);
+      setActiveLockService(svc);
+      // Phase 10 prereq: ensure db-key for active workspace
+      ensureLocalStoreDbKey(activeId);
+    }
+    // Else: no active workspace or setup not complete — renderer routes to pre-workspace state
+  }
+
+  // 5. Start auto-lock if we have an active service
+  rebindAutoLock(autoLockHandleRef, getActiveLockService());
+
+  // 6. Install IPC channels (before window creation so handlers are ready)
+  installLockChannel(
+    () => mainWindow,
+    getActiveLockService,
+    setActiveLockService,
+    autoLockHandleRef,
+  );
+
+  // ── Existing setup ────────────────────────────────────────────────────────
   installCsp(session.defaultSession, DEV);
   installSoamChannel();
   registerViewProtocol();
@@ -75,6 +148,25 @@ app.whenReady().then(() => {
 
   mainWindow = createWorkbenchWindow({ devServerUrl: DEV_SERVER_URL, isDev: DEV });
   registerPlatformWindow(mainWindow);
+
+  // 8. Publish initial context-key events once renderer is ready
+  mainWindow.webContents.once('did-finish-load', () => {
+    const win = mainWindow;
+    if (!win || win.isDestroyed()) return;
+
+    // Emit lock.changed
+    const svc = getActiveLockService();
+    const lockState = svc ? svc.getState() : { locked: true, setupComplete: false };
+    win.webContents.send(SOAM_EVENT_CHANNEL, { name: 'lock.changed', payload: lockState });
+
+    // Emit workspace.changed
+    const aid = workspaceRegistry.getActive();
+    const meta = aid ? workspaceRegistry.getMeta(aid) : null;
+    win.webContents.send(SOAM_EVENT_CHANNEL, {
+      name: 'workspace.changed',
+      payload: { activeId: aid, nickname: meta?.nickname ?? '' },
+    });
+  });
 
   installBundleCrashEventBridge(() => mainWindow);
   void loadAndActivateBundles().catch((err) =>

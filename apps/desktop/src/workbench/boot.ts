@@ -163,5 +163,46 @@ export function boot(): ServiceRegistry {
     }
   });
 
+  // ── Phase 9: Lock + workspace context keys ────────────────────────────────
+  // Seed initial values; updated on every lock.changed / workspace.changed event.
+  contextKeys.set('workspace.kekLocked', true);
+  contextKeys.set('workspace.setupComplete', false);
+  contextKeys.set('workspace.activeId', '');
+  contextKeys.set('workspace.nickname', '');
+
+  // Subscribe to lock state changes emitted by Main
+  window.soam.lock.onChange((state) => {
+    contextKeys.set('workspace.kekLocked', state.locked);
+    contextKeys.set('workspace.setupComplete', state.setupComplete);
+  });
+
+  // Subscribe to workspace changes emitted by Main
+  window.soam.workspace.onChange((e) => {
+    contextKeys.set('workspace.activeId', e.activeId ?? '');
+    contextKeys.set('workspace.nickname', e.nickname);
+  });
+
+  // Fetch the current lock state immediately (in case the initial event already fired)
+  window.soam.lock.state().then((state) => {
+    contextKeys.set('workspace.kekLocked', state.locked);
+    contextKeys.set('workspace.setupComplete', state.setupComplete);
+  }).catch((err) => {
+    console.error('[workbench] failed to fetch initial lock state:', err);
+  });
+
+  // Fetch initial workspace state
+  window.soam.workspace.getActive().then(async (activeId) => {
+    if (activeId) {
+      contextKeys.set('workspace.activeId', activeId);
+      const allWorkspaces = await window.soam.workspace.list();
+      const meta = allWorkspaces.find((w) => w.workspaceId === activeId);
+      if (meta) {
+        contextKeys.set('workspace.nickname', meta.nickname);
+      }
+    }
+  }).catch((err) => {
+    console.error('[workbench] failed to fetch initial workspace state:', err);
+  });
+
   return registry;
 }

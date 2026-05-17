@@ -5,7 +5,7 @@
 **Date:** 2026-05-13
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-103, ADR-104, ADR-301, ADR-302, ADR-304 _(planned)_, ADR-305 _(planned)_, ADR-501, ADR-502 _(planned)_, ADR-503 _(proposed)_
+**Related:** ADR-103, ADR-104, ADR-301, ADR-302, ADR-304 _(planned)_, ADR-305 _(planned)_, ADR-307, ADR-501, ADR-502 _(planned)_, ADR-503 _(proposed)_
 
 ## Context
 
@@ -37,6 +37,8 @@ PHI is encrypted at the **envelope** layer before any transport touches it. Same
 
 This separation means the LAN P2P extension does not implement a different crypto story — it carries the same envelopes.
 
+_Amended 2026-05-17 per ADR-307:_ the algorithm choices for record AEAD, DEK wrap, KDFs, recovery-code format, and the envelope shape `{ v, alg, wrapped_dek, nonce, ciphertext, aad }` are pinned in ADR-307 §Algorithms. Phase 10 (Local Store) and Phase 11 (Sync) consume them unchanged.
+
 ### KEK ownership: user-managed only
 
 The KEK is held by the user. The platform does not hold any form of KEK, master key, escrow, or recovery copy on behalf of the user.
@@ -51,6 +53,8 @@ The user nominates a Key Management Service (KMS) account they control. The plat
 - **Rotation:** clean. KMS provider handles key rotation; the platform re-wraps DEKs.
 - **Access loss:** if the user revokes the platform's KMS access or loses their KMS account, the ciphertext on the platform's cloud becomes undecryptable. This case is named, not hidden.
 
+_Amended 2026-05-17 per ADR-307:_ Strategy A implementation is deferred past Phase 9. Phase 9 ships Strategy B only. Strategy A lands in a follow-up phase (Phase 9.5 or pre-Phase-11). Open Item **O307a** tracks. When Strategy A lands, it is expected to also gate on the app-level passphrase that ADR-307 introduces — the KMS round-trip is a key-availability mechanism, not a runtime-trust gate.
+
 #### Strategy B — Recovery-code based KEK
 
 The platform generates a KEK locally during onboarding. The user receives a one-time **recovery code** (sufficient to reconstruct or unlock the KEK) which they store outside the platform's reach (password manager, printed copy, etc.).
@@ -58,6 +62,8 @@ The platform generates a KEK locally during onboarding. The user receives a one-
 - **Recovery:** if all devices are lost, the recovery code is the only path back. The user accepts this exposure explicitly during onboarding.
 - **Rotation:** harder than KMS. Re-encryption of existing cloud ciphertext is a deliberate operation, not background work.
 - **Access loss:** lose the recovery code and all devices simultaneously → ciphertext is gone. Stated explicitly during onboarding.
+
+_Amended 2026-05-17 per ADR-307:_ the **runtime custody** of the KEK is no longer "plaintext in OS keychain". The KEK is wrapped by a user-supplied **passphrase** (Argon2id-derived wrap-key) and held only in process memory between unlock and relock. The recovery code wraps a second copy used for forgotten-passphrase and new-device bootstrap. ADR-304's `kek-material` credential type is removed. The cloud-side wrapped-KEK uploaded to the recovery store is identical to the recovery-code-wrapped copy described above; cloud transport behaviour does not change.
 
 ### Consent gates
 
@@ -72,6 +78,8 @@ No cloud transmission of PHI happens without explicit, durable consent. The cons
 - The UI surfaces the data-loss risk prominently and persistently until the user makes a key-management decision.
 - A user may operate the platform indefinitely in this local-only state, accepting the implication.
 
+_Amended 2026-05-17 per ADR-307:_ "no cloud sync" refers to *transport*, not to *encryption-at-rest*. The local workspace is always KEK-gated (passphrase + recovery code) from first run; there is no "no-key" local-only mode. Sync consent is a separate, later gate.
+
 ### Onboarding gating
 
 The first-run flow forces a decision before any PHI is created:
@@ -80,6 +88,8 @@ The first-run flow forces a decision before any PHI is created:
 2. Explicitly acknowledge local-only with data-loss risk.
 
 The flow does not allow PHI creation while the answer is "unknown". The user can revisit the choice later.
+
+_Amended 2026-05-17 per ADR-307:_ this gating concerns *sync*. Encryption-at-rest setup (passphrase + recovery code) is a separate, earlier first-run gate owned by ADR-307 (`/setup/keys` route). The order in Phase 9 ships only the encryption-at-rest gate; the sync gate above lands in Phase 11 / 12 when transport and onboarding surfaces are real.
 
 ### Second-device bootstrap
 

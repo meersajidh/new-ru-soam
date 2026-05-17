@@ -358,6 +358,97 @@ export function registerPlatformCommands(
     { category: 'Developer' },
   );
 
+  // ── Phase 9: Developer lock commands ──────────────────────────────────────
+
+  commands.register(
+    'developer.lock.dumpState',
+    'Developer: Dump Lock State',
+    async () => {
+      const state = await window.soam.lock.state();
+      console.log('[lock] state:', state);
+    },
+    { category: 'Developer' },
+  );
+
+  commands.register(
+    'developer.lock.forceRelock',
+    'Developer: Force Relock Workspace',
+    async () => {
+      await window.soam.lock.relock();
+      console.log('[lock] workspace relocked');
+    },
+    { category: 'Developer' },
+  );
+
+  commands.register(
+    'developer.lock.simulateIdle',
+    'Developer: Simulate Idle Timeout',
+    async () => {
+      // Relock via the relock IPC path — equivalent to what the idle handler does.
+      await window.soam.lock.relock();
+      console.log('[lock] simulated idle — workspace relocked');
+    },
+    { category: 'Developer' },
+  );
+
+  commands.register(
+    'developer.workspace.list',
+    'Developer: List Workspaces',
+    async () => {
+      const list = await window.soam.workspace.list();
+      console.log('[workspace] list:', list);
+    },
+    { category: 'Developer' },
+  );
+
+  commands.register(
+    'developer.workspace.signOut',
+    'Developer: Sign Out of Workspace',
+    async () => {
+      await window.soam.workspace.signOut();
+      console.log('[workspace] signed out');
+    },
+    { category: 'Developer' },
+  );
+
+  commands.register(
+    'developer.workspace.dumpIdentity',
+    'Developer: Dump Workspace Identity',
+    async () => {
+      const identity = await window.soam.workspace.getIdentity();
+      console.log('[workspace] identity:', identity);
+    },
+    { category: 'Developer' },
+  );
+
+  if (import.meta.env.DEV) {
+    commands.register(
+      'developer.setup.reset',
+      'Developer: Reset Workspace Setup (DEV ONLY)',
+      async () => {
+        // Sign out (relock + clear active pointer)
+        await window.soam.workspace.signOut();
+        // platform.dev capability lands Phase 9b; for now log a manual hint
+        console.warn(
+          '[setup] workspace signed out. To fully reset, also remove:\n' +
+          '  rm -rf ~/.config/Ru-Soam/workspaces/<uuid>\n' +
+          '  rm -f ~/.config/Ru-Soam/active-workspace.json\n' +
+          'then restart the app.',
+        );
+      },
+      { category: 'Developer' },
+    );
+  }
+
+  commands.register(
+    'workbench.workspace.relock',
+    'Workspace: Lock',
+    async () => {
+      await window.soam.lock.relock();
+    },
+    { category: 'Workspace' },
+  );
+
   keybindings.registerKeybinding('ctrl+b',       'workbench.togglePrimarySideBar');
   keybindings.registerKeybinding('ctrl+j',       'workbench.togglePanel');
   keybindings.registerKeybinding('ctrl+alt+b',   'workbench.toggleAuxSideBar');
@@ -367,4 +458,5 @@ export function registerPlatformCommands(
   keybindings.registerKeybinding('ctrl+w',       'editors.closeActive');
   keybindings.registerKeybinding('ctrl+tab',       'editors.nextTab');
   keybindings.registerKeybinding('ctrl+shift+tab', 'editors.previousTab');
+  keybindings.registerKeybinding('ctrl+shift+l', 'workbench.workspace.relock');
 }

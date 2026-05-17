@@ -37,5 +37,7 @@ export const CapErr = {
   VersionMismatch: 'cap.version_mismatch',
   HandlerThrew: 'cap.handler_threw',
   SenderRejected: 'cap.sender_rejected',
+  /** Capability refused because the workspace is locked (ADR-307). */
+  Locked: 'cap.locked',
 } as const;
 export type CapErrCode = (typeof CapErr)[keyof typeof CapErr];

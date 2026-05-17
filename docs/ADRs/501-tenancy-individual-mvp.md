@@ -5,7 +5,7 @@
 **Date:** 2026-05-13
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-101, ADR-103, ADR-302, ADR-303, ADR-305, ADR-502 _(planned: audit and consent ledger)_, ADR-503 _(proposed: clinic tenancy)_
+**Related:** ADR-101, ADR-103, ADR-302, ADR-303, ADR-305, ADR-307, ADR-403, ADR-502 _(planned: audit and consent ledger)_, ADR-503 _(proposed: clinic tenancy)_
 
 ## Context
 
@@ -19,7 +19,9 @@ This ADR commits an explicit single-tenant model that is shaped so the Clinic ex
 
 ### Entity
 
-Every install belongs to exactly one **Entity**. In the MVP, every Entity is of type **Individual**.
+Every **workspace** belongs to exactly one **Entity**. In the MVP, every Entity is of type **Individual**. A workspace (per ADR-403) is the device-local realisation of one Entity.
+
+_Amended 2026-05-17 per ADR-307 (multi-workspace storage):_ a single OS user installation can host **multiple workspaces** (`$userData/workspaces/<uuid>/`), each = one Entity. The original "every install belongs to exactly one Entity" wording reflected the early single-workspace assumption; the real invariant is "every workspace belongs to exactly one Entity, and each workspace is independently key-isolated, lock-state-isolated, and Entity-scoped". One OS user can hold many such workspaces; the `active-workspace.json` pointer names the currently-bound one at any moment. Switching workspaces = sign-out + sign-in within the same OS user (ADR-403). This does not change anything about the Entity model: each workspace's Entity is still Individual in MVP; per-Entity scoping holds; cross-workspace flows are not introduced.
 
 - An Individual Entity has exactly one practitioner: the user themselves.
 - The practitioner is the entity's only principal. Admin and practitioner roles collapse into one identity.
@@ -27,6 +29,17 @@ Every install belongs to exactly one **Entity**. In the MVP, every Entity is of 
 - Clinical data ownership is the practitioner's.
 
 The Entity boundary is named even though it is trivial in this scope. The names (entity-scoped, entity-owned, entity-audited) are what later allow ADR-503 to add Clinic Entities without rewriting the model.
+
+### Identity at signup
+
+_Added 2026-05-17 per ADR-307 §Setup ceremony:_ each Entity captures an **email** at workspace creation. The email identifies the cloud account that will own this Entity once cloud sync is enabled. The identity binding flow:
+
+- **Email source:** Google OAuth. Phase 9 ships a mocked dialog returning `{ email, googleId: "mock-<uuid>" }`; real OAuth lands in Phase 11/12 (Open Item **O307g**).
+- **Nickname:** display label for the workspace, 4–64 chars. Length-only validation at creation time; **server-side global-uniqueness** enforced when the cloud account record is real (Open Item **O307h**, Phase 11+).
+- **Persistence:** `email` lives in the per-workspace `identity.envelope` (KEK-encrypted; readable only after unlock). `nickname` lives in `meta.json` (pre-unlock readable; populates the picker UI).
+- **No anonymous workspaces.** An Entity is always created against an email, even before cloud sync is turned on. The local-only mode applies to *sync transport*, not to identity capture (consistent with ADR-303 amendment).
+
+Email is operational data per ADR-301 (not PHI). Keeping it behind the KEK on disk is a privacy-of-accumulated-emails posture: a walk-up attacker on a shared OS user cannot enumerate which practitioners have used the device just from `meta.json`.
 
 ### Capability scoping
 

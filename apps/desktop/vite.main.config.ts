@@ -25,7 +25,15 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
       rollupOptions: {
         output: { format: 'es' },
-        external: ['electron', ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
+        external: [
+          'electron',
+          ...builtinModules,
+          ...builtinModules.map((m) => `node:${m}`),
+          // Native / NAPI deps used Main-side only — must load at runtime, not bundle.
+          // Pattern catches the package and any platform-tagged subpackages
+          // (e.g. @node-rs/argon2-linux-x64-gnu).
+          /^@node-rs\//,
+        ],
       },
     },
   };

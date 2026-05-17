@@ -1,6 +1,8 @@
 # Data encryption, key management, and recovery
 
-Operational companion to ADR-302, ADR-303, ADR-304, and ADR-306. This guide tells a developer what each piece looks like step by step. It does not re-argue the decisions — for that, see the related ADRs and the [PHI backup and encryption reasoning](../References/PHI_Backup_And_Encryption_Reasoning.md) reference.
+Operational companion to ADR-302, ADR-303, ADR-304, ADR-306, and ADR-307. This guide tells a developer what each piece looks like step by step. It does not re-argue the decisions — for that, see the related ADRs and the [PHI backup and encryption reasoning](../References/PHI_Backup_And_Encryption_Reasoning.md) reference.
+
+**Last revised 2026-05-17** for ADR-307 (app-level KEK passphrase + auto-lock). Sections 2.3, 2.4 (Strategy B path), and 6 reflect the passphrase-wrapped KEK model. Strategy A sections remain pending Phase 9.5 / pre-Phase-11.
 
 Scope:
 
@@ -104,31 +106,93 @@ Rotation is a background operation. Reads continue to work with old wrapped enve
 
 ### 2.3 Strategy B — Recovery-code-based KEK
 
+_Rewritten 2026-05-17 per ADR-307._ The KEK is no longer cached in the OS keychain. It is wrapped by a user-supplied **passphrase** and held only in process memory between unlock and relock. The recovery code wraps a second copy used as a fallback (forgotten passphrase or new device).
+
 #### Setup
 
-1. User selects "Use a recovery code only".
-2. Platform generates a KEK locally (random 256-bit).
-3. Platform derives a wrap-key from a freshly-generated recovery code (sufficient entropy; see implementation notes). The recovery code wraps the KEK.
-4. The wrapped KEK is stored in the cloud (Cloud Backend recovery store) and locally.
-5. The KEK plaintext is held in the OS keychain under `kek-material` for runtime use.
-6. The recovery code is displayed to the user once. They must record it.
-7. Consent gate (ADR-303) is recorded — explicit acknowledgement that loss of code + all devices is unrecoverable.
+1. User selects "Use a recovery code only" (or this is the default Phase 9 path while Strategy A is deferred).
+2. User picks a passphrase. Strength meter live; UI refuses to commit a passphrase below the threshold (`zxcvbn` score `>= 3`, length `>= 12`).
+3. Platform derives `wrap_key_p` via **Argon2id** (`m=64 MiB, t=3, p=1`, tuned to ≈500 ms) over the passphrase and a fresh per-workspace salt `salt_p`.
+4. Platform generates a fresh **KEK** (random 256-bit).
+5. Platform generates a fresh **recovery code** (128-bit, encoded as 12 BIP-39 words).
+6. Platform derives `wrap_key_r` via **HKDF-SHA256** over the recovery code and a fresh salt `salt_r`. HKDF expands 128 bits to a full 256-bit AES wrap-key. (HKDF, not Argon2id, because the recovery code already has cryptographic-strength entropy; brute-force on a 128-bit space is infeasible.)
+7. `wrap_key_p` wraps the KEK → `wrapped_KEK_passphrase`.
+8. `wrap_key_r` wraps the KEK → `wrapped_KEK_recovery`.
+9. The platform writes the workspace metadata file:
+
+    ```
+    {
+      version: 1,
+      kdf: { algo: "argon2id", m: 67108864, t: 3, p: 1 },
+      salt_p: <16 bytes>,
+      salt_r: <16 bytes>,
+      wrapped_KEK_passphrase: <bytes>,
+      wrapped_KEK_recovery:   <bytes>,
+      verifier: <encrypted canary>
+    }
+    ```
+
+10. `wrapped_KEK_recovery` is also uploaded to the Cloud Backend recovery store (when sync is consented; not until then).
+11. The recovery code is displayed to the user once. They must check the acknowledge box ("I have recorded these words; I understand they are the only way to recover access if I forget my passphrase or lose this device") before the workspace transitions to `unlocked`.
+12. Consent gate (ADR-303) is recorded — explicit acknowledgement that loss of code + all devices is unrecoverable.
+
+The KEK plaintext is **never persisted** — not in the keychain, not in workspace metadata, not in process scratch. It exists only in process memory between unlock and relock.
 
 #### Use at runtime
 
-The KEK is in keychain on each authorized device. Wrap/unwrap is local. No network call required for normal operation, which is faster than Strategy A but lacks the user-side audit a KMS provides.
+Normal unlock:
+
+1. User enters the passphrase.
+2. Platform derives `wrap_key_p` (Argon2id over passphrase + stored `salt_p`).
+3. Platform unwraps `wrapped_KEK_passphrase` → KEK in memory.
+4. Platform verifies the canary; if it decrypts cleanly, the unlock succeeds.
+5. `workspace.locked` flips to `false`.
+
+Auto-lock (per ADR-307):
+
+- Idle timer fires after the configured inactivity (default 5 min).
+- System suspend signal received from `powerMonitor`.
+- OS screen-lock signal received from `powerMonitor`.
+- Manual relock command invoked.
+
+In every case, the KEK is zeroed from memory and `workspace.locked` flips to `true`. The workspace shell is replaced in place by the unlock gate; the workspace itself is not unloaded.
+
+Window blur (cmd-tab) does **not** auto-lock.
+
+Failed unlocks are rate-limited via exponential backoff (5 fast attempts, then 1 min, 5 min, 15 min, 15 min cap). The recovery-code path is always reachable.
+
+#### Forgotten passphrase
+
+1. User clicks "Use recovery code instead" on the unlock gate.
+2. User enters the 12 BIP-39 words.
+3. Platform derives `wrap_key_r` (HKDF over the code + stored `salt_r`).
+4. Platform unwraps `wrapped_KEK_recovery` → KEK in memory.
+5. Platform forces the user to set a new passphrase before the workspace becomes usable.
+6. The new passphrase derives a fresh `salt_p` and `wrap_key_p`; the in-memory KEK is re-wrapped; `wrapped_KEK_passphrase` is replaced in the metadata file.
+7. `workspace.locked` flips to `false`.
+
+The recovery code itself is not changed by this flow. A user who wants a new recovery code uses the rotation procedure below.
+
+#### Change passphrase (no recovery code involved)
+
+1. Workspace is unlocked. User enters current passphrase + new passphrase.
+2. Platform re-derives `wrap_key_p` from the current passphrase + stored `salt_p`; verifies by unwrap of `wrapped_KEK_passphrase`.
+3. Platform generates fresh `salt_p'`; derives `wrap_key_p'` from new passphrase + `salt_p'`.
+4. Platform re-wraps the in-memory KEK; replaces `wrapped_KEK_passphrase` and `salt_p` in the metadata file.
+5. The recovery code wrap (`wrapped_KEK_recovery`) is unchanged.
 
 #### Rotation
 
-Harder than KMS. To rotate:
+Harder than KMS. To rotate the KEK:
 
 1. Generate a new KEK.
 2. Re-wrap every existing DEK with the new KEK across all online devices and the cloud.
-3. Generate a new recovery code; wrap the new KEK with it.
-4. Display the new recovery code; user records.
-5. Invalidate the old recovery code + wrapped KEK.
+3. Generate a new recovery code; wrap the new KEK with it (HKDF + fresh `salt_r`).
+4. Derive a fresh `wrap_key_p` over the current passphrase + fresh `salt_p`; wrap the new KEK.
+5. Display the new recovery code; user records.
+6. Invalidate the old recovery code + wrapped-KEK copies in the metadata file and the cloud recovery store.
 
-Rotation is a deliberate user action, not background work.
+Rotation is a deliberate user action, not background work. Phase 9 ships the change-passphrase command only; the full KEK-rotation surface lands with Phase 12 recovery UX (Open Item **O26**).
 
 ### 2.4 Second-device bootstrap
 
@@ -152,16 +216,19 @@ Two sub-paths:
 2. New device enters the code.
 3. Devices establish an authenticated channel (ephemeral key agreement).
 4. Existing device sends the KEK over the channel.
-5. New device stores KEK in keychain. Channel closes.
+5. New device prompts the user to set a passphrase. Derives `wrap_key_p` (Argon2id over passphrase + fresh `salt_p`). Wraps the received KEK; writes the new device's workspace metadata file. The recovery code is fetched from the cloud recovery store and re-wrapped under the same KEK on the new device (`wrapped_KEK_recovery` for the new device's `salt_r`).
+6. Channel closes. The received KEK plaintext is zeroed from memory after wrapping.
 
 **Recovery code entry (fallback)**:
 
 1. New device prompts for the recovery code.
-2. New device fetches the cloud-stored wrapped KEK.
-3. Recovery code unwraps it locally.
-4. New device stores KEK in keychain.
+2. New device fetches the cloud-stored `wrapped_KEK_recovery`.
+3. Recovery code unwraps it locally → KEK in memory.
+4. New device prompts the user to set a passphrase. Wraps the KEK under the new passphrase; writes the new device's workspace metadata file with both wrapped copies.
 
 If the user has only the recovery code and no existing device, the fallback path is the only option. The platform surfaces this clearly.
+
+_Amended 2026-05-17 per ADR-307._ In both paths the new device asks the user to choose its own passphrase — passphrases are per device, the KEK is shared.
 
 ### 2.5 Migration between strategies
 
@@ -341,14 +408,21 @@ Telemetry (usage analytics, performance metrics) goes only over the brokered clo
 
 ## 6. Implementation notes
 
-- **AES-256-GCM** for record-level encryption. Nonce per record. Authenticated tag verified on every decrypt.
-- **KEK wrap algorithm**: KMS-provider-specific for Strategy A. AES-KW or AES-GCM-KW for Strategy B.
-- **Recovery code**: 256-bit entropy, encoded as a 24-word BIP-39-style phrase or a 48-character base32 string. Choice driven by usability research; both pass the "fits on a sticky note" test.
+_Pinned 2026-05-17 by ADR-307 §Algorithms. Phase 10 (Local Store) and Phase 11 (Sync) consume these unchanged._
+
+- **Record AEAD**: **AES-256-GCM**. Per-op random 96-bit nonce. Authenticated tag verified on every decrypt. Native Node `crypto`.
+- **KEK wrap algorithm**: **AES-GCM-KW** for Strategy B (used for `wrap_key_p → KEK`, `wrap_key_r → KEK`, and `DEK → KEK`). KMS-provider-specific for Strategy A (when implemented).
+- **Passphrase KDF**: **Argon2id** with `m=64 MiB, t=3, p=1`. Tune to ≈500 ms on target hardware. Library: `@node-rs/argon2`.
+- **Recovery-code KDF**: **HKDF-SHA256** (Node `crypto.hkdfSync`). The recovery code is 128-bit entropy (cryptographic-strength); a memory-hard KDF is not required. HKDF expands to a full 256-bit AES wrap-key.
+- **Recovery code**: 128-bit entropy, encoded as a **12-word BIP-39** phrase. Library: `@scure/bip39`. Easier to transcribe and dictate than 24 words or base32.
+- **Envelope shape**: `{ v, alg, wrapped_dek?, nonce, ciphertext, tag, aad }`. Frozen by ADR-307; consumed unchanged by Phase 10 + Phase 11. All binary fields standard-base64. `wrapped_dek` omitted for single-key encrypts (verifier canary, raw KEK wraps). `tag` = AES-GCM auth tag as a separate field (matches Node `crypto.getAuthTag()`). `aad` = base64 of the canonical-JSON AAD buffer.
 - **Paired-session code**: short-lived (90 seconds), 6-8 digits, channel established via ECDH; the code is the channel-binding string, not the secret itself.
+- **Passphrase strength**: minimum length 12 characters; **block setup / change** at `zxcvbn` score `< 3`. Library: `zxcvbn-ts/core`.
+- **Failed-unlock rate limit**: 5 fast attempts; then 1 min, 5 min, 15 min, 15 min cap. No permanent lockout — the recovery-code path stays open. Counter persists across restart in a plain unauthenticated file (purpose is friction, not crypto).
 
 ## Related
 
-- ADR-301, ADR-302, ADR-303, ADR-304, ADR-306 — the architectural commitments this guide implements.
+- ADR-301, ADR-302, ADR-303, ADR-304, ADR-306, ADR-307 — the architectural commitments this guide implements.
 - ADR-305 — provider plugin pattern that KMS providers follow.
 - ADR-502 (planned) — audit and consent ledger emissions.
 - [PHI backup and encryption reasoning](../References/PHI_Backup_And_Encryption_Reasoning.md) — the analysis behind ADR-303.

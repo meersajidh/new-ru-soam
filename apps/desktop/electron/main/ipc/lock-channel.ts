@@ -1,0 +1,310 @@
+/**
+ * IPC handlers for the lock/setup/workspace surface.
+ *
+ * Channels:
+ *   soam:lock:state, soam:lock:unlock, soam:lock:unlock-recovery,
+ *   soam:lock:set-passphrase-after-recovery, soam:lock:change-passphrase,
+ *   soam:lock:relock, soam:lock:heartbeat,
+ *   soam:setup:generate, soam:setup:acknowledge,
+ *   soam:workspace:list, soam:workspace:get-active, soam:workspace:set-active,
+ *   soam:workspace:create, soam:workspace:sign-out, soam:workspace:get-identity.
+ *
+ * Lock-state-change emits via soam:event with name 'lock.changed'.
+ * Workspace-change emits via soam:event with name 'workspace.changed'.
+ * Every handler validates sender via isPlatformSender.
+ *
+ * The "active LockService" is an indirection — the bootstrap provides a
+ * getter (`getActiveLockService`) and a rebind callback (`rebindAutoLock`)
+ * so that sign-out / set-active can swap the active service at runtime.
+ */
+
+import { ipcMain } from 'electron';
+import { isPlatformSender } from './sender-validate.js';
+import { LockService } from '../lock/service.js';
+import { startAutoLock } from '../lock/auto-lock.js';
+import type { AutoLockHandle } from '../lock/auto-lock.js';
+import { workspaceRegistry } from '../workspace/registry.js';
+import { metadataExists } from '../lock/storage.js';
+import { ensureLocalStoreDbKey } from '../credentials/db-key.js';
+import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol.js';
+import type {
+  WorkspaceCreateResult,
+  WorkspaceSetActiveResult,
+} from '../../shared/lock-protocol.js';
+import type { BrowserWindow } from 'electron';
+
+type GetWindow = () => BrowserWindow | null;
+type GetActiveLockService = () => LockService | null;
+type SetActiveLockService = (svc: LockService | null) => void;
+
+/**
+ * Mutable reference for the active auto-lock handle.
+ * Replaced when setActive / signOut swaps the LockService.
+ */
+interface AutoLockHandleRef {
+  current: AutoLockHandle | null;
+}
+
+function emitLockChanged(getWindow: GetWindow, getActiveLockService: GetActiveLockService): void {
+  const win = getWindow();
+  if (!win || win.isDestroyed()) return;
+  const svc = getActiveLockService();
+  const state = svc ? svc.getState() : { locked: true, setupComplete: false };
+  win.webContents.send(SOAM_EVENT_CHANNEL, {
+    name: 'lock.changed',
+    payload: state,
+  });
+}
+
+function emitWorkspaceChanged(getWindow: GetWindow): void {
+  const win = getWindow();
+  if (!win || win.isDestroyed()) return;
+  const activeId = workspaceRegistry.getActive();
+  const meta = activeId ? workspaceRegistry.getMeta(activeId) : null;
+  win.webContents.send(SOAM_EVENT_CHANNEL, {
+    name: 'workspace.changed',
+    payload: { activeId, nickname: meta?.nickname ?? '' },
+  });
+}
+
+export function installLockChannel(
+  getWindow: GetWindow,
+  getActiveLockService: GetActiveLockService,
+  setActiveLockService: SetActiveLockService,
+  autoLockHandleRef: AutoLockHandleRef,
+): void {
+  // Emit lock state changes to renderer whenever active service fires
+  // We subscribe lazily in setActive; initial subscription done here
+  // for the service that already exists at install time.
+  const initialSvc = getActiveLockService();
+  if (initialSvc) {
+    initialSvc.onDidChange(() => emitLockChanged(getWindow, getActiveLockService));
+  }
+
+  // ── soam:lock:state ────────────────────────────────────────────────────────
+  ipcMain.handle('soam:lock:state', (event) => {
+    if (!isPlatformSender(event)) return null;
+    const svc = getActiveLockService();
+    if (!svc) return { locked: true, setupComplete: false };
+    return svc.getState();
+  });
+
+  // ── soam:lock:unlock ───────────────────────────────────────────────────────
+  ipcMain.handle('soam:lock:unlock', async (event, passphrase: unknown) => {
+    if (!isPlatformSender(event)) return null;
+    const svc = getActiveLockService();
+    if (!svc) return { ok: false, code: 'not-set-up' };
+    if (typeof passphrase !== 'string') return { ok: false, code: 'not-set-up' };
+    return svc.unlock(passphrase);
+  });
+
+  // ── soam:lock:unlock-recovery ──────────────────────────────────────────────
+  ipcMain.handle('soam:lock:unlock-recovery', async (event, words: unknown) => {
+    if (!isPlatformSender(event)) return null;
+    const svc = getActiveLockService();
+    if (!svc) return { ok: false, code: 'not-set-up' };
+    if (!Array.isArray(words) || !words.every((w) => typeof w === 'string')) {
+      return { ok: false, code: 'bad-recovery-code' };
+    }
+    return svc.unlockWithRecoveryCode(words as string[]);
+  });
+
+  // ── soam:lock:set-passphrase-after-recovery ────────────────────────────────
+  ipcMain.handle('soam:lock:set-passphrase-after-recovery', async (event, passphrase: unknown) => {
+    if (!isPlatformSender(event)) return null;
+    const svc = getActiveLockService();
+    if (!svc) return { ok: false, code: 'not-set-up' };
+    if (typeof passphrase !== 'string') return { ok: false, code: 'not-set-up' };
+    return svc.setPassphraseAfterRecovery(passphrase);
+  });
+
+  // ── soam:lock:change-passphrase ────────────────────────────────────────────
+  ipcMain.handle('soam:lock:change-passphrase', async (event, current: unknown, next: unknown) => {
+    if (!isPlatformSender(event)) return null;
+    const svc = getActiveLockService();
+    if (!svc) return { ok: false, code: 'not-set-up' };
+    if (typeof current !== 'string' || typeof next !== 'string') {
+      return { ok: false, code: 'not-set-up' };
+    }
+    return svc.changePassphrase(current, next);
+  });
+
+  // ── soam:lock:relock ───────────────────────────────────────────────────────
+  ipcMain.handle('soam:lock:relock', (event) => {
+    if (!isPlatformSender(event)) return null;
+    getActiveLockService()?.relock();
+    return null;
+  });
+
+  // ── soam:lock:heartbeat ────────────────────────────────────────────────────
+  ipcMain.handle('soam:lock:heartbeat', (event) => {
+    if (!isPlatformSender(event)) return null;
+    autoLockHandleRef.current?.recordHeartbeat();
+    return null;
+  });
+
+  // ── soam:setup:generate ────────────────────────────────────────────────────
+  ipcMain.handle('soam:setup:generate', async (event, args: unknown) => {
+    if (!isPlatformSender(event)) return null;
+    const svc = getActiveLockService();
+    if (!svc) return { ok: false, code: 'no-active-workspace' };
+    // Accept either { passphrase } object (new) or bare string (legacy compat)
+    let passphrase: string;
+    if (typeof args === 'string') {
+      passphrase = args;
+    } else if (args && typeof args === 'object' && 'passphrase' in args && typeof (args as Record<string, unknown>)['passphrase'] === 'string') {
+      passphrase = (args as { passphrase: string }).passphrase;
+    } else {
+      return { ok: false, code: 'already-set-up' };
+    }
+    return svc.setupGenerate(passphrase);
+  });
+
+  // ── soam:setup:acknowledge ─────────────────────────────────────────────────
+  ipcMain.handle('soam:setup:acknowledge', (event, args: unknown) => {
+    if (!isPlatformSender(event)) return null;
+    const svc = getActiveLockService();
+    if (!svc) return { ok: false, code: 'no-active-workspace' };
+    // Accept either { identity: { email } } object (new) or no args (legacy compat)
+    let identity: { email: string };
+    if (
+      args &&
+      typeof args === 'object' &&
+      'identity' in args &&
+      args['identity'] &&
+      typeof args['identity'] === 'object' &&
+      'email' in (args['identity'] as object) &&
+      typeof (args['identity'] as Record<string, unknown>)['email'] === 'string'
+    ) {
+      identity = args['identity'] as { email: string };
+    } else {
+      identity = { email: '' };
+    }
+    return svc.setupAcknowledge({ identity });
+  });
+
+  // ── soam:workspace:list ────────────────────────────────────────────────────
+  ipcMain.handle('soam:workspace:list', (event) => {
+    if (!isPlatformSender(event)) return null;
+    return workspaceRegistry.list();
+  });
+
+  // ── soam:workspace:get-active ──────────────────────────────────────────────
+  ipcMain.handle('soam:workspace:get-active', (event) => {
+    if (!isPlatformSender(event)) return null;
+    return workspaceRegistry.getActive();
+  });
+
+  // ── soam:workspace:set-active ──────────────────────────────────────────────
+  ipcMain.handle('soam:workspace:set-active', (event, workspaceId: unknown) => {
+    if (!isPlatformSender(event)) return null;
+    if (typeof workspaceId !== 'string') {
+      return { ok: false, code: 'unknown-workspace' } satisfies WorkspaceSetActiveResult;
+    }
+    const meta = workspaceRegistry.getMeta(workspaceId);
+    if (!meta) {
+      return { ok: false, code: 'unknown-workspace' } satisfies WorkspaceSetActiveResult;
+    }
+
+    // Dispose current LockService + auto-lock handle
+    const currentSvc = getActiveLockService();
+    if (currentSvc) currentSvc.relock();
+    rebindAutoLock(autoLockHandleRef, null);
+
+    // Instantiate a new LockService for the selected workspace
+    const newSvc = new LockService(workspaceId);
+    setActiveLockService(newSvc);
+
+    // Subscribe new service to lock-changed events
+    newSvc.onDidChange(() => emitLockChanged(getWindow, getActiveLockService));
+
+    // Provision db-key if this workspace has a setup-complete lock.json
+    if (metadataExists(workspaceId)) {
+      ensureLocalStoreDbKey(workspaceId);
+    }
+
+    // Restart auto-lock
+    rebindAutoLock(autoLockHandleRef, newSvc);
+
+    workspaceRegistry.setActive(workspaceId);
+    emitWorkspaceChanged(getWindow);
+    emitLockChanged(getWindow, getActiveLockService);
+
+    return { ok: true } satisfies WorkspaceSetActiveResult;
+  });
+
+  // ── soam:workspace:create ──────────────────────────────────────────────────
+  ipcMain.handle('soam:workspace:create', (event, args: unknown) => {
+    if (!isPlatformSender(event)) return null;
+    if (
+      !args ||
+      typeof args !== 'object' ||
+      typeof (args as Record<string, unknown>)['nickname'] !== 'string' ||
+      typeof (args as Record<string, unknown>)['email'] !== 'string'
+    ) {
+      return { ok: false, code: 'invalid-nickname' } satisfies WorkspaceCreateResult;
+    }
+    const { nickname, email } = args as { nickname: string; email: string };
+    try {
+      const { workspaceId } = workspaceRegistry.create({ nickname, email });
+      return { ok: true, workspaceId } satisfies WorkspaceCreateResult;
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      if (code === 'invalid-email') {
+        return { ok: false, code: 'invalid-email' } satisfies WorkspaceCreateResult;
+      }
+      return { ok: false, code: 'invalid-nickname' } satisfies WorkspaceCreateResult;
+    }
+  });
+
+  // ── soam:workspace:sign-out ────────────────────────────────────────────────
+  ipcMain.handle('soam:workspace:sign-out', (event) => {
+    if (!isPlatformSender(event)) return null;
+
+    // Relock current service and clear it
+    getActiveLockService()?.relock();
+    setActiveLockService(null);
+
+    // Dispose auto-lock handle
+    rebindAutoLock(autoLockHandleRef, null);
+
+    // Clear active pointer
+    workspaceRegistry.setActive(null);
+
+    emitWorkspaceChanged(getWindow);
+    emitLockChanged(getWindow, getActiveLockService);
+
+    return null;
+  });
+
+  // ── soam:workspace:get-identity ────────────────────────────────────────────
+  ipcMain.handle('soam:workspace:get-identity', (event) => {
+    if (!isPlatformSender(event)) return null;
+    return getActiveLockService()?.getIdentity() ?? null;
+  });
+}
+
+/**
+ * Create an AutoLockHandleRef (mutable container for the active auto-lock handle).
+ * Pass this to installLockChannel AND use it in main/index.ts to start/restart auto-lock.
+ */
+export function createAutoLockHandleRef(): AutoLockHandleRef {
+  return { current: null };
+}
+
+/**
+ * Start or restart auto-lock for a given LockService.
+ * Disposes the previous handle if any, starts a new one, stores it in ref.
+ */
+export function rebindAutoLock(
+  ref: AutoLockHandleRef,
+  svc: LockService | null,
+): void {
+  if (ref.current) {
+    ref.current.dispose();
+    ref.current = null;
+  }
+  if (svc) {
+    ref.current = startAutoLock({ service: svc });
+  }
+}

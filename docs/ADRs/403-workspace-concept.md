@@ -5,7 +5,7 @@
 **Date:** 2026-05-13
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-101, ADR-102, ADR-301, ADR-302, ADR-401, ADR-405, ADR-407, ADR-501, ADR-503 _(proposed)_
+**Related:** ADR-101, ADR-102, ADR-301, ADR-302, ADR-307, ADR-401, ADR-405, ADR-407, ADR-501, ADR-503 _(proposed)_
 
 ## Context
 
@@ -58,11 +58,17 @@ The keys the platform commits to surfacing — illustrative, not exhaustive:
 
 - `workspace.entityId` — always present in any window.
 - `workspace.entityType` — `individual` (MVP) or `clinic` (post-ADR-503).
+- `workspace.kekLocked` — `true` when the KEK is not held in memory. _Added 2026-05-17 per ADR-307. Renamed from `workspace.locked` during Phase 9a verification to avoid collision with the pre-existing `workspace.isLocked` (workspace open/closed state on `WorkspaceService`)._
+- `workspace.setupComplete` — `true` when the encryption-at-rest setup ceremony has been completed. _Added 2026-05-17 per ADR-307._
+- `workspace.activeId` — UUID of the currently-bound workspace, or empty string. _Added 2026-05-17 per ADR-307 (multi-workspace amendment)._
+- `workspace.nickname` — display nickname of the currently-bound workspace, or empty string. _Added 2026-05-17 per ADR-307 (multi-workspace amendment)._
 - `view.activeContainerId` — which activity-bar surface is active (`patients`, `sessions`, etc.).
 - `record.activeKind` — kind of record in focused editor pane (`patient`, `session-note`, `form`, `task`, etc.). Empty when no record is focused.
 - `record.activeId` — identifier of the focused record. Empty when no record is focused.
 - `patient.activeId` — when a patient is in scope for the focused record (a session-note inherits its patient's id here).
 - `editor.isDirty` — whether the focused editor has unsaved changes.
+
+PHI-bearing UI gates on `!workspace.kekLocked && workspace.setupComplete`. The pattern is wired in Phase 9 against a stub PHI capability; real PHI surfaces consume it from Phase 10 onward.
 
 Bundles publish their own context keys through the contribution surface (ADR-407 will spell out the registration). The platform-published keys are the load-bearing ones; bundle-published keys are domain-specific.
 
@@ -100,6 +106,23 @@ A workbench window with no Entity loaded is a valid state — for example, just 
 - The user sees the onboarding / unlock surface.
 
 The empty state is not the same as "Entity exists but is locked" — the latter renders the unlock gate; the former renders onboarding. The two are different surfaces in the recovery view shell (ADR-306 / ADR-401 planned).
+
+_Amended 2026-05-17 per ADR-307:_ multi-workspace support adds a picker fork. The workspace lifecycle now has four render-distinct pre-workspace states. Routing among them happens before the workspace shell mounts:
+
+| State | Condition | Surface |
+|---|---|---|
+| **Zero-workspaces** | `WorkspaceRegistry.list()` empty | `/setup/keys` route (first-run setup ceremony — owned by ADR-307; Phase 9b) |
+| **Picker** | Workspaces exist, no active | `/workspaces` picker route (Phase 9c; lists nicknames, "Add new", sign-in selector) |
+| **Setup pending** | Active workspace exists, `!workspace.setupComplete` | `/setup/keys` route bound to the active workspace (ceremony was interrupted before acknowledge) |
+| **Locked** | `workspace.setupComplete && workspace.kekLocked` | Unlock gate Part (passphrase input + recovery-code link — owned by ADR-307) |
+
+The `unlocked` state is when the workspace shell renders normally. Auto-lock triggers (idle, system suspend, OS screen-lock) flip the workspace back to **Locked** without unloading the workspace itself; the unlock gate replaces workspace surfaces in place. ADR-307 owns the trigger set and the timer policy.
+
+**One OS user, many workspaces.** ADR-307's storage layout puts each workspace under `$userData/workspaces/<uuid>/`. A single OS user can host any number of workspaces; the `active-workspace.json` pointer names the currently-bound one. Sign-out clears the pointer (workspace stays on disk; KEK is wiped from memory); the user can sign back into any other workspace via the picker without quitting the app or switching OS users.
+
+**One window, one bound workspace at a time.** The "one workspace per window" discipline (§"One workspace per window" above) still holds — but the *which* workspace is bound to a window can change at runtime via sign-out + sign-in, without quitting. Bundles see only the currently-active workspace; on sign-out + sign-in to a different workspace, services reset per the workspace-lifecycle rules in ADR-412.
+
+**Multi-window for multi-Entity (post-503).** ADR-503's multi-Entity-per-practitioner case may want concurrent multi-workspace views (two clinic workspaces side-by-side). That uses **separate windows**, each bound to a different workspace. The MVP (ADR-501) supports a single bound workspace per window with switching; the Clinic extension is additive per the §Forward-compatibility section above.
 
 ## Consequences
 

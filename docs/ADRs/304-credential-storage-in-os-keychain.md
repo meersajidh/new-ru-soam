@@ -5,7 +5,7 @@
 **Date:** 2026-05-13
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-101, ADR-103, ADR-302, ADR-303, ADR-305 _(planned: third-party provider credentials)_, ADR-306 _(planned: data recovery)_
+**Related:** ADR-101, ADR-103, ADR-302, ADR-303, ADR-305 _(planned: third-party provider credentials)_, ADR-306 _(planned: data recovery)_, ADR-307
 
 ## Context
 
@@ -14,7 +14,7 @@ The platform needs a durable place to store secrets. The set includes:
 - The session token for the user's Cloud Backend account.
 - The Local Store database encryption key (per ADR-302).
 - User-provided third-party API keys (per ADR-305, planned) — AI providers, KMS providers, etc.
-- KEK or KEK-bootstrap material when the user picks Strategy B in ADR-303 (recovery-code-derived material the platform caches at runtime).
+- ~~KEK or KEK-bootstrap material when the user picks Strategy B in ADR-303 (recovery-code-derived material the platform caches at runtime).~~ _Removed 2026-05-17 per ADR-307: the KEK is passphrase-wrapped and held only in process memory between unlock and relock; no keychain residence._
 
 ADR-101 forbids any of these from living in the renderer. ADR-103 says all renderer access is through capabilities. This ADR commits to where on disk and through what OS facilities those secrets live.
 
@@ -50,9 +50,13 @@ Credential types are an enumerated set defined by the platform (illustrative):
 - `local-store-db-key`
 - `third-party-api-key` (with `ref` = provider identifier; see ADR-305)
 - `kms-credentials` (with `ref` = KMS provider identifier)
-- `kek-material` (Strategy B from ADR-303)
+- ~~`kek-material` (Strategy B from ADR-303)~~ _Removed 2026-05-17 per ADR-307._
 
 The exact enumeration grows as features land; this ADR commits to the **typed enumeration** discipline, not to the catalogue.
+
+_Amended 2026-05-17 per ADR-307 §Storage layout:_ credential keys are **workspaceId-namespaced**. Storage key format: `ru-soam.<workspaceId>.<credentialType>[.<ref>]`. Each workspace on a device (a device can host many; see ADR-307 + ADR-501 multi-workspace amendments) holds its own credentials; one workspace's `local-store-db-key` is unreachable to another workspace's code even within the same OS user account. Bootstrap of `local-store-db-key` runs per-workspace on first ensure (when the workspace is being created or first signed-in on a device).
+
+_Added 2026-05-17 per ADR-307 §"Keychain credential walk-up policy":_ every credential type carries a **wrap policy** (`raw` | `kek-wrapped`). High-walk-up-impact credentials (cloud account access, KMS access, billable third-party access) default to `kek-wrapped` — the keychain stores `KEK-wrapped(credential)` and the in-memory KEK unwraps on demand. Walk-up on a locked workspace = unwrap impossible = credential unusable. Low-walk-up-impact credentials (`local-store-db-key`) may stay `raw` because they have no operational power beyond what the app boundary already exposes and bootstrap order forbids KEK-wrapping (the DB must open before the workspace metadata holding the wrapped-KEK is reachable). Per-credential decisions tracked under Open Item **O307f**.
 
 ### Renderer never sees credentials
 
@@ -71,6 +75,8 @@ At Main startup:
 3. Other subsystems (auth, sync worker, third-party providers) bind their credential needs as they activate.
 
 Bootstrap failure (keychain unreachable, key corrupted, user password change rendering DPAPI material undecryptable) is a named recovery flow handled by ADR-306, not a silent crash.
+
+_Added 2026-05-17 (Phase 9 implementation):_ Electron `safeStorage` is **not** itself a persistence layer — `encryptString` returns opaque bytes that the app must persist. The platform persists those bytes at `app.getPath('userData')/credentials/store.json` as a small JSON map (`{ "ru-soam.<credentialType>[.<ref>]": "<base64-of-safeStorage-ciphertext>" }`). The map's keys are non-secret (they enumerate which credential types are stored); the values are opaque OS-keychain-encrypted blobs. The file is unauthenticated at the app layer because `safeStorage` already authenticates each value internally; tampering produces a decryption failure handled by the consumer's null-check.
 
 ### What does not live in the keychain
 
@@ -106,5 +112,5 @@ Bootstrap failure (keychain unreachable, key corrupted, user password change ren
 
 ## Open Items
 
-- **O30** — Linux backend variants and fallback policy. `libsecret`, KWallet, headless / no-daemon setups. Define behaviour when no backend is available (degraded mode? refuse to start? prompt for OS configuration?).
+- **O30** — Linux backend variants and fallback policy. `libsecret`, KWallet, headless / no-daemon setups. Define behaviour when no backend is available (degraded mode? refuse to start? prompt for OS configuration?). _Phase 9 ships only `local-store-db-key` through the keychain; if the backend is unavailable, Phase 9 logs a clear error and refuses to start. The richer fallback policy lands when the credential surface widens (Strategy A KMS credentials and sync session tokens), targeted at Phase 11._
 - **O31** — Hardware-bound storage (Secure Enclave on macOS, TPM-backed keys on Windows, hardware security modules on Linux). Preferred where available; pilot in a later phase. Defer specifics.

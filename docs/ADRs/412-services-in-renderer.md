@@ -5,7 +5,7 @@
 **Date:** 2026-05-13
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-102, ADR-103, ADR-302, ADR-401, ADR-404, ADR-406, ADR-407, ADR-410, ADR-411
+**Related:** ADR-102, ADR-103, ADR-302, ADR-307, ADR-401, ADR-404, ADR-406, ADR-407, ADR-410, ADR-411
 
 ## Context
 
@@ -124,7 +124,7 @@ For local-first writes (ADR-302), mutations write to local first; the sync queue
 - `ContextKeyService` — Live key dictionary, expression evaluator.
 - `ThemeService` — Active theme tokens; emits change events.
 - `NotificationService` — Banners (ADR-401) and toasts.
-- `WorkspaceService` — Active workspace (Entity) identity, lifecycle events (open / close / lock).
+- `WorkspaceService` — Active workspace (Entity) identity, lifecycle events (open / close / lock / unlock / setup-complete). Mirrors the Main-side `LockService` (ADR-307) lock state to the renderer; emits `onDidWorkspaceLock` and `onDidWorkspaceUnlock`. Subscribes to capability-bridge events so auto-lock triggers (idle, suspend, screen-lock) surface uniformly.
 - `BundleService` — Renderer-side mirror of installed bundle metadata (id, manifest summary, active state).
 - `KeybindingService` — Compiled keybindings registry, dispatch logic.
 - `RouterService` — Top-level routing within the shell (Settings, Recovery, Onboarding, workspace shell).
@@ -149,9 +149,11 @@ Other services persist across workspace switches:
 
 - `ThemeService`, `NotificationService`, `RouterService`, `BundleService` (in MVP, the bundle list is global; in clinic-tenancy follow-ups O54 may scope it).
 
-Lifecycle events: `WorkspaceService` emits `onDidWorkspaceClose` and `onDidWorkspaceOpen`; each service subscribes if it needs to reset.
+Lifecycle events: `WorkspaceService` emits `onDidWorkspaceClose`, `onDidWorkspaceOpen`, `onDidWorkspaceLock`, and `onDidWorkspaceUnlock`; each service subscribes if it needs to reset. _Lock / unlock events added 2026-05-17 per ADR-307._
 
 In MVP (one workspace per install per ADR-501) the practical reset surface is workspace-lock/unlock and KEK-relock, not multi-workspace switching. The discipline is committed now so the post-503 expansion is mechanical.
+
+_Amended 2026-05-17 per ADR-307:_ on `onDidWorkspaceLock`, services holding PHI-derived state must discard it. The Phase 9 baseline (no real PHI surfaces yet) keeps the discipline narrow — services that consume PHI capabilities in Phase 10+ subscribe at registration time. The pattern is wired against the stub PHI capability in Phase 9 to prove the discipline before real consumers land.
 
 ### Bundle-side services
 

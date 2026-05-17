@@ -43,20 +43,21 @@ The ADRs are layered: later ones rest on earlier ones. A newcomer should read in
 7. **[ADR-303](ADRs/303-phi-sync-and-backup-via-e2ee.md)** — how PHI is protected on the wire and at rest in the cloud (E2EE).
 8. **[ADR-304](ADRs/304-credential-storage-in-os-keychain.md)**, **[ADR-305](ADRs/305-third-party-provider-credentials.md)** — credential storage and provider integration patterns.
 9. **[ADR-306](ADRs/306-data-recovery-flows.md)** — what happens when things go wrong.
-10. **[ADR-501](ADRs/501-tenancy-individual-mvp.md)** — tenancy model for MVP.
-11. **[ADR-502](ADRs/502-audit-and-consent-ledger.md)** — audit ledger and consent records.
-12. **[ADR-503](ADRs/503-tenancy-clinic-proposed.md)** _(Proposed)_ — the eventual Clinic extension. Read after MVP to see where 501 is heading.
-13. **[ADR-403](ADRs/403-workspace-concept.md)** — workspace = Entity. The cross-cutting scoping concept the workbench's UI composition rests on.
-14. **[ADR-410](ADRs/410-bundle-host-process-model.md)** — bundles run in a separate Node process. The fourth trust zone. Process-model commitment the rest of the workbench-UI ADRs build on.
-15. **[ADR-401](ADRs/401-workbench-shell-anatomy.md)**, **[ADR-402](ADRs/402-middle-section-composition.md)** — the Part abstraction, the root layout, the five middle-section slots.
-16. **[ADR-411](ADRs/411-view-hosting-for-bundles.md)** — how a bundle's UI actually renders (sandboxed iframe + bridge). Load-bearing for ADR-404 / ADR-405 / ADR-408.
-17. **[ADR-404](ADRs/404-editor-model.md)**, **[ADR-405](ADRs/405-activity-bar-surfaces.md)**, **[ADR-408](ADRs/408-panel-content-model.md)**, **[ADR-409](ADRs/409-status-bar-contribution-model.md)** — what fills the slots: editors, activity-bar surfaces, panel views, status-bar entries.
-18. **[ADR-406](ADRs/406-command-driven-architecture.md)**, **[ADR-407](ADRs/407-context-keys-and-when-clauses.md)** — dispatch vocabulary (commands) and conditional visibility (`when` clauses). Cross-cutting across the slot ADRs.
-19. **[ADR-412](ADRs/412-services-in-renderer.md)** — renderer service registry + TanStack Query for capability data. How components consume the rest.
-20. **[ADR-413](ADRs/413-theming-and-icons.md)** — themes and icons as data contributions. Zero-attack-surface visual layer.
-21. **[ADR-414](ADRs/414-ru-edit-platform-editor-primitive.md)** — RuEdit, the platform's first-party rich-text editor primitive on raw ProseMirror. Monaco-in-VSCode analogue; every prose-bearing editor type composes it.
-22. **[ADR-415](ADRs/415-react-prosemirror-integration-boundary.md)** — how React and ProseMirror coexist inside RuEdit: React owns chrome, vanilla `prosemirror-view` owns content, the two never overlap. Avoids the documented state-tearing failure modes.
-23. **[ADR-416](ADRs/416-snippet-engine.md)** — Snippet engine: `/`-trigger expansion with placeholder walk, atomic placeholder nodes, vanilla-DOM picklist nodeView. Generic vocabulary policy ("no `Smart*`") committed here.
+10. **[ADR-307](ADRs/307-app-level-kek-passphrase-and-auto-lock.md)** — endpoint trust gate: app-level passphrase wraps the KEK; inactivity auto-lock makes "locked" mean something. Closes the walk-up gap left by ADR-303's original keychain-only runtime model.
+11. **[ADR-501](ADRs/501-tenancy-individual-mvp.md)** — tenancy model for MVP.
+12. **[ADR-502](ADRs/502-audit-and-consent-ledger.md)** — audit ledger and consent records.
+13. **[ADR-503](ADRs/503-tenancy-clinic-proposed.md)** _(Proposed)_ — the eventual Clinic extension. Read after MVP to see where 501 is heading.
+14. **[ADR-403](ADRs/403-workspace-concept.md)** — workspace = Entity. The cross-cutting scoping concept the workbench's UI composition rests on.
+15. **[ADR-410](ADRs/410-bundle-host-process-model.md)** — bundles run in a separate Node process. The fourth trust zone. Process-model commitment the rest of the workbench-UI ADRs build on.
+16. **[ADR-401](ADRs/401-workbench-shell-anatomy.md)**, **[ADR-402](ADRs/402-middle-section-composition.md)** — the Part abstraction, the root layout, the five middle-section slots.
+17. **[ADR-411](ADRs/411-view-hosting-for-bundles.md)** — how a bundle's UI actually renders (sandboxed iframe + bridge). Load-bearing for ADR-404 / ADR-405 / ADR-408.
+18. **[ADR-404](ADRs/404-editor-model.md)**, **[ADR-405](ADRs/405-activity-bar-surfaces.md)**, **[ADR-408](ADRs/408-panel-content-model.md)**, **[ADR-409](ADRs/409-status-bar-contribution-model.md)** — what fills the slots: editors, activity-bar surfaces, panel views, status-bar entries.
+19. **[ADR-406](ADRs/406-command-driven-architecture.md)**, **[ADR-407](ADRs/407-context-keys-and-when-clauses.md)** — dispatch vocabulary (commands) and conditional visibility (`when` clauses). Cross-cutting across the slot ADRs.
+20. **[ADR-412](ADRs/412-services-in-renderer.md)** — renderer service registry + TanStack Query for capability data. How components consume the rest.
+21. **[ADR-413](ADRs/413-theming-and-icons.md)** — themes and icons as data contributions. Zero-attack-surface visual layer.
+22. **[ADR-414](ADRs/414-ru-edit-platform-editor-primitive.md)** — RuEdit, the platform's first-party rich-text editor primitive on raw ProseMirror. Monaco-in-VSCode analogue; every prose-bearing editor type composes it.
+23. **[ADR-415](ADRs/415-react-prosemirror-integration-boundary.md)** — how React and ProseMirror coexist inside RuEdit: React owns chrome, vanilla `prosemirror-view` owns content, the two never overlap. Avoids the documented state-tearing failure modes.
+24. **[ADR-416](ADRs/416-snippet-engine.md)** — Snippet engine: `/`-trigger expansion with placeholder walk, atomic placeholder nodes, vanilla-DOM picklist nodeView. Generic vocabulary policy ("no `Smart*`") committed here.
 
 Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development](Guides/feature-development.md), [disposable-pattern](Guides/disposable-pattern.md), [data-encryption-and-recovery](Guides/data-encryption-and-recovery.md)) and references ([Local-first pattern](References/Local_First_Pattern.md), [PHI backup and encryption reasoning](References/PHI_Backup_And_Encryption_Reasoning.md), [Bundle host process reasoning](References/Bundle_Host_Process_Reasoning.md), [Core shell vs first-party bundle reasoning](References/Core_Shell_vs_First_Party_Bundle_Reasoning.md)) elaborate the operational and reasoning sides; they are best read alongside the relevant ADRs.
 
@@ -87,6 +88,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-304](ADRs/304-credential-storage-in-os-keychain.md) — Credential storage in OS keychain. _(Accepted)_
 - [ADR-305](ADRs/305-third-party-provider-credentials.md) — Third-party provider credentials: user-provided vs app-owned. _(Accepted)_
 - [ADR-306](ADRs/306-data-recovery-flows.md) — Data recovery flows (DPAPI reset, KMS loss, recovery-code loss, device loss). _(Accepted)_
+- [ADR-307](ADRs/307-app-level-kek-passphrase-and-auto-lock.md) — App-level KEK passphrase + inactivity auto-lock + endpoint threat model. _(Accepted)_
 
 #### Workbench / UI composition (400–499)
 

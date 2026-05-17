@@ -464,17 +464,334 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - Snippet has zero dependency on Crypto, Local Store, or Sync; persistence is explicitly out of scope this phase.
 - The clinical phases (post-13) want snippets and templates as table stakes for any prose-bearing editor-type view; landing the engine here unblocks future product scoping.
 
-## Phase 9 — Crypto + KEK + workspace lock / unlock
+## Phase 9 — Crypto + KEK + multi-workspace lock / unlock (umbrella)
 
-**Goal:** PHI gate lands before any patient / session schema goes near disk.
+**Status:** Draft (2026-05-17). Restructured into three sub-phases (9a / 9b / 9c) after multi-account requirement landed. ADR-307 created; ADR-303 / ADR-304 / ADR-403 / ADR-412 / ADR-501 amended; Guide §2.3 + §6 rewritten.
 
-**Deliverable:** KEK derivation, workspace unlock UI, KEK relock command, encryption-at-rest primitives (key handling, envelope format, table-level encryption hooks ready for Phase 10), "KEK locked" StatusBar entry live, PHI capability calls refused while locked.
+**Goal:** PHI gate exists before Phase 10 writes anything sensitive. Workspace lock state is enforceable, observable, and structural. Walk-up attacker on an unlocked OS session is blocked at the app boundary. Multi-account support (one OS user → many workspaces) is structural from day one; UI lands progressively.
 
-**ADRs:** ADR-301 (crypto), ADR-303 (KEK / recovery; recovery UX lands Phase 12), ADR-403 (lock state).
+**Strategy:** Strategy B (recovery-code KEK) only. Strategy A (user-owned KMS) deferred per O307a. App-level passphrase + inactivity auto-lock per ADR-307. One OS user can host many workspaces, each = one Entity (ADR-501); switching workspaces = sign-out + sign-in within the same window.
 
-**Open items:** crypto-domain open items (300-range; tracked in the ADRs).
+**Sub-phase split:**
+- **9a** — Main-side primitives: crypto, CredentialStore, WorkspaceRegistry, LockService(workspaceId), multi-workspace storage layout, dev-workspace auto-provision, IPC surface. Verifiable via developer commands; no setup/unlock UI yet.
+- **9b** — Renderer UI for the single-workspace flow: setup ceremony (mocked OAuth → nickname → passphrase → recovery), unlock gate Part, StatusBar entries, user-avatar slot, capability decorator + stub PHI capability, activity heartbeat from UI events, hard sign-out command.
+- **9c** — Multi-workspace UX: `/workspaces` picker route, add-new flow, switcher command, rename command. Lands **after Phase 10** so workspace switching has real PHI consequences to validate.
 
-**Exit:** force-restart → must unlock to access PHI; relock works mid-session; cold storage of the still-empty PHI tables shows ciphertext only; lock state is a context key consumed by when-clauses.
+Delete-workspace command lives in Phase 12 (Settings) per scope discipline.
+
+---
+
+## Phase 9a — Main-side primitives + multi-workspace storage
+
+**Status:** Draft (2026-05-17). Restructured to absorb multi-workspace storage shape from day one (closes future retrofit pain on `_workspaceId` AAD lock-in and credential namespacing).
+
+**Goal:** Main-side lock state machine is complete and verifiable from the renderer console via developer commands. Storage layout is multi-workspace-ready. No setup-ceremony UI; no unlock gate UI; no real OAuth — those are Phase 9b. Dev-mode auto-provisions a `dev-workspace` to skip manual setup during iteration.
+
+**Strategy:** Strategy B (recovery-code KEK) only. Strategy A (user-owned KMS) deferred per O307a. App-level passphrase + inactivity auto-lock per ADR-307.
+
+**Deliverable:**
+
+- **Crypto primitives** (`apps/desktop/electron/main/crypto/`)
+  - `aead.ts` — AES-256-GCM encrypt/decrypt (record-level). Per-op random 96-bit nonce.
+  - `keywrap.ts` — AES-GCM-KW wrap/unwrap (DEK ↔ KEK; wrap-keys → KEK).
+  - `kdf-passphrase.ts` — Argon2id (`m=64 MiB, t=3, p=1`, tune to ≈500 ms). Library: `@node-rs/argon2`.
+  - `kdf-recovery.ts` — HKDF-SHA256 via Node `crypto.hkdfSync`.
+  - `envelope.ts` — `{ v, alg, wrapped_dek?, nonce, ciphertext, tag, aad }` codec (shape frozen per ADR-307).
+  - `recovery-code.ts` — BIP-39 12-word generate / validate / parse. Library: `@scure/bip39`.
+
+- **CredentialStore** (`apps/desktop/electron/main/credentials/`) — Phase 9a lands ADR-304's `safeStorage` wrapper. Catalogue this phase: `local-store-db-key` only (`kek-material` removed per ADR-307). Credential keys are workspaceId-namespaced (`ru-soam.<workspaceId>.local-store-db-key`). Linux backend unavailable → log + refuse to start with clear error (richer fallback policy → **O30** Phase 11). Persistence file: `app.getPath('userData')/credentials/store.json`.
+
+- **WorkspaceRegistry** (`apps/desktop/electron/main/workspace/`) — NEW. Owns the multi-workspace storage layout.
+  - `list(): WorkspaceMeta[]` — reads `workspaces/*/meta.json` (excludes any with missing/corrupt meta).
+  - `getActive(): string | null` — reads `active-workspace.json` pointer.
+  - `setActive(workspaceId: string | null): void` — writes pointer.
+  - `create({ nickname, email }): { workspaceId }` — validates nickname (4-64 chars, length-only Phase 9; global-uniqueness server-side per O307h), generates UUID v4, mkdir, writes empty `meta.json`. Does NOT yet write `lock.json` (setup ceremony does that via LockService).
+  - `getMeta(workspaceId): WorkspaceMeta | null`.
+  - `bumpLastSignedIn(workspaceId)` — updates `meta.json` on successful unlock.
+
+- **LockService** (Main) — instantiated per active workspace via `new LockService(workspaceId)`. Surface unchanged from prior Phase 9a draft except `workspaceId` flows into envelope AAD construction. Methods: `unlock(passphrase)`, `unlockWithRecoveryCode(words[])`, `setPassphraseAfterRecovery(newPassphrase)`, `changePassphrase(current, next)`, `relock()`, `isLocked()`, `kekHandle()` (internal — encryption primitives only, no IPC export). Setup methods: `setupGenerate({ passphrase })`, `setupAcknowledge({ identity: { email } })` — `email` and any future identity fields go into a KEK-encrypted `identity.envelope` file (not `lock.json`). Publishes `workspace.kekLocked` + `workspace.setupComplete` + `workspace.activeId` + `workspace.nickname` context keys via IPC. (Note: `workspace.kekLocked` renamed from `workspace.locked` to avoid collision with pre-existing `workspace.isLocked` — see §"Renames + cleanup".)
+
+- **Identity envelope** — `app.getPath('userData')/workspaces/<uuid>/identity.envelope` — KEK-encrypted JSON `{ email: string }`. Written by `setupAcknowledge`. Decrypted post-unlock; exposed via `LockService.getIdentity(): { email } | null` and `window.soam.workspace.getIdentity()`. Future cloud-account fields (googleId, cloudUserId, etc.) extend the encrypted shape.
+
+- **Auto-lock** — inactivity timer (default 5 min, hardcoded constant this phase; settings cascade per O307b); idle detection via `powerMonitor` + renderer activity heartbeat; lock on system suspend; lock on OS screen-lock event. Window blur does **not** lock.
+
+- **Capability refusal pattern** — capability registry decorator: PHI-flagged capabilities reject with typed `LockedError` when `LockService.isLocked()`. Stub capability `phi.demo.echo` registered Main-side. (Decorator + stub capability land Phase 9a as infrastructure; the renderer-side proof of refusal is exercised in 9b.)
+
+- **Rate limiting** — exponential backoff: 5 fast attempts → 1m → 5m → 15m → 15m cap. No permanent lockout. Counter persists across restart per workspace in `lock-attempts.json`.
+
+- **Renderer wiring (minimal Phase 9a)** — `WorkspaceService` extended with `onDidWorkspaceLock` / `onDidWorkspaceUnlock` (ADR-412 amended). Renderer subscribes to lock-state IPC events + publishes corresponding context keys. **No setup route / unlock gate / StatusBar entry in 9a** — those are 9b.
+
+- **Dev-workspace auto-provision** — when `import.meta.env.DEV && !app.isPackaged && WorkspaceRegistry.list().length === 0`, Main auto-provisions:
+  - workspaceId: fixed UUID `00000000-0000-4dev-8000-000000000000`
+  - nickname: `Dev Workspace`
+  - email: `dev@ru-soam.local`
+  - passphrase: hardcoded constant `dev-passphrase-12+`
+  - recovery code: deterministically derived from the dev passphrase (developers can re-derive without recording)
+  - active-workspace pointer set automatically
+  - On boot: dev workspace is auto-unlocked via the hardcoded passphrase. Renderer skips the setup-pending state.
+  - StatusBar (when 9b lands) will show `DEV MODE — mock user` indicator. Phase 9a logs it to console.
+  - Guard: `app.isPackaged === true` short-circuits to standard flow. Any production binary that somehow contains the dev passphrase constant cannot auto-provision because `isPackaged` is true.
+
+- **IPC surface (`window.soam.*`)** — lock + setup + workspace namespaces (NEW for workspace.*):
+  - `lock.unlock(passphrase)`, `lock.unlockWithRecoveryCode(words[])`, `lock.setPassphraseAfterRecovery(passphrase)`, `lock.changePassphrase(current, next)`, `lock.relock()`, `lock.state()`, `lock.heartbeat()`, `lock.onChange(cb)`.
+  - `setup.generate({ passphrase })`, `setup.acknowledge({ identity: { email } })` — staged-then-committed; refuses commit if generate not called or > 10 min ago; refuses generate if no active workspace exists.
+  - `workspace.list() → WorkspaceMeta[]`, `workspace.getActive() → string | null`, `workspace.setActive(workspaceId) → void`, `workspace.create({ nickname, email }) → { workspaceId }` (also calls `setActive`), `workspace.signOut() → void` (relock + clear active pointer), `workspace.getIdentity() → { email } | null` (post-unlock only).
+  - All passphrase / code values: Renderer → Main one-way, zeroed after KDF, never echoed back. `email` is plaintext over IPC (not a secret per se) but persisted only under KEK envelope.
+
+- **Dependencies added** — `@node-rs/argon2`, `@scure/bip39`, `zxcvbn-ts/core` (zxcvbn used by 9b setup UI; lib imported in 9a is acceptable to land deps once).
+
+**ADRs (this phase):**
+
+- **New ADR-307** — App-level KEK passphrase + auto-lock + endpoint threat model. Documents the walk-up gap in the original ADR-303, commits passphrase as primary unlock, commits inactivity auto-lock, commits KEK-never-on-disk, pins algorithm choices, names multi-workspace storage layout, names dev-workspace auto-provision.
+- **ADR-303 amended** — Strategy B runtime model rewritten (passphrase-wrapped KEK, not keychain); Strategy A deferred per O307a; default-state language clarified (sync vs encryption-at-rest); envelope-shape and algorithm choices pinned via ADR-307.
+- **ADR-304 amended** — `kek-material` removed from credential catalogue; credential keys workspaceId-namespaced; O30 retargeted to Phase 11.
+- **ADR-403 amended** — `workspace.kekLocked` / `workspace.setupComplete` / `workspace.activeId` / `workspace.nickname` context keys; four pre-workspace states (zero-workspaces / picker / setup-pending / locked) named explicitly; in-window workspace switching via sign-out / sign-in committed.
+- **ADR-412 amended** — `WorkspaceService` gains `onDidWorkspaceLock` / `onDidWorkspaceUnlock` events; PHI-derived-state discipline named on lock.
+- **ADR-501 amended** — one OS user can host multiple Entity workspaces; email = operational data per Entity, captured at setup ceremony; cloud signup = Google OAuth (mocked Phase 9, real Phase 11/12); nickname global-uniqueness enforced server-side (Phase 11+, length-only Phase 9).
+- **Guide `data-encryption-and-recovery.md`** — §2.3 + §6 rewritten; §2.4 paired-session updated; algorithm choices pinned; multi-workspace storage layout documented.
+
+**Open items raised this phase:**
+
+- **O307a** — Strategy A (KMS) implementation. Target Phase 9.5 / pre-Phase-11.
+- **O307b** — Idle-timeout configurability + range. Target Phase 10 / 12 (settings cascade).
+- **O307c** — Passphrase strength policy hardening. Target post-first-clinical-feedback.
+- **O307d** — Hardware-bound passphrase / biometric. Long-range; cross-refs O31.
+- **O307e** — Audit-event catalogue for lock / unlock / setup / passphrase-change / recovery-code-use. Target Phase 10 (ledger lands then).
+- **O307f** — Per-keychain-credential walk-up policy (`raw` vs `kek-wrapped`). Default for high-walk-up-impact creds = `kek-wrapped`. Per-cred decisions land per-introducing-phase.
+- **O307g** — Real Google OAuth integration. Phase 9 ships mock dialog returning `{ email, googleId }`. Target Phase 11/12 (real OAuth flow alongside cloud sync transport).
+- **O307h** — Nickname global-uniqueness check (server-side). Phase 9 ships length-only validation (4–64 chars). Target Phase 11+ (cloud account real).
+
+**Open items retargeted this phase:**
+
+- **O26** — KEK rotation policy → Phase 12 (Recovery surface). Phase 9 ships change-passphrase only.
+- **O28** — Crash-dump PHI scrubbing → Phase 9 hardening / Phase 10. Latent until first crash-report path.
+- **O29** — Same KEK/DEK for sync + backup → Phase 11. Confirm when sync transport lands.
+- **O30** — Linux keychain backend policy → Phase 11. Phase 9 narrows surface to `local-store-db-key`; refuses to start with clear error if backend unavailable.
+- **O98** — Workspace lifecycle reset matrix → Phase 10. Phase 9 adds lock/unlock events with narrow PHI-derived-state reset; full matrix doc lands when real PHI consumers exist.
+- **O146** — Heap-snapshot dispose-leak harness → Phase 9 hardening follow-up. Manual smoke acceptable for crypto primitives.
+- **O94** — PHI-adjacent context-key privacy → Phase 10. No real PHI keys yet.
+- **O10** — CSP `unsafe-inline` removal + remaining tightening → Phase 13 hardening pass. Decoupled from crypto.
+
+**Verification (CDP 9333, agent-browser, via developer commands + direct IPC eval):**
+
+- **Production-mode fresh install** (`app.isPackaged === true` simulation): no workspaces exist; `window.soam.workspace.list()` returns `[]`; `getActive()` returns `null`. Setup ceremony requires Phase 9b UI; Phase 9a verification uses raw IPC: `await window.soam.workspace.create({ nickname: 'Test', email: 't@e.com' })` → returns `{ workspaceId }`; `setActive()` already implicit; `setup.generate({ passphrase: 'strong-passphrase-12+' })` → returns 12 BIP-39 words; `setup.acknowledge({ identity: { email: 't@e.com' } })` → returns `{ ok: true }`.
+- **Dev-mode fresh install** (`import.meta.env.DEV && !app.isPackaged`): wipe `~/.config/Ru-Soam/` first; restart; `workspace.list()` returns the auto-provisioned `dev-workspace`; `getActive()` returns the dev workspace's UUID; `lock.state()` returns `{ locked: false, setupComplete: true }` (auto-unlocked).
+- Wrong passphrase returns `bad-passphrase` with `attemptsRemaining`; 5 fast attempts → rate-limit kicks in on 6th.
+- 12-word recovery code unlocks + forces passphrase reset.
+- Change-passphrase command works; rate-limit gates it (per 9a cleanup pass).
+- Relock command wipes KEK; `workspace.kekLocked` flips; locked-gated UI hides (verified via context-key snapshot).
+- Auto-lock idle timer fires → relock observed (simulated via `developer.lock.simulateIdle`).
+- System suspend → on resume, workspace is locked (manual OS test; agent-browser inspect of code path acceptable).
+- OS screen-lock event → workspace locks.
+- Window blur does NOT lock.
+- Stub PHI capability call while locked → typed `cap.locked` error.
+- KEK never appears in Renderer process inspect (CDP heap walk).
+- Cold inspection of `workspaces/<uuid>/lock.json` → no KEK plaintext, no passphrase, only KDF params/salts/wrapped-KEKs/verifier.
+- Cold inspection of `workspaces/<uuid>/identity.envelope` → KEK-encrypted; not decryptable without unlock. After unlock, `window.soam.workspace.getIdentity()` returns `{ email }`.
+- Keychain inspection → no `kek-material` entry. `ru-soam.<workspaceId>.local-store-db-key` present per provisioned workspace.
+- Sign-out (`window.soam.workspace.signOut()`) → relock + clear `active-workspace.json` → `getActive()` returns `null`; sign-in via `setActive()` restores.
+- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+
+**Exit:**
+
+- Force-restart in dev mode → auto-unlocked dev-workspace ready instantly. Force-restart in production mode → setup-pending state for zero-workspaces, or locked state if one exists.
+- Relock works mid-session; auto-lock fires on idle / suspend / OS screen-lock.
+- Cold storage of workspace metadata shows no KEK plaintext; identity envelope is opaque pre-unlock.
+- `workspace.kekLocked` + `workspace.setupComplete` + `workspace.activeId` + `workspace.nickname` are context keys; `phi.demo.echo` capability refuses while locked.
+- Multi-workspace storage layout in place (one dir per workspace UUID, active-workspace pointer file, workspaceId-namespaced keychain entries).
+- ADR-307 created; ADR-303 / ADR-304 / ADR-403 / ADR-412 / ADR-501 amended; Guide updated; Open Items registry updated.
+
+### Pinned decisions (delegation brief)
+
+Decisions ratified during the brief-tightening pass. Implementer follows verbatim; items not pinned here are implementer choice (internal module organisation, UI text wording, meter visualisation, disposable subscription topology, test-helper plumbing).
+
+**Crypto wire format**
+
+- Envelope wire format = JSON. Binary fields base64-encoded (standard, not base64url).
+- Envelope shape: `{ "v": 1, "alg": "AES-256-GCM", "wrapped_dek": "<base64>", "nonce": "<base64>", "ciphertext": "<base64>", "tag": "<base64>", "aad": "<base64>" }`. `wrapped_dek` omitted for single-key encrypts (verifier canary, raw KEK wraps). `tag` is the AES-GCM authentication tag as a separate base64 field (matches Node `crypto.getAuthTag()` return shape; safer than concat-and-split on the wire).
+- Envelope `aad` content:
+  - For record envelopes: canonical JSON `{ "recordType": "...", "recordId": "...", "schemaVersion": <int> }` → blocks swap-attacks across rows.
+  - For wrapped-KEK envelopes (passphrase + recovery wraps): canonical JSON `{ "purpose": "kek-wrap-passphrase" | "kek-wrap-recovery", "workspaceId": "..." }` → domain-separates wrap purposes.
+  - For verifier canary: empty AAD; plaintext is the fixed string `"ru-soam-kek-canary-v1"`.
+- Nonce = per-op random 96-bit (random for both record AEAD and AES-GCM-KW operations).
+- Salt sizes = 16 bytes each (`salt_p`, `salt_r`).
+- Argon2id output length = 32 bytes (256-bit AES-256 key).
+- Recovery code = 12 BIP-39 words (128-bit entropy; HKDF-SHA256 expands to 256-bit wrap-key).
+
+**Storage layout (multi-workspace)**
+
+```
+$userData/
+├── active-workspace.json             { "workspaceId": "<uuid>" | null }
+├── workspaces/
+│   └── <uuid>/
+│       ├── lock.json                 ADR-307 frozen shape (per workspace)
+│       ├── lock-attempts.json        rate-limit state (per workspace)
+│       ├── meta.json                 { nickname, createdAt, lastSignedIn }
+│       └── identity.envelope         KEK-encrypted: { email, future cloud-acct fields }
+└── credentials/
+    └── store.json                    keys: "ru-soam.<workspaceId>.local-store-db-key": "<base64-of-safeStorage-ciphertext>"
+```
+
+- `active-workspace.json` (NEW): `{ "workspaceId": "<uuid>" | null }`. Single pointer to currently signed-in workspace.
+- `workspaces/<uuid>/lock.json`: ADR-307 frozen JSON shape per workspace:
+  ```json
+  {
+    "version": 1,
+    "kdf": { "algo": "argon2id", "m": 67108864, "t": 3, "p": 1, "outLen": 32 },
+    "salt_p": "<base64-16B>",
+    "salt_r": "<base64-16B>",
+    "wrapped_KEK_passphrase": <envelope-json>,
+    "wrapped_KEK_recovery":   <envelope-json>,
+    "verifier":               <envelope-json>,
+    "createdAt": "<ISO-8601>"
+  }
+  ```
+- `workspaces/<uuid>/lock-attempts.json` (per workspace, separate file): `{ "count": <int>, "lastAttemptAt": "<ISO-8601>", "backoffUntil": "<ISO-8601> | null" }`.
+- `workspaces/<uuid>/meta.json` (pre-unlock readable; non-PHI): `{ "nickname": "<4-64 chars>", "createdAt": "<ISO-8601>", "lastSignedIn": "<ISO-8601> | null" }`.
+- `workspaces/<uuid>/identity.envelope`: KEK-encrypted single envelope (frozen shape) over canonical JSON `{ "email": "<string>" }`. AAD = `{ "purpose": "identity", "workspaceId": "<uuid>" }`. Decryptable only after unlock.
+- Credential store persistence file: `app.getPath('userData')/credentials/store.json`. `safeStorage.encryptString` returns opaque bytes; persisted as `{ "ru-soam.<workspaceId>.<credentialType>[.<ref>]": "<base64-of-safeStorage-ciphertext>" }`. Keys are non-secret. See ADR-304 §Bootstrap.
+- Idle-timeout setting: Phase 9 = hardcoded constant `300_000` ms in `LockService` (5 min). Phase 10 wires settings cascade per O307b.
+
+**Error codes + result shapes**
+
+- Add `"cap.locked"` to existing `CapErrCode` enum in `apps/desktop/electron/main/capability/registry.ts`.
+- Capability decorator throws `{ code: 'cap.locked', message: 'Workspace locked' }` when `LockService.isLocked()`.
+- `UnlockResult`:
+  ```ts
+  type UnlockResult =
+    | { ok: true }
+    | { ok: false; code: 'bad-passphrase'; attemptsRemaining: number; backoffUntilMs?: number }
+    | { ok: false; code: 'rate-limited'; backoffUntilMs: number }
+    | { ok: false; code: 'not-set-up' };
+  ```
+- `RecoveryUnlockResult`:
+  ```ts
+  type RecoveryUnlockResult =
+    | { ok: true; mustResetPassphrase: true }
+    | { ok: false; code: 'bad-recovery-code' }
+    | { ok: false; code: 'not-set-up' };
+  ```
+- Recovery-code input over IPC = `string[]` of 12 lowercase words. UI normalizes case + trims + collapses whitespace before submission.
+
+**IPC namespace**
+
+- `window.soam.lock.*`, `window.soam.setup.*`, and `window.soam.workspace.*` = special-case platform namespaces (not via `bindCapability`). Rationale: lock state is platform-bedrock, used by every PHI capability decorator; bootstrap order forbids these from being PHI capabilities themselves. Matches the existing `window.soam.window` precedent.
+- `setup.generate({ passphrase })` stages KEK + wraps + recovery code in memory only; requires an active workspace.
+- `setup.acknowledge({ identity: { email } })` commits `lock.json` + `identity.envelope` to disk and transitions workspace to unlocked. Refuses commit if `generate` not called or > 10 min ago.
+- `workspace.create({ nickname, email })` validates nickname (4-64 chars), generates UUID, mkdirs the workspace dir, writes empty `meta.json`, calls `setActive(workspaceId)`. The setup ceremony follows with `setup.generate` + `setup.acknowledge`.
+- `workspace.signOut()` calls `LockService.relock()` then `WorkspaceRegistry.setActive(null)`. Renderer routes to picker (9c) or back to setup (9b interim).
+- Passphrase / recovery-code values: Renderer → Main one-way; Main zeroes after KDF; never echoed back. `email` is plaintext over IPC (not a secret) but persisted only under KEK envelope.
+
+**Boot + lifecycle**
+
+- Bootstrap order at Main start: CredentialStore init (fail-fast on Linux if `safeStorage` backend unavailable) → resolve `WorkspaceRegistry` (read `active-workspace.json`, list workspaces) → dev-workspace auto-provision branch if applicable → if active workspace exists, ensure its `local-store-db-key` (absent ⇒ generate + store under workspaceId-namespaced key) → mount `LockService(activeWorkspaceId)` (reads its `lock.json`) → publish initial context keys (`workspace.activeId`, `workspace.kekLocked`, `workspace.setupComplete`, `workspace.nickname`) → renderer mounts → renderer routes per context keys.
+- Renderer routing states:
+  - **zero-workspaces** — `WorkspaceRegistry.list()` empty → Phase 9b: setup route.
+  - **picker** — workspaces exist, no active → Phase 9c: picker route. Phase 9b interim: error/setup-redirect.
+  - **setup-pending** — active workspace exists but its `lock.json` is absent (e.g. workspace was `create`d but ceremony was interrupted before `setup.acknowledge`) → Phase 9b: setup route bound to that workspace.
+  - **locked** — active workspace has `lock.json` and KEK is not in memory → Phase 9b: unlock gate Part.
+  - **unlocked** — KEK in memory → workspace shell.
+- `local-store-db-key` lifecycle: per workspace; generate-and-store on first ensure call iff absent. NOT gated by passphrase (raw per O307f). Used by Phase 10 SQLCipher; Phase 9 provisions only.
+- `powerMonitor` events consumed: `suspend`, `lock-screen` (both trigger relock). `resume` re-checks lock state but never auto-unlocks. `unlock-screen` ignored — workspace re-unlock always requires passphrase.
+
+**Dev-workspace constants**
+
+- `workspaceId = "00000000-0000-4dev-8000-000000000000"` (fixed; non-conformant UUID v4 deliberately to distinguish from real ones).
+- `nickname = "Dev Workspace"`.
+- `email = "dev@ru-soam.local"`.
+- Passphrase: hardcoded constant `"dev-passphrase-12+"` in a module imported only from the dev-provision branch. Lint can search for this string in production code paths to enforce isolation.
+- Recovery code: deterministically derived from the dev passphrase via HKDF (developers can re-derive without recording).
+- Hard gate: `import.meta.env.DEV && !app.isPackaged`. Any production binary has `app.isPackaged === true` and cannot enter the dev-provision branch even if it somehow contains the constants.
+- Triggers only when `WorkspaceRegistry.list().length === 0`, so a developer who has manually created a real workspace in dev mode does not get the dev-workspace overlaid.
+
+**Renames + cleanup (Phase 9a)**
+
+- **Context key `workspace.kekLocked` (replaces `workspace.locked`)**. `workspace.isLocked` is pre-existing on `WorkspaceService` (tracks workspace open/closed state). The new ADR-307 key was originally named `workspace.locked` in Phase 9a v1; the namespace collision was flagged in the verification pass. Resolution: rename ADR-307's key to `workspace.kekLocked` (more accurate per ADR-307 semantics; existing 9a-v1 code path is the only consumer + a doc churn pass). Documented in ADR-307 + ADR-403 amendments.
+- **`_workspaceId` is real (replaces `'default-workspace'`)**. The Phase 9a v1 placeholder is gone — `LockService` constructor takes a real UUID v4 (or the dev-workspace constant in dev mode).
+- **Vite native-dep externalization**. `@node-rs/argon2` requires `/^@node-rs\//` in `vite.main.config.ts` rollupOptions.external. Phase 10's SQLCipher binding will need its own pattern; record on landing.
+
+**Developer commands (Phase 9a)**
+
+- `developer.lock.dumpState` — prints current LockService state to renderer console.
+- `developer.lock.forceRelock` — alias for `workbench.workspace.relock`.
+- `developer.lock.simulateIdle` — fires the idle handler immediately.
+- `developer.workspace.list` — prints `WorkspaceRegistry.list()` to renderer console.
+- `developer.workspace.signOut` — alias for `window.soam.workspace.signOut()`.
+- `developer.setup.reset` — deletes the active workspace's `lock.json` + `lock-attempts.json` + `identity.envelope`, clears `active-workspace.json`, restarts app. Dev-only; gated by `import.meta.env.DEV`. (Phase 9b wires via `platform.dev@1.0` capability if needed; Phase 9a invokes via direct IPC.)
+
+---
+
+## Phase 9b — UI: setup ceremony (mocked OAuth) + unlock gate + capability decorator
+
+**Status:** Pending (lands after 9a).
+
+**Goal:** Renderer surfaces for the single-workspace flow. Mocked OAuth at signup; setup ceremony multi-step UI; unlock gate Part; StatusBar lock + nickname entries; user-avatar slot showing nickname + email post-unlock; capability decorator wired with `cap.locked`; stub PHI capability proves the refusal pattern via UI; activity heartbeat fired from real UI events. Multi-workspace picker = 9c.
+
+**Deliverable:**
+
+- **Setup route** (`apps/desktop/src/routes/setup/keys.tsx`) — multi-step wizard:
+  1. **Sign in with Google** (mocked) — button opens mock dialog; user types email; dialog returns `{ email, googleId: "mock-<uuid>" }`. Real OAuth lands per O307g (Phase 11/12).
+  2. **Choose nickname** — 4–64 char text input; client-side length validation only (global-uniqueness per O307h is server-side, Phase 11+).
+  3. **Set passphrase** — input + confirm; live zxcvbn meter; commit refused below `length >= 12 && score >= 3`.
+  4. **Display recovery code** — 12 BIP-39 words once; forced-acknowledge checkbox.
+  5. **Acknowledge** — calls `workspace.create({ nickname, email })` → `setup.generate({ passphrase })` → user views recovery → `setup.acknowledge({ identity: { email } })`. Transition to unlocked workspace shell.
+- **Mock OAuth dialog** — small Part composed inline; uses a Phase 9b helper module `mock-oauth.ts` that returns `{ email, googleId: "mock-<uuid>" }`. Real implementation lands per O307g.
+- **Unlock gate Part** — passphrase input (primary) + "Use recovery code instead" link → 12-word input → unwrap → force passphrase reset → workspace shell. Rendered in workbench middle slot when `workspace.kekLocked && workspace.setupComplete`.
+- **StatusBar entries**:
+  - `workbench.lock` — 🔓 Unlocked / 🔒 Locked indicator; click when unlocked = relock.
+  - `workbench.workspace.nickname` — shows active workspace nickname when unlocked; hidden when locked.
+  - `workbench.dev-mode` (dev only) — `DEV MODE — mock user` warning.
+- **User-avatar slot** (top-right or activity-bar bottom; ADR-401 / ADR-405 layout decision Phase 9b confirms) — shows nickname + email (from `window.soam.workspace.getIdentity()`); menu items: "Sign out", "Lock workspace", "Change passphrase".
+- **Capability decorator** — wraps the registry so PHI-flagged capabilities reject with `{ code: 'cap.locked' }` when `LockService.isLocked()`. Tagging mechanism: `phi: true` flag on capability registration. Stub `phi.demo.echo` exercised via a developer command to prove the refusal end-to-end.
+- **Activity heartbeat from UI events** — renderer fires `window.soam.lock.heartbeat()` on mouse-move / keydown / focus events; debounced to ≤ 1 call / 5 sec. Closes the 9a-inherited heartbeat-wiring item.
+- **Hard sign-out command** — `workbench.workspace.signOut`. Renderer routes to setup route (since only 1 workspace exists in 9b). Picker = 9c.
+- **Change-passphrase command** — `workbench.workspace.changePassphrase`. Opens dialog: current + new + confirm new; uses `window.soam.lock.changePassphrase(current, next)`.
+- **`platform.dev@1.0` capability** — Main-side; methods `resetWorkspaceSetup()` (deletes active workspace's files + clears active pointer + `app.relaunch()`). Dev-only registration gate. Wires `developer.setup.reset` properly. Closes 9a-inherited platform.dev item.
+- **UnlockResult `'no-recovery-pending'` consumer wiring** — the setPassphraseAfterRecovery surface in the unlock-gate Part renders an explicit error message for this code (vs the generic "not set up"). Closes 9a-inherited item.
+
+**ADRs amendments (9b):** none mandatory; ADR-401 / ADR-405 may receive small notes if user-avatar placement requires a new slot definition.
+
+**Verification:**
+
+- Production-mode fresh install → setup route appears; mock OAuth → nickname → passphrase (zxcvbn blocks weak) → recovery → acknowledge → workspace shell rendered.
+- Dev-mode fresh install → setup route SKIPPED; dev-workspace auto-unlocked; StatusBar shows DEV MODE warning.
+- Force-restart (production mode) → unlock gate appears; correct passphrase → shell; wrong → rate-limit per schedule.
+- 12-word recovery code → unlock gate accepts → forces passphrase reset → shell.
+- Idle 5 min → workspace locks; unlock gate appears.
+- Stub PHI capability call while locked from a developer command → typed `cap.locked` error shown in renderer console.
+- Sign-out from user-avatar menu → relock + active-workspace pointer cleared → setup route (since 1 workspace).
+- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+
+**Exit:**
+
+- End-to-end UI flow: setup → unlock → relock → sign-out → setup-again works via mouse + keyboard.
+- Auto-lock with real UI activity (mouse/key events refresh heartbeat) works for ≥ 30 min without spurious lock.
+- All 9a-inherited UI/IPC items closed (heartbeat, platform.dev, no-recovery-pending message).
+
+---
+
+## Phase 9c — Multi-workspace picker (post-Phase-10)
+
+**Status:** Future. Lands after Phase 10 (Local Store + audit + TanStack Query). Rationale: workspace switching is most useful when there's real PHI data to validate isolation against; Phase 10 provides that. Phase 9c can land between 10 and 11 or alongside 11.
+
+**Goal:** Multiple workspaces on one OS user with picker UI; add-new flow; switcher command.
+
+**Deliverable:**
+
+- `/workspaces` picker route — lists workspaces by nickname (no emails shown per Q2-Q3 product decision); "Add new" button; selecting a workspace = `setActive` + route to unlock gate.
+- Add-new-workspace flow — re-enters setup ceremony (mock OAuth → nickname → passphrase → recovery → acknowledge) producing a fresh UUID + dir.
+- Workspace-switcher command (`workbench.workspace.switch`) — palette entry that opens the picker without sign-out.
+- Workspace-rename command — edits `meta.json` `nickname` (re-validates length, global-uniqueness deferred).
+- StatusBar dropdown on `workbench.workspace.nickname` — quick-switcher.
+- Sign-out routing — sign-out from one workspace → picker (vs setup route in 9b).
+
+**ADRs:** ADR-403 picker state already named in 9a amendment; 9c implements it. No new ADRs.
+
+**Open items absorbed:** 
+- Delete-workspace command — Phase 12 (Settings) per scope discipline.
+
+**Exit:** user can hold multiple workspaces on one OS user, switch between them via picker + StatusBar dropdown, with full lock-state isolation per workspace.
 
 ## Phase 10 — Local Store + audit log + TanStack Query data wiring
 

@@ -6,6 +6,17 @@ import {
   type CapabilityCallResponse,
   type PlatformEvent,
 } from '../shared/ipc-protocol';
+import type {
+  LockState,
+  UnlockResult,
+  RecoveryUnlockResult,
+  SetupGenerateResult,
+  SetupAcknowledgeResult,
+  WorkspaceMeta,
+  WorkspaceChangedEvent,
+  WorkspaceCreateResult,
+  WorkspaceSetActiveResult,
+} from '../shared/lock-protocol';
 
 /**
  * `window.soam` bridge per ADR-202.
@@ -13,6 +24,9 @@ import {
  * The renderer's entire IPC surface is one method (`bindCapability`) plus a
  * narrow events channel. New features acquire functionality through new
  * capabilities, never through new preload methods.
+ *
+ * Phase 9: `lock`, `setup`, and `workspace` namespaces are special-case
+ * platform bedrock (not via bindCapability) — same precedent as `window.soam.window`.
  */
 
 export interface SoamCapabilityProxy {
@@ -24,9 +38,44 @@ export interface SoamEvents {
   readonly on: (listener: (event: PlatformEvent) => void) => () => void;
 }
 
+// ── Lock namespace ─────────────────────────────────────────────────────────────
+
+export interface SoamLock {
+  readonly state: () => Promise<LockState>;
+  readonly unlock: (passphrase: string) => Promise<UnlockResult>;
+  readonly unlockWithRecoveryCode: (words: string[]) => Promise<RecoveryUnlockResult>;
+  readonly setPassphraseAfterRecovery: (passphrase: string) => Promise<UnlockResult>;
+  readonly changePassphrase: (current: string, next: string) => Promise<UnlockResult>;
+  readonly relock: () => Promise<void>;
+  readonly heartbeat: () => Promise<void>;
+  readonly onChange: (listener: (state: LockState) => void) => () => void;
+}
+
+// ── Setup namespace ────────────────────────────────────────────────────────────
+
+export interface SoamSetup {
+  readonly generate: (args: { passphrase: string }) => Promise<SetupGenerateResult>;
+  readonly acknowledge: (args: { identity: { email: string } }) => Promise<SetupAcknowledgeResult>;
+}
+
+// ── Workspace namespace ────────────────────────────────────────────────────────
+
+export interface SoamWorkspace {
+  readonly list: () => Promise<WorkspaceMeta[]>;
+  readonly getActive: () => Promise<string | null>;
+  readonly setActive: (workspaceId: string) => Promise<WorkspaceSetActiveResult>;
+  readonly create: (args: { nickname: string; email: string }) => Promise<WorkspaceCreateResult>;
+  readonly signOut: () => Promise<void>;
+  readonly getIdentity: () => Promise<{ email: string } | null>;
+  readonly onChange: (listener: (e: WorkspaceChangedEvent) => void) => () => void;
+}
+
 export interface Soam {
   readonly bindCapability: (name: string, version: string) => Promise<SoamCapabilityProxy>;
   readonly events: SoamEvents;
+  readonly lock: SoamLock;
+  readonly setup: SoamSetup;
+  readonly workspace: SoamWorkspace;
 }
 
 let nextId = 1;
@@ -43,6 +92,98 @@ function call(req: Omit<CapabilityCallRequest, 'id'>): Promise<unknown> {
       throw err;
     });
 }
+
+// ── Lock bridge helpers ────────────────────────────────────────────────────────
+
+const lock: SoamLock = {
+  async state() {
+    return ipcRenderer.invoke('soam:lock:state') as Promise<LockState>;
+  },
+  async unlock(passphrase) {
+    return ipcRenderer.invoke('soam:lock:unlock', passphrase) as Promise<UnlockResult>;
+  },
+  async unlockWithRecoveryCode(words) {
+    return ipcRenderer.invoke('soam:lock:unlock-recovery', words) as Promise<RecoveryUnlockResult>;
+  },
+  async setPassphraseAfterRecovery(passphrase) {
+    return ipcRenderer.invoke(
+      'soam:lock:set-passphrase-after-recovery',
+      passphrase,
+    ) as Promise<UnlockResult>;
+  },
+  async changePassphrase(current, next) {
+    return ipcRenderer.invoke(
+      'soam:lock:change-passphrase',
+      current,
+      next,
+    ) as Promise<UnlockResult>;
+  },
+  async relock() {
+    await ipcRenderer.invoke('soam:lock:relock');
+  },
+  async heartbeat() {
+    await ipcRenderer.invoke('soam:lock:heartbeat');
+  },
+  onChange(listener) {
+    const handler = (_e: unknown, payload: PlatformEvent) => {
+      if (payload.name === 'lock.changed') {
+        listener(payload.payload as LockState);
+      }
+    };
+    ipcRenderer.on(SOAM_EVENT_CHANNEL, handler);
+    return () => ipcRenderer.removeListener(SOAM_EVENT_CHANNEL, handler);
+  },
+};
+
+// ── Setup bridge helpers ───────────────────────────────────────────────────────
+
+const setup: SoamSetup = {
+  async generate(args) {
+    return ipcRenderer.invoke('soam:setup:generate', args) as Promise<SetupGenerateResult>;
+  },
+  async acknowledge(args) {
+    return ipcRenderer.invoke('soam:setup:acknowledge', args) as Promise<SetupAcknowledgeResult>;
+  },
+};
+
+// ── Workspace bridge helpers ───────────────────────────────────────────────────
+
+const workspace: SoamWorkspace = {
+  async list() {
+    return ipcRenderer.invoke('soam:workspace:list') as Promise<WorkspaceMeta[]>;
+  },
+  async getActive() {
+    return ipcRenderer.invoke('soam:workspace:get-active') as Promise<string | null>;
+  },
+  async setActive(workspaceId) {
+    return ipcRenderer.invoke(
+      'soam:workspace:set-active',
+      workspaceId,
+    ) as Promise<WorkspaceSetActiveResult>;
+  },
+  async create(args) {
+    return ipcRenderer.invoke('soam:workspace:create', args) as Promise<WorkspaceCreateResult>;
+  },
+  async signOut() {
+    await ipcRenderer.invoke('soam:workspace:sign-out');
+  },
+  async getIdentity() {
+    return ipcRenderer.invoke('soam:workspace:get-identity') as Promise<
+      { email: string } | null
+    >;
+  },
+  onChange(listener) {
+    const handler = (_e: unknown, payload: PlatformEvent) => {
+      if (payload.name === 'workspace.changed') {
+        listener(payload.payload as WorkspaceChangedEvent);
+      }
+    };
+    ipcRenderer.on(SOAM_EVENT_CHANNEL, handler);
+    return () => ipcRenderer.removeListener(SOAM_EVENT_CHANNEL, handler);
+  },
+};
+
+// ── Main export ────────────────────────────────────────────────────────────────
 
 export const soam: Soam = {
   async bindCapability(name, version) {
@@ -69,4 +210,7 @@ export const soam: Soam = {
       return () => ipcRenderer.removeListener(SOAM_EVENT_CHANNEL, handler);
     },
   },
+  lock,
+  setup,
+  workspace,
 };
