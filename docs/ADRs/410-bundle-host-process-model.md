@@ -161,6 +161,8 @@ When this ADR moves to Accepted, the following amendments land:
 
 These amendments are mechanical; none of the user-facing or bundle-author-facing contracts change.
 
+**Update (Phase 6):** the implementation chose `utilityProcess.fork`; remaining text retained for historical context.
+
 ## Consequences
 
 ### Positive
@@ -194,7 +196,7 @@ These amendments are mechanical; none of the user-facing or bundle-author-facing
 
 ## Open Items
 
-- **O64** — Bundle Host implementation choice: Electron `utilityProcess`, `child_process.fork` with a curated runtime, or vm-isolation in a shared process. Affects API surface, sandboxing fidelity, and memory profile.
+- ~~O64 — Bundle Host implementation choice~~ **Resolved Phase 6** — Electron `utilityProcess.fork`; see `apps/desktop/electron/main/bundle-host/manager.ts`.
 - **O65** — Bundle Host isolation granularity: single process for all bundles vs one per bundle vs per-publisher grouping. Start single; revisit when ecosystem grows.
 - **O66** — Bundle debugging mechanism: Node inspector port + platform "Inspect bundle" command + Output channel for stdout/stderr. Concrete shape and security gates.
 - **O67** — Native module / non-portable dependency policy. Default deny; explicit contribution declaration for legitimate needs (media codecs, etc.) with platform-team review.

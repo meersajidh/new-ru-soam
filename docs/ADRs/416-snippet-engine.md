@@ -150,7 +150,7 @@ Walking stops when the cursor leaves the snippet via any non-Tab/Esc input that 
 
 ### Picklist placeholder rendering
 
-`picklist` placeholders render via a **vanilla DOM `NodeView`** (ADR-415 §NodeViews are imperative DOM through Phase 9). When the placeholder receives focus the nodeView opens an inline dropdown built with `document.createElement`; arrow keys + Enter select, Tab advances (firing the placeholder-walk keymap), Esc closes the dropdown without selection. The nodeView reads `options` and `default` from the node's attrs; the dropdown has no React.
+`picklist` placeholders render via a **vanilla DOM `NodeView`** (ADR-415 §NodeViews are imperative DOM through the custom-blocks phase (O129)). When the placeholder receives focus the nodeView opens an inline dropdown built with `document.createElement`; arrow keys + Enter select, Tab advances (firing the placeholder-walk keymap), Esc closes the dropdown without selection. The nodeView reads `options` and `default` from the node's attrs; the dropdown has no React.
 
 ### `ISnippetService`
 
@@ -187,7 +187,7 @@ These mirror the `ruEdit.activeInstance` context key landed in 7.5b; they let fu
 - **Templates** (Epic-equivalent of "SmartText" — whole-doc default per note type). Distinct phase, distinct ADR, after the first concrete editor-type view requires a default scaffold.
 - **Snippet recursion.** A snippet body containing a `/abbrev` that re-triggers expansion. Phase 8 treats placeholder finalize as plain-text replacement; recursion is explicitly out (O416d).
 - **Shared / clinic-level registries.** All snippets in Phase 8 are workspace-local. Sharing lands with Phase 11+ (sync) or workspace settings (O416b).
-- **React-in-nodeView strategy.** Owned by ADR-415's O130 at Phase 10 (renumbered) entry. Picklist nodeView is vanilla per that ADR until O130 resolves.
+- **React-in-nodeView strategy.** Owned by ADR-415's O130 at the custom-blocks phase (O129) entry. Picklist nodeView is vanilla per that ADR until O130 resolves.
 
 ## Consequences
 

@@ -16,6 +16,8 @@ This document slices the committed ADRs (100 / 200 / 300 / 400 / 500 ranges) int
 
 ## Phase 0 — Baseline verification
 
+**Status:** Complete. Landed in `main`.
+
 **Goal:** confirm Electron + React SPA + TanStack scaffolding holds.
 
 **Deliverable:** `pnpm dev` opens an empty Electron window; React mounts; TanStack Router + Query initialised; type-check + lint pass.
@@ -27,6 +29,8 @@ This document slices the committed ADRs (100 / 200 / 300 / 400 / 500 ranges) int
 **Exit:** hot-reload Renderer; Main starts cleanly; CI runs the build.
 
 ## Phase 1 — Process skeleton + IPC contract
+
+**Status:** Complete. Landed in `main`.
 
 **Goal:** three processes alive. Main ↔ Renderer typed IPC. Bundle Host = Node process spawned on demand, no real work yet.
 
@@ -75,6 +79,8 @@ This document slices the committed ADRs (100 / 200 / 300 / 400 / 500 ranges) int
 
 ## Phase 3 — Command + context-key + keybinding spine
 
+**Status:** Complete. Landed in `main`.
+
 **Goal:** command-driven shell with palette, before any feature uses commands.
 
 **Deliverable:** CommandService (Renderer mirror + Main registry), ContextKeyService with the VSCode-style expression evaluator, KeybindingService. Command Palette opens. About six platform commands wired (`workbench.toggle*Bar`, `workbench.openSettings`, `workbench.openCommandPalette`, etc.).
@@ -86,6 +92,8 @@ This document slices the committed ADRs (100 / 200 / 300 / 400 / 500 ranges) int
 **Exit:** `Ctrl+Shift+P` opens the palette; when-clauses gate visible commands; reserved-namespace check rejects bad registrations; PHI-adjacent context keys never appear in any persisted payload.
 
 ## Phase 4 — Workspace concept + lifecycle
+
+**Status:** Complete. Landed in `main`.
 
 **Goal:** Workspace = Entity. Open / close / lock lifecycle reaches services that care.
 
@@ -103,11 +111,11 @@ This document slices the committed ADRs (100 / 200 / 300 / 400 / 500 ranges) int
 
 **Goal:** editor mechanism lands before any concrete editor type.
 
-**Deliverable:** EditorService (recursive split-tree `EditorLayoutNode`: `group | split`; groups + tabs with `open / close / splitGroup / moveTab` lifecycle; auto-collapse of empty groups when >1 group exists); `EditorArea` walks the tree recursively, splits render as CSS flex with fixed 0.5 ratio; `EditorGroup` tab strip with HTML5 drag-and-drop, routes resource URI to a renderer; built-in `placeholder://` scheme + `PlaceholderEditor`; three commands wired (`editors.openPlaceholder`, `editors.splitRight` = `ctrl+\`, `editors.closeActive` = `ctrl+w`); `editor.activeResource` context key synced on every change.
+**Deliverable:** EditorService (recursive split-tree `EditorLayoutNode`: `group | split`; groups + tabs with `open / close / splitGroup / moveTab` lifecycle; auto-collapse of empty groups when >1 group exists); `EditorArea` walks the tree recursively, splits render as CSS flex with fixed 0.5 ratio; `EditorGroup` tab strip with HTML5 drag-and-drop, routes resource URI to a renderer; built-in `placeholder://` scheme + `PlaceholderEditor`; three commands wired (`editors.openPlaceholder`, `editors.splitRight` = `ctrl+\`, `editors.closeActive` = `ctrl+w`); `editor.activeResource` context key synced on every change. (Tab-cycle commands `editors.nextTab` / `editors.previousTab` land in Phase 5.5.)
 
 **ADRs:** ADR-404.
 
-**Open items:** O73–O77 (unchanged); O108–O112 added — see Phase 5.5.
+**Open items:** O73–O77 (unchanged); O152–O154 + O111–O112 added — see Phase 5.5.
 
 **Exit:** open two placeholder editors side-by-side via Command Palette + keybinding; drag tab between groups (HTML5 D&D); close last tab in a non-sole group → group auto-collapses; close all → editor area empty hint shows; `editor.activeResource` reflects focused tab in context-key snapshot. Verified live in Electron via Chrome DevTools Protocol on `localhost:9333` (agent-browser).
 
@@ -139,10 +147,10 @@ Caveat: the initial Phase-5 summary blamed React 18 concurrent mode for "silentl
 **ADRs:** ADR-404 (no normative change; UX-polish-only).
 
 **Open items added (404-range):**
-- **O108** — Editor service event granularity. Single `onDidChange` re-renders every consumer on every mutation. VSCode's editor service has per-axis events (`onDidAddGroup`, `onDidActiveEditorChange`, `onDidChangeGroupModel`). Decide between (a) split-emitter API now, (b) version-number selectors, (c) defer until Phase 13 when a real bundle dogfoods the editor.
-- **O109** — `editor.activeResource` context-key scrubbing for ADR-407. Currently `''` for `placeholder://` URIs. Once real schemes land (`patient://abc-123`, `session://...`), the value will contain PHI-adjacent IDs and **must** appear on the Phase 10 audit-payload scrub list. Tracked alongside O95.
-- **O110** — Tab dedup policy. `open(resource)` currently dedups by resource-string equality. The placeholder counter is a temporary workaround; decide if a `forceNew` option, a `pinned` flag, or a richer key (resource + view-state hash) is the right shape before any real editor opts in.
-- **O111** — Split-ratio persistence. Phase 5 hard-codes `ratio: 0.5`. Once O108 ships per-axis events and split-divider drag lands (Phase 13 polish), persist ratio per workspace via the Phase 4 layout-persistence path.
+- **O152** — Editor service event granularity. Single `onDidChange` re-renders every consumer on every mutation. VSCode's editor service has per-axis events (`onDidAddGroup`, `onDidActiveEditorChange`, `onDidChangeGroupModel`). Decide between (a) split-emitter API now, (b) version-number selectors, (c) defer until Phase 13 when a real bundle dogfoods the editor.
+- **O153** — `editor.activeResource` context-key scrubbing for ADR-407. Currently `''` for `placeholder://` URIs. Once real schemes land (`patient://abc-123`, `session://...`), the value will contain PHI-adjacent IDs and **must** appear on the Phase 10 audit-payload scrub list. Tracked alongside O95.
+- **O154** — Tab dedup policy. `open(resource)` currently dedups by resource-string equality. The placeholder counter is a temporary workaround; decide if a `forceNew` option, a `pinned` flag, or a richer key (resource + view-state hash) is the right shape before any real editor opts in.
+- **O111** — Split-ratio persistence. Phase 5 hard-codes `ratio: 0.5`. Once O152 ships per-axis events and split-divider drag lands (Phase 13 polish), persist ratio per workspace via the Phase 4 layout-persistence path.
 - **O112** — Tab context menu surface. Right-click, middle-click-close, pin/unpin, "close others / close to the right / close all". Belongs to the command + context-key spine (ADR-406/407); waits on the command-menu mechanism scheduled with Phase 13 polish.
 
 **Exit:** focused group visually distinct from unfocused (✓); active tab visually distinct from inactive (✓); split clones active editor into new group; dirty dot appears in tab when `isDirty`; Ctrl+Tab cycles forward within group, Ctrl+Shift+Tab cycles backward; `close()` and `moveTab()` route through the shared `_removeTabFromGroup` helper.
@@ -150,6 +158,8 @@ Caveat: the initial Phase-5 summary blamed React 18 concurrent mode for "silentl
 **Explicitly deferred to the Phase 13 polish pass** (see Phase 13 below): drag preview / drop indicator, split-divider drag handle + ratio persistence, tab context menu, Alt+1..9 group switch, Ctrl+PgUp/PgDn alias, `_insertSplit` defensive short-circuit (low-impact correctness, no behaviour delta until a malformed tree shows up).
 
 ## Pre-Phase-6 gate — 100-range amendment pass
+
+**Status:** Closed (2026-05-17). ADRs 101 / 103 / 104 / 105 amended in the Post-Phase-8 cleanup pass; the Bundle Host is now named as the fourth trust zone in ADR-101 and the capability host alongside Main in ADR-103. ADR-104 names the manifest-read step at `apps/desktop/electron/main/bundle-host/manifest.ts`; ADR-105 pins `activate(...)` to the Bundle Host process.
 
 Before Phase 6 starts referencing the wrong text, apply the deferred amendments to the 100-range:
 
@@ -190,7 +200,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - ✓ `shutdownHost()` deactivates each bundle then exits Bundle Host cleanly.
 
 **Known follow-ups (tracked):**
-- Code-mapping in routing handler: today the inner `cap.not_found` from `invokeBundleCapability` is reflattened to `cap.handler_threw` by the registry. Cleaner mapping lands with Phase 6.5 alongside O68.
+- ~~Code-mapping in routing handler: today the inner `cap.not_found` from `invokeBundleCapability` is reflattened to `cap.handler_threw` by the registry. Cleaner mapping lands with Phase 6.5 alongside O68.~~ (Resolved Phase 6.5 via `extractCapErrCode` in `electron/main/capability/registry.ts:19`)
 - Production bundle packaging path: dev mode resolves `apps/desktop/bundles/`. Packaged-app path (`process.resourcesPath/bundles`) is wired but bundles are not yet copied by `electron-builder`. File alongside O113.
 
 ## Phase 6.5 — Bundle Host follow-ups (lazy activation + hardening) — Complete
@@ -391,63 +401,11 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - **O149** — Read-only mode UI toggle. Still cosmetic-only on scratch; target first clinical consumer.
 - **O150** — Command-palette commands for toolbar actions. Target first clinical consumer.
 
-## Phase 7.5 — RuEdit core skeleton (original full scope; superseded by 7.5a above; remainder tracked as 7.5b)
-
-**Goal:** ship the platform's editor primitive — `@ru-soam/editor` (RuEdit), a raw-ProseMirror surface analogous to Monaco-in-VSCode — so every later prose-bearing editor type (session notes, intake narratives, discharge summaries) and every clinical bundle composes the same engine. No clinical schema yet; foundation only.
-
-**Trimmed scope** (anything that touches a registry capability, a paid tier, or open-ended block design is deferred — see open items below):
-
-- New workspace package `packages/editor/` (`@ru-soam/editor`). Deps: `prosemirror-{model,state,view,transform,commands,keymap,history,schema-list,inputrules}`. MIT/BSD only. No Tiptap, no BlockNote, no Lexical.
-- ProseMirror schema v1: `doc`, `paragraph`, `heading` (levels 1–3), `bullet_list`, `ordered_list`, `list_item`, `blockquote`, `horizontal_rule`, `hard_break`, `text`. Marks: `strong`, `em`, `underline`, `code`. Stable per-block `_id` attribute assigned by an `appendTransaction` plugin (UUID v4 in this phase; v7 revisit at O131).
-- Versioned JSON envelope: `{ schemaVersion: 1, doc }`. `toJSON(handle)` and `fromJSON(json, schema)`. Schema-version mismatch raises a named recoverable error, never silent coercion.
-- Imperative mount API:
-  ```ts
-  mountRuEdit(container: HTMLElement, opts: {
-    initial?: RuEditDoc;
-    readOnly?: boolean;
-    onChange?: (doc: RuEditDoc) => void;
-  }): RuEditHandle;
-  ```
-  `RuEditHandle` exposes `getDoc()`, `setDoc(doc)`, `focus()`, `dispose()`.
-- Default keymap: history (Ctrl+Z / Ctrl+Shift+Z), list nav (Tab / Shift+Tab indent, Enter split), marks (Ctrl+B / Ctrl+I / Ctrl+U / Ctrl+`), heading shortcuts (Ctrl+1/2/3 toggle), hard-break (Shift+Enter), input rules for Markdown-style `#` heading + `-`/`*` bullet + `1.` ordered.
-- Renderer-side React chrome wrapper `RuEditView` (in `apps/desktop/src/platform/ru-edit/`) per ADR-415: vanilla PM in a `ref`-mounted div; React owns chrome, never reaches inside content; uncontrolled-with-explicit-replacement pattern.
-- Workbench primitive `IRuEditService` (`RuEditServiceId`) registered in `boot.ts`. Sibling to `EditorServiceId` — distinct concern: tabs/groups vs. rich-text instances.
-- One developer command `developer.editor.openScratch` opening a `ru-edit-scratch://` resource. `EditorGroup` dispatches that scheme to `RuEditView`. Doc held in-memory; `onChange` dumps JSON to devtools.
-
-**Deliverable:** clinician (or developer) opens scratch tab → types, indents lists, toggles marks, applies headings, undo/redo, save/restore JSON round-trip — all functional. Type-check + lint clean; agent-browser CDP 9333 verifies the demo end-to-end.
-
-**ADRs:** ADR-414 (RuEdit primitive), ADR-415 (React/PM boundary). ADR-404 amended to reflect that prose-bearing editor types now compose RuEdit.
-
-**Open items raised:**
-- **O128** — _Closed by ADR-416._ Originally "SmartText engine"; renamed **Snippet engine** (Epic's `Smart*` family is trademarked — see ADR-416 §Vocabulary). Lands as renumbered **Phase 8**; previous Phase 8 (Crypto) and all downstream phases shifted +1.
-- **O129** — Custom atomic blocks (Vitals first, then Allergies / MedList). Lives in the phase after Phase 8 Snippet engine; numbering set at that phase's gate. Picklist *placeholder* (a single field inside a Snippet) ships in Phase 8 per ADR-416; richer structured blocks live here.
-- **O130** — React-in-nodeView strategy revisit (vanilla DOM vs `@handlewithcare/react-prosemirror` / `@nytimes/react-prosemirror`). Decide at custom-block phase entry per ADR-415's recorded criteria.
-- **O131** — Stable ID revisit (UUID v4 → v7 when per-block revision history lands).
-- **O132** — Print pipeline (JSON → print-React → Puppeteer-in-Main → PDF, page templates, signature block). Lives in the phase after custom blocks.
-
-**Open items deferred long-range:**
-- **O120** — Voice dictation adapter interface (Web Speech / Dragon / Deepgram Medical).
-- **O121** — Multi-clinician collab via Yjs + Cloud Backend awareness. Single-clinician-per-record is the assumption through the foreseeable phases.
-- **O122** — Template authoring UI inside ru-soam.
-
-**Exit:**
-- `developer.editor.openScratch` opens a tab containing a working RuEdit instance.
-- Typing, list indent/outdent, mark toggles, heading toggles, undo/redo all work via keyboard.
-- JSON envelope round-trips across reload: serialize, store in `sessionStorage`, reload page, deserialize, content identical (including stable `_id`s on every block).
-- Schema-rejected inputs (unknown node type, missing required attrs) fail loudly with a named error, not silent drop.
-- Devtools heap snapshot before / after a mount + dispose shows no leaked `EditorView` (dispose-safe verified).
-- `pnpm exec tsc -b` clean for both `apps/desktop` and `packages/editor`.
-
-**Why this lands at 7.5 and not earlier:**
-- Phase 6.5 hardens the Bundle Host so a misbehaving editor-bearing bundle does not crash the workbench.
-- Phase 7's view hosting is the surface inside which iframe-hosted editor-type views will mount RuEdit at the first clinical-bundle phase.
-- RuEdit itself is renderer-trust code in the workbench shell; the first scratch demo could run earlier in principle, but the first *clinical* RuEdit instance requires both 6.5 and 7 to be load-bearing.
-
 ## Phase 8 — Snippet engine
 
 **Goal:** clinician-grade snippet expansion in RuEdit. Type `/abbrev` + Tab → snippet body inserts, cursor lands on first placeholder, Tab walks placeholders, Esc aborts, last Tab/Enter finalises. Closes ADR-414 O128 via ADR-416.
 
-**Naming-policy note:** Epic's `Smart*` family (SmartPhrase, SmartText, SmartList, SmartLink, SmartTools) is trademarked. Across docs, code, and product surfaces we use generic vocabulary: **Snippet** (Epic: SmartPhrase), **Template** (Epic: SmartText, future phase), **Picklist** (Epic: SmartList; ships in this phase as a Snippet placeholder type), **DataLink** (Epic: SmartLink; reserved type name, no implementation until chart/FHIR phase). See ADR-416 §Vocabulary.
+**Naming-policy note:** See ADR-416 §Vocabulary for the naming policy.
 
 **Trigger character:** `/`. Rationale recorded in ADR-416.
 
@@ -561,15 +519,15 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 **Deliverable:**
 - Audit Viewer ships as a bundle (not built into the shell). Bundle manifest, activation, view hosted in the Primary Side Bar or Editor Area (decision in the bundle's design doc), reads audit store via capability, respects redaction.
 - Editor polish items deferred from Phase 5.5 (land alongside, prioritised against Audit-Viewer-specific gaps surfaced during dogfooding):
-  - Drag preview + drop indicator (`editor-tab--dragging` class on `dragstart`, `editor-group--drop-target` outline on `dragenter`, insertion indicator between tabs). Likely co-evolves with the O108 event-granularity decision.
+  - Drag preview + drop indicator (`editor-tab--dragging` class on `dragstart`, `editor-group--drop-target` outline on `dragenter`, insertion indicator between tabs). Likely co-evolves with the O152 event-granularity decision.
   - Split-divider drag handle on `editor-split-divider` — mouse-drag to resize, snap at min widths. Resolves O111 (ratio persistence via the Phase-4 layout path).
   - Tab context menu surface (right-click, middle-click-close, pin/unpin, "close others / close to the right / close all"). Resolves O112; depends on the command-menu mechanism this phase needs anyway for the Audit Viewer's row actions.
   - Cross-group keyboard nav: Alt+1..9 (jump to group N) + Ctrl+PgUp/PgDn (alias for within-group cycle already shipped in 5.5).
   - `_insertSplit` defensive short-circuit (stop recursing once the target group is found; cleanup that pays off once split-divider drag exercises the tree more aggressively).
 
-**ADRs:** ADR-502, ADR-405, ADR-411 (Audit Viewer); ADR-404 amendment if O108 lands here.
+**ADRs:** ADR-502, ADR-405, ADR-411 (Audit Viewer); ADR-404 amendment if O152 lands here.
 
-**Open items:** any audit-viewer-specific items raised when the bundle is designed; O108 / O111 / O112 resolved or formally re-deferred during this phase.
+**Open items:** any audit-viewer-specific items raised when the bundle is designed; O152 / O111 / O112 resolved or formally re-deferred during this phase.
 
 **Exit:** Audit Viewer activates on demand, runs in the Bundle Host, renders in a sandboxed iframe, reads only through capabilities, has no privileged path back to the renderer. Editor area drag-drop shows preview + drop indicator; split dividers are draggable and ratios persist per workspace; tab right-click opens a context menu; Alt+N switches groups.
 

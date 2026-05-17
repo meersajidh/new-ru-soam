@@ -98,7 +98,7 @@ If multiple BrowserWindows exist, each has its own preload binding into its own 
 
 ## Open Items
 
-- **O14** — Exact `Soam` interface shape. The illustrative interface above is a starting point.
+- ~~O14 — `Soam` interface exact shape~~ **Resolved Phase 7** — `Soam = { bindCapability(name, version), events: { on(listener) } }`; see `apps/desktop/electron/preload/soam.ts`.
 - **O15** — Preload module format under `sandbox: true` on the targeted Electron version (overlaps with O11). Confirm CJS vs ESM vs platform-specific bundling.
 - **O16** — Event channel surface. Which platform events are part of the preload surface today vs. delivered through capabilities.
 - **O17** — Revisit whether the events surface stays on `window.soam` or folds into a `platform.events` capability later. Keeping it on the bridge for now; reassess once the capability catalogue matures.

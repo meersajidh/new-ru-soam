@@ -31,7 +31,7 @@ Each bundle view renders inside a sandboxed iframe. The iframe's `src` resolves 
 Properties:
 
 - **Origin isolation**: each bundle's views share an origin distinct from the workbench shell's origin. Cross-bundle and bundle-vs-shell access is blocked by the same-origin policy.
-- **Sandbox attribute**: the iframe is created with `sandbox="allow-scripts allow-forms allow-pointer-lock"`. No `allow-same-origin` with the shell, no `allow-top-navigation`, no `allow-popups`. The sandbox flags are Open Item O80.
+- **Sandbox attribute**: the iframe is created with `sandbox="allow-scripts allow-forms allow-pointer-lock"` (`allow-pointer-lock` deferred — see O80; Phase 7 ships only `allow-scripts allow-forms`). No `allow-same-origin` with the shell, no `allow-top-navigation`, no `allow-popups`. The sandbox flags are Open Item O80.
 - **CSP**: a strict CSP applies to bundle view content (no inline scripts beyond an explicit nonce, no remote script sources, restricted connect-src). The exact policy text is Open Item O81; the CSP from ADR-201 §"CSP strawman" is the starting point with bundle-specific overlays.
 - **Asset source**: protocol handler resolves `view://<bundleId>/<viewPath>` to files under the installed bundle's view-asset directory. Files are immutable after install (or until an explicit bundle update). Bundles cannot inject or rewrite their view assets at runtime.
 - **No `window.soam`**: the iframe document is not the shell document; it does not see the preload-exposed `window.soam`. The bundle view code cannot bind capabilities through the shell's narrow capability surface (ADR-202).
@@ -202,7 +202,7 @@ Resource CRUD does not happen via the bridge directly; the view binds the platfo
 
 ## Open Items
 
-- **O78** — Custom protocol scheme for view assets (`view://` vs `app://view/...`). Decision affects CSP and protocol handler registration. Likely `view://` for clarity.
+- ~~O78 — View asset protocol scheme~~ **Resolved Phase 7** — `view://<bundleId>/<path>`; `_platform_` reserved host; registered as a privileged scheme (`standard, secure, corsEnabled`) in `apps/desktop/electron/main/index.ts` `registerSchemesAsPrivileged`.
 - **O79** — `window.soamView` exact API shape. Initial shape illustrated here; refine as the first view-using bundle ships.
 - **O80** — `sandbox` attribute flag set. `allow-scripts`, `allow-forms`, `allow-pointer-lock` are likely; `allow-modals`, `allow-presentation` need a case-by-case call.
 - **O81** — Bundle-view CSP exact policy text. Starting point from ADR-201; bundle-specific overlays for asset paths.

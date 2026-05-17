@@ -64,6 +64,12 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
   }
   const m = raw as Record<string, unknown>;
   if (!isString(m.id))      throw new ManifestError(manifestPath, '`id` must be a non-empty string');
+  if (m.id === '_platform_') {
+    throw new ManifestError(manifestPath, '`id` must not be the reserved value "_platform_"');
+  }
+  if (!/^[a-z0-9][a-z0-9_-]*$/i.test(m.id)) {
+    throw new ManifestError(manifestPath, '`id` must match /^[a-z0-9][a-z0-9_-]*$/i');
+  }
   if (!isString(m.version)) throw new ManifestError(manifestPath, '`version` must be a non-empty string');
   if (!isString(m.entry))   throw new ManifestError(manifestPath, '`entry` must be a non-empty string');
 

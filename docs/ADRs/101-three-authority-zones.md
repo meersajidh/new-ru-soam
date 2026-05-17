@@ -19,6 +19,8 @@ The platform handles PHI, user-provided third-party API keys, and clinical workf
 
 The platform adopts three named authority zones. Each zone has a fixed trust level and a fixed set of responsibilities. Cross-zone interaction occurs only through brokered contracts; the mechanisms are defined in dependent ADRs.
 
+> **Amendment (2026-05-16, per ADR-410):** a fourth zone — **Bundle Host** (third-party-trust) — was added when the bundle process model committed. The three original zones below are unchanged in trust level or responsibility; the Bundle Host sits structurally below Main and is unreachable from the Renderer except via Main mediation. See §"Bundle Host — third-party-trust authority" below.
+
 ### Renderer — UI capability layer
 
 - **Trust:** _untrusted boundary_. Treated as the most exposed process in the application; assume eventual compromise.

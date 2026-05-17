@@ -109,23 +109,41 @@ export function boot(): ServiceRegistry {
 
   const snippet = new SnippetService();
   registry.register(SnippetServiceId, snippet);
-  // Context keys for snippet.active / snippet.placeholder.type are deferred:
-  // they require a subscription path from the PM plugin to the registry, which
-  // lands when the first snippet command needs when-clause gating (O416h).
+  contextKeys.set('snippet.active', false);
+  contextKeys.set('snippet.placeholder.type', '');
 
   // Sync active RuEdit instance to focused editor tab when applicable.
+  let snippetSub: (() => void) | null = null;
   editor.onDidChange(() => {
     const gid = editor.getFocusedGroupId();
     const group = gid ? editor.getGroup(gid) : undefined;
     const inst = group?.activeTabId ? group.tabs.find(t => t.id === group.activeTabId) : undefined;
+    if (snippetSub) {
+      snippetSub();
+      snippetSub = null;
+    }
     if (!inst) {
       ruEdit.setActive(null);
       contextKeys.set('ruEdit.activeInstance', '');
+      contextKeys.set('snippet.active', false);
+      contextKeys.set('snippet.placeholder.type', '');
       return;
     }
     const reg = ruEdit.forInstance(inst.id);
     ruEdit.setActive(reg ? inst.id : null);
     contextKeys.set('ruEdit.activeInstance', reg ? inst.id : '');
+    if (reg) {
+      const initial = reg.handle.getActiveState();
+      contextKeys.set('snippet.active', initial.snippet.active);
+      contextKeys.set('snippet.placeholder.type', initial.snippet.placeholderType ?? '');
+      snippetSub = reg.handle.subscribe(state => {
+        contextKeys.set('snippet.active', state.snippet.active);
+        contextKeys.set('snippet.placeholder.type', state.snippet.placeholderType ?? '');
+      });
+    } else {
+      contextKeys.set('snippet.active', false);
+      contextKeys.set('snippet.placeholder.type', '');
+    }
   });
 
   registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, workspace, editor, snippet);

@@ -1,14 +1,22 @@
-import type { EditorState } from 'prosemirror-state';
+import { NodeSelection, type EditorState } from 'prosemirror-state';
 import type { MarkType, ResolvedPos } from 'prosemirror-model';
 import { redoDepth, undoDepth } from 'prosemirror-history';
+import { snippetPluginKey } from './snippets';
 
 export type RuEditBlockKind = 'paragraph' | 'heading' | 'blockquote' | 'other';
+
+export type RuEditPlaceholderType = 'text' | 'picklist' | null;
 
 export interface RuEditMarkActiveMap {
   readonly strong: boolean;
   readonly em: boolean;
   readonly underline: boolean;
   readonly code: boolean;
+}
+
+export interface RuEditSnippetState {
+  readonly active: boolean;
+  readonly placeholderType: RuEditPlaceholderType;
 }
 
 export interface RuEditActiveState {
@@ -19,6 +27,7 @@ export interface RuEditActiveState {
   readonly inOrderedList: boolean;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
+  readonly snippet: RuEditSnippetState;
 }
 
 function markActive(state: EditorState, type: MarkType): boolean {
@@ -58,6 +67,17 @@ export function computeActiveState(state: EditorState): RuEditActiveState {
   const underline = schema.marks.underline;
   const code = schema.marks.code;
 
+  const snippetPluginState = snippetPluginKey.getState(state);
+  const snippetActive = snippetPluginState?.expansion === true;
+  let placeholderType: RuEditPlaceholderType = null;
+  if (snippetActive && state.selection instanceof NodeSelection) {
+    const node = state.selection.node;
+    if (node.type.name === 'placeholder') {
+      const t = node.attrs.type;
+      if (t === 'text' || t === 'picklist') placeholderType = t;
+    }
+  }
+
   return {
     marks: {
       strong: strong ? markActive(state, strong) : false,
@@ -71,5 +91,6 @@ export function computeActiveState(state: EditorState): RuEditActiveState {
     inOrderedList: hasAncestor($from, 'ordered_list'),
     canUndo: undoDepth(state) > 0,
     canRedo: redoDepth(state) > 0,
+    snippet: { active: snippetActive, placeholderType },
   };
 }

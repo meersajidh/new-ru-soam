@@ -19,9 +19,8 @@ export const RENDERER_WEB_PREFERENCES = {
  *
  * Per ADR-201 §"Content Security Policy". Strawman tightened over time (O10).
  *
- * Fonts: `fonts.googleapis.com` + `fonts.gstatic.com` are temporarily
- * allowlisted while typography is decorative. Phase 2 (theming / token
- * catalogue) self-hosts fonts and removes these entries.
+ * Google Fonts allow-list dropped (Post-Phase-8 cleanup, GAP-01) — nothing
+ * consumed it; `system-sans` font set uses `system-ui` only.
  */
 export function buildCsp(dev: boolean): string {
   const scriptSrc = dev
@@ -35,9 +34,9 @@ export function buildCsp(dev: boolean): string {
   const directives: Record<string, string[]> = {
     'default-src': ["'self'", 'app:'],
     'script-src': scriptSrc,
-    'style-src': ["'self'", 'app:', "'unsafe-inline'", 'https://fonts.googleapis.com'],
+    'style-src': ["'self'", 'app:', "'unsafe-inline'"],
     'img-src': ["'self'", 'app:', 'data:', 'blob:'],
-    'font-src': ["'self'", 'app:', 'data:', 'https://fonts.gstatic.com'],
+    'font-src': ["'self'", 'app:', 'data:'],
     'connect-src': connectSrc,
     // ADR-411: workbench must be allowed to embed `view://<bundleId>` iframes.
     // Bundle views run cross-origin under the `view:` scheme; each bundleId is

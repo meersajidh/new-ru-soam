@@ -48,6 +48,17 @@ Capabilities are the only sanctioned way to cross zone or module boundaries. Dir
 
 A service registers itself with the capability registry under its declared capability names. A service may live in the Main process, in a utility process, **or in the Bundle Host** (per ADR-410, for bundle-supplied implementations). A service in Main may, as an implementation detail, forward calls to the Cloud Backend; from the consumer's perspective the capability is still Main-hosted. Bundle-hosted implementations are equally invisible to the consumer — Main brokers the call. Services are smaller-grained than features and typically expose one or a small number of related capabilities.
 
+### Capability hosts
+
+> **Amendment (2026-05-16, per ADR-410):** capability host surfaces are named explicitly here to match the bundle process model that landed in Phase 6.
+
+The platform recognises two capability host surfaces:
+
+- **Main** — the platform-built-in host. Holds the authoritative capability registry; runs Main-resident service implementations; brokers every capability call regardless of source. Permission scope, audit emission, and consent gates execute here.
+- **Bundle Host** — the third-party-trust host (ADR-410). Capability calls from a bundle execute in the Bundle Host process under the activated bundle's namespace; the Bundle Host runs the bundle's registered handlers and returns results to Main. Main remains the registry authority and audit emitter; the Bundle Host never short-circuits Main.
+
+The Renderer remains a pure consumer — it never hosts a capability implementation. The Cloud Backend appears only as an implementation detail behind Main-resident capabilities (Main brokers the network hop); it is not a host surface from the platform's point of view.
+
 ### Registry and binding — Renderer view
 
 The Renderer sees a single registry, exposed by Main through the preload bridge (subject of ADR-202). All capabilities reachable from the Renderer resolve through Main. The Renderer does not know — and is not told — whether a given capability's implementation lives entirely in Main, in a utility process, in a Bundle Host (per ADR-410), or behind a Cloud Backend call that Main is brokering. Neither Bundle Host nor Cloud Backend existence is part of the Renderer's mental model.

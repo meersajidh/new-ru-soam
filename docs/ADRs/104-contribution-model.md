@@ -64,6 +64,8 @@ The lifecycle that governs when a bundle is loaded, when its contributions go li
 
 Per ADR-410, bundle **manifests are read by Main at boot**, not by Renderer-side import. Main parses each manifest as data, populates the platform-side contribution registry, and sends a snapshot of the registry to the Renderer over IPC. The Renderer never imports or executes bundle code in order to know what a bundle contributes; menus, commands, view-container entries, and other manifest-declared contributions are populated from the snapshot. Bundle code itself runs only later, in the Bundle Host, when activation fires (per ADR-105 / ADR-410).
 
+> **Amendment (2026-05-16, per ADR-410):** the boot path is now concretely landed. Main reads `manifest.json` for every bundle directory at boot; capabilities and views are registered eagerly into the contribution registry; bundle code is loaded lazily into the Bundle Host on activation. The manifest reader lives at `apps/desktop/electron/main/bundle-host/manifest.ts`.
+
 ## Consequences
 
 ### Positive

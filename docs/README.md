@@ -54,6 +54,9 @@ The ADRs are layered: later ones rest on earlier ones. A newcomer should read in
 18. **[ADR-406](ADRs/406-command-driven-architecture.md)**, **[ADR-407](ADRs/407-context-keys-and-when-clauses.md)** — dispatch vocabulary (commands) and conditional visibility (`when` clauses). Cross-cutting across the slot ADRs.
 19. **[ADR-412](ADRs/412-services-in-renderer.md)** — renderer service registry + TanStack Query for capability data. How components consume the rest.
 20. **[ADR-413](ADRs/413-theming-and-icons.md)** — themes and icons as data contributions. Zero-attack-surface visual layer.
+21. **[ADR-414](ADRs/414-ru-edit-platform-editor-primitive.md)** — RuEdit, the platform's first-party rich-text editor primitive on raw ProseMirror. Monaco-in-VSCode analogue; every prose-bearing editor type composes it.
+22. **[ADR-415](ADRs/415-react-prosemirror-integration-boundary.md)** — how React and ProseMirror coexist inside RuEdit: React owns chrome, vanilla `prosemirror-view` owns content, the two never overlap. Avoids the documented state-tearing failure modes.
+23. **[ADR-416](ADRs/416-snippet-engine.md)** — Snippet engine: `/`-trigger expansion with placeholder walk, atomic placeholder nodes, vanilla-DOM picklist nodeView. Generic vocabulary policy ("no `Smart*`") committed here.
 
 Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development](Guides/feature-development.md), [disposable-pattern](Guides/disposable-pattern.md), [data-encryption-and-recovery](Guides/data-encryption-and-recovery.md)) and references ([Local-first pattern](References/Local_First_Pattern.md), [PHI backup and encryption reasoning](References/PHI_Backup_And_Encryption_Reasoning.md), [Bundle host process reasoning](References/Bundle_Host_Process_Reasoning.md), [Core shell vs first-party bundle reasoning](References/Core_Shell_vs_First_Party_Bundle_Reasoning.md)) elaborate the operational and reasoning sides; they are best read alongside the relevant ADRs.
 
@@ -100,6 +103,9 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-411](ADRs/411-view-hosting-for-bundles.md) — View / webview hosting for bundles (sandboxed iframe + `view://` protocol + bridge). _(Accepted)_
 - [ADR-412](ADRs/412-services-in-renderer.md) — DI / services in renderer (TanStack Query + service registry). _(Accepted)_
 - [ADR-413](ADRs/413-theming-and-icons.md) — Theming / icons. _(Accepted)_
+- [ADR-414](ADRs/414-ru-edit-platform-editor-primitive.md) — RuEdit: platform editor primitive. _(Accepted)_
+- [ADR-415](ADRs/415-react-prosemirror-integration-boundary.md) — React / ProseMirror integration boundary. _(Accepted)_
+- [ADR-416](ADRs/416-snippet-engine.md) — Snippet engine. _(Accepted)_
 
 #### Domain (500–599)
 
@@ -130,112 +136,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 
 Architectural questions deferred for later decision. Each item names a parking lot, not a commitment.
 
-| ID  | Topic                          | Surfaced in | Status   | Notes                                                                                                  |
-| --- | ------------------------------ | ----------- | -------- | ------------------------------------------------------------------------------------------------------ |
-| O1  | Canonical state placement      | ADR-102     | Deferred | Renderer does not own canonical state. Where it lives (Main, Cloud Backend, per-domain) TBD.           |
-| O2  | Capability registry mechanism  | ADR-103     | Deferred | Native `Proxy` + IPC, existing RPC framework (Comlink, tRPC, gRPC-web), or custom dispatch.            |
-| O3  | Capability versioning policy   | ADR-103     | Deferred | Semver-on-name, side-by-side majors, or single-version-with-deprecation.                               |
-| O4  | Permission scope model         | ADR-103     | Deferred | Static per-capability scope vs. dynamic context-object scope. Affects per-consent enforcement.         |
-| O5  | Contribution declaration form  | ADR-104     | Deferred | Programmatic `register()` calls, declarative manifest, or hybrid.                                      |
-| O7  | Contribution point catalogue   | ADR-104     | Deferred | Initial set of contribution points and the criteria for adding new ones.                               |
-| O6  | Default activation trigger     | ADR-105     | Deferred | Likely `lazy` by default with `eager` by justification; selection criteria not yet committed.          |
-| O8  | Bundle dependency declaration  | ADR-105     | Deferred | Manifest vs code form for declaring inter-bundle dependencies.                                         |
-| O9  | Bundle hot reload in dev       | ADR-105     | Deferred | Not required for production; valuable for DX. No DX ADR yet — owned here until one exists.             |
-| O10 | CSP exact policy text          | ADR-201     | Deferred | Strawman in ADR-201; tighten as styling solution and asset pipeline land.                              |
-| O11 | Sandbox + ESM preload compat   | ADR-201     | Deferred | Verify on targeted Electron version; record findings.                                                  |
-| O12 | IPC sender-validation helper   | ADR-201     | Deferred | Utility or handler-registration wrapper. Pick one shape.                                               |
-| O13 | Lint rules for hardening       | ADR-201     | Deferred | No direct `BrowserWindow`, no `<webview>`, no direct `electron` imports outside platform.              |
-| O14 | `Soam` interface exact shape   | ADR-202     | Deferred | Starting point in ADR-202 §"Name and shape"; refine as registry and event needs settle.                |
-| O15 | Preload module format          | ADR-202     | Deferred | CJS vs ESM vs platform-specific bundling under `sandbox: true`. Overlaps with O11.                     |
-| O16 | Preload event channel surface  | ADR-202     | Deferred | Which platform events live on `window.soam.events` vs. ride a capability.                              |
-| O17 | Events on bridge vs capability | ADR-202     | Deferred | Revisit folding `window.soam.events` into a `platform.events` capability once catalogue matures.       |
-| O18 | `app://` route registration    | ADR-203     | Deferred | Bundle-registrable routes (flexible, possible sprawl) vs platform-team-only (tighter, bottleneck).     |
-| O19 | Brokered networking caching    | ADR-203     | Deferred | Browser HTTP cache, main-managed cache, or none. Per-route override.                                   |
-| O20 | Brokered networking failures   | ADR-203     | Deferred | Auth expiry, retry, offline. Overlaps with local-first/sync ADRs (302/303).                            |
-| O21 | Direct-fetch enforcement       | ADR-203     | Deferred | Lint rule + override marker (annotation or typed helper); override sites + CSP allowlist = audit set.  |
-| O22 | Local Store wrapper choice     | ADR-302     | Partial  | Direction set: SQLite + transparent at-rest encryption + key from OS keychain. Specific wrapper TBD.   |
-| O23 | Operational sync conflict res. | ADR-302     | Deferred | CRDT, OT, snapshotted LWW, or custom. Depends on collaboration semantics for clinic-level features.    |
-| O24 | PHI export/import flow shape   | ADR-302     | Deferred | Likely absorbed into ADR-306 (data recovery) as one of the recovery/transfer paths.                    |
-| O25 | Operational side-door policy   | ADR-302     | Deferred | Enforcement policy depends on user terms-of-service and consent framing. Re-open when those land.      |
-| O26 | KEK rotation policy            | ADR-303     | Deferred | KMS rotation cadence + re-encryption; equivalent for recovery-code-bound KEKs.                         |
-| O27 | Backup cadence and granularity | ADR-303     | Deferred | Per-change upload vs periodic snapshot vs both. RPO vs storage-cost trade-off.                         |
-| O28 | Crash-dump PHI scrubbing       | ADR-303     | Deferred | PHI may be in memory at crash. Scrubbing required before any dump leaves the device.                   |
-| O29 | Same KEK/DEK for sync + backup | ADR-303     | Deferred | Strawman: same. Verify when implementing.                                                              |
-| O30 | Linux keychain backend policy  | ADR-304     | Deferred | `libsecret` / KWallet / headless setups. Define fallback when no backend present.                      |
-| O31 | Hardware-bound credential keys | ADR-304     | Deferred | Secure Enclave / TPM / HSM where available. Pilot in later phase.                                      |
-| O33 | Provider plugin registration   | ADR-305     | Deferred | Contribution point under ADR-104. Schema + model + outbound adapter + validation hook + UI.            |
-| O34 | Credential validation hook     | ADR-305     | Deferred | Plugin-defined contract for setup-time validation calls.                                               |
-| O35 | Per-provider rate-limit/quota  | ADR-305     | Deferred | Counter location (Main / Cloud Backend) and user-facing surfacing.                                     |
-| O36 | Clinic-shared Flow A creds     | ADR-305     | Deferred | Sharing user-provided credentials across practitioners in an entity. Defer to ADR-503 (Proposed).      |
-| O37 | Provider-plugin scaffolding    | ADR-305     | Deferred | CLI/wizard generating plugin skeleton. Land once first two plugins exist; capture observed pattern.    |
-| O38 | Local backup file format       | ADR-306     | Deferred | Envelope schema version, manifest signing. Lock when first export ships.                               |
-| O39 | DPAPI loss detection heuristic | ADR-306     | Deferred | Balance false positives (unneeded reinit) against false negatives (silent failure).                    |
-| O40 | KMS access loss UX             | ADR-306     | Deferred | Handle the case where the user expects KMS access to come back.                                        |
-| O41 | Cloud ciphertext deletion API  | ADR-306     | Deferred | Single-call delete vs tombstone-with-grace-period. Affects scenario 5 and migration recovery.          |
-| O42 | Passphrase-wrapped backup ext  | ADR-306     | Deferred | Optional plugin on top of core export. Low priority; lands if user demand surfaces.                    |
-| O48 | Hash-chain mechanism           | ADR-502     | Deferred | Linked hashes, Merkle per anchor, or signed-batch. Performance vs verifiability.                       |
-| O49 | Retention policy per event     | ADR-502     | Deferred | Sampling/aggregation for high-frequency events; full retention for clinical-access events.             |
-| O50 | Ledger export format           | ADR-502     | Deferred | JSON / JSON-LD / domain schema. Must round-trip through external compliance reviewers.                 |
-| O51 | Audit emission lint            | ADR-502     | Deferred | Catch PHI-touching capability handlers that omit ledger emission.                                      |
-| O52 | Consent UI text hashing        | ADR-502     | Deferred | Mechanism (rendered-text hash vs source-template hash) and storage location.                           |
-| O53 | Multi-Entity workspace switcher| ADR-403     | Deferred | In-shell switcher vs new window. Defer until ADR-503 advances.                                         |
-| O54 | Workspace-scoped bundle enable | ADR-403     | Deferred | Clinic admin disables a bundle for whole Entity. Settings shape question for ADR-407 follow-ups.       |
-| O55 | Workspace settings sync policy | ADR-403     | Deferred | Layout / recents / explicit settings: which are Operational (cloud-mirrored) vs device-local-only.      |
-| O56 | Workspace setting trust prompt | ADR-403     | Deferred | Bundle settings pointing to external endpoints — VSCode-workspace-trust analogue, post-MVP only.        |
-| O57 | Window chrome (native/custom)  | ADR-401     | Resolved | Frameless (`frame: false`). Custom renderer TitleBar Part; window controls via `platform.window@1.0` capability. Resolved Phase 2. |
-| O58 | Grid engine / library          | ADR-401     | Deferred | Custom SerializableGrid analogue, `allotment`, plain CSS grid, or other.                                |
-| O59 | Banner contribution scope      | ADR-401     | Deferred | Platform-only at first; consider opening to bundles. Overlaps with ADR-104 O7 catalogue.                |
-| O60 | Aux Side Bar nav strip         | ADR-402     | Deferred | Whether Auxiliary Side Bar grows its own Activity-Bar-equivalent. Default: no, stays context-driven.    |
-| O61 | Narrow-window side-bar behav   | ADR-402     | Deferred | Overlay / collapse / hide threshold for narrow windows.                                                 |
-| O62 | Activity Bar top-position      | ADR-402     | Deferred | Where Activity Bar renders when position = `top`. Likely above Primary Side Bar.                        |
-| O63 | Panel-or-Aux dual contribution | ADR-402     | Deferred | Whether a view can target both Panel and Auxiliary Side Bar. Defer until first-party panel views exist. |
-| O64 | Bundle Host implementation     | ADR-410     | Deferred | Electron `utilityProcess` / `child_process.fork` / vm-isolation. Affects sandbox fidelity and memory.   |
-| O65 | Bundle Host isolation granular | ADR-410     | Deferred | Single process for all bundles vs one-per-bundle vs per-publisher grouping. Start single.              |
-| O66 | Bundle debugging mechanism     | ADR-410     | Deferred | Node inspector port, platform "Inspect bundle" command, Output channel for stdout/stderr.              |
-| O67 | Native module policy           | ADR-410     | Deferred | Default deny; explicit contribution declaration for legitimate needs (codecs etc.) with team review.    |
-| O68 | Bundle Host hibernation        | ADR-410     | Deferred | Terminate idle Bundle Host. Not in MVP; revisit when memory pressure observed.                          |
-| O69 | Canonical domain ownership     | ADR-405     | Deferred | Foundational `ru-soam.core-domain` vs per-UI-bundle ownership of Patient/Session/Task records.          |
-| O70 | Disabled-bundle degraded state | ADR-405     | Deferred | Task references a Patient when Patients bundle off: render-as-id, hide link, block disable, or other.   |
-| O71 | Platform item discoverability  | ADR-405     | Deferred | Ensure Bundles / Settings / Recovery surface in multiple paths (activity bar + palette + menu).         |
-| O72 | Product-scope doc location     | ADR-405     | Deferred | Where first-party bundle catalogue lives, who owns it, how downstream bundle ADRs link back.            |
-| O73 | Resource URI scheme registry   | ADR-404     | Deferred | Bundle-scoped naming, format constraints, conflict resolution between schemes.                          |
-| O74 | Autosave default + override    | ADR-404     | Deferred | Explicit-save default for session notes; per-editor-type override for kinds that want autosave.         |
-| O75 | Save failure UX                | ADR-404     | Deferred | Banner, retry policy, sync-queue interaction.                                                           |
-| O76 | View-state serialisation depth | ADR-404     | Deferred | Beyond descriptors: cursor / scroll / filter state. Schema for bundle-owned payload.                    |
-| O77 | Aggregate save prompt          | ADR-404     | Deferred | "Save N changes?" on workspace close / re-lock / update apply. Per-editor vs all-or-nothing.            |
-| O78 | View asset protocol scheme     | ADR-411     | Deferred | `view://` vs `app://view/...`. Affects CSP and protocol handler registration.                           |
-| O79 | `soamView` exact API           | ADR-411     | Deferred | Refine bridge surface as first view-using bundle ships.                                                 |
-| O80 | View iframe sandbox flags      | ADR-411     | Deferred | `allow-scripts` + `allow-forms` + `allow-pointer-lock`; case-by-case for `allow-modals` etc.            |
-| O81 | Bundle-view CSP text           | ADR-411     | Deferred | Starting point from ADR-201; bundle-specific overlays.                                                   |
-| O82 | Declarative-view vocabulary    | ADR-411     | Deferred | Component vocabulary + trigger criteria for declarative-only views.                                     |
-| O83 | A11y across iframe             | ADR-411     | Deferred | Focus crossing, tab traversal, `aria-live` proxy, screen-reader semantics.                              |
-| O84 | Iframe pooling / count budget  | ADR-411     | Deferred | Memory + startup mitigation when many views open.                                                       |
-| O85 | WebContentsView usage policy   | ADR-411     | Deferred | Exceptional-case approval, sandboxing, who decides.                                                     |
-| O86 | Command id naming + lint       | ADR-406     | Deferred | `<bundleId>.<verb>[.<noun>]`; collision rejection at registry registration.                              |
-| O87 | Command argument schema        | ADR-406     | Deferred | Optional manifest schema for argument validation; weak-by-default vs encouraged vs required.            |
-| O88 | Command audit field            | ADR-406     | Deferred | Shape of `audit` on command contributions; interaction with capability-level audit to avoid double-emit. |
-| O89 | Recent commands persistence    | ADR-406     | Deferred | Per workspace vs per user. Privacy if arguments carry record ids.                                       |
-| O90 | Palette ranking algorithm      | ADR-406     | Deferred | Fuzzy-match scoring + recency + frequency + category boost.                                             |
-| O91 | Context-key namespace enforce  | ADR-407     | Deferred | Lint rule + runtime check on reserved-namespace writes.                                                  |
-| O92 | Config-derived context-key     | ADR-407     | Deferred | Mirror mechanism: type coercion, default-value handling, change propagation.                            |
-| O93 | Bundle context-key authority   | ADR-407     | Deferred | Rate limit on `set` calls; quota on declared keys per bundle.                                           |
-| O94 | PHI-adjacent context-key priv  | ADR-407     | Deferred | Crash-dump scrub, telemetry redaction, consent-gated bridge propagation for `patient.*` / `record.*`.    |
-| O95 | Expression evaluator perf      | ADR-407     | Deferred | Per-re-evaluation cost budget under realistic clause counts (hundreds to low thousands).                 |
-| O96 | Service id mechanism           | ADR-412     | Resolved | Branded string: `interface ServiceId<T> { readonly _t: T; readonly id: string }`. Resolved Phase 2.   |
-| O97 | TanStack Query key convention  | ADR-412     | Deferred | Per-capability prefix; per-resource invalidation scope; key versioning when capability evolves.          |
-| O98 | Workspace lifecycle reset matrix | ADR-412   | Deferred | Definitive list: which services reset on close, which persist, which partial.                            |
-| O99 | Suspense / loading discipline  | ADR-412     | Deferred | When to use `<Suspense>` vs skeletons; default UX for slow capability calls.                              |
-| O100 | Change-event capability shape  | ADR-412     | Deferred | Watch primitives over Local Store driving TanStack Query invalidation.                                    |
-| O101 | Output channel routing         | ADR-408     | Deferred | Bundle stdout/stderr routed to core-shell Output Panel view per channel.                                |
-| O102 | Panel view persistence depth   | ADR-408     | Deferred | Active tab + size known; scroll/filter/search per view TBD.                                            |
-| O103 | Auto-reveal rate-limit         | ADR-408     | Deferred | Rules for Panel views requesting reveal too often; demotion policy.                                     |
-| O104 | Status-bar priority scheme     | ADR-409     | Deferred | Free-form integers vs banded ranges (core / first-party / third-party).                                  |
-| O105 | Status-bar update rate-limit   | ADR-409     | Deferred | Default 4/s; per-entry override case.                                                                   |
-| O106 | Status-bar context menu        | ADR-409     | Deferred | Right-click menu: hide-entry, show-all, configure.                                                      |
-| O107 | Theme token catalogue          | ADR-413     | Resolved | v1: 17 color tokens + 2 font tokens. Three palettes (Bamboo/Stone/Geist). Defined in `apps/desktop/src/styles/tokens.css`. Resolved Phase 2.5. |
-| O108 | Icon rendering mechanism       | ADR-413     | Deferred | Inline SVG vs sprite vs font. Affects bundle-author asset format and bundle size.                       |
-| O109 | A11y theme contrast budget     | ADR-413     | Deferred | WCAG AA minimum starting point; per-surface tuning.                                                     |
-| O110 | Theme propagation cost         | ADR-413     | Deferred | Push to many active iframes on theme switch; verify no perceptible flicker.                              |
+The Open Items registry has moved to [`Open_Items.md`](Open_Items.md) — the single source of truth across ADRs and the Implementation Plan. The legacy table that lived here covered only O1–O110 and is no longer maintained.
 
 ## Writing a New ADR
 

@@ -51,6 +51,7 @@ export default function BundleViewIframe({ resource, instanceId }: Props) {
 
     let disposed = false;
     let activated = false;
+    let viewReady = false;
     const proxyCache = new Map<string, Promise<SoamCapabilityProxy>>();
 
     const post = (msg: unknown) => {
@@ -77,6 +78,8 @@ export default function BundleViewIframe({ resource, instanceId }: Props) {
 
       switch (m.kind) {
         case 'view.ready': {
+          viewReady = true;
+          clearTimeout(readyTimeout);
           post({ __soamView: true, kind: 'init', theme: theme.getTokenSnapshot() });
           if (!activated) {
             activated = true;
@@ -119,11 +122,21 @@ export default function BundleViewIframe({ resource, instanceId }: Props) {
     };
 
     window.addEventListener('message', onMessage);
+    const readyTimeout = setTimeout(() => {
+      if (!viewReady && !disposed) {
+        console.warn(
+          '[BundleViewIframe]',
+          resource,
+          'did not post view.ready within 2000ms — bridge may be blocked (CSP regression, sandbox flag misconfiguration, or asset 404). See ADR-411 + O139.',
+        );
+      }
+    }, 2000);
     const offTheme = theme.onThemeChange(() => requestAnimationFrame(pushTheme));
     const offDark = theme.onDarkModeChange(() => requestAnimationFrame(pushTheme));
 
     return () => {
       disposed = true;
+      clearTimeout(readyTimeout);
       if (activated) post({ __soamView: true, kind: 'deactivate' });
       window.removeEventListener('message', onMessage);
       offTheme();

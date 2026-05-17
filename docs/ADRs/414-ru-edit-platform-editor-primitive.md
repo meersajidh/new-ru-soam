@@ -131,7 +131,7 @@ In later phases (numbering locked: Snippet engine lands as renumbered **Phase 8*
 
 - **Tab / group / split management.** Owned by `EditorService` per ADR-404. RuEdit instances mount inside an editor-type view's DOM; the editor-type view is the unit the Editor Area tracks.
 - **Resource I/O.** RuEdit consumes and emits `RuEditDoc` JSON; persistence and resource resolution go through the `resources` capability surface (per ADR-404's open items O73-O77).
-- **Print rendering.** RuEdit emits JSON; the print pipeline (Phase 10) is a separate Main-side capability.
+- **Print rendering.** RuEdit emits JSON; the print pipeline (a later phase — see O132) is a separate Main-side capability.
 - **Voice input.** Deferred to O120.
 - **Multi-user awareness.** Deferred to O121.
 
