@@ -604,6 +604,118 @@
   color: var(--color-fg-muted);
 }
 
+/* ── Workspace picker styles (Phase 9c) ───────────────────────────────────── */
+
+.workspace-picker-container {
+  width: 480px;
+  max-width: calc(100vw - var(--space-8));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.workspace-picker-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.workspace-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.workspace-picker-tile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s, border-color 0.1s;
+  font-family: var(--font-sans);
+  color: var(--color-fg-primary);
+}
+
+.workspace-picker-tile:hover:not(:disabled) {
+  background: var(--color-surface-active);
+  border-color: var(--color-accent);
+}
+
+.workspace-picker-tile:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.workspace-picker-tile--loading {
+  opacity: 0.8;
+}
+
+.workspace-picker-avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workspace-picker-info {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.workspace-picker-nickname {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-fg-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-picker-last-seen {
+  font-size: 11px;
+  color: var(--color-fg-muted);
+}
+
+.workspace-picker-loading-indicator {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  animation: picker-spin 0.7s linear infinite;
+}
+
+@keyframes picker-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.workspace-picker-add {
+  display: flex;
+  justify-content: center;
+}
+
 /* Dev mode warning */
 .dev-mode-warning {
   font-size: 11px;

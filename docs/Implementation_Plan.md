@@ -780,25 +780,31 @@ Tracked in `docs/Open_Items.md`; surfaced here for the next delegation brief.
 
 ## Phase 9c — Multi-workspace picker (post-Phase-10)
 
-**Status:** Future. Lands after Phase 10 (Local Store + audit + TanStack Query). Rationale: workspace switching is most useful when there's real PHI data to validate isolation against; Phase 10 provides that. Phase 9c can land between 10 and 11 or alongside 11.
+**Status:** In progress (started 2026-05-18, after 10a). Lands after Phase 10a (Local Store + TanStack Query); 10b is independent and can land before or after 9c. Rationale: workspace switching is most useful when there's real PHI data to validate isolation against; Phase 10 provides that.
 
 **Goal:** Multiple workspaces on one OS user with picker UI; add-new flow; switcher command.
 
-**Deliverable:**
+**Trim (2026-05-18):** Two items deferred to keep this phase scoped to the picker + add-new flow proper. See "Trimmed for later" below.
+
+**Deliverable (trimmed):**
 
 - `/workspaces` picker route — lists workspaces by nickname (no emails shown per Q2-Q3 product decision); "Add new" button; selecting a workspace = `setActive` + route to unlock gate.
 - Add-new-workspace flow — re-enters setup ceremony (mock OAuth → nickname → passphrase → recovery → acknowledge) producing a fresh UUID + dir.
 - Workspace-switcher command (`workbench.workspace.switch`) — palette entry that opens the picker without sign-out.
-- Workspace-rename command — edits `meta.json` `nickname` (re-validates length, global-uniqueness deferred).
-- StatusBar dropdown on `workbench.workspace.nickname` — quick-switcher.
 - Sign-out routing — sign-out from one workspace → picker (vs setup route in 9b).
+- `PreWorkspaceRoute` `TODO(9c)` resolved: `!activeId && list.length > 0` routes to `/workspaces` instead of `/setup/keys`.
+
+**Trimmed for later:**
+
+- Workspace-rename command (`workbench.workspace.rename`) — deferred to Phase 12 (Settings). Tracked as **O161**. Needs `DialogService` (sibling of O156).
+- StatusBar dropdown on `workbench.workspace.nickname` (quick-switcher) — deferred to Phase 12 or first phase needing a StatusBar dropdown primitive. Tracked as **O162**. Palette + picker route cover the action in 9c.
 
 **ADRs:** ADR-403 picker state already named in 9a amendment; 9c implements it. No new ADRs.
 
 **Open items absorbed:** 
 - Delete-workspace command — Phase 12 (Settings) per scope discipline.
 
-**Exit:** user can hold multiple workspaces on one OS user, switch between them via picker + StatusBar dropdown, with full lock-state isolation per workspace.
+**Exit:** user can hold multiple workspaces on one OS user, switch between them via picker + palette command, with full lock-state isolation per workspace.
 
 ## Phase 10 — Local Store + audit log + TanStack Query data wiring
 

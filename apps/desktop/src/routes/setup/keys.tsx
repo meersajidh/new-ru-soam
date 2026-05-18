@@ -19,10 +19,14 @@
  * the workspace dir exists with meta.json but no lock.json.
  * On next boot PreWorkspaceRoute detects setup-pending state and routes
  * back here from step 1 (the 10-min staged setup is gone; safer to re-derive).
+ *
+ * Reached via /workspaces "Add new" with `?addNew=true` — the fresh-create
+ * flow shares this route. When addNew=true the wizard always runs all five steps
+ * regardless of whether a workspace is currently active.
  */
 
 import { useState } from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
 import { MockOAuthModal } from './-keys-components';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
@@ -30,6 +34,9 @@ import '../../styles/workbench.css';
 import '../../styles/setup.css';
 
 export const Route = createFileRoute('/setup/keys')({
+  validateSearch: (search: Record<string, unknown>): { addNew?: boolean } => ({
+    addNew: search['addNew'] === true || search['addNew'] === 'true' || undefined,
+  }),
   component: SetupKeysPage,
 });
 
@@ -49,6 +56,8 @@ interface WizardState {
 // eslint-disable-next-line react-refresh/only-export-components
 function SetupKeysPage() {
   const navigate = useNavigate();
+  // addNew=true when reached via the workspace picker's "Add new workspace" button.
+  const { addNew } = useSearch({ from: '/setup/keys' });
 
   const [state, setState] = useState<WizardState>({
     step: 1,
@@ -204,9 +213,13 @@ function SetupKeysPage() {
   function renderStep1() {
     return (
       <div className="setup-step">
-        <h1 className="setup-title">Welcome to Ru-Soam</h1>
+        <h1 className="setup-title">
+          {addNew ? 'Add a new workspace' : 'Welcome to Ru-Soam'}
+        </h1>
         <p className="setup-description">
-          Sign in to create your secure workspace. Your data stays on this device.
+          {addNew
+            ? 'Sign in to create an additional workspace. Your data stays on this device.'
+            : 'Sign in to create your secure workspace. Your data stays on this device.'}
         </p>
         <button
           className="setup-btn-google"
@@ -215,6 +228,16 @@ function SetupKeysPage() {
           <span className="google-logo-inline" aria-hidden="true">G</span>
           Sign in with Google
         </button>
+        {addNew && (
+          <div className="setup-actions">
+            <button
+              className="setup-btn-ghost"
+              onClick={() => void navigate({ to: '/workspaces' })}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
         {showOAuthModal && (
           <MockOAuthModal
             onSuccess={handleOAuthSuccess}

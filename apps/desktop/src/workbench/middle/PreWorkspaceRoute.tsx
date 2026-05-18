@@ -4,15 +4,11 @@
  *
  * Reads context keys set by boot.ts and decides:
  *   - !activeId && list().length === 0  → Navigate to /setup/keys (zero-workspaces)
+ *   - !activeId && list().length > 0    → Navigate to /workspaces (multi-workspace picker)
  *   - activeId && !setupComplete        → Navigate to /setup/keys (setup-pending;
  *                                         ceremony interrupted before acknowledge)
  *   - activeId && setupComplete && locked → render <UnlockGate />
  *   - activeId && setupComplete && !locked → render <Workbench /> (workspace shell)
- *
- * NOTE: If activeId is absent but list().length > 0, this is an unhandled UX in
- * Phase 9b (multi-workspace UX lands in 9c). For now we route to /setup/keys and
- * add a TODO to replace with the workspace picker in Phase 9c.
- * TODO(9c): replace !activeId && list().length > 0 path with navigate('/workspaces')
  */
 
 import { useState, useEffect } from 'react';
@@ -47,10 +43,9 @@ export default function PreWorkspaceRoute() {
     return <Navigate to="/setup/keys" />;
   }
 
-  // No active pointer but workspaces exist (Phase 9b stub — 9c replaces with picker)
-  // TODO(9c): replace with <Navigate to="/workspaces" />
+  // No active pointer but workspaces exist → show the workspace picker
   if (!activeId && workspaceCount > 0) {
-    return <Navigate to="/setup/keys" />;
+    return <Navigate to="/workspaces" />;
   }
 
   // Active workspace exists but setup was never completed (ceremony interrupted)
