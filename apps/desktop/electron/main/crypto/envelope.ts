@@ -75,8 +75,9 @@ export function buildKekWrapAad(
 /**
  * Deterministic JSON with sorted keys and no whitespace.
  * Primitive values only (no arrays of objects etc.) — sufficient for our AAD needs.
+ * Exported for use by `workspace/identity.ts`.
  */
-function canonicalJson(obj: Record<string, unknown>): string {
+export function canonicalJson(obj: Record<string, unknown>): string {
   const sorted: Record<string, unknown> = {};
   for (const k of Object.keys(obj).sort()) {
     sorted[k] = obj[k];

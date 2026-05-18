@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { zxcvbn } from '@zxcvbn-ts/core';
 import { useContextKey } from '../../platform/services/hooks';
 import type { UnlockResult, RecoveryUnlockResult } from '../../../electron/shared/lock-protocol';
+import StrengthMeter from '../../platform/auth/StrengthMeter';
 import '../../styles/setup.css';
 
 type GateMode = 'passphrase' | 'recovery' | 'reset-passphrase';
@@ -277,7 +278,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
               </button>
             </div>
             {newPassphrase.length > 0 && (
-              <ZxcvbnMeter score={newPassScore} />
+              <StrengthMeter score={newPassScore} />
             )}
             {newPassphrase.length > 0 && newPassphrase.length < 12 && (
               <p className="unlock-gate-error">At least 12 characters required.</p>
@@ -316,31 +317,3 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
   );
 }
 
-// ── Inline strength meter (mirrors setup wizard) ──────────────────────────────
-
-function ZxcvbnMeter({ score }: { score: number }) {
-  const labels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
-  const colors = [
-    'var(--color-error)',
-    'var(--color-warning)',
-    'var(--color-warning)',
-    'var(--color-success)',
-    'var(--color-success)',
-  ];
-  return (
-    <div className="strength-meter">
-      <div className="strength-bars">
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="strength-bar"
-            style={{ background: i < score ? colors[score - 1] : 'var(--color-border)' }}
-          />
-        ))}
-      </div>
-      <span className="strength-label" style={{ color: score > 0 ? colors[score - 1] : 'var(--color-fg-muted)' }}>
-        {labels[score]}
-      </span>
-    </div>
-  );
-}

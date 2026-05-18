@@ -8,7 +8,7 @@
  */
 
 import fs from 'fs';
-import { encryptToEnvelope, decryptFromEnvelope } from '../crypto/envelope.js';
+import { encryptToEnvelope, decryptFromEnvelope, canonicalJson } from '../crypto/envelope.js';
 import { identityPath } from './paths.js';
 
 export interface Identity {
@@ -17,13 +17,8 @@ export interface Identity {
 
 /** Canonical-JSON AAD for identity envelope. Keys sorted: purpose, workspaceId. */
 function buildIdentityAad(workspaceId: string): Buffer {
-  // Keys sorted alphabetically: purpose < workspaceId
   const obj = { purpose: 'identity', workspaceId };
-  const sorted: Record<string, unknown> = {};
-  for (const k of Object.keys(obj).sort()) {
-    sorted[k] = (obj as Record<string, unknown>)[k];
-  }
-  return Buffer.from(JSON.stringify(sorted), 'utf8');
+  return Buffer.from(canonicalJson(obj), 'utf8');
 }
 
 /**

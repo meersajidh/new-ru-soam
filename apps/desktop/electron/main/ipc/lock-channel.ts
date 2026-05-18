@@ -148,15 +148,10 @@ export function installLockChannel(
     if (!isPlatformSender(event)) return null;
     const svc = getActiveLockService();
     if (!svc) return { ok: false, code: 'no-active-workspace' };
-    // Accept either { passphrase } object (new) or bare string (legacy compat)
-    let passphrase: string;
-    if (typeof args === 'string') {
-      passphrase = args;
-    } else if (args && typeof args === 'object' && 'passphrase' in args && typeof (args as Record<string, unknown>)['passphrase'] === 'string') {
-      passphrase = (args as { passphrase: string }).passphrase;
-    } else {
+    if (!args || typeof args !== 'object' || typeof (args as Record<string, unknown>).passphrase !== 'string') {
       return { ok: false, code: 'already-set-up' };
     }
+    const passphrase = (args as { passphrase: string }).passphrase;
     return svc.setupGenerate(passphrase);
   });
 
@@ -165,21 +160,16 @@ export function installLockChannel(
     if (!isPlatformSender(event)) return null;
     const svc = getActiveLockService();
     if (!svc) return { ok: false, code: 'no-active-workspace' };
-    // Accept either { identity: { email } } object (new) or no args (legacy compat)
-    let identity: { email: string };
     if (
-      args &&
-      typeof args === 'object' &&
-      'identity' in args &&
-      args['identity'] &&
-      typeof args['identity'] === 'object' &&
-      'email' in (args['identity'] as object) &&
-      typeof (args['identity'] as Record<string, unknown>)['email'] === 'string'
+      !args ||
+      typeof args !== 'object' ||
+      !(args as Record<string, unknown>)['identity'] ||
+      typeof (args as Record<string, unknown>)['identity'] !== 'object' ||
+      typeof ((args as Record<string, unknown>)['identity'] as Record<string, unknown>)['email'] !== 'string'
     ) {
-      identity = args['identity'] as { email: string };
-    } else {
-      identity = { email: '' };
+      return { ok: false, code: 'not-generated' };
     }
+    const identity = (args as { identity: { email: string } }).identity;
     return svc.setupAcknowledge({ identity });
   });
 

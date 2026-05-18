@@ -18,8 +18,6 @@ import { randomBytes } from 'crypto';
 import { deriveWrapKey as argon2DeriveWrapKey } from '../crypto/kdf-passphrase.js';
 import { deriveWrapKey as hkdfDeriveWrapKey } from '../crypto/kdf-recovery.js';
 import * as recoveryCode from '../crypto/recovery-code.js';
-import { entropyToMnemonic } from '@scure/bip39';
-import { wordlist } from '@scure/bip39/wordlists/english.js';
 import {
   buildKekWrapAad,
   wrapKeyToEnvelope,
@@ -369,8 +367,7 @@ export class LockService {
       if (recoveryBytes) {
         internalRecoveryBytes = recoveryBytes;
         // Generate BIP-39 words from the supplied bytes
-        const { words: w } = _entropyToWords(recoveryBytes);
-        words = w;
+        words = recoveryCode.entropyToWords(recoveryBytes);
       } else {
         const generated = recoveryCode.generate();
         words = generated.words;
@@ -503,13 +500,3 @@ export class LockService {
   }
 }
 
-// ── Internal helper ───────────────────────────────────────────────────────────
-
-/**
- * Convert pre-supplied entropy bytes to BIP-39 words.
- * Used by the dev-provision path to get deterministic recovery words.
- */
-function _entropyToWords(bytes: Uint8Array): { words: string[] } {
-  const mnemonic = entropyToMnemonic(bytes, wordlist);
-  return { words: mnemonic.split(' ') };
-}

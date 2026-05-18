@@ -24,7 +24,8 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import { MockOAuthModal, StrengthMeter } from './-keys-components';
+import { MockOAuthModal } from './-keys-components';
+import StrengthMeter from '../../platform/auth/StrengthMeter';
 import '../../styles/workbench.css';
 import '../../styles/setup.css';
 

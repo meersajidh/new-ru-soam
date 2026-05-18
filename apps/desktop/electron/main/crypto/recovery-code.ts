@@ -44,6 +44,14 @@ export function parse(words: string[]): Uint8Array {
 }
 
 /**
+ * Convert raw entropy bytes to a BIP-39 word array.
+ * Returns the words as a plain string array (no wrapper object).
+ */
+export function entropyToWords(bytes: Uint8Array): string[] {
+  return entropyToMnemonic(bytes, wordlist).split(' ');
+}
+
+/**
  * Validate a word array without throwing.
  */
 export function validate(words: string[]): boolean {

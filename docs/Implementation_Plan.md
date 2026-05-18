@@ -769,6 +769,13 @@ $userData/
 - Auto-lock with real UI activity (mouse/key events refresh heartbeat) works for ≥ 30 min without spurious lock.
 - All 9a-inherited UI/IPC items closed (heartbeat, platform.dev, no-recovery-pending message).
 
+### Open items inherited from Phase 9b — for Phase 9c / 10
+
+Tracked in `docs/Open_Items.md`; surfaced here for the next delegation brief.
+
+- **O155** — `setup.css` cross-import consolidation (cosmetic). `apps/desktop/src/styles/setup.css` is imported by `routes/setup/keys.tsx`, `workbench/middle/UnlockGate.tsx`, and `workbench/middle/ChangePassphraseDialog.tsx`. Move into per-Part CSS or share via a single import in a higher-level layout when the sheet grows beyond a few hundred lines.
+- **O156** — `workbench.workspace.changePassphrase` command opens dialog directly. Currently the command logs a "use the user-avatar menu" hint; `ChangePassphraseDialog` Part is fully implemented and reachable via the user-avatar menu. Command-palette entry should open it directly — needs a renderer-side `DialogService` per ADR-412 §"What this ADR does not commit". Land with the first phase that introduces a second dialog (or earlier as a small platform addition).
+
 ---
 
 ## Phase 9c — Multi-workspace picker (post-Phase-10)
