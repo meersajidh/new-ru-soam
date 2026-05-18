@@ -192,6 +192,7 @@ body,
 .tb-win {
   display: flex;
   align-items: stretch;
+  align-self: stretch;
 }
 
 .tb-win-btn {

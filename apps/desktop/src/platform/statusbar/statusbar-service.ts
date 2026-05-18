@@ -9,6 +9,7 @@ export interface StatusBarEntry {
   icon?: string;
   severity?: 'ok' | 'warning' | 'error';
   badge?: number;
+  scope?: 'always' | 'workspace';
 }
 
 type EntryPatch = Partial<Pick<StatusBarEntry, 'text' | 'tooltip' | 'command' | 'visible' | 'icon' | 'severity' | 'badge'>>;

@@ -147,7 +147,7 @@ export function boot(): ServiceRegistry {
     }
   });
 
-  registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, workspace, editor, snippet);
+  registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, font, workspace, editor, snippet);
 
   // Open mock workspace — real identity comes in Phase 8+
   workspace.open('entity-mock-001', 'individual');

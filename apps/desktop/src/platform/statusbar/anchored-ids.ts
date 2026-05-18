@@ -61,6 +61,7 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
     visible: false, // set to true in boot.ts when import.meta.env.DEV
     icon: 'triangle-alert',
     severity: 'warning',
+    scope: 'always',
   },
   {
     id: 'workbench.sync.state',

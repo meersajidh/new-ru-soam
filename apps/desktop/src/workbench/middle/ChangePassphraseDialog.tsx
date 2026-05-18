@@ -13,6 +13,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { zxcvbn } from '@zxcvbn-ts/core';
+import { useModalKeys } from '../../platform/hooks/useModalKeys';
 import '../../styles/setup.css';
 
 interface Props {
@@ -31,6 +32,8 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
 
   const currentRef = useRef<HTMLInputElement>(null);
 
+  useModalKeys(onClose);
+
   useEffect(() => {
     currentRef.current?.focus();
   }, []);
@@ -41,11 +44,7 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
     newScore >= 3 &&
     newPassphrase === confirmPassphrase;
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Escape') onClose();
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!currentPassphrase || !newOk) return;
     setLoading(true);
@@ -90,7 +89,6 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="change-passphrase-title"
-      onKeyDown={handleKeyDown}
     >
       <div className="change-passphrase-card">
         <h2 id="change-passphrase-title" className="change-passphrase-title">

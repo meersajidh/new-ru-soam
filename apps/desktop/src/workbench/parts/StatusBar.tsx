@@ -17,6 +17,7 @@ import {
 import { useStatusBarEntries, useService } from '../../platform/services/hooks';
 import { CommandServiceId } from '../../platform/services/ids';
 import type { StatusBarEntry } from '../../platform/statusbar/statusbar-service';
+import type { WorkbenchMode } from '../hooks/useWorkbenchMode';
 
 type LucideComponent = React.ComponentType<LucideProps>;
 
@@ -109,10 +110,20 @@ function withDividers(entries: StatusBarEntry[], threshold: number): Array<Statu
   return result;
 }
 
-export default function StatusBar() {
-  const left = useStatusBarEntries('left');
-  const right = useStatusBarEntries('right');
+interface StatusBarProps {
+  variant?: WorkbenchMode;
+}
+
+const filterByMode = (entries: StatusBarEntry[], variant: WorkbenchMode): StatusBarEntry[] =>
+  variant === 'workspace' ? entries : entries.filter((e) => e.scope === 'always');
+
+export default function StatusBar({ variant = 'workspace' }: StatusBarProps = {}) {
+  const allLeft = useStatusBarEntries('left');
+  const allRight = useStatusBarEntries('right');
   const commands = useService(CommandServiceId);
+
+  const left = filterByMode(allLeft, variant);
+  const right = filterByMode(allRight, variant);
 
   const leftItems = withDividers(left, 700);
   const rightItems = withDividers(right, 800);

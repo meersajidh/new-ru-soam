@@ -1,5 +1,6 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
+import Workbench from '../workbench/Workbench';
 
 export const Route = createRootRoute({
-  component: () => <Outlet />,
+  component: () => <Workbench renderMiddleOverride={<Outlet />} />,
 });

@@ -9,6 +9,7 @@ import UserAvatar from './middle/UserAvatar';
 import PrefsDevPanel from './middle/PrefsDevPanel';
 import { useContextKey, useService } from '../platform/services/hooks';
 import { ContextKeyServiceId } from '../platform/services/ids';
+import { useWorkbenchMode } from './hooks/useWorkbenchMode';
 
 interface WorkbenchProps {
   /**
@@ -19,20 +20,15 @@ interface WorkbenchProps {
 }
 
 export default function Workbench({ renderMiddleOverride }: WorkbenchProps = {}) {
+  const mode = useWorkbenchMode();
   const ctxSvc = useService(ContextKeyServiceId);
   const prefsOpen = useContextKey('developer.prefs.open') === true;
   return (
     <div className="workbench">
-      <TitleBar avatarSlot={<UserAvatar />} />
+      <TitleBar variant={mode} avatarSlot={<UserAvatar />} />
       <Banner />
-      {renderMiddleOverride != null ? (
-        <div className="part-middle" style={{ alignItems: 'stretch' }}>
-          {renderMiddleOverride}
-        </div>
-      ) : (
-        <Middle />
-      )}
-      <StatusBar />
+      {renderMiddleOverride != null ? renderMiddleOverride : <Middle />}
+      <StatusBar variant={mode} />
       <CommandPalette />
       {prefsOpen && (
         <PrefsDevPanel onClose={() => ctxSvc.set('developer.prefs.open', false)} />

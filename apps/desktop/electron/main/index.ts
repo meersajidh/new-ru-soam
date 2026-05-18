@@ -24,7 +24,6 @@ import { ensureLocalStoreDbKey } from './credentials/db-key';
 import { LockService } from './lock/service';
 import { metadataExists } from './lock/storage';
 import { workspaceRegistry } from './workspace/registry';
-import { maybeProvision, DEV_WORKSPACE_ID } from './workspace/dev-provision';
 import { installLockChannel, createAutoLockHandleRef, rebindAutoLock } from './ipc/lock-channel';
 import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
 
@@ -79,18 +78,17 @@ const autoLockHandleRef = createAutoLockHandleRef();
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
-app.whenReady().then(async () => {
+app.whenReady().then(() => {
   // ── Phase 9 bootstrap per Implementation_Plan.md §Phase 9a pinned decisions ──
   //
   // Order:
   //   1. CredentialStore init (fail-fast on Linux if safeStorage unavailable)
   //   2. WorkspaceRegistry (singleton; no init step needed)
-  //   3. maybeProvision (DEV+!isPackaged+zero-workspaces only)
-  //   4. Resolve initial active LockService
-  //   5. Start auto-lock (if active service exists)
-  //   6. Install IPC channels
-  //   7. Existing setup (window, bundles, etc.)
-  //   8. Emit initial context-key events after did-finish-load
+  //   3. Resolve initial active LockService
+  //   4. Start auto-lock (if active service exists)
+  //   5. Install IPC channels
+  //   6. Existing setup (window, bundles, etc.)
+  //   7. Emit initial context-key events after did-finish-load
 
   // 1. CredentialStore
   credentialStore.init();
@@ -110,35 +108,21 @@ app.whenReady().then(async () => {
     }
   });
 
-  // 3. DEV auto-provision — returns the auto-unlocked LockService if provisioning ran
-  const devProvisionedSvc = await maybeProvision();
-
-  // 4. Resolve active LockService
-  if (devProvisionedSvc) {
-    // Dev provision just ran and returned an already-unlocked service
-    setActiveLockService(devProvisionedSvc);
-    ensureLocalStoreDbKey(DEV_WORKSPACE_ID);
-    // Phase 10a: open the Local Store for the active workspace. Prefs are
-    // Operational (ADR-302 §"Class 2") — opening at workspace-active is
-    // acceptable for non-PHI data.
-    localStoreManager.openFor(DEV_WORKSPACE_ID);
-  } else {
-    const activeId = workspaceRegistry.getActive();
-    if (activeId && metadataExists(activeId)) {
-      const svc = new LockService(activeId);
-      setActiveLockService(svc);
-      // Phase 10 prereq: ensure db-key for active workspace
-      ensureLocalStoreDbKey(activeId);
-      // Phase 10a: open the Local Store. See ADR-302 §"Class 2".
-      localStoreManager.openFor(activeId);
-    }
-    // Else: no active workspace or setup not complete — renderer routes to pre-workspace state
+  // 3. Resolve active LockService
+  const activeId = workspaceRegistry.getActive();
+  if (activeId && metadataExists(activeId)) {
+    const svc = new LockService(activeId);
+    setActiveLockService(svc);
+    ensureLocalStoreDbKey(activeId);
+    // Phase 10a: open the Local Store. See ADR-302 §"Class 2".
+    localStoreManager.openFor(activeId);
   }
+  // Else: no active workspace — renderer routes to pre-workspace state
 
-  // 5. Start auto-lock if we have an active service
+  // 4. Start auto-lock if we have an active service
   rebindAutoLock(autoLockHandleRef, getActiveLockService());
 
-  // 6. Install IPC channels (before window creation so handlers are ready)
+  // 5. Install IPC channels (before window creation so handlers are ready)
   installLockChannel(
     () => mainWindow,
     getActiveLockService,
@@ -181,7 +165,7 @@ app.whenReady().then(async () => {
   mainWindow = createWorkbenchWindow({ devServerUrl: DEV_SERVER_URL, isDev: DEV });
   registerPlatformWindow(mainWindow);
 
-  // 8. Publish initial context-key events once renderer is ready
+  // 7. Publish initial context-key events once renderer is ready
   mainWindow.webContents.once('did-finish-load', () => {
     const win = mainWindow;
     if (!win || win.isDestroyed()) return;

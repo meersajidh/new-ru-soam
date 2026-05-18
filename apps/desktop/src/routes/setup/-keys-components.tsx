@@ -10,6 +10,7 @@ import { Check } from 'lucide-react';
 import { generateMockGoogleId } from '../../platform/auth/mock-oauth';
 import GoogleMark from '../../platform/auth/GoogleMark';
 import { STEPS, STEP_HEADLINES } from './-keys-constants';
+import { useModalKeys } from '../../platform/hooks/useModalKeys';
 
 export { STEPS, STEP_HEADLINES };
 
@@ -59,15 +60,13 @@ export function MockOAuthModal({
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useModalKeys(onCancel);
+
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Escape') onCancel();
-  }
-
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     const trimmed = email.trim();
     if (!/.+@.+\..+/.test(trimmed)) {
@@ -83,7 +82,6 @@ export function MockOAuthModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="mock-oauth-title"
-      onKeyDown={handleKeyDown}
     >
       <div className="setup-modal-card">
         <div className="setup-modal-header">

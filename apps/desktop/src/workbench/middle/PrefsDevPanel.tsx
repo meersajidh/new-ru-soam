@@ -15,6 +15,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePrefsCapability } from '../../platform/data/use-capability';
+import { useModalKeys } from '../../platform/hooks/useModalKeys';
 import '../../styles/setup.css';
 
 interface Props {
@@ -40,7 +41,9 @@ export default function PrefsDevPanel({ onClose }: Props) {
     // the whole point of the round-trip demo.
   });
 
-  function handleSubmit(e: React.FormEvent) {
+  useModalKeys(onClose);
+
+  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!prefs || !key) return;
     setMutation.mutate({ k: key, v: value }, {
@@ -51,12 +54,8 @@ export default function PrefsDevPanel({ onClose }: Props) {
     });
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Escape') onClose();
-  }
-
   return (
-    <div className="unlock-gate-overlay" onKeyDown={handleKeyDown} role="dialog" aria-modal="true">
+    <div className="unlock-gate-overlay" role="dialog" aria-modal="true">
       <div className="unlock-gate-card" style={{ width: 520, maxWidth: 'calc(100vw - 32px)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <h2 className="unlock-gate-title">Preferences (dev)</h2>

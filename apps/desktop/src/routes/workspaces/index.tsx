@@ -18,9 +18,11 @@
  * setup route with `?addNew=true`.
  */
 
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Navigate } from '@tanstack/react-router';
 import type { WorkspaceMeta } from '../../../electron/shared/lock-protocol';
+import WorkspaceTileGrid from '../../workbench/middle/WorkspaceTileGrid';
 import '../../styles/workbench.css';
 import '../../styles/setup.css';
 
@@ -28,8 +30,11 @@ export const Route = createFileRoute('/workspaces/')({
   component: WorkspacePickerPage,
 });
 
-// eslint-disable-next-line react-refresh/only-export-components
 function WorkspacePickerPage() {
+  return <WorkspacePickerContent />;
+}
+
+function WorkspacePickerContent() {
   const navigate = useNavigate();
   const [workspaces, setWorkspaces] = useState<WorkspaceMeta[] | null>(null);
   const [activating, setActivating] = useState<string | null>(null);
@@ -62,8 +67,8 @@ function WorkspacePickerPage() {
     };
   }, []);
 
-  // Suspend render until list is loaded.
-  if (workspaces === null) return null;
+  // Suspend render until list is loaded — spacer keeps StatusBar pinned to bottom.
+  if (workspaces === null) return <div style={{ flex: '1 1 auto' }} />;
 
   // Defensive: zero workspaces → setup ceremony (should not happen normally).
   if (workspaces.length === 0) {
@@ -94,59 +99,30 @@ function WorkspacePickerPage() {
   }
 
   return (
-    <div className="setup-page">
-      <div className="workspace-picker-container">
-        <div className="workspace-picker-header">
+    <div className="setup-page" style={{ justifyContent: 'flex-start', paddingTop: '48px' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '24px',
+          alignItems: 'flex-start',
+          maxWidth: '760px',
+          width: '100%',
+          margin: '0 auto',
+          padding: '0 40px',
+        }}
+      >
+        <div>
           <h1 className="setup-title">Choose a workspace</h1>
-          <p className="setup-description">
-            Select a workspace to unlock, or add a new one.
-          </p>
+          <p className="setup-description">Select a workspace to unlock, or add a new one.</p>
         </div>
-
         {error && <p className="setup-error">{error}</p>}
-
-        <ul className="workspace-picker-list" role="list">
-          {workspaces.map((ws) => (
-            <li key={ws.workspaceId}>
-              <button
-                className={`workspace-picker-tile${activating === ws.workspaceId ? ' workspace-picker-tile--loading' : ''}`}
-                onClick={() => void handleSelectWorkspace(ws.workspaceId)}
-                disabled={activating !== null}
-                aria-busy={activating === ws.workspaceId}
-              >
-                <span className="workspace-picker-avatar" aria-hidden="true">
-                  {ws.nickname.charAt(0).toUpperCase()}
-                </span>
-                <span className="workspace-picker-info">
-                  <span className="workspace-picker-nickname">{ws.nickname}</span>
-                  {ws.lastSignedIn && (
-                    <span className="workspace-picker-last-seen">
-                      {'Last signed in '}
-                      {new Date(ws.lastSignedIn).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  )}
-                </span>
-                {activating === ws.workspaceId && (
-                  <span className="workspace-picker-loading-indicator" aria-hidden="true" />
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        <div className="workspace-picker-add">
-          <button
-            className="setup-btn-ghost"
-            onClick={handleAddNew}
-            disabled={activating !== null}
-          >
-            + Add new workspace
-          </button>
-        </div>
+        <WorkspaceTileGrid
+          workspaces={workspaces}
+          activating={activating}
+          onSelect={(id) => void handleSelectWorkspace(id)}
+          onAddNew={handleAddNew}
+        />
       </div>
     </div>
   );

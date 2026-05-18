@@ -25,6 +25,7 @@
  * regardless of whether a workspace is currently active.
  */
 
+/* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react';
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
@@ -33,6 +34,7 @@ import { MockOAuthModal, ProgressRail } from './-keys-components';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
 import GoogleMark from '../../platform/auth/GoogleMark';
+import { useModalKeys } from '../../platform/hooks/useModalKeys';
 import '../../styles/workbench.css';
 import '../../styles/setup.css';
 
@@ -42,6 +44,10 @@ export const Route = createFileRoute('/setup/keys')({
   }),
   component: SetupKeysPage,
 });
+
+function SetupKeysPage() {
+  return <SetupKeysContent />;
+}
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -56,11 +62,12 @@ interface WizardState {
 }
 
 // ── Main wizard component ─────────────────────────────────────────────────────
-// eslint-disable-next-line react-refresh/only-export-components
-function SetupKeysPage() {
+function SetupKeysContent() {
   const navigate = useNavigate();
   // addNew=true when reached via the workspace picker's "Add new workspace" button.
   const { addNew } = useSearch({ from: '/setup/keys' });
+
+  useModalKeys(addNew ? () => void navigate({ to: '/workspaces' }) : undefined);
 
   const [state, setState] = useState<WizardState>({
     step: 1,

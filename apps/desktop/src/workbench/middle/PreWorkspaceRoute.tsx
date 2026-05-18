@@ -14,7 +14,7 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from '@tanstack/react-router';
 import { useContextKey } from '../../platform/services/hooks';
-import Workbench from '../Workbench';
+import Middle from './Middle';
 import UnlockGate from './UnlockGate';
 
 export default function PreWorkspaceRoute() {
@@ -35,8 +35,12 @@ export default function PreWorkspaceRoute() {
     });
   }, [activeId]); // re-fetch when activeId changes (sign-out etc.)
 
-  // While we haven't loaded the list yet, suspend with nothing (avoids flash)
-  if (workspaceCount === null) return null;
+  // While the workspace list is loading: if activeId is already set the routing
+  // branches below don't need the count, so let them render immediately.
+  // If activeId is not yet known, hold with a flex spacer so StatusBar stays pinned.
+  if (workspaceCount === null && !activeId) {
+    return <div style={{ flex: '1 1 auto' }} />;
+  }
 
   // Zero-workspaces: route to setup ceremony
   if (!activeId && workspaceCount === 0) {
@@ -44,7 +48,7 @@ export default function PreWorkspaceRoute() {
   }
 
   // No active pointer but workspaces exist → show the workspace picker
-  if (!activeId && workspaceCount > 0) {
+  if (!activeId && (workspaceCount ?? 0) > 0) {
     return <Navigate to="/workspaces" />;
   }
 
@@ -55,18 +59,14 @@ export default function PreWorkspaceRoute() {
 
   // Setup complete but workspace is locked
   if (activeId && setupComplete && kekLocked) {
-    return (
-      <Workbench renderMiddleOverride={<UnlockGate />} />
-    );
+    return <UnlockGate />;
   }
 
   // Unlocked via recovery code — force passphrase reset before workspace access
   if (activeId && setupComplete && !kekLocked && mustResetPassphrase) {
-    return (
-      <Workbench renderMiddleOverride={<UnlockGate forceResetMode />} />
-    );
+    return <UnlockGate forceResetMode />;
   }
 
   // Fully unlocked — render the normal workspace shell
-  return <Workbench />;
+  return <Middle />;
 }

@@ -3,6 +3,7 @@ import type { ICommandService } from '../platform/command/command-service';
 import type { IContextKeyService } from '../platform/context-key/context-key-service';
 import type { IKeybindingService } from '../platform/keybinding/keybinding-service';
 import type { IThemeService } from '../platform/theme/theme-service';
+import type { IFontService } from '../platform/font/font-service';
 import type { IWorkspaceService } from '../platform/workspace/workspace-service';
 import type { IEditorService } from '../platform/editor/editor-service';
 import type { ISnippetService } from '../platform/snippet/snippet-service';
@@ -15,6 +16,7 @@ export function registerPlatformCommands(
   commands: ICommandService,
   keybindings: IKeybindingService,
   theme: IThemeService,
+  font: IFontService,
   workspace: IWorkspaceService,
   editor: IEditorService,
   snippets: ISnippetService,
@@ -229,6 +231,24 @@ export function registerPlatformCommands(
     'workbench.toggleDarkMode',
     'Toggle Dark Mode',
     () => theme.setDarkMode(!theme.isDark()),
+    { category: 'Preferences' },
+  );
+  commands.register(
+    'workbench.font.systemSans',
+    'Font Set: System Sans',
+    () => font.setFontSet('system-sans'),
+    { category: 'Preferences' },
+  );
+  commands.register(
+    'workbench.font.ruDisplay',
+    'Font Set: Ru Display',
+    () => font.setFontSet('ru-display'),
+    { category: 'Preferences' },
+  );
+  commands.register(
+    'workbench.font.ruEditorial',
+    'Font Set: Ru Editorial',
+    () => font.setFontSet('ru-editorial'),
     { category: 'Preferences' },
   );
 

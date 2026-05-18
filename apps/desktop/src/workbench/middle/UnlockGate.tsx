@@ -11,12 +11,14 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
 import { Lock, KeyRound } from 'lucide-react';
 import { useContextKey } from '../../platform/services/hooks';
 import type { UnlockResult, RecoveryUnlockResult } from '../../../electron/shared/lock-protocol';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
+import { useModalKeys } from '../../platform/hooks/useModalKeys';
 import '../../styles/setup.css';
 
 type GateMode = 'passphrase' | 'recovery' | 'reset-passphrase';
@@ -32,8 +34,11 @@ interface UnlockGateProps {
 
 export default function UnlockGate({ forceResetMode = false }: UnlockGateProps = {}) {
   const nickname = useContextKey('workspace.nickname') as string;
+  const navigate = useNavigate();
 
   const [mode, setMode] = useState<GateMode>(forceResetMode ? 'reset-passphrase' : 'passphrase');
+
+  useModalKeys(!forceResetMode ? () => void navigate({ to: '/workspaces' }) : undefined);
 
   // Passphrase mode
   const [passphrase, setPassphrase] = useState('');
@@ -57,7 +62,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
 
   // ── Passphrase unlock ──────────────────────────────────────────────────────
 
-  async function handleUnlock(e: React.FormEvent) {
+  async function handleUnlock(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!passphrase) return;
     setUnlocking(true);
@@ -95,7 +100,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
       .filter((w) => w.length > 0);
   }
 
-  async function handleRecoveryUnlock(e: React.FormEvent) {
+  async function handleRecoveryUnlock(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     const words = normaliseRecoveryWords(recoveryText);
     if (words.length !== 12) {
@@ -127,7 +132,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
 
   // ── Reset passphrase after recovery ────────────────────────────────────────
 
-  async function handleResetPassphrase(e: React.FormEvent) {
+  async function handleResetPassphrase(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!newPassOk) return;
     setResetLoading(true);
@@ -195,6 +200,16 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
             />
             {unlockError && <p className="unlock-gate-error">{unlockError}</p>}
             <div className="setup-actions">
+              {!forceResetMode && (
+                <button
+                  type="button"
+                  className="setup-btn-ghost"
+                  onClick={() => void navigate({ to: '/workspaces' })}
+                  disabled={unlocking}
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 type="submit"
                 className="setup-btn-primary"
