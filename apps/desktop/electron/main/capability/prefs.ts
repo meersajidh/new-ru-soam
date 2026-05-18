@@ -18,6 +18,7 @@
 
 import { registerCapability } from './registry.js';
 import { localStoreManager } from '../local-store/index.js';
+import { auditService } from '../audit/index.js';
 import { CapErr } from '../../shared/ipc-protocol.js';
 
 function notFound(message: string): Error {
@@ -53,6 +54,15 @@ export function registerPrefsCapability(): void {
       const store = localStoreManager.current();
       if (!store) throw notFound('prefs: no active workspace');
       store.setPref(key, value);
+      const workspaceId = store.workspaceId();
+      if (workspaceId) {
+        auditService.emit({
+          event: 'prefs.set',
+          entityId: workspaceId,
+          principal: 'system',
+          detail: { key },
+        });
+      }
       return { ok: true };
     }
     if (method === 'list') {

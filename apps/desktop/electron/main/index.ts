@@ -17,12 +17,13 @@ import { setLockServiceGetter } from './capability/registry';
 import { registerPhiDemoEchoCapability } from './capability/phi-demo-echo';
 import { registerPlatformDevCapability } from './capability/platform-dev';
 import { registerPrefsCapability } from './capability/prefs';
+import { registerAuditCapability } from './capability/audit-cap';
 import { localStoreManager } from './local-store/index';
+import { auditService } from './audit/index';
 // Phase 9: crypto + credentials + lock + workspace
 import { credentialStore } from './credentials/index';
 import { ensureLocalStoreDbKey } from './credentials/db-key';
 import { LockService } from './lock/service';
-import { metadataExists } from './lock/storage';
 import { workspaceRegistry } from './workspace/registry';
 import { installLockChannel, createAutoLockHandleRef, rebindAutoLock } from './ipc/lock-channel';
 import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
@@ -108,14 +109,20 @@ app.whenReady().then(() => {
     }
   });
 
+  // Phase 10b: wire audit service AFTER emitter, BEFORE capability registrations.
+  auditService.setStoreGetter(() => localStoreManager.current());
+
   // 3. Resolve active LockService
   const activeId = workspaceRegistry.getActive();
-  if (activeId && metadataExists(activeId)) {
+  if (activeId) {
     const svc = new LockService(activeId);
     setActiveLockService(svc);
-    ensureLocalStoreDbKey(activeId);
-    // Phase 10a: open the Local Store. See ADR-302 §"Class 2".
-    localStoreManager.openFor(activeId);
+    // Always provision db-key regardless of metadataExists (setup-pending
+    // workspaces need a key too — the store is opened before setup completes).
+    const dbKey = ensureLocalStoreDbKey(activeId);
+    // Phase 10b: open the Local Store encrypted. See ADR-302 §"Class 2".
+    // openFor() consumes + zeros the key buffer in its finally block.
+    localStoreManager.openFor(activeId, dbKey);
   }
   // Else: no active workspace — renderer routes to pre-workspace state
 
@@ -145,6 +152,7 @@ app.whenReady().then(() => {
   registerPhiDemoEchoCapability();
   registerPlatformDevCapability();
   registerPrefsCapability();
+  registerAuditCapability();
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);

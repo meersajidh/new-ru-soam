@@ -36,10 +36,10 @@ class LocalStoreManager {
   }
 
   /**
-   * Open the Local Store for `workspaceId`. If a previous store is open
-   * for a different workspace, it is closed first.
+   * Open the Local Store for `workspaceId` with the given encryption key.
+   * If a previous store is open for a different workspace, it is closed first.
    */
-  openFor(workspaceId: string): void {
+  openFor(workspaceId: string, key: Buffer): void {
     if (this._store && this._store.workspaceId() === workspaceId) {
       return;
     }
@@ -51,7 +51,7 @@ class LocalStoreManager {
       throw new Error('LocalStoreManager: emitter not set; call setEmitter() before openFor()');
     }
     const store = new LocalStore({ emitChange: this._emitter });
-    store.open(workspaceId);
+    store.open(workspaceId, key);
     this._store = store;
   }
 

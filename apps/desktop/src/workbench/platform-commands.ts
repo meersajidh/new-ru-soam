@@ -470,6 +470,24 @@ export function registerPlatformCommands(
     );
   }
 
+  // ── Phase 10b: Audit dev command ─────────────────────────────────────────
+  commands.register(
+    'developer.audit.dump',
+    'Developer: Dump Audit Log',
+    async () => {
+      const proxy = await window.soam.bindCapability('audit', '1.0');
+      try {
+        const entries = await proxy.call('list', { limit: 50 });
+        console.table(entries);
+      } catch (err) {
+        console.error('[audit] dump failed:', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Developer' },
+  );
+
   // ── Phase 10a: Prefs dev panel ────────────────────────────────────────────
   commands.register(
     'workbench.developer.openPrefs',

@@ -208,6 +208,17 @@ only the task-specific Goal / Scope / Constraints / Success criteria.
 - Capability surface stays callable when locked iff `phi: false`. `prefs@1.0` ships Operational (ADR-302 §"Class 2"); LocalStore stays open across lock. PHI tables (Phase 13+) will be PHI-flagged and lock-gated by the existing registry decorator.
 - Native-module install lesson: `electron-builder install-app-deps` writes a `.forge-meta` marker; if the `.node` is deleted without removing the marker, the next install short-circuits. Force-rebuild = delete both.
 
+### 18 May 2026 — Phase 10b delivered (SQLCipher + audit ledger)
+
+- SQLCipher at-rest encryption: `LocalStore.open(workspaceId, key: Buffer)` applies `PRAGMA key = "x'<64hex>'"` (hex form for raw 32-byte key) before any other pragma or migration. `integrity_check` immediately afterwards detects plaintext leftovers from 10a — on failure the DB file is unlinked + recreated encrypted with a single `console.warn`. DB key sourced from `ensureLocalStoreDbKey(workspaceId)` (OS-keychain-backed per ADR-304). Key is provisioned unconditionally at `set-active` and at boot — the `metadataExists` guard was removed because the store must be openable for setup-pending workspaces too (prefs are Operational class).
+- Audit ledger (ADR-502 Tier 1, device-local): `audit_log` table (migration 2) with per-entry SHA-256 hash chain. Genesis `prev_hash = '0'.repeat(64)`. Hash input is an explicit-key-order JSON literal (`seq, ts, event, principal, entityId, recordId, recordType, detail, prevHash`) — not generic `JSON.stringify` key sort, so the canonical form is reproducible outside the DB. `detail` field is double-encoded in the hash input (`JSON.stringify(detailJson)` where `detailJson` is already the stringified detail) — documented in `LocalStore.appendAuditEntry`. Entire append (read-max-seq → compute-hash → insert) runs in one `db.transaction(...)`.
+- `AuditService` is a thin facade — store getter injected at boot via `auditService.setStoreGetter(() => localStoreManager.current())`. Silent no-op when store closed; DB errors propagate. Main-process only; renderer access via `audit@1.0` capability (`list({ limit, offset })`). Not PHI-flagged — audit metadata is Operational per ADR-502.
+- Audit emit points wired: `workspace.unlock`, `workspace.relock`, `workspace.recovery.used`, `workspace.passphrase.changed`, `workspace.setup.complete` (all in `lock-channel.ts`), `prefs.set` (in `capability/prefs.ts`, with `detail: { key }`). Closes O307e for Phase 10.
+- `AuditEntry` redaction-by-construction: `event` is a closed `AuditEventKind` string union (source-code-change required to add a new kind); `detail` is `Record<string, string | number | boolean>` with an explicit "MUST NOT contain PHI content" JSDoc. No free-text fields in the type.
+- Workspace settings stub (migration 3): `workspace_settings` table + `LocalStore.getSetting/setSetting` — no capability surface yet (Phase 12 wires the UI cascade). Provides the foundation for audit retention reads (O49) without blocking the ledger.
+- Developer command: `developer.audit.dump` calls `audit@1.0`.list via `bindCapability` and dumps via `console.table`.
+- Electron 41 pin holds (O157 stays open). BSMC@12.9.0 + SQLCipher works fine on V8 from Electron 41. Bump deferred until upstream ships V8-14 support.
+
 ---
 
 ## Orchestration Protocol (Opus must follow this)

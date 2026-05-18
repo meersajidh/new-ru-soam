@@ -33,6 +33,42 @@ const MIGRATIONS: ReadonlyArray<Migration> = [
       `);
     },
   },
+  {
+    version: 2,
+    description: 'Audit ledger: append-only SHA-256 hash-chained log',
+    up(db) {
+      db.exec(`
+        CREATE TABLE audit_log (
+          id          INTEGER PRIMARY KEY AUTOINCREMENT,
+          seq         INTEGER NOT NULL UNIQUE,
+          ts          INTEGER NOT NULL,
+          event       TEXT NOT NULL,
+          principal   TEXT,
+          entity_id   TEXT NOT NULL,
+          record_id   TEXT,
+          record_type TEXT,
+          detail      TEXT,
+          prev_hash   TEXT NOT NULL,
+          entry_hash  TEXT NOT NULL
+        );
+        CREATE INDEX idx_audit_log_event ON audit_log(event);
+        CREATE INDEX idx_audit_log_ts    ON audit_log(ts);
+      `);
+    },
+  },
+  {
+    version: 3,
+    description: 'Workspace settings: key/value table',
+    up(db) {
+      db.exec(`
+        CREATE TABLE workspace_settings (
+          key        TEXT PRIMARY KEY,
+          value      TEXT NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+      `);
+    },
+  },
 ];
 
 function ensureSchemaVersionTable(db: DatabaseT.Database): void {

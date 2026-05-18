@@ -1,31 +1,29 @@
 /**
- * LocalStore — SQLite-backed per-workspace key/value + (future) table store.
+ * LocalStore — SQLite-backed per-workspace key/value + table store.
  *
- * Phase 10a: plaintext SQLite. The DB file lives inside the workspace dir,
- * which is already under the user's protected app-data path. SQLCipher /
- * at-rest encryption lands in Phase 10b — the public surface here will not
- * change (the open path internally swaps in a keyed pragma).
+ * Phase 10b: SQLCipher at-rest encryption. The DB is opened with a 32-byte
+ * raw key applied as `PRAGMA key = "x'<64hex>'"` before any other pragma or
+ * migration. If the DB is plaintext (Phase 10a leftover) or corrupt the open
+ * call will fail — in that case the DB is deleted and recreated encrypted.
  *
- * Each write emits a change event via the injected `emitChange` callback
- * (set by main/index.ts). The store stays uncoupled from the IPC layer —
- * tests can pass a no-op emitter; production passes a webContents broadcaster.
+ * Each write emits a change event via the injected `emitChange` callback.
  *
- * Lifecycle (per Phase 10a brief):
- *   - open()  on workspace activate (after unlock, in practice — the registry
- *             only sets-active for an existing setup-complete workspace).
+ * Lifecycle (per Phase 10b brief):
+ *   - open(workspaceId, key) on workspace activate.
  *   - close() on workspace sign-out and on app `before-quit`.
- *   - NOT closed on lock — prefs are Operational class (ADR-302 §"Class 2"),
- *     they survive lock the same way Operational data survives lock.
+ *   - NOT closed on lock — prefs are Operational class (ADR-302 §"Class 2").
  *
- * Follows the disposable pattern (docs/Guides/disposable-pattern.md): `close()`
- * is idempotent.
+ * Disposable pattern (docs/Guides/disposable-pattern.md): `close()` is idempotent.
  */
 
+import { createHash } from 'crypto';
+import { unlinkSync } from 'fs';
 import Database from 'better-sqlite3';
 import type DatabaseT from 'better-sqlite3';
 import { localStoreDbPath } from './paths.js';
 import { runMigrations } from './migrations.js';
 import type { StoreChangedPayload } from '../../shared/ipc-protocol.js';
+import type { AuditEntry, AuditRow } from '../audit/audit-types.js';
 
 export interface LocalStoreOptions {
   /**
@@ -41,6 +39,30 @@ export interface PrefRow {
   readonly updatedAt: number;
 }
 
+/**
+ * Open a fresh, keyed SQLite DB at `dbPath`.
+ * Applies the SQLCipher key pragma, then WAL + foreign_keys, then migrations.
+ *
+ * The caller owns `key`'s lifecycle and is responsible for zeroing the buffer
+ * after `open()` returns — `openEncryptedDb` may be called twice (initial +
+ * recreate-on-plaintext path), so an internal `key.fill(0)` would break the
+ * recreate scenario. `LocalStore.open` zeros the buffer in a `finally` block.
+ *
+ * Note: `key.toString('hex')` produces an immutable JS string that lingers in
+ * V8 heap until GC. This is an accepted residue for Phase 10b (Main process,
+ * OS-keychain-backed key, no untrusted code in this trust zone).
+ */
+function openEncryptedDb(dbPath: string, key: Buffer): DatabaseT.Database {
+  const db = new Database(dbPath);
+  // SQLCipher key must be applied before any other operation.
+  // Hex form: key = "x'<64 hex chars>'" for a raw 32-byte key.
+  db.pragma(`key = "x'${key.toString('hex')}'"`);
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  runMigrations(db);
+  return db;
+}
+
 export class LocalStore {
   private _db: DatabaseT.Database | null = null;
   private _workspaceId: string | null = null;
@@ -51,11 +73,14 @@ export class LocalStore {
   }
 
   /**
-   * Open (or create) the DB for `workspaceId`. Runs pending migrations.
-   * Safe to call when already open with the same workspaceId (no-op);
-   * throws if asked to open a different workspace without `close()` first.
+   * Open (or create) the encrypted DB for `workspaceId`. Runs pending
+   * migrations. Safe to call when already open for same workspaceId (no-op).
+   * Throws if asked to open a different workspace without `close()` first.
+   *
+   * If the DB is plaintext (Phase 10a leftover) or corrupt, it is deleted and
+   * recreated encrypted — a single console.warn is emitted.
    */
-  open(workspaceId: string): void {
+  open(workspaceId: string, key: Buffer): void {
     if (this._db !== null) {
       if (this._workspaceId === workspaceId) return;
       throw new Error(
@@ -63,14 +88,34 @@ export class LocalStore {
       );
     }
     const dbPath = localStoreDbPath(workspaceId);
-    const db = new Database(dbPath);
-    // WAL = better concurrent-reader behavior; foreign_keys for any future
-    // tables with references.
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    runMigrations(db);
-    this._db = db;
-    this._workspaceId = workspaceId;
+    let db: DatabaseT.Database | undefined;
+    try {
+      try {
+        db = openEncryptedDb(dbPath, key);
+        // Verify the key worked — integrity_check returns 'ok' on a properly
+        // keyed DB. On a plaintext DB the pragma will return a garbage string
+        // (because it's reading ciphertext as page data) or throw.
+        const check = db.pragma('integrity_check', { simple: true }) as string;
+        if (check !== 'ok') {
+          throw new Error(`integrity_check returned: ${check}`);
+        }
+      } catch {
+        // Plaintext DB from Phase 10a or corrupt file — close handle (if open),
+        // delete, and recreate encrypted.
+        if (db) {
+          try { db.close(); } catch { /* ignore */ }
+        }
+        try { unlinkSync(dbPath); } catch { /* file may not exist */ }
+        console.warn('[local-store] plaintext DB detected — recreated encrypted', { workspaceId });
+        db = openEncryptedDb(dbPath, key);
+      }
+      this._db = db;
+      this._workspaceId = workspaceId;
+    } finally {
+      // Zero the key buffer regardless of success/exception. Caller may
+      // double-zero; that's a harmless no-op on the same Buffer reference.
+      key.fill(0);
+    }
   }
 
   /** Close the DB if open. Idempotent. */
@@ -127,6 +172,115 @@ export class LocalStore {
     const rows = db
       .prepare(`SELECT key, value, updated_at AS updatedAt FROM prefs ORDER BY key ASC`)
       .all() as Array<{ key: string; value: string; updatedAt: number }>;
+    return rows;
+  }
+
+  // ── Workspace settings operations ─────────────────────────────────────────
+
+  getSetting(key: string): string | null {
+    const db = this.requireDb();
+    const row = db.prepare(`SELECT value FROM workspace_settings WHERE key = ?`).get(key) as
+      | { value: string }
+      | undefined;
+    return row?.value ?? null;
+  }
+
+  setSetting(key: string, value: string): void {
+    const db = this.requireDb();
+    const now = Date.now();
+    db.prepare(
+      `INSERT INTO workspace_settings (key, value, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    ).run(key, value, now);
+    this._emitChange({ table: 'workspace_settings', op: 'set', keys: [key] });
+  }
+
+  // ── Audit ledger operations ────────────────────────────────────────────────
+
+  /**
+   * Append an audit entry to the hash-chained audit_log table.
+   *
+   * Hash canonicalization: explicit field-order concatenation into a single
+   * JSON object literal — fields are written in source order (seq, ts, event,
+   * principal, entityId, recordId, recordType, detail, prevHash). This avoids
+   * relying on JSON.stringify key-ordering guarantees while keeping the
+   * canonical form reproducible outside the DB.
+   *
+   * The entire operation runs in a single better-sqlite3 transaction so the
+   * read-max-seq → compute-hash → insert is atomic.
+   */
+  appendAuditEntry(entry: AuditEntry): void {
+    const db = this.requireDb();
+
+    const tx = db.transaction(() => {
+      // Read max seq (returns -1 if table is empty via COALESCE).
+      const maxRow = db
+        .prepare(`SELECT COALESCE(MAX(seq), -1) AS maxSeq FROM audit_log`)
+        .get() as { maxSeq: number };
+      const maxSeq = maxRow.maxSeq;
+      const seq = maxSeq + 1;
+
+      // Determine prevHash.
+      let prevHash: string;
+      if (seq === 0) {
+        prevHash = '0'.repeat(64);
+      } else {
+        const lastRow = db
+          .prepare(`SELECT entry_hash FROM audit_log WHERE seq = ?`)
+          .get(maxSeq) as { entry_hash: string } | undefined;
+        prevHash = lastRow?.entry_hash ?? '0'.repeat(64);
+      }
+
+      const ts = Date.now();
+      const { event, principal = null, entityId, recordId = null, recordType = null, detail = null } = entry;
+      const detailJson = detail !== null ? JSON.stringify(detail) : null;
+
+      // Canonical hash input: explicit key order — seq, ts, event, principal,
+      // entityId, recordId, recordType, detail, prevHash.
+      // We build a JSON string with sorted top-level keys in this exact order
+      // rather than using JSON.stringify on a plain object (insertion-order is
+      // stable in V8/Node but not guaranteed by the JSON spec, so we control
+      // the order explicitly for cross-platform reproducibility).
+      const canonicalInput =
+        `{"seq":${seq},"ts":${ts},"event":${JSON.stringify(event)}` +
+        `,"principal":${JSON.stringify(principal)}` +
+        `,"entityId":${JSON.stringify(entityId)}` +
+        `,"recordId":${JSON.stringify(recordId)}` +
+        `,"recordType":${JSON.stringify(recordType)}` +
+        `,"detail":${JSON.stringify(detailJson)}` +
+        `,"prevHash":${JSON.stringify(prevHash)}}`;
+
+      const entryHash = createHash('sha256').update(canonicalInput).digest('hex');
+
+      db.prepare(
+        `INSERT INTO audit_log
+           (seq, ts, event, principal, entity_id, record_id, record_type, detail, prev_hash, entry_hash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(seq, ts, event, principal, entityId, recordId, recordType, detailJson, prevHash, entryHash);
+    });
+
+    tx();
+  }
+
+  /**
+   * List audit entries ordered by seq ASC. Default limit 100.
+   * Used by the audit@1.0 capability for developer verification.
+   */
+  listAuditEntries(opts?: { limit?: number; offset?: number }): AuditRow[] {
+    const db = this.requireDb();
+    const limit = opts?.limit ?? 100;
+    const offset = opts?.offset ?? 0;
+    const rows = db
+      .prepare(
+        `SELECT id, seq, ts, event, principal,
+                entity_id AS entityId, record_id AS recordId,
+                record_type AS recordType, detail,
+                prev_hash AS prevHash, entry_hash AS entryHash
+         FROM audit_log
+         ORDER BY seq ASC
+         LIMIT ? OFFSET ?`,
+      )
+      .all(limit, offset) as AuditRow[];
     return rows;
   }
 }

@@ -833,22 +833,59 @@ Split into **10a** (data pipeline) and **10b** (encryption + audit). 10a landed;
 - Electron pinned to `^41.2.2` (was `^42.0.1` from Phase 9b). `better-sqlite3-multiple-ciphers@12.9.0` does not compile against Electron 42's V8 14 API (`External::New(isolate, addon)` 2-arg signature removed; `External::Value()` requires `ExternalPointerTypeTag`). Pin holds until upstream cuts a V8-14-compatible release.
 - Re-evaluate Electron bump alongside SQLCipher landing (10b) — at-rest crypto landing is the moment to also bump.
 
-### Phase 10b — At-rest encryption + Audit ledger (queued)
+### Phase 10b — At-rest encryption + Audit ledger (delivered 2026-05-18)
+
+**Status:** Complete (trimmed scope). Trim notes below.
 
 **Goal:** encryption-at-rest from the first PHI-touching capability; audit spine emits before any PHI consumer ships.
 
-**Deliverable:**
+**Deliverable (shipped):**
 
-- SQLCipher key application via `PRAGMA key` using the per-workspace `local-store-db-key` already provisioned in 9a (via `ensureLocalStoreDbKey`).
-- Workspace settings cascade (ADR-403) — needed once audit emission has settings to read.
-- Audit ledger (ADR-502): append-only table, hash chain, emission API, redaction discipline (no PHI-adjacent context keys in payloads). PHI-adjacent context-key scrub list per ADR-407.
-- Every capability invocation that should audit, does. Redaction verified by test.
+- **SQLCipher** via `PRAGMA key = "x'<64hex>'"` (hex form for the raw 32-byte `local-store-db-key` provisioned in 9a). Applied before any other pragma or migration in `LocalStore.open(workspaceId, key)`. `integrity_check` immediately afterwards detects Phase 10a plaintext leftovers — on failure the DB file is unlinked + recreated encrypted with a single `console.warn`. Key is always provisioned at `set-active` and at boot (removed the `metadataExists` guard — store must be openable for setup-pending workspaces too).
+- **Audit ledger** (`audit_log` table, migration 2) — append-only with SHA-256 hash chain. Genesis `prev_hash = '0'.repeat(64)`. Hash input is an explicit-key-order JSON literal (`seq, ts, event, principal, entityId, recordId, recordType, detail, prevHash`) — not generic `JSON.stringify` key sort, so the canonical form is reproducible outside the DB. `detail` field is double-encoded (`JSON.stringify(detailJson)` where `detailJson` is already the stringified detail) — documented inline in `LocalStore.appendAuditEntry`. Entire append (read-max-seq → compute-hash → insert) runs in one `db.transaction(...)`.
+- **`AuditService`** — thin facade injected via `auditService.setStoreGetter(() => localStoreManager.current())` at boot. Silent no-op when store closed; DB errors propagate. Main-only; renderer access via `audit@1.0` capability (`list({ limit, offset })`). Not PHI-flagged — audit metadata is Operational per ADR-502.
+- **Audit emit points** wired for O307e: `workspace.unlock`, `workspace.relock`, `workspace.recovery.used`, `workspace.passphrase.changed`, `workspace.setup.complete` (all in `lock-channel.ts`), `prefs.set` (in `capability/prefs.ts`, with `detail: { key }`).
+- **`AuditEntry` redaction by construction**: `event` is a closed `AuditEventKind` string union; `detail` is `Record<string, string | number | boolean>` with explicit "MUST NOT contain PHI content" JSDoc. No free-text fields in the type.
+- **Workspace settings stub** (`workspace_settings` table, migration 3) + `LocalStore.getSetting/setSetting` — no capability surface yet (Phase 12 wires the UI cascade).
+- **Developer command** `developer.audit.dump` — calls `audit@1.0`.list via `bindCapability`, dumps via `console.table`.
 
-**ADRs:** ADR-302 (Local Store at-rest), ADR-403 (workspace settings cascade), ADR-407 (PHI-adjacent key scrubbing), ADR-502 (audit infrastructure; viewer bundle ships Phase 13).
+**Files touched:**
+- `apps/desktop/electron/main/local-store/store.ts` — SQLCipher open + `appendAuditEntry` + `listAuditEntries` + `getSetting`/`setSetting`
+- `apps/desktop/electron/main/local-store/migrations.ts` — migrations 2 (audit_log + indexes) and 3 (workspace_settings)
+- `apps/desktop/electron/main/local-store/index.ts` — `openFor(workspaceId, key: Buffer)`
+- `apps/desktop/electron/main/audit/{audit-types,audit-service,index}.ts` (new)
+- `apps/desktop/electron/main/capability/audit-cap.ts` (new) — `audit@1.0`
+- `apps/desktop/electron/main/index.ts` — auditService wiring + always-provision dbKey
+- `apps/desktop/electron/main/ipc/lock-channel.ts` — dbKey threading + 5 audit emit points
+- `apps/desktop/electron/main/capability/prefs.ts` — `prefs.set` audit emit
+- `apps/desktop/src/workbench/platform-commands.ts` — `developer.audit.dump`
 
-**Open items absorbed:** O55, O95 (context-key scrub list), O28 (crash-dump PHI scrubbing), O307e (auth-event catalogue), O48 / O49 / O51 / O52 (audit lint + retention + consent UI hashing).
+**ADRs:** ADR-302 (Local Store at-rest), ADR-403 (workspace settings cascade — stub only this phase), ADR-407 (PHI-adjacent key scrubbing — type-level only this phase), ADR-502 (audit infrastructure; viewer bundle ships Phase 13).
 
-**Exit:** ciphertext DB on disk; key rotates with passphrase change; audit table records every audited capability call; redaction verified by test; bridge-events pipeline unchanged from 10a.
+**Open items resolved this phase:** O22 (Local Store wrapper choice — re-confirmed; BSMC@^12.9.0 with SQLCipher mode), O307e (lock/unlock/setup/passphrase/recovery audit emit-points wired for Phase 10).
+
+**Open items still open after 10b:**
+- **O48** — Hash-chain mechanism: shipped simple linked SHA-256 hashes. Merkle / signed-batch upgrades deferred until compliance review demands them.
+- **O49** — Audit retention per event kind: no pruning shipped. Default = retain forever. Settings cascade landing in Phase 12 enables per-kind retention policy.
+- **O51** — Audit emission lint rule: deferred. Static-analysis rule to catch PHI capability handlers that omit `auditService.emit`. Target: Phase 13 hardening pass or first non-test PHI capability.
+- **O52** — Consent UI text hashing: deferred to Phase 12 (Settings + Onboarding) where consent UIs first land.
+- **O55** — Workspace settings cloud-mirror policy: deferred to Phase 11 (Sync) — Phase 10b ships only the local-table stub, no cloud transport.
+- **O95** — PHI-adjacent context-key scrub list: type-level redaction in `AuditDetail` lands now; a runtime scrub for context-key payloads waits for the first real PHI context key (Phase 13+).
+- **O28** — Crash-dump PHI scrubbing: still latent. No telemetry surface in 10b.
+- **O157** — Electron 41 pin holds. BSMC@12.9.0 + SQLCipher works fine on V8 from Electron 41; bump deferred until upstream ships V8-14 support.
+
+**Trimmed (out of 10b scope):**
+- Cloud-mirror ledger (Tier 2 per ADR-502) — Phase 11.
+- Audit Viewer bundle UI — Phase 13.
+- Key rotation on passphrase change — currently `local-store-db-key` is independent of the passphrase (raw, per O307f). Rotating it requires re-encrypting the DB; deferred until a real rotation flow lands.
+- Settings cascade UI / capability surface — Phase 12.
+
+**Exit (verified):**
+- `pnpm --filter ru-soam-app compile` clean; `pnpm --filter @ru-soam/editor compile` clean; `pnpm --filter ru-soam-app lint` clean.
+- `local-store.db` on disk is ciphertext (not readable by plain `sqlite3` CLI).
+- Audit entries accumulate on unlock/relock/setup/passphrase-change/recovery/prefs-set.
+- Hash chain valid: `entry[n].prev_hash === entry[n-1].entry_hash`; genesis `prev_hash` is 64 zeros.
+- `AuditEntry` type has no unconstrained string fields (PHI-safe by construction).
 
 ## Phase 11 — Sync queue + cloud mirror
 

@@ -24,9 +24,9 @@ import { LockService } from '../lock/service.js';
 import { startAutoLock } from '../lock/auto-lock.js';
 import type { AutoLockHandle } from '../lock/auto-lock.js';
 import { workspaceRegistry } from '../workspace/registry.js';
-import { metadataExists } from '../lock/storage.js';
 import { ensureLocalStoreDbKey } from '../credentials/db-key.js';
 import { localStoreManager } from '../local-store/index.js';
+import { auditService } from '../audit/index.js';
 import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol.js';
 import type {
   WorkspaceCreateResult,
@@ -96,7 +96,19 @@ export function installLockChannel(
     const svc = getActiveLockService();
     if (!svc) return { ok: false, code: 'not-set-up' };
     if (typeof passphrase !== 'string') return { ok: false, code: 'not-set-up' };
-    return svc.unlock(passphrase);
+    const result = await svc.unlock(passphrase);
+    if (result.ok) {
+      const workspaceId = workspaceRegistry.getActive();
+      if (workspaceId) {
+        const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
+        auditService.emit({
+          event: 'workspace.unlock',
+          entityId: workspaceId,
+          principal: nickname ?? 'system',
+        });
+      }
+    }
+    return result;
   });
 
   // ── soam:lock:unlock-recovery ──────────────────────────────────────────────
@@ -107,7 +119,19 @@ export function installLockChannel(
     if (!Array.isArray(words) || !words.every((w) => typeof w === 'string')) {
       return { ok: false, code: 'bad-recovery-code' };
     }
-    return svc.unlockWithRecoveryCode(words as string[]);
+    const result = await svc.unlockWithRecoveryCode(words as string[]);
+    if (result.ok) {
+      const workspaceId = workspaceRegistry.getActive();
+      if (workspaceId) {
+        const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
+        auditService.emit({
+          event: 'workspace.recovery.used',
+          entityId: workspaceId,
+          principal: nickname ?? 'system',
+        });
+      }
+    }
+    return result;
   });
 
   // ── soam:lock:set-passphrase-after-recovery ────────────────────────────────
@@ -127,13 +151,37 @@ export function installLockChannel(
     if (typeof current !== 'string' || typeof next !== 'string') {
       return { ok: false, code: 'not-set-up' };
     }
-    return svc.changePassphrase(current, next);
+    const result = await svc.changePassphrase(current, next);
+    if (result.ok) {
+      const workspaceId = workspaceRegistry.getActive();
+      if (workspaceId) {
+        const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
+        auditService.emit({
+          event: 'workspace.passphrase.changed',
+          entityId: workspaceId,
+          principal: nickname ?? 'system',
+        });
+      }
+    }
+    return result;
   });
 
   // ── soam:lock:relock ───────────────────────────────────────────────────────
   ipcMain.handle('soam:lock:relock', (event) => {
     if (!isPlatformSender(event)) return null;
-    getActiveLockService()?.relock();
+    const svc = getActiveLockService();
+    if (svc) {
+      svc.relock();
+      const workspaceId = workspaceRegistry.getActive();
+      if (workspaceId) {
+        const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
+        auditService.emit({
+          event: 'workspace.relock',
+          entityId: workspaceId,
+          principal: nickname ?? 'system',
+        });
+      }
+    }
     return null;
   });
 
@@ -171,7 +219,19 @@ export function installLockChannel(
       return { ok: false, code: 'not-generated' };
     }
     const identity = (args as { identity: { email: string } }).identity;
-    return svc.setupAcknowledge({ identity });
+    const result = svc.setupAcknowledge({ identity });
+    if (result.ok) {
+      const workspaceId = workspaceRegistry.getActive();
+      if (workspaceId) {
+        const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
+        auditService.emit({
+          event: 'workspace.setup.complete',
+          entityId: workspaceId,
+          principal: nickname ?? 'system',
+        });
+      }
+    }
+    return result;
   });
 
   // ── soam:workspace:list ────────────────────────────────────────────────────
@@ -209,14 +269,16 @@ export function installLockChannel(
     // Subscribe new service to lock-changed events
     newSvc.onDidChange(() => emitLockChanged(getWindow, getActiveLockService));
 
-    // Provision db-key if this workspace has a setup-complete lock.json
-    if (metadataExists(workspaceId)) {
-      ensureLocalStoreDbKey(workspaceId);
-    }
+    // Phase 10b: always provision db-key regardless of lock.json state.
+    // Setup-pending workspaces need a key too — the store is opened before
+    // setup completes (the key is idempotent; ensureLocalStoreDbKey is safe
+    // to call unconditionally).
+    const dbKey = ensureLocalStoreDbKey(workspaceId);
 
-    // Phase 10a: open the Local Store for the newly active workspace.
+    // Open the Local Store encrypted for the newly active workspace.
     // openFor() closes any previously open store on a different workspace.
-    localStoreManager.openFor(workspaceId);
+    // openFor() consumes + zeros the key buffer in its finally block.
+    localStoreManager.openFor(workspaceId, dbKey);
 
     // Restart auto-lock
     rebindAutoLock(autoLockHandleRef, newSvc);
