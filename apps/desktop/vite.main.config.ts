@@ -33,6 +33,9 @@ export default defineConfig(({ mode }) => {
           // Pattern catches the package and any platform-tagged subpackages
           // (e.g. @node-rs/argon2-linux-x64-gnu).
           /^@node-rs\//,
+          // Phase 10a: better-sqlite3 — native module rebuilt for the Electron
+          // ABI by electron-builder install-app-deps (apps/desktop postinstall).
+          /^better-sqlite3$/,
         ],
       },
     },

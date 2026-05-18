@@ -172,6 +172,9 @@ export function boot(): ServiceRegistry {
   contextKeys.set('workspace.activeId', '');
   contextKeys.set('workspace.nickname', '');
 
+  // ── Phase 10a: Prefs dev panel toggle ────────────────────────────────────
+  contextKeys.set('developer.prefs.open', false);
+
   // ── Phase 9b: DEV-mode StatusBar entry ────────────────────────────────────
   // Use import.meta.env.DEV as an approximation of "not packaged".
   // Note: this is a build-time constant, so the entry will never appear in a

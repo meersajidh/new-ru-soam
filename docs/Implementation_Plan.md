@@ -802,15 +802,47 @@ Tracked in `docs/Open_Items.md`; surfaced here for the next delegation brief.
 
 ## Phase 10 — Local Store + audit log + TanStack Query data wiring
 
-**Goal:** capability-backed data flow real; audit spine in place; encryption-at-rest applied from the first write.
+Split into **10a** (data pipeline) and **10b** (encryption + audit). 10a landed; 10b queued.
 
-**Deliverable:** SQLite-backed Local Store in Main, change-event capability, TanStack Query invalidation bridge, one demo capability that reads/writes a non-sensitive table (e.g., user preferences). Audit log capability: append-only store, redaction discipline (no PHI-adjacent context keys in audit payloads), every capability invocation that should audit, does.
+### Phase 10a — Local Store pipeline (delivered 2026-05-18)
 
-**ADRs:** ADR-302 (Local Store), ADR-403 (workspace settings cascade), ADR-407 (PHI-adjacent key scrubbing), ADR-412, ADR-502 (audit infrastructure; viewer bundle ships Phase 13).
+**Goal:** structural capability-backed data flow end-to-end with non-PHI demo data. Prove pattern before encryption + audit land on top.
 
-**Open items:** O55, O97, O100, O95 (context-key scrub list).
+**Deliverable (shipped):**
 
-**Exit:** prefs survive restart; mutation invalidates query; demo proves the pipeline without touching PHI; audit table records every audited capability call; redaction verified by test.
+- `better-sqlite3-multiple-ciphers@^12.9.0` (aliased as `better-sqlite3`) — SQLCipher-aware wrapper, plaintext mode this phase (10b switches in keyed pragma). Resolves O22.
+- Per-workspace SQLite DB at `userData/workspaces/<id>/local-store.db`. WAL + foreign-keys enabled.
+- Migration runner (`electron/main/local-store/migrations.ts`) — single-transaction, idempotent, `_schema_version` tracking. Initial migration creates `prefs` table.
+- `LocalStoreManager` singleton — opens on workspace activate, closes on signOut + `before-quit`. **Stays open through lock** per ADR-302 §"Class 2" (prefs are Operational).
+- `prefs@1.0` capability (`electron/main/capability/prefs.ts`) — `get`, `set`, `list`. `phi: false`; capability surface remains callable when locked.
+- `store.changed` PlatformEvent over `SOAM_EVENT_CHANNEL` after every write. Payload `{ table, op, keys }`.
+- Renderer bridge (`src/platform/data/store-events-bridge.ts`) — subscribes at App boot, maps `store.changed` → `queryClient.invalidateQueries({ queryKey: [table] })` (prefix match per TanStack default). Resolves O100.
+- `usePrefsCapability()` typed hook + `PrefsDevPanel` reachable via `workbench.developer.openPrefs` (DEV-only). Mutation → bridge → auto-refetch verified.
+- `docs/Guides/tanstack-query-keys.md` — key convention `[capabilityNamespace, operation, ...keyArgs]`. Resolves O97.
+
+**Exit (verified):** prefs survive renderer reload + app restart; mutation triggers automatic list re-render without explicit invalidation in the mutation handler; DB file appears at expected path; sign-out closes DB cleanly.
+
+### Phase 10a Electron / native-module pin
+
+- Electron pinned to `^41.2.2` (was `^42.0.1` from Phase 9b). `better-sqlite3-multiple-ciphers@12.9.0` does not compile against Electron 42's V8 14 API (`External::New(isolate, addon)` 2-arg signature removed; `External::Value()` requires `ExternalPointerTypeTag`). Pin holds until upstream cuts a V8-14-compatible release.
+- Re-evaluate Electron bump alongside SQLCipher landing (10b) — at-rest crypto landing is the moment to also bump.
+
+### Phase 10b — At-rest encryption + Audit ledger (queued)
+
+**Goal:** encryption-at-rest from the first PHI-touching capability; audit spine emits before any PHI consumer ships.
+
+**Deliverable:**
+
+- SQLCipher key application via `PRAGMA key` using the per-workspace `local-store-db-key` already provisioned in 9a (via `ensureLocalStoreDbKey`).
+- Workspace settings cascade (ADR-403) — needed once audit emission has settings to read.
+- Audit ledger (ADR-502): append-only table, hash chain, emission API, redaction discipline (no PHI-adjacent context keys in payloads). PHI-adjacent context-key scrub list per ADR-407.
+- Every capability invocation that should audit, does. Redaction verified by test.
+
+**ADRs:** ADR-302 (Local Store at-rest), ADR-403 (workspace settings cascade), ADR-407 (PHI-adjacent key scrubbing), ADR-502 (audit infrastructure; viewer bundle ships Phase 13).
+
+**Open items absorbed:** O55, O95 (context-key scrub list), O28 (crash-dump PHI scrubbing), O307e (auth-event catalogue), O48 / O49 / O51 / O52 (audit lint + retention + consent UI hashing).
+
+**Exit:** ciphertext DB on disk; key rotates with passphrase change; audit table records every audited capability call; redaction verified by test; bridge-events pipeline unchanged from 10a.
 
 ## Phase 11 — Sync queue + cloud mirror
 

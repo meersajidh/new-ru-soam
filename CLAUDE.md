@@ -22,7 +22,7 @@
 
 **Stack:**
 
-- Electron 42 (main + preload + renderer + bundle-host = four processes / trust zones — ADR-101, ADR-410)
+- Electron 41 (main + preload + renderer + bundle-host = four processes / trust zones — ADR-101, ADR-410). Pinned at 41 in Phase 10a — `better-sqlite3-multiple-ciphers@12.9.0` does not compile against Electron 42's V8 14 API. Bump re-evaluated when SQLCipher lands in 10b.
 - React 19 + React Compiler, TanStack Router (file-based, generated `routeTree.gen.ts`), TanStack Query
 - Tailwind v4 (`@tailwindcss/vite`) with CSS class-based theming (palette × luminance × font-set axes — ADR-413)
 - ProseMirror (in `@ru-soam/editor`, the RuEdit primitive)
@@ -121,9 +121,12 @@ pnpm --filter ru-soam-app lint
 just dev-desktop
 ```
 
-When a test framework lands, replace this block with the actual command.
-
 ---
+
+## Skills Use
+
+Use the installed skills wherever applicable
+Always load and use caveman, frontend-design, agent-browser, ast-grep by default
 
 ## Architecture Log
 
@@ -143,6 +146,15 @@ When a test framework lands, replace this block with the actual command.
 ### 17 May 2026 — Review comments and fixes
 
 - Bundle Host = fourth trust zone now canonical in ADR-101/103/104/105
+
+### 18 May 2026 — Phase 10a delivered + Electron pin
+
+- Phase 10 split into 10a (data pipeline, delivered) + 10b (encryption-at-rest + audit ledger, queued). Rationale: SQLCipher native-binding work + audit redaction discipline each carry their own risk; landing them together with the new pattern compounds debug surface.
+- Local Store wrapper choice resolved (O22): `better-sqlite3-multiple-ciphers@^12.9.0`, aliased as `better-sqlite3`. SQLCipher-aware fork — plaintext in 10a (no `PRAGMA key`), keyed in 10b. Public API identical to `better-sqlite3`.
+- Electron pinned to `^41.2.2` (was `^42.0.1`). better-sqlite3-multiple-ciphers does not yet compile against Electron 42's V8 14 API. Bump revisited when SQLCipher lands.
+- New trust-zone surface: `store.changed` PlatformEvent over the existing `SOAM_EVENT_CHANNEL`. No new IPC channel. Renderer bridge → `queryClient.invalidateQueries({ queryKey: [table] })` (prefix-match) is the standard TanStack invalidation path for capability writes (ADR-412 §"Pattern 2").
+- Capability surface stays callable when locked iff `phi: false`. `prefs@1.0` ships Operational (ADR-302 §"Class 2"); LocalStore stays open across lock. PHI tables (Phase 13+) will be PHI-flagged and lock-gated by the existing registry decorator.
+- Native-module install lesson: `electron-builder install-app-deps` writes a `.forge-meta` marker; if the `.node` is deleted without removing the marker, the next install short-circuits. Force-rebuild = delete both.
 
 ---
 

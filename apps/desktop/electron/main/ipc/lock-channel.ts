@@ -26,6 +26,7 @@ import type { AutoLockHandle } from '../lock/auto-lock.js';
 import { workspaceRegistry } from '../workspace/registry.js';
 import { metadataExists } from '../lock/storage.js';
 import { ensureLocalStoreDbKey } from '../credentials/db-key.js';
+import { localStoreManager } from '../local-store/index.js';
 import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol.js';
 import type {
   WorkspaceCreateResult,
@@ -213,6 +214,10 @@ export function installLockChannel(
       ensureLocalStoreDbKey(workspaceId);
     }
 
+    // Phase 10a: open the Local Store for the newly active workspace.
+    // openFor() closes any previously open store on a different workspace.
+    localStoreManager.openFor(workspaceId);
+
     // Restart auto-lock
     rebindAutoLock(autoLockHandleRef, newSvc);
 
@@ -257,6 +262,11 @@ export function installLockChannel(
 
     // Dispose auto-lock handle
     rebindAutoLock(autoLockHandleRef, null);
+
+    // Phase 10a: close the Local Store so the SQLite handle is released
+    // before the next sign-in (otherwise the next openFor() could race
+    // a half-released handle and surface SQLITE_BUSY).
+    localStoreManager.closeActive();
 
     // Clear active pointer
     workspaceRegistry.setActive(null);

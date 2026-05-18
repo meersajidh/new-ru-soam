@@ -22,6 +22,20 @@ export type CapabilityCallResponse =
   | { readonly id: number; readonly ok: true; readonly data: unknown }
   | { readonly id: number; readonly ok: false; readonly error: { code: string; message: string } };
 
+/**
+ * Payload for `store.changed` platform events (ADR-302).
+ *
+ * Emitted by Main after every Local Store write. The renderer bridge
+ * (`src/platform/data/store-events-bridge.ts`) maps these to
+ * `queryClient.invalidateQueries({ queryKey: [table] })`, which prefix-matches
+ * all keys under that capability namespace per ADR-412 §"Pattern 2".
+ */
+export interface StoreChangedPayload {
+  readonly table: string;
+  readonly op: 'set' | 'delete';
+  readonly keys: ReadonlyArray<string>;
+}
+
 export interface PlatformEvent {
   readonly name: string;
   readonly payload: unknown;

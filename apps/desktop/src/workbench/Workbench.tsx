@@ -6,6 +6,9 @@ import Middle from './middle/Middle';
 import StatusBar from './parts/StatusBar';
 import CommandPalette from './command-palette/CommandPalette';
 import UserAvatar from './middle/UserAvatar';
+import PrefsDevPanel from './middle/PrefsDevPanel';
+import { useContextKey, useService } from '../platform/services/hooks';
+import { ContextKeyServiceId } from '../platform/services/ids';
 
 interface WorkbenchProps {
   /**
@@ -16,6 +19,8 @@ interface WorkbenchProps {
 }
 
 export default function Workbench({ renderMiddleOverride }: WorkbenchProps = {}) {
+  const ctxSvc = useService(ContextKeyServiceId);
+  const prefsOpen = useContextKey('developer.prefs.open') === true;
   return (
     <div className="workbench">
       <TitleBar avatarSlot={<UserAvatar />} />
@@ -29,6 +34,9 @@ export default function Workbench({ renderMiddleOverride }: WorkbenchProps = {})
       )}
       <StatusBar />
       <CommandPalette />
+      {prefsOpen && (
+        <PrefsDevPanel onClose={() => ctxSvc.set('developer.prefs.open', false)} />
+      )}
     </div>
   );
 }

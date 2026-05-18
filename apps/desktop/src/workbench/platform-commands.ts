@@ -449,6 +449,14 @@ export function registerPlatformCommands(
     );
   }
 
+  // ── Phase 10a: Prefs dev panel ────────────────────────────────────────────
+  commands.register(
+    'workbench.developer.openPrefs',
+    'Developer: Open Preferences Panel',
+    () => contextKeys.set('developer.prefs.open', true),
+    { category: 'Developer' },
+  );
+
   commands.register(
     'workbench.workspace.relock',
     'Workspace: Lock',

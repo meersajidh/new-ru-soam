@@ -16,6 +16,8 @@ import { registerBundleViewsCapability } from './capability/bundle-views';
 import { setLockServiceGetter } from './capability/registry';
 import { registerPhiDemoEchoCapability } from './capability/phi-demo-echo';
 import { registerPlatformDevCapability } from './capability/platform-dev';
+import { registerPrefsCapability } from './capability/prefs';
+import { localStoreManager } from './local-store/index';
 // Phase 9: crypto + credentials + lock + workspace
 import { credentialStore } from './credentials/index';
 import { ensureLocalStoreDbKey } from './credentials/db-key';
@@ -95,6 +97,19 @@ app.whenReady().then(async () => {
 
   // 2. WorkspaceRegistry — singleton, available immediately via import
 
+  // Wire the LocalStore manager with a renderer-broadcast emitter so every
+  // SQLite write fires a `store.changed` PlatformEvent on the soam:event
+  // channel. Mirrors the lock.changed broadcast pattern below.
+  localStoreManager.setEmitter((payload) => {
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (win.isDestroyed()) continue;
+      win.webContents.send(SOAM_EVENT_CHANNEL, {
+        name: 'store.changed',
+        payload,
+      });
+    }
+  });
+
   // 3. DEV auto-provision — returns the auto-unlocked LockService if provisioning ran
   const devProvisionedSvc = await maybeProvision();
 
@@ -103,6 +118,10 @@ app.whenReady().then(async () => {
     // Dev provision just ran and returned an already-unlocked service
     setActiveLockService(devProvisionedSvc);
     ensureLocalStoreDbKey(DEV_WORKSPACE_ID);
+    // Phase 10a: open the Local Store for the active workspace. Prefs are
+    // Operational (ADR-302 §"Class 2") — opening at workspace-active is
+    // acceptable for non-PHI data.
+    localStoreManager.openFor(DEV_WORKSPACE_ID);
   } else {
     const activeId = workspaceRegistry.getActive();
     if (activeId && metadataExists(activeId)) {
@@ -110,6 +129,8 @@ app.whenReady().then(async () => {
       setActiveLockService(svc);
       // Phase 10 prereq: ensure db-key for active workspace
       ensureLocalStoreDbKey(activeId);
+      // Phase 10a: open the Local Store. See ADR-302 §"Class 2".
+      localStoreManager.openFor(activeId);
     }
     // Else: no active workspace or setup not complete — renderer routes to pre-workspace state
   }
@@ -139,6 +160,7 @@ app.whenReady().then(async () => {
   registerBundleViewsCapability();
   registerPhiDemoEchoCapability();
   registerPlatformDevCapability();
+  registerPrefsCapability();
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);
@@ -196,6 +218,13 @@ app.on('before-quit', (event) => {
   if (shutdownStarted) return;
   shutdownStarted = true;
   event.preventDefault();
+  // Phase 10a: close the Local Store cleanly so the next launch doesn't see
+  // a busy / stale lock file from an open SQLite handle.
+  try {
+    localStoreManager.closeActive();
+  } catch (err) {
+    console.error('[local-store] close error:', err instanceof Error ? err.message : err);
+  }
   shutdownHost()
     .catch((err) =>
       console.error('[bundle-host] shutdown error:', err instanceof Error ? err.message : err),
