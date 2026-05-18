@@ -1,5 +1,5 @@
 const VALID_THEMES = new Set(['bamboo', 'stone', 'geist']);
-const VALID_FONT_SETS = new Set(['system-sans']);
+const VALID_FONT_SETS = new Set(['system-sans', 'ru-display', 'ru-editorial']);
 
 function safeGetItem(key: string): string | null {
   try { return localStorage.getItem(key); } catch { return null; }
@@ -16,8 +16,8 @@ export function applyInitialTheme(root: HTMLElement): void {
     ? storedDark === 'true'
     : window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-  const storedFontSet = safeGetItem('soam.fontSet') ?? 'system-sans';
-  const fontSetId = VALID_FONT_SETS.has(storedFontSet) ? storedFontSet : 'system-sans';
+  const storedFontSet = safeGetItem('soam.fontSet') ?? 'ru-display';
+  const fontSetId = VALID_FONT_SETS.has(storedFontSet) ? storedFontSet : 'ru-display';
 
   root.classList.add(`theme-${themeId}`);
   if (dark) root.classList.add('dark');

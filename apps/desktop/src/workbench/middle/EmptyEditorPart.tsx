@@ -3,7 +3,14 @@
 export default function EmptyEditorPart() {
   return (
     <div className="part-empty-editor">
-      <p className="empty-editor-hint">Open a workspace to get started</p>
+      <div className="editor-empty">
+        <div className="editor-empty-mark" aria-hidden="true" />
+        <h2 className="editor-empty-title">Open a workspace to begin.</h2>
+        <p className="editor-empty-line">
+          Press <span className="editor-empty-key">Ctrl+Shift+P</span> for the command palette, or
+          pick a workspace from the sidebar.
+        </p>
+      </div>
     </div>
   );
 }

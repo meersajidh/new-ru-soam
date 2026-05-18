@@ -6,9 +6,12 @@ export interface StatusBarEntry {
   tooltip?: string;
   command?: string;
   visible: boolean;
+  icon?: string;
+  severity?: 'ok' | 'warning' | 'error';
+  badge?: number;
 }
 
-type EntryPatch = Partial<Pick<StatusBarEntry, 'text' | 'tooltip' | 'command' | 'visible'>>;
+type EntryPatch = Partial<Pick<StatusBarEntry, 'text' | 'tooltip' | 'command' | 'visible' | 'icon' | 'severity' | 'badge'>>;
 
 interface UpdateBuffer {
   patch: EntryPatch;

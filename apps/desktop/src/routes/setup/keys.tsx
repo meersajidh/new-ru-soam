@@ -28,8 +28,11 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import { MockOAuthModal } from './-keys-components';
+import { ShieldAlert, Copy, Download } from 'lucide-react';
+import { MockOAuthModal, ProgressRail } from './-keys-components';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
+import PasswordInput from '../../platform/auth/PasswordInput';
+import GoogleMark from '../../platform/auth/GoogleMark';
 import '../../styles/workbench.css';
 import '../../styles/setup.css';
 
@@ -74,8 +77,6 @@ function SetupKeysPage() {
 
   // Step 3 passphrase fields
   const [confirmPassphrase, setConfirmPassphrase] = useState('');
-  const [showPassphrase, setShowPassphrase] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [passphraseError, setPassphraseError] = useState('');
   const [step3Loading, setStep3Loading] = useState(false);
 
@@ -208,6 +209,16 @@ function SetupKeysPage() {
     }
   }
 
+  function handleDownloadRecovery() {
+    const blob = new Blob([state.recoveryWords.join(' ')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ru-soam-recovery.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // ── Step renderers ───────────────────────────────────────────────────────────
 
   function renderStep1() {
@@ -222,10 +233,10 @@ function SetupKeysPage() {
             : 'Sign in to create your secure workspace. Your data stays on this device.'}
         </p>
         <button
-          className="setup-btn-google"
+          className="btn-google setup-btn-google"
           onClick={() => setShowOAuthModal(true)}
         >
-          <span className="google-logo-inline" aria-hidden="true">G</span>
+          <GoogleMark size={18} />
           Sign in with Google
         </button>
         {addNew && (
@@ -285,38 +296,28 @@ function SetupKeysPage() {
   function renderStep3() {
     const lengthOk = state.passphrase.length >= 12;
     const scoreOk = passStrength >= 3;
-    const matchOk = state.passphrase === confirmPassphrase;
 
     return (
       <div className="setup-step">
         <h1 className="setup-title">Set your passphrase</h1>
         <p className="setup-description">
-          This passphrase encrypts all your data locally. Minimum 12 characters; strength 3/4 required.
+          This passphrase encrypts all your data locally. Minimum 12 characters; strength 3/4
+          required.
         </p>
 
-        <label htmlFor="passphrase" className="setup-label">Passphrase</label>
-        <div className="setup-input-row">
-          <input
-            id="passphrase"
-            type={showPassphrase ? 'text' : 'password'}
-            className="setup-input"
-            value={state.passphrase}
-            onChange={(e) => {
-              setState((s) => ({ ...s, passphrase: e.target.value }));
-              setPassphraseError('');
-            }}
-            autoFocus
-            autoComplete="new-password"
-          />
-          <button
-            type="button"
-            className="setup-btn-ghost setup-show-toggle"
-            onClick={() => setShowPassphrase((v) => !v)}
-            aria-label={showPassphrase ? 'Hide passphrase' : 'Show passphrase'}
-          >
-            {showPassphrase ? 'Hide' : 'Show'}
-          </button>
-        </div>
+        <label htmlFor="passphrase" className="setup-label">
+          Passphrase
+        </label>
+        <PasswordInput
+          id="passphrase"
+          value={state.passphrase}
+          onChange={(v) => {
+            setState((s) => ({ ...s, passphrase: v }));
+            setPassphraseError('');
+          }}
+          autoFocus
+          autoComplete="new-password"
+        />
 
         {state.passphrase.length > 0 && <StrengthMeter score={passStrength} />}
 
@@ -324,7 +325,9 @@ function SetupKeysPage() {
           <p className="setup-error">Passphrase must be at least 12 characters.</p>
         )}
         {state.passphrase.length >= 12 && !scoreOk && (
-          <p className="setup-error">Passphrase is too weak. Please choose something harder to guess.</p>
+          <p className="setup-error">
+            Passphrase is too weak. Please choose something harder to guess.
+          </p>
         )}
 
         <label
@@ -334,24 +337,15 @@ function SetupKeysPage() {
         >
           Confirm passphrase
         </label>
-        <div className="setup-input-row">
-          <input
-            id="confirm-passphrase"
-            type={showConfirm ? 'text' : 'password'}
-            className="setup-input"
-            value={confirmPassphrase}
-            onChange={(e) => { setConfirmPassphrase(e.target.value); setPassphraseError(''); }}
-            autoComplete="new-password"
-          />
-          <button
-            type="button"
-            className="setup-btn-ghost setup-show-toggle"
-            onClick={() => setShowConfirm((v) => !v)}
-            aria-label={showConfirm ? 'Hide confirmation' : 'Show confirmation'}
-          >
-            {showConfirm ? 'Hide' : 'Show'}
-          </button>
-        </div>
+        <PasswordInput
+          id="confirm-passphrase"
+          value={confirmPassphrase}
+          onChange={(v) => {
+            setConfirmPassphrase(v);
+            setPassphraseError('');
+          }}
+          autoComplete="new-password"
+        />
 
         {confirmPassphrase.length > 0 && state.passphrase !== confirmPassphrase && (
           <p className="setup-error">Passphrases do not match.</p>
@@ -369,7 +363,7 @@ function SetupKeysPage() {
           <button
             className="setup-btn-primary"
             onClick={handlePassphraseNext}
-            disabled={!passphraseOk || !matchOk || step3Loading}
+            disabled={!passphraseOk || step3Loading}
           >
             {step3Loading ? 'Working…' : 'Next'}
           </button>
@@ -382,23 +376,45 @@ function SetupKeysPage() {
     return (
       <div className="setup-step">
         <h1 className="setup-title">Save your recovery code</h1>
-        <p className="setup-description">
-          These 12 words are the only way to recover your workspace if you forget
-          your passphrase or lose this device. Store them somewhere safe offline.
-        </p>
 
-        <div className="recovery-grid">
-          {state.recoveryWords.map((word, i) => (
-            <div key={i} className="recovery-word">
-              <span className="recovery-index">{i + 1}.</span>
-              <span className="recovery-text">{word}</span>
+        <div className="recovery" role="group" aria-labelledby="rec-warn">
+          <div className="recovery-banner">
+            <span className="ico">
+              <ShieldAlert size={16} />
+            </span>
+            <div>
+              <span id="rec-warn" className="recovery-banner-title">
+                Sensitive · Write down once
+              </span>
+              <span className="recovery-banner-body">
+                These 12 words are the <strong>only</strong> way to recover this workspace. Anyone
+                with them can decrypt every note. Store them offline — never in email, screenshots,
+                or chat.
+              </span>
             </div>
-          ))}
+          </div>
+          <div className="recovery-grid">
+            {state.recoveryWords.map((word, i) => (
+              <div key={i} className="recovery-word">
+                <span className="recovery-index">{String(i + 1).padStart(2, '0')}</span>
+                <span className="recovery-text">{word}</span>
+              </div>
+            ))}
+          </div>
+          <div className="recovery-footer">
+            <span className="recovery-footnote">
+              12 words · BIP-39 word list · case-insensitive on entry
+            </span>
+            <div className="recovery-actions">
+              <button className="recovery-btn" onClick={handleCopyRecovery}>
+                <Copy size={13} /> Copy
+              </button>
+              <button className="recovery-btn" onClick={handleDownloadRecovery}>
+                <Download size={13} /> Download .txt
+              </button>
+            </div>
+          </div>
         </div>
-
-        <button className="setup-btn-ghost setup-copy-btn" onClick={handleCopyRecovery}>
-          Copy to clipboard
-        </button>
 
         <label className="setup-checkbox-label">
           <input
@@ -406,8 +422,8 @@ function SetupKeysPage() {
             checked={acknowledged}
             onChange={(e) => setAcknowledged(e.target.checked)}
           />
-          I have recorded these words. I understand they are the only way to
-          recover access if I forget my passphrase or lose this device.
+          I have recorded these words. I understand they are the only way to recover access if I
+          forget my passphrase or lose this device.
         </label>
 
         <div className="setup-actions">
@@ -453,25 +469,10 @@ function SetupKeysPage() {
     );
   }
 
-  // ── Step indicator ───────────────────────────────────────────────────────────
-
-  const stepLabels = ['Sign in', 'Nickname', 'Passphrase', 'Recovery', 'Finish'];
-
   return (
     <div className="setup-page">
       <div className="setup-container">
-        <div className="setup-progress">
-          {stepLabels.map((label, i) => (
-            <div
-              key={i}
-              className={`setup-progress-step ${state.step === i + 1 ? 'active' : ''} ${state.step > i + 1 ? 'done' : ''}`}
-              aria-current={state.step === i + 1 ? 'step' : undefined}
-            >
-              <div className="setup-progress-dot" />
-              <span className="setup-progress-label">{label}</span>
-            </div>
-          ))}
-        </div>
+        <ProgressRail step={state.step} />
 
         <div className="setup-content">
           {state.step === 1 && renderStep1()}

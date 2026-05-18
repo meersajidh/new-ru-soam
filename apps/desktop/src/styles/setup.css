@@ -1,4 +1,4 @@
-/* ── Setup ceremony styles (Phase 9b) ─────────────────────────────────────── */
+/* ── Setup ceremony styles ─────────────────────────────────────────────────── */
 
 .setup-page {
   display: flex;
@@ -20,65 +20,153 @@
   gap: var(--space-6);
 }
 
-/* Step progress indicator */
-.setup-progress {
+/* ── Progress rail ────────────────────────────────────────────────────────── */
+
+.progress-eyebrow {
   display: flex;
-  align-items: center;
-  gap: 0;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
-.setup-progress-step {
-  flex: 1 1 auto;
+.progress-counter {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-fg-muted);
+  letter-spacing: 0.06em;
+}
+
+.progress-counter strong {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.progress-headline {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-fg-primary);
+  margin: 0;
+}
+
+.progress-rail {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  position: relative;
+  padding: 14px 0 6px;
+}
+
+.progress-rail::before {
+  content: '';
+  position: absolute;
+  top: 26px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--color-border);
+  border-radius: 1px;
+}
+
+.progress-rail::after {
+  content: '';
+  position: absolute;
+  top: 26px;
+  left: 10%;
+  width: var(--pct, 0%);
+  height: 2px;
+  background: var(--color-accent);
+  border-radius: 1px;
+  transition: width 0.3s ease-out;
+}
+
+.step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-1);
-  opacity: 0.4;
-  transition: opacity 0.15s;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
 }
 
-.setup-progress-step.active,
-.setup-progress-step.done {
-  opacity: 1;
-}
-
-.setup-progress-dot {
-  width: 8px;
-  height: 8px;
+.step-node {
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: var(--color-fg-muted);
-  transition: background 0.15s;
-}
-
-.setup-progress-step.active .setup-progress-dot {
-  background: var(--color-accent);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-accent) 30%, transparent);
-}
-
-.setup-progress-step.done .setup-progress-dot {
-  background: var(--color-success);
-}
-
-.setup-progress-label {
-  font-size: 10px;
+  background: var(--color-surface-elevated);
+  border: 1.5px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--color-fg-muted);
-  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.15s ease-out;
 }
 
-.setup-progress-step.active .setup-progress-label {
+.step-label {
+  font-size: 11px;
+  color: var(--color-fg-muted);
+  font-weight: 500;
+}
+
+.step.is-done .step-node {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-fg);
+}
+
+.step.is-done .step-label {
+  color: var(--color-fg-secondary);
+}
+
+.step.is-active {
+  margin-top: -3px;
+}
+
+.step.is-active .step-node {
+  width: 32px;
+  height: 32px;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: color-mix(in oklch, var(--color-accent) 14%, var(--color-surface-elevated));
+  box-shadow:
+    0 0 0 4px color-mix(in oklch, var(--color-accent) 22%, transparent),
+    0 0 0 8px color-mix(in oklch, var(--color-accent) 8%, transparent);
+  animation: progress-pulse 2.4s ease-in-out infinite;
+}
+
+.step.is-active .step-label {
   color: var(--color-fg-primary);
+  font-weight: 600;
 }
 
-/* Content card */
+@keyframes progress-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px color-mix(in oklch, var(--color-accent) 22%, transparent),
+      0 0 0 8px color-mix(in oklch, var(--color-accent) 6%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 5px color-mix(in oklch, var(--color-accent) 30%, transparent),
+      0 0 0 12px color-mix(in oklch, var(--color-accent) 10%, transparent);
+  }
+}
+
+/* ── Content card ─────────────────────────────────────────────────────────── */
+
 .setup-content {
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-8);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-card);
 }
 
-/* Step layout */
+/* ── Step layout ──────────────────────────────────────────────────────────── */
+
 .setup-step {
   display: flex;
   flex-direction: column;
@@ -86,10 +174,13 @@
 }
 
 .setup-title {
-  font-size: 20px;
+  font-family: var(--font-display);
+  font-size: 24px;
   font-weight: 600;
   color: var(--color-fg-primary);
   margin: 0;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 .setup-description {
@@ -98,7 +189,8 @@
   margin: 0;
 }
 
-/* Form elements */
+/* ── Form elements ────────────────────────────────────────────────────────── */
+
 .setup-label {
   font-size: 12px;
   color: var(--color-fg-secondary);
@@ -124,30 +216,51 @@
   border-color: var(--color-border-focus);
 }
 
-.setup-input-row {
-  display: flex;
-  gap: var(--space-2);
-  align-items: stretch;
-}
-
-.setup-input-row .setup-input {
-  flex: 1 1 auto;
-}
-
-.setup-show-toggle {
-  flex: 0 0 auto;
-  font-size: 11px;
-  padding: var(--space-1) var(--space-2);
-  white-space: nowrap;
-}
-
 .setup-error {
   font-size: 12px;
   color: var(--color-error);
   margin: 0;
 }
 
-/* Buttons */
+/* ── Password wrap + eye toggle ───────────────────────────────────────────── */
+
+.pw-wrap {
+  position: relative;
+}
+
+.pw-wrap .setup-input {
+  padding-right: 38px;
+}
+
+.pw-eye {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.1s;
+}
+
+.pw-eye:hover {
+  color: var(--color-fg-primary);
+}
+
+.pw-eye[aria-pressed='true'] {
+  color: var(--color-accent);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+
 .setup-btn-primary {
   background: var(--color-accent);
   border: none;
@@ -203,56 +316,53 @@
   margin-top: var(--space-2);
 }
 
-/* Google Sign-in button */
+/* ── Google sign-in pill ──────────────────────────────────────────────────── */
+
+/* White pill with hairline border — Google brand spec */
+.btn-google,
 .setup-btn-google {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  background: #4285f4;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: #fff;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 500;
-  padding: var(--space-3) var(--space-4);
-  transition: background 0.1s;
-  width: 100%;
-  justify-content: center;
-}
-
-.setup-btn-google:hover {
-  background: #357ae8;
-}
-
-.google-logo {
-  background: #fff;
-  border-radius: 2px;
-  color: #4285f4;
-  font-size: 14px;
-  font-weight: 700;
-  height: 24px;
-  width: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.google-logo-inline {
-  background: #fff;
-  border-radius: 2px;
-  color: #4285f4;
-  font-size: 12px;
-  font-weight: 700;
-  height: 20px;
-  width: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 9999px;
+  color: #3c4043;
+  cursor: pointer;
+  font-family: 'Roboto', 'Inter Tight', system-ui;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 20px;
+  transition: background 0.1s, box-shadow 0.1s;
+  width: 100%;
 }
 
-/* Strength meter */
+.btn-google:hover,
+.setup-btn-google:hover {
+  background: #f8f9fa;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15);
+}
+
+.btn-google:active,
+.setup-btn-google:active {
+  background: #f1f3f4;
+}
+
+.dark .btn-google,
+.dark .setup-btn-google {
+  background: #1e1e1e;
+  border-color: #3c4043;
+  color: #e8eaed;
+}
+
+.dark .btn-google:hover,
+.dark .setup-btn-google:hover {
+  background: #2a2a2a;
+}
+
+/* ── Strength meter ───────────────────────────────────────────────────────── */
+
 .strength-meter {
   display: flex;
   align-items: center;
@@ -269,6 +379,7 @@
   height: 4px;
   width: 36px;
   border-radius: 2px;
+  background: var(--color-border);
   transition: background 0.2s;
 }
 
@@ -277,43 +388,123 @@
   color: var(--color-fg-muted);
 }
 
-/* Recovery code grid */
+/* ── Recovery surface ─────────────────────────────────────────────────────── */
+
+.recovery {
+  border: 1px solid color-mix(in oklch, var(--color-warning) 60%, var(--color-border));
+  border-radius: var(--radius-md);
+  background: var(--color-surface-elevated);
+  overflow: hidden;
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-warning) 8%, transparent);
+}
+
+.recovery-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: color-mix(in oklch, var(--color-warning) 14%, transparent);
+  border-bottom: 1px solid color-mix(in oklch, var(--color-warning) 40%, var(--color-border));
+  color: var(--color-warning);
+}
+
+.recovery-banner .ico {
+  flex: 0 0 auto;
+  display: inline-flex;
+  margin-top: 1px;
+}
+
+.recovery-banner-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.recovery-banner-body {
+  color: var(--color-fg-primary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .recovery-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-2);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-4);
+  gap: 0;
+  padding: 8px;
 }
 
 .recovery-word {
   display: flex;
-  align-items: center;
-  gap: var(--space-1);
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 10px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
+  background: var(--color-surface-panel);
+  margin: 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
 }
 
 .recovery-index {
   color: var(--color-fg-muted);
-  min-width: 20px;
+  min-width: 18px;
   text-align: right;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .recovery-text {
   color: var(--color-fg-primary);
   font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
-.setup-copy-btn {
-  align-self: flex-start;
+.recovery-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-panel);
+  gap: 10px;
+}
+
+.recovery-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.recovery-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-secondary);
+  font-family: var(--font-sans);
   font-size: 12px;
-  padding: var(--space-1) var(--space-3);
+  padding: 5px 10px;
+  cursor: pointer;
 }
 
-/* Acknowledge checkbox */
+.recovery-btn:hover {
+  background: var(--color-surface-active);
+  color: var(--color-fg-primary);
+  border-color: var(--color-fg-muted);
+}
+
+.recovery-footnote {
+  font-size: 11px;
+  color: var(--color-fg-muted);
+}
+
+/* ── Acknowledge checkbox ─────────────────────────────────────────────────── */
+
 .setup-checkbox-label {
   display: flex;
   align-items: flex-start;
@@ -331,7 +522,8 @@
   accent-color: var(--color-accent);
 }
 
-/* Modal overlay */
+/* ── Modal overlay ────────────────────────────────────────────────────────── */
+
 .setup-modal-overlay {
   position: fixed;
   inset: 0;
@@ -346,7 +538,7 @@
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-modal);
   padding: var(--space-8);
   width: 360px;
   max-width: calc(100vw - var(--space-8));
@@ -389,7 +581,7 @@
   margin-top: var(--space-2);
 }
 
-/* ── Unlock gate styles ────────────────────────────────────────────────────── */
+/* ── Unlock gate ──────────────────────────────────────────────────────────── */
 
 .unlock-gate-overlay {
   display: flex;
@@ -404,7 +596,7 @@
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-card);
   padding: var(--space-8);
   width: 400px;
   max-width: 100%;
@@ -414,10 +606,14 @@
 }
 
 .unlock-gate-title {
-  font-size: 18px;
+  font-family: var(--font-display);
+  font-size: 22px;
   font-weight: 600;
   color: var(--color-fg-primary);
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .unlock-gate-nickname {
@@ -455,7 +651,7 @@
   color: var(--color-accent-hover);
 }
 
-/* Recovery code textarea/grid entry */
+/* Recovery code textarea entry */
 .recovery-entry-area {
   width: 100%;
   background: var(--color-surface-panel);
@@ -476,7 +672,8 @@
   border-color: var(--color-border-focus);
 }
 
-/* Change passphrase dialog */
+/* ── Change passphrase dialog ─────────────────────────────────────────────── */
+
 .change-passphrase-overlay {
   position: fixed;
   inset: 0;
@@ -491,7 +688,7 @@
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-modal);
   padding: var(--space-8);
   width: 400px;
   max-width: calc(100vw - var(--space-8));
@@ -507,7 +704,8 @@
   margin: 0;
 }
 
-/* User avatar */
+/* ── User avatar ──────────────────────────────────────────────────────────── */
+
 .user-avatar-container {
   position: relative;
   display: flex;
@@ -545,7 +743,7 @@
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-overlay);
   min-width: 180px;
   overflow: hidden;
   z-index: 150;
@@ -604,7 +802,7 @@
   color: var(--color-fg-muted);
 }
 
-/* ── Workspace picker styles (Phase 9c) ───────────────────────────────────── */
+/* ── Workspace picker ─────────────────────────────────────────────────────── */
 
 .workspace-picker-container {
   width: 480px;
@@ -716,7 +914,8 @@
   justify-content: center;
 }
 
-/* Dev mode warning */
+/* ── Dev mode warning ─────────────────────────────────────────────────────── */
+
 .dev-mode-warning {
   font-size: 11px;
   color: var(--color-warning);

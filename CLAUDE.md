@@ -123,10 +123,46 @@ just dev-desktop
 
 ---
 
-## Skills Use
+## Skills & search-tool selection
 
-Use the installed skills wherever applicable
-Always load and use caveman, frontend-design, agent-browser, ast-grep by default
+### Always-on skills (main thread)
+
+- **caveman** — keep all output terse; drop articles, filler, pleasantries.
+- **agent-browser** — reach for it whenever the task needs Electron/browser
+  automation or dogfooding.
+
+### On-demand skills
+
+- **frontend-design** — invoke only when scope touches UI components, pages,
+  or visual design.
+- **ast-grep** — invoke per the search-tool decision rule below.
+
+### Search tool selection — `grep` vs `ast-grep`
+
+Choose by query shape, not habit:
+
+- **Use `grep`** for literal-string matches: known identifiers, error
+  messages, import paths, file names, URL fragments. Anything you'd paste
+  between quotes.
+- **Use `ast-grep`** the moment the query depends on code structure:
+  - "all calls to X with N+ args" / "X called as second arg of Y"
+  - "every `useState<T>(...)` where T is a non-primitive"
+  - "all `ipcMain.handle` registrations" (handlers may be registered via
+    helpers, dynamic strings, or chained calls that `grep` will miss)
+  - "every `switch` statement missing a `default` case"
+  - any rename or refactor where AST node type matters
+
+If the answer to "would `grep` match the wrong things or miss syntactic
+variants" is yes, `ast-grep` is the correct tool. Default to `grep` for
+speed; reach for `ast-grep` deliberately when the query crosses the
+structural-vs-textual line above.
+
+### Subagent dispatch
+
+Use `subagent_type: implementer` (defined at `~/.claude/agents/implementer.md`)
+for all implementation delegation. The agent's system prompt bakes in the
+skill-activation rules above, so briefs do not need to repeat them — pass
+only the task-specific Goal / Scope / Constraints / Success criteria.
 
 ## Architecture Log
 
@@ -146,6 +182,22 @@ Always load and use caveman, frontend-design, agent-browser, ast-grep by default
 ### 17 May 2026 — Review comments and fixes
 
 - Bundle Host = fourth trust zone now canonical in ADR-101/103/104/105
+
+### 18 May 2026 — Design-system bundle landed (Ru-Soam DS v1)
+
+- Source: handoff bundle from Claude Design (claude.ai/design). Implemented in 4 sequential implementer passes (Foundations / Chrome / Setup+Gate+Picker / Editor).
+- **Typography**: three runtime font sets — `system-sans` (fallback), `ru-display` (default), `ru-editorial`. Webfonts via `styles/fonts/google-fonts.css` (`@import` CDN; Source Serif 4 / Inter Tight / IBM Plex Mono, SIL OFL). New `--font-display` token + `--font-display-weight` / `--font-display-letter-spacing`. Default cold-start font-set flipped `system-sans → ru-display` (`initial-theme.ts` VALID_FONT_SETS + fallback). Production migration TODO: bundle `.woff2` to drop CDN dep (no CSP audit done).
+- **Tokens**: shadow scale added to `@theme` — `--shadow-rest|card|overlay|modal`. Every literal `rgba(0,0,0,*)` shadow in `workbench.css`/`setup.css` swapped to vars. Semantic type recipes in `styles/type.css` (`.t-display`, `.t-title`, `.t-body`, etc.).
+- **Icons**: `lucide-react@^1.16.0` is now a dep. All bracketed glyphs (`[L]`/`[U]`), unicode window controls, "G" letter mark replaced with Lucide / SVG components. Bridge mark (`workbench/parts/BridgeMark.tsx`) = the cane-suspension-bridge app icon, sits in the accent-filled 36×36 `tb-app` slot.
+- **Chrome (TitleBar)**: rewritten — 32→36px, adds menu strip (File · Edit · View · Patient · Snippets · Window · Help), back/forward, quick-open pill (opens `commandPalette.open`), panel toggles (dispatch `workbench.togglePrimarySideBar` / `togglePanel` / `toggleAuxSideBar`), divider, avatar slot, window controls. `window.soam.bindCapability('platform.window','1.0')` wiring preserved.
+- **StatusBar service contract**: `StatusBarEntry` (and `EntryPatch`) gain `icon?: string`, `severity?: 'ok'|'warning'|'error'`, `badge?: number`. New `StatusBar.tsx` renders icon via Lucide map, severity class, badge pill. Divider auto-inserted between priority buckets (heuristic: ≥700 left / ≥800 right). `anchored-ids.ts` reordered — Alerts on right corner (priority 1000), dev-mode below it (warning-tinted), then sync, then bundle activity. Left: lock (icon flips lock/unlock via boot.ts), nickname, entity, dirty. Legacy `workbench.kek.lock` deleted.
+- **Setup ceremony**: dot-row replaced with progress-rail (eyebrow counter + headline + 5-node rail with linear fill `--pct`, check icon on done, pulse halo on active). Recovery code rendered as a sensitive surface — warning border + 4px halo, severity banner (`ShieldAlert`), zero-padded indices, footer with Copy + Download .txt actions. Modernised Google sign-in pill (`btn-google`, white pill / hairline / `Roboto, Inter Tight` font, dark-mode variant) + reusable `GoogleMark` 4-color SVG. Shared `platform/auth/PasswordInput.tsx` (eye-toggle inside input) replaces the show/hide ghost-button pattern across setup wizard + UnlockGate.
+- **UnlockGate**: title gets `<Lock />` (or `<KeyRound />` in `forceResetMode`); passphrase + reset-passphrase fields use `PasswordInput`.
+- **Editor surfaces**: snippet chips re-themed — hardcoded `rgb(122,139,222)` / `rgb(90,180,140)` → `color-mix(in oklch, var(--color-info|--color-success) N%, transparent)` so they retheme across Bamboo/Stone/Geist. Halo states `ProseMirror-selectednode.ru-snippet-placeholder--text` and `.ru-snippet-placeholder--picklist.is-open` get 2px outer ring. ProseMirror H1 + H2 adopt display family + tighter tracking. `.ru-edit-host` constrained to `max-width:760px; margin:0 auto; padding:28px 40px 80px`. Empty-editor surfaces (`EmptyEditorPart`, `editor-group-empty`) replaced with the weave-motif card (96×96 panel + double repeating-linear-gradient in accent) + display-family title + kbd hint.
+- **Caveats**:
+  - `React.FormEvent` deprecation warnings (TS 6385) in `UnlockGate.tsx` + `-keys-components.tsx` — pre-existing, surfaced because files were touched. Not a regression.
+  - Webfonts require network in renderer (Google Fonts CDN). No CSP audit. To package, port `.woff2` locally per `styles/fonts/README.md`.
+  - StatusBar divider insertion is heuristic — may need explicit grouping if more anchored entries are added.
 
 ### 18 May 2026 — Phase 10a delivered + Electron pin
 
@@ -175,7 +227,8 @@ Reason through the full requirement. Identify:
 - Success criteria (how will I know it's correct?)
 
 **2. Delegate**
-Invoke `@agent-implementer` with a brief containing:
+Spawn the implementer agent via `Agent` with `subagent_type: implementer`
+(defined at `~/.claude/agents/implementer.md`). Brief contains:
 
 - **Goal** — one sentence
 - **Scope** — list of file paths or directories in scope
@@ -184,7 +237,9 @@ Invoke `@agent-implementer` with a brief containing:
 - **Priority flags** — anything tricky to watch out for
 
 Do NOT include file contents in the handoff. Do NOT include the full design
-rationale. Keep the brief to what Sonnet needs to act — it will read the rest.
+rationale. Do NOT repeat skill-activation rules — the agent file owns those.
+Keep the brief to what the implementer needs to act on — it reads the rest
+from CLAUDE.md and the codebase.
 
 **3. Review**
 After receiving the handoff summary:

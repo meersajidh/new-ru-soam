@@ -192,7 +192,8 @@ export function boot(): ServiceRegistry {
       // Show lock indicator
       statusBar.update('workbench.lock', {
         visible: true,
-        text: locked ? '[L]' : '[U]',
+        icon: locked ? 'lock' : 'unlock',
+        text: locked ? 'Locked' : 'Unlocked',
         tooltip: locked ? 'Workspace locked — enter passphrase to unlock' : 'Workspace unlocked — click to lock',
         command: locked ? undefined : 'workbench.workspace.relock',
       });

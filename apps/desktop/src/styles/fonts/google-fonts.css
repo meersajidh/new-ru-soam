@@ -1,0 +1,16 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Webfont loader — Google Fonts CDN.
+ *
+ * Families (SIL Open Font License 1.1):
+ *   Source Serif 4  — display + long-form body; variable optical-sizing (opsz 8..60)
+ *   Inter Tight     — UI sans for all workbench surfaces
+ *   IBM Plex Mono   — mono; scholarly / typewriter character
+ *
+ * Weights: 400 / 500 / 600 / 700 (Source Serif 4, Inter Tight); 400 / 500 (IBM Plex Mono).
+ * font-display: swap is implicit in Google's CSS2 endpoint.
+ *
+ * TODO: port .woff2 files into this folder and replace with explicit @font-face
+ * rules to remove the CDN dependency.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');

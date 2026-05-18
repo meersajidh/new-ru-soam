@@ -80,7 +80,14 @@ function renderEditor(resource: string, instanceId: string) {
 function EmptyGroup() {
   return (
     <div className="editor-group-empty">
-      <p>No editors open</p>
+      <div className="editor-empty">
+        <div className="editor-empty-mark" aria-hidden="true" />
+        <h2 className="editor-empty-title">No editor open.</h2>
+        <p className="editor-empty-line">
+          Open a file from the sidebar, or press{' '}
+          <span className="editor-empty-key">Ctrl+P</span> for quick open.
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,17 +1,27 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { ArrowLeft, ArrowRight, Search, ChevronDown, PanelLeft, PanelBottom, PanelRight, Minus, Square, X } from 'lucide-react';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
+import { useService } from '../../platform/services/hooks';
+import { CommandServiceId, ContextKeyServiceId } from '../../platform/services/ids';
+import BridgeMark from './BridgeMark';
+
+const MENUS = ['File', 'Edit', 'View', 'Patient', 'Snippets', 'Window', 'Help'] as const;
 
 interface TitleBarProps {
-  /**
-   * Optional slot for the user-avatar dropdown (Phase 9b).
-   * Rendered between the drag region and the window controls.
-   */
   avatarSlot?: ReactNode;
+  activeResource?: string;
 }
 
-export default function TitleBar({ avatarSlot }: TitleBarProps = {}) {
+export default function TitleBar({
+  avatarSlot,
+  activeResource = 'Open a file…',
+}: TitleBarProps = {}) {
   const [maximized, setMaximized] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const proxy = useRef<SoamCapabilityProxy | null>(null);
+
+  const commands = useService(CommandServiceId);
+  const contextKeys = useService(ContextKeyServiceId);
 
   useEffect(() => {
     void window.soam.bindCapability('platform.window', '1.0').then(async (p) => {
@@ -26,36 +36,109 @@ export default function TitleBar({ avatarSlot }: TitleBarProps = {}) {
 
   return (
     <div className="part-titlebar">
-      <div className="titlebar-drag-region">
-        <span className="titlebar-name">Ru-Soam</span>
+      {/* App icon — cane suspension bridge */}
+      <div className="tb-app" title="Ru-Soam">
+        <BridgeMark size={22} />
       </div>
-      {avatarSlot != null && (
-        <div className="titlebar-avatar-slot">
-          {avatarSlot}
+
+      {/* Menu strip */}
+      <div className="tb-menu">
+        {MENUS.map((m) => (
+          <button
+            key={m}
+            className={`tb-menu-item${openMenu === m ? ' is-open' : ''}`}
+            onClick={() => setOpenMenu(openMenu === m ? null : m)}
+            aria-label={m}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+
+      {/* Drag region — left of nav */}
+      <div className="titlebar-drag-region tb-flex" />
+
+      {/* Back / forward */}
+      <div className="tb-nav">
+        <button className="tb-icon-btn" aria-label="Go back" title="Back">
+          <ArrowLeft size={14} />
+        </button>
+        <button className="tb-icon-btn" aria-label="Go forward" title="Forward" disabled>
+          <ArrowRight size={14} />
+        </button>
+      </div>
+
+      {/* Quick-open pill */}
+      <button
+        className="quick-open"
+        onClick={() => contextKeys.set('commandPalette.open', true)}
+        title="Quick open · ⌘P"
+        aria-label="Quick open"
+      >
+        <span className="lead">
+          <Search size={13} />
+        </span>
+        <span className="label">{activeResource}</span>
+        <span className="meta">⌘P</span>
+        <span className="trail">
+          <ChevronDown size={12} />
+        </span>
+      </button>
+
+      {/* Drag region — right of quick-open */}
+      <div className="titlebar-drag-region tb-flex" />
+
+      {/* Right cluster */}
+      <div className="tb-right">
+        <button
+          className="tb-icon-btn"
+          title="Toggle Primary Side Bar"
+          aria-label="Toggle Primary Side Bar"
+          onClick={() => void commands.execute('workbench.togglePrimarySideBar')}
+        >
+          <PanelLeft size={14} />
+        </button>
+        <button
+          className="tb-icon-btn"
+          title="Toggle Panel"
+          aria-label="Toggle Panel"
+          onClick={() => void commands.execute('workbench.togglePanel')}
+        >
+          <PanelBottom size={14} />
+        </button>
+        <button
+          className="tb-icon-btn"
+          title="Toggle Auxiliary Side Bar"
+          aria-label="Toggle Auxiliary Side Bar"
+          onClick={() => void commands.execute('workbench.toggleAuxSideBar')}
+        >
+          <PanelRight size={14} />
+        </button>
+        <span className="tb-divider" aria-hidden="true" />
+        {avatarSlot}
+        <div className="tb-win">
+          <button
+            className="tb-win-btn"
+            aria-label="Minimize"
+            onClick={() => void proxy.current?.call('minimize')}
+          >
+            <Minus size={12} />
+          </button>
+          <button
+            className="tb-win-btn"
+            aria-label={maximized ? 'Restore' : 'Maximize'}
+            onClick={() => void proxy.current?.call('toggleMaximize')}
+          >
+            <Square size={10} />
+          </button>
+          <button
+            className="tb-win-btn is-close"
+            aria-label="Close"
+            onClick={() => void proxy.current?.call('close')}
+          >
+            <X size={12} />
+          </button>
         </div>
-      )}
-      <div className="titlebar-controls">
-        <button
-          className="titlebar-btn"
-          onClick={() => void proxy.current?.call('minimize')}
-          aria-label="Minimize"
-        >
-          &#x2212;
-        </button>
-        <button
-          className="titlebar-btn"
-          onClick={() => void proxy.current?.call('toggleMaximize')}
-          aria-label={maximized ? 'Restore' : 'Maximize'}
-        >
-          {maximized ? '⧉' : '□'}
-        </button>
-        <button
-          className="titlebar-btn titlebar-btn-close"
-          onClick={() => void proxy.current?.call('close')}
-          aria-label="Close"
-        >
-          &#x2715;
-        </button>
       </div>
     </div>
   );

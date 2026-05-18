@@ -12,9 +12,11 @@
 
 import { useState } from 'react';
 import { zxcvbn } from '@zxcvbn-ts/core';
+import { Lock, KeyRound } from 'lucide-react';
 import { useContextKey } from '../../platform/services/hooks';
 import type { UnlockResult, RecoveryUnlockResult } from '../../../electron/shared/lock-protocol';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
+import PasswordInput from '../../platform/auth/PasswordInput';
 import '../../styles/setup.css';
 
 type GateMode = 'passphrase' | 'recovery' | 'reset-passphrase';
@@ -35,7 +37,6 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
 
   // Passphrase mode
   const [passphrase, setPassphrase] = useState('');
-  const [showPassphrase, setShowPassphrase] = useState(false);
   const [unlockError, setUnlockError] = useState('');
   const [unlocking, setUnlocking] = useState(false);
 
@@ -47,7 +48,6 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
   // Reset passphrase after recovery
   const [newPassphrase, setNewPassphrase] = useState('');
   const [confirmNewPassphrase, setConfirmNewPassphrase] = useState('');
-  const [showNewPassphrase, setShowNewPassphrase] = useState(false);
   const [resetError, setResetError] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
 
@@ -157,16 +157,24 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  const cardTitle = forceResetMode ? 'Set a new passphrase' : '[L] Workspace locked';
-
   return (
     <div className="unlock-gate-overlay">
       <div className="unlock-gate-card">
         <div>
-          <h2 className="unlock-gate-title">{cardTitle}</h2>
-          {nickname && (
-            <p className="unlock-gate-nickname">{nickname}</p>
-          )}
+          <h2 className="unlock-gate-title">
+            {forceResetMode ? (
+              <>
+                <KeyRound size={20} />
+                Set a new passphrase
+              </>
+            ) : (
+              <>
+                <Lock size={20} />
+                Workspace locked
+              </>
+            )}
+          </h2>
+          {nickname && <p className="unlock-gate-nickname">{nickname}</p>}
         </div>
 
         {mode === 'passphrase' && (
@@ -174,26 +182,17 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
             <label htmlFor="unlock-passphrase" className="setup-label">
               Passphrase
             </label>
-            <div className="setup-input-row">
-              <input
-                id="unlock-passphrase"
-                type={showPassphrase ? 'text' : 'password'}
-                className="setup-input"
-                value={passphrase}
-                onChange={(e) => { setPassphrase(e.target.value); setUnlockError(''); }}
-                autoFocus
-                autoComplete="current-password"
-                placeholder="Enter your passphrase"
-              />
-              <button
-                type="button"
-                className="setup-btn-ghost setup-show-toggle"
-                onClick={() => setShowPassphrase((v) => !v)}
-                aria-label={showPassphrase ? 'Hide passphrase' : 'Show passphrase'}
-              >
-                {showPassphrase ? 'Hide' : 'Show'}
-              </button>
-            </div>
+            <PasswordInput
+              id="unlock-passphrase"
+              value={passphrase}
+              onChange={(v) => {
+                setPassphrase(v);
+                setUnlockError('');
+              }}
+              autoFocus
+              autoComplete="current-password"
+              placeholder="Enter your passphrase"
+            />
             {unlockError && <p className="unlock-gate-error">{unlockError}</p>}
             <div className="setup-actions">
               <button
@@ -207,7 +206,10 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
             <button
               type="button"
               className="unlock-recovery-toggle"
-              onClick={() => { setMode('recovery'); setUnlockError(''); }}
+              onClick={() => {
+                setMode('recovery');
+                setUnlockError('');
+              }}
             >
               Use recovery code instead
             </button>
@@ -223,7 +225,10 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
               id="recovery-entry"
               className="recovery-entry-area"
               value={recoveryText}
-              onChange={(e) => { setRecoveryText(e.target.value); setRecoveryError(''); }}
+              onChange={(e) => {
+                setRecoveryText(e.target.value);
+                setRecoveryError('');
+              }}
               placeholder="word1 word2 word3 … word12"
               autoFocus
               rows={3}
@@ -233,7 +238,10 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
               <button
                 type="button"
                 className="setup-btn-ghost"
-                onClick={() => { setMode('passphrase'); setRecoveryError(''); }}
+                onClick={() => {
+                  setMode('passphrase');
+                  setRecoveryError('');
+                }}
               >
                 Back
               </button>
@@ -258,28 +266,17 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
             <label htmlFor="new-passphrase" className="setup-label">
               New passphrase
             </label>
-            <div className="setup-input-row">
-              <input
-                id="new-passphrase"
-                type={showNewPassphrase ? 'text' : 'password'}
-                className="setup-input"
-                value={newPassphrase}
-                onChange={(e) => { setNewPassphrase(e.target.value); setResetError(''); }}
-                autoFocus
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                className="setup-btn-ghost setup-show-toggle"
-                onClick={() => setShowNewPassphrase((v) => !v)}
-                aria-label={showNewPassphrase ? 'Hide' : 'Show'}
-              >
-                {showNewPassphrase ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            {newPassphrase.length > 0 && (
-              <StrengthMeter score={newPassScore} />
-            )}
+            <PasswordInput
+              id="new-passphrase"
+              value={newPassphrase}
+              onChange={(v) => {
+                setNewPassphrase(v);
+                setResetError('');
+              }}
+              autoFocus
+              autoComplete="new-password"
+            />
+            {newPassphrase.length > 0 && <StrengthMeter score={newPassScore} />}
             {newPassphrase.length > 0 && newPassphrase.length < 12 && (
               <p className="unlock-gate-error">At least 12 characters required.</p>
             )}
@@ -289,12 +286,13 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
             <label htmlFor="confirm-new-passphrase" className="setup-label">
               Confirm new passphrase
             </label>
-            <input
+            <PasswordInput
               id="confirm-new-passphrase"
-              type={showNewPassphrase ? 'text' : 'password'}
-              className="setup-input"
               value={confirmNewPassphrase}
-              onChange={(e) => { setConfirmNewPassphrase(e.target.value); setResetError(''); }}
+              onChange={(v) => {
+                setConfirmNewPassphrase(v);
+                setResetError('');
+              }}
               autoComplete="new-password"
             />
             {confirmNewPassphrase.length > 0 && newPassphrase !== confirmNewPassphrase && (
@@ -316,4 +314,3 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
     </div>
   );
 }
-
