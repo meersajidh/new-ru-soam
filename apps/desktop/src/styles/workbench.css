@@ -375,13 +375,11 @@ body,
   height: 100%;
 }
 
-.statusbar-region.left,
-.statusbar-left {
+.statusbar-region.left {
   flex: 1 1 auto;
 }
 
-.statusbar-region.right,
-.statusbar-right {
+.statusbar-region.right {
   margin-left: auto;
 }
 
@@ -885,11 +883,6 @@ body,
 
 .ru-snippet-placeholder--picklist:hover {
   @apply bg-tint-success-soft border-tint-success-bold;
-}
-
-.ru-snippet-placeholder--picklist.is-open {
-  @apply bg-tint-success-soft border-tint-success-bold;
-  box-shadow: 0 0 0 2px var(--color-tint-success-medium);
 }
 
 /* Picklist dropdown (appended to body, positioned fixed) */

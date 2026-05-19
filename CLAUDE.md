@@ -315,6 +315,17 @@ only the task-specific Goal / Scope / Constraints / Success criteria.
 - Developer command: `developer.audit.dump` calls `audit@1.0`.list via `bindCapability` and dumps via `console.table`.
 - Electron 41 pin holds (O157 stays open). BSMC@12.9.0 + SQLCipher works fine on V8 from Electron 41. Bump deferred until upstream ships V8-14 support.
 
+### 19 May 2026 — PR-8a delivered (dead-CSS cleanup)
+
+- Removed 17 orphan selectors / 1 unused `@keyframes` across `workbench.css` (5 line del) and `setup.css` (116 line del). Total CSS shrink: ~120 lines.
+- Dead selectors enumerated via `grep ^\.classname` extraction + reverse-grep across `.tsx`/`.ts`. Confirmed orphans:
+  - `.statusbar-left` / `.statusbar-right` — paired branches in selector lists with live `.statusbar-region.{left,right}`; live JSX uses the compound selector. Removed the bare-class branches.
+  - `.ru-snippet-placeholder--picklist.is-open` (workbench.css) — dead since PR-6 (no JS toggles `is-open` on the placeholder; popup picklist uses different mechanism). Confirmed; deleted.
+  - `.workspace-picker-*` family (13 selectors) + `@keyframes picker-spin` in `setup.css` — superseded by `WorkspaceTileGrid` (`.wtg-*`) in PR work prior. Zero JSX refs.
+  - `.dev-mode-warning` (setup.css) — zero JSX refs. The visible "Dev build" indicator in the StatusBar uses `.statusbar-entry--warning`, not this orphan.
+- Verified no zombie refs remain via combined grep across `apps/desktop/src` + `packages/editor/src`. Compile + lint clean.
+- File counts: `workbench.css` 982 → 909 LOC, `setup.css` 1285 → 1074 LOC. Combined ~120 LOC dropped without touching live behaviour.
+
 ### 19 May 2026 — PR-7c delivered (token namespace migration)
 
 - 37 tokens migrated into the canonical `--color-*` namespace so Tailwind v4 auto-generates utilities for each: tints (24), scrims (2), edge-highlights (2), tinted-borders (4), surface variants (5). Old prefixes (`--tint-*`, `--scrim-*`, `--highlight-*`, `--border-{hover|warning-*|subtle}`, `--surface-{input*|sunken*|recessed}`) no longer exist.
