@@ -280,6 +280,15 @@ only the task-specific Goal / Scope / Constraints / Success criteria.
 - Developer command: `developer.audit.dump` calls `audit@1.0`.list via `bindCapability` and dumps via `console.table`.
 - Electron 41 pin holds (O157 stays open). BSMC@12.9.0 + SQLCipher works fine on V8 from Electron 41. Bump deferred until upstream ships V8-14 support.
 
+### 19 May 2026 — PR-5 delivered (inline `style={{}}` triage)
+
+- Replaced 14 of 21 inline `style={{}}` sites with Tailwind v4 utilities; 7 remaining sites are all runtime/dynamic values (StrengthMeter score-driven bg/color, EditorArea computed `flex: node.ratio`, WorkspaceTileGrid dynamic avatar bg, ChangePassphraseDialog strength meter) and intentionally kept.
+- One pre-existing bug fixed in passing: `PrefsDevPanel.tsx:<li>` referenced undefined token `--color-surface-raised`; mapped to `--color-surface-elevated` (the prefs-list row now has a visible background). Verified token name against `tokens.css` — the four defined surface tokens are `base / panel / elevated / active`.
+- Tailwind v4 token-to-utility mapping confirmed working: `--space-N` ↔ `mt-N` / `gap-N` etc., `--radius-sm` ↔ `rounded-sm`, `--font-mono` ↔ `font-mono`, `--color-surface-elevated` ↔ `bg-surface-elevated`, `--color-fg-muted` ↔ `text-fg-muted`. Arbitrary values supported via `[brackets]` (e.g. `max-w-[calc(100vw-32px)]`).
+- Files touched (6): `routes/workspaces/index.tsx`, `routes/setup/keys.tsx`, `workbench/middle/PrefsDevPanel.tsx`, `workbench/middle/PreWorkspaceRoute.tsx`, `workbench/middle/UnlockGate.tsx`, `workbench/middle/ChangePassphraseDialog.tsx`. No CSS files, no new tokens, no new classes.
+- Defer to PR-6: BEM-strict naming codemod (rename `is-*` state classes to `--mod` modifiers where state is component-local).
+- Defer to PR-7+: type recipe (`.t-*`) adoption, CSS file relocation, recipe layer for repeated composites.
+
 ### 19 May 2026 — PR-4 delivered (surface-over-surface mixes)
 
 - 5 new tokens in `tokens.css`: `--surface-input` (panel 80% × base), `--surface-input-focus` (panel 70% × base), `--surface-sunken-soft` (panel 50% × transparent), `--surface-sunken-medium` (panel 60% × transparent), `--surface-recessed` (base 60% × transparent).

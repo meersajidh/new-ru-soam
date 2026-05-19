@@ -56,8 +56,8 @@ export default function PrefsDevPanel({ onClose }: Props) {
 
   return (
     <div className="unlock-gate-overlay" role="dialog" aria-modal="true">
-      <div className="unlock-gate-card" style={{ width: 520, maxWidth: 'calc(100vw - 32px)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+      <div className="unlock-gate-card w-[520px] max-w-[calc(100vw-32px)]">
+        <div className="flex justify-between items-baseline">
           <h2 className="unlock-gate-title">Preferences (dev)</h2>
           <button
             type="button"
@@ -118,8 +118,8 @@ export default function PrefsDevPanel({ onClose }: Props) {
               </div>
             </form>
 
-            <div style={{ marginTop: 'var(--space-4)' }}>
-              <p className="setup-label" style={{ marginBottom: 'var(--space-2)' }}>
+            <div className="mt-4">
+              <p className="setup-label mb-2">
                 Stored prefs{list.isFetching ? ' (refetching…)' : ''}
               </p>
               {list.isLoading && <p className="setup-description">Loading…</p>}
@@ -132,24 +132,15 @@ export default function PrefsDevPanel({ onClose }: Props) {
                 <p className="setup-description">No prefs set yet. Add one above.</p>
               )}
               {list.data && list.data.length > 0 && (
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                <ul className="list-none p-0 m-0 flex flex-col gap-1">
                   {list.data.map((row) => (
                     <li
                       key={row.key}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr auto',
-                        gap: 'var(--space-2)',
-                        padding: 'var(--space-1) var(--space-2)',
-                        background: 'var(--color-surface-raised)',
-                        borderRadius: 4,
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 12,
-                      }}
+                      className="grid grid-cols-[1fr_1fr_auto] gap-2 py-1 px-2 bg-surface-elevated rounded-sm font-mono text-xs"
                     >
                       <span>{row.key}</span>
                       <span>{row.value}</span>
-                      <span style={{ opacity: 0.5 }}>
+                      <span className="opacity-50">
                         {new Date(row.updatedAt).toLocaleTimeString()}
                       </span>
                     </li>

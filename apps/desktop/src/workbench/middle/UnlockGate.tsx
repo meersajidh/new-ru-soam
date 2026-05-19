@@ -273,7 +273,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
 
         {mode === 'reset-passphrase' && (
           <form className="unlock-gate-form" onSubmit={handleResetPassphrase}>
-            <p className="setup-description" style={{ marginBottom: 'var(--space-2)' }}>
+            <p className="setup-description mb-2">
               {forceResetMode
                 ? 'Your workspace was unlocked with a recovery code. Set a new passphrase to continue.'
                 : 'Recovery successful. Set a new passphrase to continue.'}

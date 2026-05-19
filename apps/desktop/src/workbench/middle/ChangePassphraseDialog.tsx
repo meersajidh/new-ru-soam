@@ -95,7 +95,7 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
           Change passphrase
         </h2>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {/* Current passphrase */}
           <label htmlFor="cp-current" className="setup-label">
             Current passphrase
@@ -122,7 +122,7 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
           {currentError && <p className="setup-error">{currentError}</p>}
 
           {/* New passphrase */}
-          <label htmlFor="cp-new" className="setup-label" style={{ marginTop: 'var(--space-2)' }}>
+          <label htmlFor="cp-new" className="setup-label mt-2">
             New passphrase
           </label>
           <div className="setup-input-row">

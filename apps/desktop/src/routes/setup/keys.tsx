@@ -353,8 +353,7 @@ function SetupKeysContent() {
 
         <label
           htmlFor="confirm-passphrase"
-          className="setup-label"
-          style={{ marginTop: 'var(--space-4)' }}
+          className="setup-label mt-4"
         >
           Confirm passphrase
         </label>
@@ -487,7 +486,7 @@ function SetupKeysContent() {
           write here is encrypted on this device and never leaves it without your passphrase.
         </p>
         {finishError && <p className="setup-error">{finishError}</p>}
-        <div className="setup-actions" style={{ justifyContent: 'center' }}>
+        <div className="setup-actions justify-center">
           {finishError && finishError.includes('expired') && (
             <button
               className="setup-btn-ghost"

@@ -39,7 +39,7 @@ export default function PreWorkspaceRoute() {
   // branches below don't need the count, so let them render immediately.
   // If activeId is not yet known, hold with a flex spacer so StatusBar stays pinned.
   if (workspaceCount === null && !activeId) {
-    return <div style={{ flex: '1 1 auto' }} />;
+    return <div className="flex-auto" />;
   }
 
   // Zero-workspaces: route to setup ceremony

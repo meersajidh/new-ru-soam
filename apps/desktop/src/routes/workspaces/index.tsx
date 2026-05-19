@@ -69,7 +69,7 @@ function WorkspacePickerContent() {
   }, []);
 
   // Suspend render until list is loaded — spacer keeps StatusBar pinned to bottom.
-  if (workspaces === null) return <div style={{ flex: '1 1 auto' }} />;
+  if (workspaces === null) return <div className="flex-auto" />;
 
   // Defensive: zero workspaces → setup ceremony (should not happen normally).
   if (workspaces.length === 0) {
