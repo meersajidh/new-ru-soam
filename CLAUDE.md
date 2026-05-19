@@ -135,7 +135,13 @@ change.
 - **Semantic tints via tint tokens.** Use `--tint-{color}-{step}`
   (e.g. `var(--tint-accent-soft)`), not ad-hoc
   `color-mix(... N%, transparent)`. Add a token if a step is missing; do not
-  introduce magic percentages.
+  introduce magic percentages. The 5-step scale
+  (`subtle` → `soft` → `medium` → `strong` → `bold`) is **calibrated per
+  color**, not pinned to a fixed percentage across colors — `accent-strong`
+  is 55%, `info-strong` is 40%, `warning-strong` is 60%, etc. Steps express
+  perceptual weight ("how loud is this tint"), so the % differs by hue.
+  When introducing a new step, calibrate visually against the existing
+  steps for that color, not against the same step in another color.
 - **Shadows via shadow tokens.** Use
   `var(--shadow-rest|card|overlay|modal)`, never raw
   `box-shadow: ... rgba(0,0,0,*)`.
@@ -273,6 +279,23 @@ only the task-specific Goal / Scope / Constraints / Success criteria.
 - Workspace settings stub (migration 3): `workspace_settings` table + `LocalStore.getSetting/setSetting` — no capability surface yet (Phase 12 wires the UI cascade). Provides the foundation for audit retention reads (O49) without blocking the ledger.
 - Developer command: `developer.audit.dump` calls `audit@1.0`.list via `bindCapability` and dumps via `console.table`.
 - Electron 41 pin holds (O157 stays open). BSMC@12.9.0 + SQLCipher works fine on V8 from Electron 41. Bump deferred until upstream ships V8-14 support.
+
+### 19 May 2026 — PR-3 delivered (tinted-border tokens + accent surface-blend cleanup)
+
+- 4 new tokens in `tokens.css`: `--border-hover` (fg-muted 50% × border), `--border-warning-soft` (warning 40% × border), `--border-warning-strong` (warning 60% × border), `--border-subtle` (border 60% × transparent).
+- 7 sweep sites in `setup.css`: 5 tinted borders (lines 370, 623, 638, 680, 760), 2 accent-over-surface (lines 77, 269). Tinted borders are zero-delta; accent-over-surface sites shifted from opaque `8%, surface-X` to translucent `var(--tint-accent-subtle)` (10% over transparent compositing on host bg) — small +2pp delta, within tolerance. Dogfood across bamboo / stone / geist dark mode: active progress-step node and help-button hover look correct.
+- `setup.css:760` verified as `.setup-checkbox-label:hover` (true hover, not focus) — token name `--border-hover` is accurate.
+- Implementer surfaced one additional surface-blend site missed in audit: `setup.css:785` (`color-mix(... surface-panel 60%, transparent)`). Added to PR-4 scope.
+- Defer to PR-4: surface-over-surface mixes (6 sites total: 350, 379, 668, 678, 755, 785). These are subtle luminance adjustments where the right consolidation is unclear — token-vs-direct-surface-color call needed.
+- Defer to PR-5: inline `style={{}}` triage (21 sites), BEM-strict naming codemod.
+- Defer to PR-6+: type recipe adoption, CSS file relocation, recipe layer.
+
+### 19 May 2026 — PR-2 delivered (scrim + edge-highlight + neutral tints)
+
+- 7 new tokens in `tokens.css`: `--scrim-overlay` (rgba 0.45) and `--scrim-modal` (rgba 0.55); `--highlight-edge` (white 30%) and `--highlight-edge-hover` (white 35%); `--tint-neutral-{subtle|soft|medium}` (fg-primary at 4/10/12%).
+- 10 sweep sites — all **exact %** match to originals, zero perceptual delta: 1 scrim in `workbench.css:782` (`.cmd-palette-overlay`); 2 modal scrims in `setup.css:887,1037` (`.setup-modal-overlay`, `.change-passphrase-overlay` — verified distinct selectors); 3 edge-highlights in `setup.css:468,477,551` (`.setup-btn-primary` rest+hover gloss, `.btn-google` outline); 4 neutral tints in `setup.css:187,513,591,732`.
+- Scope intentionally trimmed: **surface-blend** mixes (8 sites: `color-mix(... N%, var(--color-surface-*))` and `... var(--color-border))`) and **white highlights with offsets** are deferred to PR-3 — they need fresh token design for tinted-surface / tinted-border patterns. Inline `style={{}}` triage (21 sites) and BEM naming codemod also deferred to PR-3 (different review surface).
+- Dogfood note: `.unlock-gate-overlay` (workspace unlock view) uses `var(--color-surface-base)` and is **not** a scrim/modal — it's a full-viewport surface replacement (workspace is locked → entire workbench area is unavailable → centered unlock card on top of the host surface). Intentional, no scrim needed. Initial PR-2 observation that it should adopt `--scrim-modal` was a misread.
 
 ### 19 May 2026 — Styling system audit + consolidation plan
 

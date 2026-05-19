@@ -68,6 +68,40 @@
   --tint-error-subtle:   color-mix(in oklch, var(--color-error)   12%, transparent);
   --tint-error-medium:   color-mix(in oklch, var(--color-error)   35%, transparent);
   --tint-error-strong:   color-mix(in oklch, var(--color-error)   60%, transparent);
+
+  /* Scrim — opaque-black overlay/modal backdrops.
+     Two intensities: overlay (lighter, for transient overlays like the
+     command palette) and modal (heavier, for blocking dialogs). */
+  --scrim-overlay: rgba(0, 0, 0, 0.45);
+  --scrim-modal:   rgba(0, 0, 0, 0.55);
+
+  /* Edge highlights — 1px white gloss applied as inset top edge or
+     outline ring on accent surfaces (primary buttons, branded controls).
+     `hover` is the intensified variant used on :hover states. */
+  --highlight-edge:       color-mix(in oklch, white 30%, transparent);
+  --highlight-edge-hover: color-mix(in oklch, white 35%, transparent);
+
+  /* Neutral tints — N% of fg-primary over transparent.
+     Subtle ambient surfaces (ghost-button bg, progress rail base, etc.)
+     that have no semantic color attached. Scale is intentionally short —
+     neutral surfaces should stay quiet. */
+  --tint-neutral-subtle: color-mix(in oklch, var(--color-fg-primary)  4%, transparent);
+  --tint-neutral-soft:   color-mix(in oklch, var(--color-fg-primary) 10%, transparent);
+  --tint-neutral-medium: color-mix(in oklch, var(--color-fg-primary) 12%, transparent);
+
+  /* Tinted borders — color-tinted variants of --color-border.
+     `--border-hover` is the standard hover-state border (uses fg-muted as
+     the tint source, not a semantic color, since hover affordance is
+     neutral). Warning variants tint the border with the semantic warning
+     color for severity-marked surfaces. */
+  --border-hover:           color-mix(in oklch, var(--color-fg-muted) 50%, var(--color-border));
+  --border-warning-soft:    color-mix(in oklch, var(--color-warning)  40%, var(--color-border));
+  --border-warning-strong:  color-mix(in oklch, var(--color-warning)  60%, var(--color-border));
+
+  /* Subtle border — alpha-faded variant of --color-border, used for
+     secondary structural lines (e.g. inner grid cells) where the full
+     border weight would be too loud. */
+  --border-subtle: color-mix(in oklch, var(--color-border) 60%, transparent);
 }
 
 /* Spacing and radius — structural, not theme-switched */
