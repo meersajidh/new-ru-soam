@@ -347,7 +347,7 @@
 
 .setup-input {
   width: 100%;
-  background: color-mix(in oklch, var(--color-surface-panel) 80%, var(--color-surface-base));
+  background: var(--surface-input);
   border: 1px solid var(--color-border);
   border-radius: 10px;
   color: var(--color-fg-primary);
@@ -376,7 +376,7 @@
     0 0 0 4px color-mix(in oklch, var(--color-accent) calc(14% * var(--glow-mul)), transparent),
     0 0 calc(24px * var(--glow-mul))
       color-mix(in oklch, var(--color-accent) calc(28% * var(--glow-mul)), transparent);
-  background: color-mix(in oklch, var(--color-surface-panel) 70%, var(--color-surface-base));
+  background: var(--surface-input-focus);
 }
 
 .setup-error {
@@ -665,7 +665,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   padding: 12px;
-  background: color-mix(in oklch, var(--color-surface-panel) 50%, transparent);
+  background: var(--surface-sunken-soft);
 }
 
 .recovery-word {
@@ -675,7 +675,7 @@
   padding: 10px 12px;
   font-family: var(--font-mono);
   font-size: 13px;
-  background: color-mix(in oklch, var(--color-surface-base) 60%, transparent);
+  background: var(--surface-recessed);
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
 }
@@ -752,7 +752,7 @@
   padding: 12px 14px;
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: color-mix(in oklch, var(--color-surface-panel) 50%, transparent);
+  background: var(--surface-sunken-soft);
   transition: border-color 0.12s;
 }
 
@@ -782,7 +782,7 @@
   padding: 12px 14px;
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: color-mix(in oklch, var(--color-surface-panel) 60%, transparent);
+  background: var(--surface-sunken-medium);
   font-size: 12px;
   color: var(--color-fg-secondary);
   line-height: 1.35;

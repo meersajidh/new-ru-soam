@@ -280,6 +280,14 @@ only the task-specific Goal / Scope / Constraints / Success criteria.
 - Developer command: `developer.audit.dump` calls `audit@1.0`.list via `bindCapability` and dumps via `console.table`.
 - Electron 41 pin holds (O157 stays open). BSMC@12.9.0 + SQLCipher works fine on V8 from Electron 41. Bump deferred until upstream ships V8-14 support.
 
+### 19 May 2026 — PR-4 delivered (surface-over-surface mixes)
+
+- 5 new tokens in `tokens.css`: `--surface-input` (panel 80% × base), `--surface-input-focus` (panel 70% × base), `--surface-sunken-soft` (panel 50% × transparent), `--surface-sunken-medium` (panel 60% × transparent), `--surface-recessed` (base 60% × transparent).
+- 6 sweep sites in `setup.css` (lines 350, 379, 668, 678, 755, 785). All exact-% match; zero visual delta. Closes out the surface-blend shape entirely.
+- All `color-mix(in oklch, var(--color-surface-*) ...)` literals in `setup.css` / `workbench.css` now live in `tokens.css` or inside `calc(... * var(--glow-mul))` animated glow expressions (out of every styling PR's scope).
+- Defer to PR-5: inline `style={{}}` triage (21 sites), BEM-strict naming codemod.
+- Defer to PR-6+: type recipe adoption, CSS file relocation, recipe layer.
+
 ### 19 May 2026 — PR-3 delivered (tinted-border tokens + accent surface-blend cleanup)
 
 - 4 new tokens in `tokens.css`: `--border-hover` (fg-muted 50% × border), `--border-warning-soft` (warning 40% × border), `--border-warning-strong` (warning 60% × border), `--border-subtle` (border 60% × transparent).

@@ -102,6 +102,22 @@
      secondary structural lines (e.g. inner grid cells) where the full
      border weight would be too loud. */
   --border-subtle: color-mix(in oklch, var(--color-border) 60%, transparent);
+
+  /* Form input surfaces — opaque blend of panel into base.
+     `:focus` uses a slightly darker variant for state reinforcement
+     alongside the accent border + glow. */
+  --surface-input:        color-mix(in oklch, var(--color-surface-panel) 80%, var(--color-surface-base));
+  --surface-input-focus:  color-mix(in oklch, var(--color-surface-panel) 70%, var(--color-surface-base));
+
+  /* Sunken surfaces — translucent panel over the host bg.
+     Used for inset grids, ghost buttons, trust badges. Two intensities. */
+  --surface-sunken-soft:   color-mix(in oklch, var(--color-surface-panel) 50%, transparent);
+  --surface-sunken-medium: color-mix(in oklch, var(--color-surface-panel) 60%, transparent);
+
+  /* Recessed surface — translucent base over the host bg.
+     Darker than --surface-sunken-*; used for inner cells that sit inside
+     an already-sunken container (e.g. recovery-word inside recovery-grid). */
+  --surface-recessed: color-mix(in oklch, var(--color-surface-base) 60%, transparent);
 }
 
 /* Spacing and radius — structural, not theme-switched */
