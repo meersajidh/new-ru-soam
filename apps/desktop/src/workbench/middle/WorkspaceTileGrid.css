@@ -1,7 +1,9 @@
+@reference "../../styles/theme.css";
+
 .wtg-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  @apply gap-4;
   width: 100%;
   max-width: 720px;
 }
@@ -10,8 +12,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 20px;
+  @apply gap-3 p-5;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border);
   border-radius: 12px;
@@ -30,7 +31,7 @@
 
 .wtg-tile:disabled { opacity: 0.65; cursor: not-allowed; }
 
-.wtg-tile--mru { border-color: var(--tint-accent-strong); }
+.wtg-tile--mru { @apply border-tint-accent-strong; }
 
 .wtg-mru-dot {
   position: absolute;
@@ -50,9 +51,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
+  @apply font-display text-lg font-bold;
   color: rgba(255, 255, 255, 0.92);
   letter-spacing: -0.01em;
   flex-shrink: 0;
@@ -61,62 +60,55 @@
 .wtg-body {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  @apply gap-0.5;
   flex: 1;
 }
 
+/* NOTE(type): 15px → text-base (16px, +1px — nearest; 15px is equidistant
+   between text-sm(13) and text-base(16); default-down = text-sm(13)).
+   Aesthetic flag: workspace tile name at text-sm would shrink noticeably.
+   Applied text-sm per strict default-down policy. Flagged for dogfood. */
 .wtg-name {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-fg-primary);
+  @apply font-display text-sm font-bold text-fg-primary;
   line-height: 1.25;
   letter-spacing: -0.015em;
 }
 
+/* NOTE(type): 11.5px → text-xs (12px, +0.5px — nearest whole step). */
 .wtg-date {
-  font-size: 11.5px;
-  color: var(--color-fg-muted);
-  font-family: var(--font-sans);
+  @apply text-xs text-fg-muted;
 }
 
 .wtg-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 10px;
+  @apply pt-2.5;
   border-top: 1px solid var(--color-border);
   margin-top: auto;
 }
 
+/* NOTE(type): 11.5px → text-xs (12px, same as wtg-date). */
 .wtg-notes {
-  font-size: 11.5px;
-  color: var(--color-fg-muted);
-  font-family: var(--font-sans);
+  @apply text-xs text-fg-muted;
 }
 
 .wtg-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
+  @apply gap-1 py-0.5 px-2 text-xs font-semibold;
   border-radius: 999px;
-  font-size: 10px;
-  font-weight: 600;
   letter-spacing: 0.07em;
-  font-family: var(--font-sans);
   text-transform: uppercase;
 }
 
 .wtg-pill--locked {
   border: 1px solid var(--color-border);
-  color: var(--color-fg-muted);
+  @apply text-fg-muted;
 }
 
 .wtg-pill--recent {
-  background: var(--tint-success-soft);
-  border: 1px solid var(--tint-success-strong);
-  color: var(--color-success);
+  @apply bg-tint-success-soft border border-tint-success-strong text-success;
 }
 
 .wtg-spinner {
@@ -136,7 +128,7 @@
   background: transparent;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  @apply gap-2;
   box-shadow: none;
 }
 
@@ -155,9 +147,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  /* NOTE(type): font-size 22px → text-lg (20px, −2px default-down). */
+  @apply text-lg text-fg-muted;
   font-weight: 300;
-  color: var(--color-fg-muted);
   line-height: 1;
   transition: border-color 140ms ease, color 140ms ease;
 }
@@ -168,12 +160,9 @@
 }
 
 .wtg-add-label {
-  font-size: 13px;
-  font-family: var(--font-sans);
-  color: var(--color-fg-muted);
-  font-weight: 500;
+  @apply text-sm text-fg-muted font-medium;
 }
 
 .wtg-tile--add:hover:not(:disabled) .wtg-add-label {
-  color: var(--color-fg-secondary);
+  @apply text-fg-secondary;
 }

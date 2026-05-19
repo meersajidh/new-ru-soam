@@ -1,20 +1,39 @@
+@reference "./theme.css";
+
 /* ─────────────────────────────────────────────────────────────────────────────
- * Semantic type recipes.
+ * Semantic type recipes. Composed from Tailwind utilities via @apply.
  *
- * Apply these classes to any element to get a consistent typographic role.
- * All recipes reference CSS variables from tokens.css and the active font set —
- * they automatically adapt when the theme or font set changes.
+ * Recipes are the standard UX layer. Components may use them directly and
+ * override per-variant where the design requires (e.g. a button that uses
+ * .t-body-strong but needs slightly tighter line-height). Layout is left
+ * to JSX (page / route / context).
+ *
+ * Naming: .t-{role}. Role names match the type scale or the semantic
+ * function. Headings use .t-h1 / .t-h2 / .t-h3 because <hN> elements are
+ * reset (see index.css) — every heading instance picks a recipe class.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-.t-display     { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.2;  letter-spacing: -0.01em; color: var(--color-fg-primary); }
-.t-title       { font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.3;  color: var(--color-fg-primary); }
-.t-h2          { font-family: var(--font-sans);    font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--color-fg-primary); }
-.t-h3          { font-family: var(--font-sans);    font-size: 16px; font-weight: 600; line-height: 1.4;  color: var(--color-fg-primary); }
-.t-body        { font-family: var(--font-sans);    font-size: 13px; font-weight: 400; line-height: 1.5;  color: var(--color-fg-primary); }
-.t-body-strong { font-family: var(--font-sans);    font-size: 13px; font-weight: 500; line-height: 1.5;  color: var(--color-fg-primary); }
-.t-description { font-family: var(--font-sans);    font-size: 13px; font-weight: 400; line-height: 1.55; color: var(--color-fg-secondary); }
-.t-label       { font-family: var(--font-sans);    font-size: 12px; font-weight: 500; line-height: 1.4;  color: var(--color-fg-secondary); }
-.t-caption     { font-family: var(--font-sans);    font-size: 12px; font-weight: 400; line-height: 1.4;  color: var(--color-fg-muted); }
-.t-micro       { font-family: var(--font-sans);    font-size: 11px; font-weight: 400; line-height: 1.4;  color: var(--color-fg-muted); }
-.t-mono        { font-family: var(--font-mono);    font-size: 12px; font-weight: 400; line-height: 1.5;  color: var(--color-fg-primary); }
-.t-mono-inline { font-family: var(--font-mono);    font-size: 0.92em; padding: 0 4px; border-radius: 3px; background: var(--color-surface-elevated); }
+/* Hero / display — wordmark, splash, page-defining headlines. */
+.t-h1          { @apply text-2xl font-semibold text-fg-primary; }
+
+/* Section titles — modal titles, route titles, banner titles. */
+.t-h2          { @apply text-xl font-semibold text-fg-primary; }
+
+/* Sub-section / group titles — inside a card or panel. */
+.t-h3          { @apply text-lg font-semibold text-fg-primary; }
+
+/* Body — the default for any block of UI text. */
+.t-body        { @apply text-sm text-fg-primary; }
+.t-body-strong { @apply text-sm font-medium text-fg-primary; }
+
+/* Description — body-tier explanatory copy under a heading. */
+.t-description { @apply text-sm text-fg-secondary; }
+
+/* Caption — small uppercase or lowercase metadata, labels, badges. */
+.t-caption     { @apply text-xs text-fg-muted; }
+
+/* Mono — monospaced numeric / code data. */
+.t-mono        { @apply text-xs font-mono text-fg-primary; }
+
+/* Inline mono — short code/key tokens inside a body paragraph. */
+.t-mono-inline { @apply text-xs font-mono rounded-sm bg-surface-elevated px-1; }

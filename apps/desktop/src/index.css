@@ -20,3 +20,15 @@
 body {
   margin: 0;
 }
+
+/* Heading-element reset. From PR-7a onward, the type scale and recipe
+   classes are the single source of truth for heading appearance.
+   Verified at PR-7a authoring: every <h1>/<h2> in app + editor JSX
+   carries a className, so removing browser defaults causes no
+   regression. */
+h1, h2, h3, h4, h5, h6 {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  margin: 0;
+}

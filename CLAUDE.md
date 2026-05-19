@@ -128,10 +128,21 @@ change.
 - **No raw color literals.** No `rgba(0,0,0,*)`, no `#hex`, no `oklch(...)`
   outside `tokens.css` and the theme/font-set files. Brand-mandated colors
   (e.g. Google sign-in pill) live in a clearly-named isolated module.
+- **No raw size or spacing literals.** Type size and line-height come
+  from the 6-step scale (`text-xs` / `text-sm` / `text-base` /
+  `text-lg` / `text-xl` / `text-2xl`); spacing comes from Tailwind's
+  `--spacing`-driven utilities (`p-N`, `m-N`, `gap-N`). No `font-size:
+  Npx`, `padding: Npx`, `gap: Npx` in component CSS. Letter-spacing for
+  display tiers is baked into the scale tokens; do not redeclare it.
 - **No inline `style={{}}` for theme-able properties.** Use Tailwind
   utilities or recipe classes. Inline `style` is reserved for runtime values
   the styling system cannot know (computed flex ratios, dynamic avatar
   backgrounds, animation progress).
+- **`@apply` for component CSS.** Component rules compose from Tailwind
+  utilities via `@apply`, not raw CSS properties. Only shape — `border`,
+  `border-radius`, `padding`, `background`, `box-shadow`, `transition`
+  — is allowed as token-backed `var(...)`; type and spacing must route
+  through the utility layer.
 - **Semantic tints via tint tokens.** Use `--tint-{color}-{step}`
   (e.g. `var(--tint-accent-soft)`), not ad-hoc
   `color-mix(... N%, transparent)`. Add a token if a step is missing; do not
@@ -142,6 +153,23 @@ change.
   perceptual weight ("how loud is this tint"), so the % differs by hue.
   When introducing a new step, calibrate visually against the existing
   steps for that color, not against the same step in another color.
+- **Type scale is closed.** The 6 steps are the only sizes. Bespoke
+  `font-size` values in components are forbidden. When a design needs
+  a size between two steps, round per the rule:
+  *aesthetic fit first, logical proximity second, default down on ties.*
+  Display surfaces use `text-2xl`; headings use `.t-h1` / `.t-h2` /
+  `.t-h3` recipes (introduced in PR-7b).
+- **rem everywhere.** All sizes and spacing in tokens are rem-based.
+  `:root { font-size: var(--root-font-size, 16px); }` lets a future
+  settings UI rescale the whole system at runtime (O165).
+- **`@reference` target is `styles/theme.css`.** Component CSS files
+  that use `@apply` (workbench.css / setup.css / type.css /
+  WorkspaceTileGrid.css, etc.) must declare `@reference "./theme.css"`
+  (adjust path) at the top of the file. **Do not `@reference
+  "index.css"`** — `index.css` imports the component CSS back, the
+  recursion OOMs the Tailwind v4 plugin (observed 2026-05-19; ~2GB
+  heap before crash). `theme.css` is the dedicated reference target
+  that pulls in `tailwindcss` + `tokens.css` and nothing else.
 - **Shadows via shadow tokens.** Use
   `var(--shadow-rest|card|overlay|modal)`, never raw
   `box-shadow: ... rgba(0,0,0,*)`.
@@ -161,6 +189,13 @@ change.
 - `color-mix(... N%, transparent)` outside `tokens.css`.
 - `font-family: var(--font-sans); font-size: 13px;` — use `.t-body`.
 - New `*.css` file that is not colocated with a component.
+- `font-size: Npx` or `line-height: <number>` in component CSS — use
+  `@apply text-{xs|sm|base|lg|xl|2xl}`.
+- `padding: Npx` / `margin: Npx` / `gap: Npx` literal in component CSS
+  — use `@apply` with Tailwind spacing utilities.
+- `<h1>`–`<h6>` without a recipe class (and not inside a ProseMirror
+  document, which is styled by `.ru-edit-host .ProseMirror hN`) —
+  defaults are reset; the element will render at body size.
 
 Architectural changes to the styling system require an ADR.
 
@@ -279,6 +314,34 @@ only the task-specific Goal / Scope / Constraints / Success criteria.
 - Workspace settings stub (migration 3): `workspace_settings` table + `LocalStore.getSetting/setSetting` — no capability surface yet (Phase 12 wires the UI cascade). Provides the foundation for audit retention reads (O49) without blocking the ledger.
 - Developer command: `developer.audit.dump` calls `audit@1.0`.list via `bindCapability` and dumps via `console.table`.
 - Electron 41 pin holds (O157 stays open). BSMC@12.9.0 + SQLCipher works fine on V8 from Electron 41. Bump deferred until upstream ships V8-14 support.
+
+### 19 May 2026 — PR-7c delivered (token namespace migration)
+
+- 37 tokens migrated into the canonical `--color-*` namespace so Tailwind v4 auto-generates utilities for each: tints (24), scrims (2), edge-highlights (2), tinted-borders (4), surface variants (5). Old prefixes (`--tint-*`, `--scrim-*`, `--highlight-*`, `--border-{hover|warning-*|subtle}`, `--surface-{input*|sunken*|recessed}`) no longer exist.
+- ~36 consumer sites swept across `workbench.css` (8), `setup.css` (26), `WorkspaceTileGrid.css` (2). Raw `var(--token)` access replaced with `@apply <utility>` where expressible (33 sites); 12 sites kept raw `var(--color-new)` access because they sit inside `box-shadow:` stacks, `border-bottom:` sub-shorthand, or `repeating-linear-gradient(...)` stops where `@apply` doesn't reach.
+- Border-color tokens generate verbose utility names by design: `border-border-{hover,warning-soft,warning-strong,subtle}` (first `border` = property prefix, second = token name slice). Trade-off accepted in brief — explicit beats clever.
+- Verified compile + lint clean; setup wizard step 1 (active node + accent ring + progress rail + glow halo) renders correctly on geist light. Workspace picker tile shape, MRU border, and RECENT pill all use the new `@apply` form.
+- **End of the PR-1..7c styling consolidation arc.** Cumulative state: zero static color literals outside `tokens.css`; zero `style={{}}` for non-runtime values; zero bespoke `font-size`/`padding`/`margin`/`gap` in component CSS; recipe layer (`.t-h1` / `.t-h2` / `.t-h3` / `.t-body` / `.t-body-strong` / `.t-description` / `.t-caption` / `.t-mono` / `.t-mono-inline`) is the single source of truth for type; BEM-strict naming; `@apply` composition for every shape declaration; runtime root font-size for future settings rescale (O165).
+- Defer to PR-8+: dead-CSS cleanup (`.ru-snippet-placeholder--picklist.is-open` orphan from PR-6); CSS file relocation (colocate next to components, decompose `workbench.css`/`setup.css`); recipe layer expansion for repeated composites (button variants, card surfaces, dialog overlays).
+
+### 19 May 2026 — PR-7b delivered (type + spacing sweep, @apply everywhere)
+
+- Routed every type and spacing property in component CSS through Tailwind utilities via `@apply`. ~185 rules edited across `workbench.css` (~85), `setup.css` (~100), `WorkspaceTileGrid.css` (18). `type.css` fully rewritten: `.t-h1` / `.t-h2` / `.t-h3` (renamed from `.t-display` / `.t-title` / etc.), `.t-caption` (collapsed `.t-label` + `.t-micro` + old `.t-caption`), `.t-body` / `.t-body-strong` / `.t-description` / `.t-mono` / `.t-mono-inline`. All recipe bodies are `@apply`-composed; zero raw type properties remain.
+- `--space-N` (px) token block deleted from `tokens.css`. All 43 consumers swept to `p-N` / `m-N` / `gap-N` utilities. `--radius-sm` / `--radius-md` migrated into `@theme {}` in rem form so Tailwind generates `rounded-sm` / `rounded-md` utilities.
+- Type scale shifts per the per-rule rounding table (default-down on ties): 11→12, 14→13, 18→16, 22→20, 26→24, 28→32. Implementer flagged 5 aesthetic-impact sites for dogfood: `.sb-badge` (9→12, +3pp), ProseMirror h1 (22→20), `.setup-finish-title` (26→24), `.wtg-name` (15→13), `.unlock-gate-title` (22→20). Dogfood verified stone-dark workspace picker + setup wizard step 1 — proportions hold, hierarchy readable.
+- **Cycle bug + fix.** First `@reference "../index.css"` form OOMed the Tailwind v4 Vite plugin (`index.css` imports `workbench.css`/`type.css` which `@reference` back into `index.css` → unbounded recursion, ~4GB heap, FATAL: "Ineffective mark-compacts near heap limit"). Resolved by creating `apps/desktop/src/styles/theme.css` that imports `tailwindcss` + `tokens.css` only (no component CSS). All four component CSS files now `@reference "./theme.css"`. CLAUDE.md "Styling system" updated with the rule.
+- Tint / scrim / edge-highlight / tinted-border / surface-input / surface-sunken tokens still accessed as raw `var()` — Tailwind utility namespace migration deferred to PR-7c (rename `--tint-*` / `--scrim-*` / etc. to `--color-{tint|scrim|...}` so utilities auto-generate, then sweep consumers to `@apply bg-tint-*` etc.).
+- Defer to PR-7c: namespace migration above; JSX recipe-class application where bespoke styling lived (most was already covered by component CSS that now @applies recipes).
+- Defer to PR-8+: dead-CSS cleanup, CSS file relocation, recipe layer expansion.
+
+### 19 May 2026 — PR-7a delivered (type scale + rem foundation)
+
+- 6-step closed type scale added to `tokens.css` via Tailwind v4 modifier syntax: `--text-xs` (0.75rem) through `--text-2xl` (2rem), each with baked `--line-height` and (for lg/xl/2xl) `--letter-spacing`. `--text-*: initial;` wildcard immediately precedes the steps to disable Tailwind's default text scale — only the project's six sizes resolve. Verified by implementer: zero `text-3xl|4xl|5xl|6xl` usages in codebase.
+- Tailwind v4 `--spacing: 0.25rem` token added; drives auto-generation of `p-N` / `m-N` / `gap-N` utilities. Old `--space-N` (px) tokens remain; PR-7b sweeps consumers + deletes them.
+- Runtime root rescaling foundation: `:root { font-size: var(--root-font-size, 16px); }` added as a separate `:root` block. Lets a future settings UI rescale the whole rem-based system at runtime. Tracked as O165 in `docs/Open_Items.md`.
+- `h1`–`h6` browser-default reset added to `index.css` (font-size/weight/line-height: inherit; margin: 0). Verified safe — every `<h1>` and `<h2>` in app + editor JSX carries a className; ProseMirror-generated headings remain styled via `.ru-edit-host .ProseMirror hN` selectors.
+- `CLAUDE.md` "Styling system" rules extended: scale is closed (no bespoke `font-size: Npx`), rem everywhere, `@apply` for component CSS authoring (no raw values), heading elements require a recipe class. Anti-patterns block expanded with three new entries.
+- Zero visible regression: existing `--space-N`, `.t-*` recipes, and component CSS are intentionally untouched. PR-7b (sweep CSS via `@apply`, rewrite `type.css` recipes, rename `.t-display`→`.t-h1` etc., delete `--space-N`) and PR-7c (apply recipe classes in JSX where bespoke styling lived) follow.
 
 ### 19 May 2026 — PR-6 delivered (BEM-strict naming codemod)
 

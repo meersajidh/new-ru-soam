@@ -43,91 +43,126 @@
   /* Semantic tints — N% of color over transparent.
      5-step scale: subtle → soft → medium → strong → bold.
      Add new steps here before using new percentages elsewhere. */
-  --tint-accent-subtle:  color-mix(in oklch, var(--color-accent)  10%, transparent);
-  --tint-accent-soft:    color-mix(in oklch, var(--color-accent)  20%, transparent);
-  --tint-accent-medium:  color-mix(in oklch, var(--color-accent)  35%, transparent);
-  --tint-accent-strong:  color-mix(in oklch, var(--color-accent)  55%, transparent);
-  --tint-accent-bold:    color-mix(in oklch, var(--color-accent)  75%, transparent);
+  --color-tint-accent-subtle:  color-mix(in oklch, var(--color-accent)  10%, transparent);
+  --color-tint-accent-soft:    color-mix(in oklch, var(--color-accent)  20%, transparent);
+  --color-tint-accent-medium:  color-mix(in oklch, var(--color-accent)  35%, transparent);
+  --color-tint-accent-strong:  color-mix(in oklch, var(--color-accent)  55%, transparent);
+  --color-tint-accent-bold:    color-mix(in oklch, var(--color-accent)  75%, transparent);
 
-  --tint-info-subtle:    color-mix(in oklch, var(--color-info)    15%, transparent);
-  --tint-info-medium:    color-mix(in oklch, var(--color-info)    35%, transparent);
-  --tint-info-strong:    color-mix(in oklch, var(--color-info)    40%, transparent);
-  --tint-info-bold:      color-mix(in oklch, var(--color-info)    80%, transparent);
+  --color-tint-info-subtle:    color-mix(in oklch, var(--color-info)    15%, transparent);
+  --color-tint-info-medium:    color-mix(in oklch, var(--color-info)    35%, transparent);
+  --color-tint-info-strong:    color-mix(in oklch, var(--color-info)    40%, transparent);
+  --color-tint-info-bold:      color-mix(in oklch, var(--color-info)    80%, transparent);
 
-  --tint-success-subtle: color-mix(in oklch, var(--color-success) 15%, transparent);
-  --tint-success-soft:   color-mix(in oklch, var(--color-success) 20%, transparent);
-  --tint-success-medium: color-mix(in oklch, var(--color-success) 30%, transparent);
-  --tint-success-strong: color-mix(in oklch, var(--color-success) 40%, transparent);
-  --tint-success-bold:   color-mix(in oklch, var(--color-success) 70%, transparent);
+  --color-tint-success-subtle: color-mix(in oklch, var(--color-success) 15%, transparent);
+  --color-tint-success-soft:   color-mix(in oklch, var(--color-success) 20%, transparent);
+  --color-tint-success-medium: color-mix(in oklch, var(--color-success) 30%, transparent);
+  --color-tint-success-strong: color-mix(in oklch, var(--color-success) 40%, transparent);
+  --color-tint-success-bold:   color-mix(in oklch, var(--color-success) 70%, transparent);
 
-  --tint-warning-subtle: color-mix(in oklch, var(--color-warning) 10%, transparent);
-  --tint-warning-soft:   color-mix(in oklch, var(--color-warning) 15%, transparent);
-  --tint-warning-medium: color-mix(in oklch, var(--color-warning) 40%, transparent);
-  --tint-warning-strong: color-mix(in oklch, var(--color-warning) 60%, transparent);
+  --color-tint-warning-subtle: color-mix(in oklch, var(--color-warning) 10%, transparent);
+  --color-tint-warning-soft:   color-mix(in oklch, var(--color-warning) 15%, transparent);
+  --color-tint-warning-medium: color-mix(in oklch, var(--color-warning) 40%, transparent);
+  --color-tint-warning-strong: color-mix(in oklch, var(--color-warning) 60%, transparent);
 
-  --tint-error-subtle:   color-mix(in oklch, var(--color-error)   12%, transparent);
-  --tint-error-medium:   color-mix(in oklch, var(--color-error)   35%, transparent);
-  --tint-error-strong:   color-mix(in oklch, var(--color-error)   60%, transparent);
+  --color-tint-error-subtle:   color-mix(in oklch, var(--color-error)   12%, transparent);
+  --color-tint-error-medium:   color-mix(in oklch, var(--color-error)   35%, transparent);
+  --color-tint-error-strong:   color-mix(in oklch, var(--color-error)   60%, transparent);
 
   /* Scrim — opaque-black overlay/modal backdrops.
      Two intensities: overlay (lighter, for transient overlays like the
      command palette) and modal (heavier, for blocking dialogs). */
-  --scrim-overlay: rgba(0, 0, 0, 0.45);
-  --scrim-modal:   rgba(0, 0, 0, 0.55);
+  --color-scrim-overlay: rgba(0, 0, 0, 0.45);
+  --color-scrim-modal:   rgba(0, 0, 0, 0.55);
 
   /* Edge highlights — 1px white gloss applied as inset top edge or
      outline ring on accent surfaces (primary buttons, branded controls).
      `hover` is the intensified variant used on :hover states. */
-  --highlight-edge:       color-mix(in oklch, white 30%, transparent);
-  --highlight-edge-hover: color-mix(in oklch, white 35%, transparent);
+  --color-highlight-edge:       color-mix(in oklch, white 30%, transparent);
+  --color-highlight-edge-hover: color-mix(in oklch, white 35%, transparent);
 
   /* Neutral tints — N% of fg-primary over transparent.
      Subtle ambient surfaces (ghost-button bg, progress rail base, etc.)
      that have no semantic color attached. Scale is intentionally short —
      neutral surfaces should stay quiet. */
-  --tint-neutral-subtle: color-mix(in oklch, var(--color-fg-primary)  4%, transparent);
-  --tint-neutral-soft:   color-mix(in oklch, var(--color-fg-primary) 10%, transparent);
-  --tint-neutral-medium: color-mix(in oklch, var(--color-fg-primary) 12%, transparent);
+  --color-tint-neutral-subtle: color-mix(in oklch, var(--color-fg-primary)  4%, transparent);
+  --color-tint-neutral-soft:   color-mix(in oklch, var(--color-fg-primary) 10%, transparent);
+  --color-tint-neutral-medium: color-mix(in oklch, var(--color-fg-primary) 12%, transparent);
 
   /* Tinted borders — color-tinted variants of --color-border.
-     `--border-hover` is the standard hover-state border (uses fg-muted as
+     `--color-border-hover` is the standard hover-state border (uses fg-muted as
      the tint source, not a semantic color, since hover affordance is
      neutral). Warning variants tint the border with the semantic warning
      color for severity-marked surfaces. */
-  --border-hover:           color-mix(in oklch, var(--color-fg-muted) 50%, var(--color-border));
-  --border-warning-soft:    color-mix(in oklch, var(--color-warning)  40%, var(--color-border));
-  --border-warning-strong:  color-mix(in oklch, var(--color-warning)  60%, var(--color-border));
+  --color-border-hover:           color-mix(in oklch, var(--color-fg-muted) 50%, var(--color-border));
+  --color-border-warning-soft:    color-mix(in oklch, var(--color-warning)  40%, var(--color-border));
+  --color-border-warning-strong:  color-mix(in oklch, var(--color-warning)  60%, var(--color-border));
 
   /* Subtle border — alpha-faded variant of --color-border, used for
      secondary structural lines (e.g. inner grid cells) where the full
      border weight would be too loud. */
-  --border-subtle: color-mix(in oklch, var(--color-border) 60%, transparent);
+  --color-border-subtle: color-mix(in oklch, var(--color-border) 60%, transparent);
 
   /* Form input surfaces — opaque blend of panel into base.
      `:focus` uses a slightly darker variant for state reinforcement
      alongside the accent border + glow. */
-  --surface-input:        color-mix(in oklch, var(--color-surface-panel) 80%, var(--color-surface-base));
-  --surface-input-focus:  color-mix(in oklch, var(--color-surface-panel) 70%, var(--color-surface-base));
+  --color-surface-input:        color-mix(in oklch, var(--color-surface-panel) 80%, var(--color-surface-base));
+  --color-surface-input-focus:  color-mix(in oklch, var(--color-surface-panel) 70%, var(--color-surface-base));
 
   /* Sunken surfaces — translucent panel over the host bg.
      Used for inset grids, ghost buttons, trust badges. Two intensities. */
-  --surface-sunken-soft:   color-mix(in oklch, var(--color-surface-panel) 50%, transparent);
-  --surface-sunken-medium: color-mix(in oklch, var(--color-surface-panel) 60%, transparent);
+  --color-surface-sunken-soft:   color-mix(in oklch, var(--color-surface-panel) 50%, transparent);
+  --color-surface-sunken-medium: color-mix(in oklch, var(--color-surface-panel) 60%, transparent);
 
   /* Recessed surface — translucent base over the host bg.
-     Darker than --surface-sunken-*; used for inner cells that sit inside
+     Darker than --color-surface-sunken-*; used for inner cells that sit inside
      an already-sunken container (e.g. recovery-word inside recovery-grid). */
-  --surface-recessed: color-mix(in oklch, var(--color-surface-base) 60%, transparent);
+  --color-surface-recessed: color-mix(in oklch, var(--color-surface-base) 60%, transparent);
+
+  /* Disable Tailwind's default text scale so only the project's 6 steps
+     resolve. Any `text-3xl` etc. references become a no-op — flag in review. */
+  --text-*: initial;
+
+  /* Type scale — 6 steps, rem-based. Line-height and letter-spacing baked
+     into each step via Tailwind v4 modifier-token syntax. Steps:
+         xs / sm / base / lg / xl / 2xl
+     The project's body default is `text-sm` (13px), not `text-base` (16px),
+     because the app is dense-information UI. */
+  --text-xs:   0.75rem;                   /* 12px @ root 16 */
+  --text-xs--line-height: 1.4;
+
+  --text-sm:   0.8125rem;                 /* 13px — body default */
+  --text-sm--line-height: 1.55;
+
+  --text-base: 1rem;                      /* 16px */
+  --text-base--line-height: 1.5;
+
+  --text-lg:   1.25rem;                   /* 20px */
+  --text-lg--line-height: 1.4;
+  --text-lg--letter-spacing: -0.005em;
+
+  --text-xl:   1.5rem;                    /* 24px */
+  --text-xl--line-height: 1.3;
+  --text-xl--letter-spacing: -0.012em;
+
+  --text-2xl:  2rem;                      /* 32px — hero / display */
+  --text-2xl--line-height: 1.15;
+  --text-2xl--letter-spacing: -0.025em;
+
+  /* Spacing — rem-based, Tailwind v4 singular form.
+     Drives auto-generation of p-N / m-N / gap-N utilities (each step is
+     N × 0.25rem). Replaces the old `--space-N` family in PR-7b. */
+  --spacing: 0.25rem;
+
+  /* Radii — rem-based so they scale with root font-size.
+     Tailwind generates rounded-sm / rounded-md utilities from these. */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
 }
 
-/* Spacing and radius — structural, not theme-switched */
+/* Root font-size — drives every rem-based value in the system. A future
+   settings UI can rescale the whole system by overriding --root-font-size
+   at the document root. Tracked as O165. */
 :root {
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --radius-sm: 4px;
-  --radius-md: 8px;
+  font-size: var(--root-font-size, 16px);
 }

@@ -1,3 +1,5 @@
+@reference "./theme.css";
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -12,7 +14,7 @@
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
-  border-radius: 4px;
+  @apply rounded-sm;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-fg-muted);
@@ -37,9 +39,7 @@ body,
   flex-direction: column;
   height: 100%;
   background: var(--color-surface-base);
-  color: var(--color-fg-primary);
-  font-family: var(--font-sans);
-  font-size: 13px;
+  @apply text-fg-primary text-sm;
   line-height: 1.5;
 }
 
@@ -64,8 +64,7 @@ body,
   flex: 1 1 auto;
   display: flex;
   align-items: center;
-  padding: 0 var(--space-2);
-  gap: 8px;
+  @apply px-2 gap-2;
 }
 
 .tb-flex {
@@ -88,35 +87,31 @@ body,
 .tb-menu {
   display: flex;
   align-items: stretch;
-  padding: 0 4px;
+  @apply px-1;
   -webkit-app-region: no-drag;
 }
 
 .tb-menu-item {
   display: inline-flex;
   align-items: center;
-  padding: 0 10px;
-  font-size: 12px;
-  color: var(--color-fg-secondary);
+  @apply px-2 text-xs text-fg-secondary rounded-sm;
   background: transparent;
   border: none;
   cursor: default;
-  border-radius: var(--radius-sm);
   margin: 5px 1px;
 }
 
 .tb-menu-item:hover,
 .tb-menu-item--open {
   background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply text-fg-primary;
 }
 
 /* Nav + icon buttons */
 .tb-nav {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 6px;
+  @apply gap-0.5 px-1.5;
 }
 
 .tb-icon-btn {
@@ -124,17 +119,16 @@ body,
   height: 26px;
   border: none;
   background: transparent;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted rounded-sm;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
 .tb-icon-btn:hover {
   background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply text-fg-primary;
 }
 
 .tb-icon-btn:disabled {
@@ -146,20 +140,17 @@ body,
 .quick-open {
   display: flex;
   align-items: center;
-  gap: 8px;
+  @apply gap-2 text-xs text-fg-secondary rounded-md;
   height: 26px;
   margin: 5px 0;
+  /* original: padding: 0 8px 0 10px — asymmetric; keep raw. 8px≈px-2, 10px≈px-2 */
   padding: 0 8px 0 10px;
   background: var(--color-surface-base);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-fg-secondary);
-  font-size: 12px;
   min-width: 360px;
   max-width: 520px;
   cursor: text;
   transition: border-color 0.12s;
-  font-family: var(--font-sans);
 }
 
 .quick-open:hover {
@@ -167,14 +158,12 @@ body,
 }
 
 .quick-open .lead {
-  color: var(--color-fg-muted);
+  @apply text-fg-muted;
   display: inline-flex;
 }
 
 .quick-open .label {
-  color: var(--color-fg-primary);
-  font-family: var(--font-mono);
-  font-size: 12px;
+  @apply text-fg-primary font-mono text-xs;
   flex: 1;
   text-align: left;
   overflow: hidden;
@@ -183,17 +172,15 @@ body,
 }
 
 .quick-open .meta {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--color-fg-muted);
-  background: var(--color-surface-elevated);
+  @apply font-mono text-xs text-fg-muted bg-surface-elevated;
   border: 1px solid var(--color-border);
   border-radius: 3px;
-  padding: 1px 5px;
+  /* original: padding: 1px 5px — 1px → p-0.5 vertical, 5px → p-1 horizontal (default-down) */
+  @apply py-0.5 px-1;
 }
 
 .quick-open .trail {
-  color: var(--color-fg-muted);
+  @apply text-fg-muted;
   display: inline-flex;
 }
 
@@ -208,7 +195,7 @@ body,
   width: 1px;
   height: 16px;
   background: var(--color-border);
-  margin: 0 6px;
+  @apply mx-1.5;
 }
 
 .tb-win {
@@ -221,7 +208,7 @@ body,
   width: 46px;
   border: none;
   background: transparent;
-  color: var(--color-fg-secondary);
+  @apply text-fg-secondary;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -234,15 +221,14 @@ body,
 
 .tb-win-btn--close:hover {
   background: var(--color-error);
-  color: var(--color-fg-primary);
+  @apply text-fg-primary;
 }
 
 /* Avatar scaled for 36px titlebar */
 .part-titlebar .avatar-btn {
   width: 24px;
   height: 24px;
-  margin: 0 6px;
-  font-size: 10px;
+  @apply mx-1.5 text-xs;
 }
 
 /* Banner — auto height collapses to 0 when empty */
@@ -293,9 +279,7 @@ body,
 }
 
 .sidebar-empty-state {
-  padding: var(--space-4);
-  color: var(--color-fg-muted);
-  font-size: 12px;
+  @apply p-4 text-fg-muted text-xs;
   margin: 0;
 }
 
@@ -321,50 +305,42 @@ body,
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 14px;
-  color: var(--color-fg-muted);
-  padding: 48px;
+  @apply gap-3.5 text-fg-muted p-12;
   text-align: center;
 }
 
 .editor-empty-mark {
   width: 96px;
   height: 96px;
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface-panel);
+  @apply rounded-md bg-surface-panel;
   background-image: repeating-linear-gradient(
       45deg,
-      var(--tint-accent-soft) 0 1px,
+      var(--color-tint-accent-soft) 0 1px,
       transparent 1px 14px
     ),
     repeating-linear-gradient(
       -45deg,
-      var(--tint-accent-subtle) 0 1px,
+      var(--color-tint-accent-subtle) 0 1px,
       transparent 1px 14px
     );
   border: 1px solid var(--color-border);
 }
 
 .editor-empty-title {
-  font-family: var(--font-display);
-  font-size: 22px;
-  color: var(--color-fg-secondary);
+  @apply font-display text-lg text-fg-secondary font-semibold;
   margin: 0;
-  font-weight: 600;
 }
 
 .editor-empty-line {
-  font-size: 13px;
+  @apply text-sm;
 }
 
 .editor-empty-key {
-  font-family: var(--font-mono);
-  font-size: 12px;
+  @apply font-mono text-xs bg-surface-elevated text-fg-primary;
+  /* original: padding: 1px 5px; border-radius: 3px — keeping raw (non-scale values) */
   padding: 1px 5px;
-  border-radius: 3px;
-  background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  color: var(--color-fg-primary);
+  border-radius: 3px;
 }
 
 /* Panel */
@@ -376,9 +352,7 @@ body,
 }
 
 .panel-empty-state {
-  padding: var(--space-4);
-  color: var(--color-fg-muted);
-  font-size: 12px;
+  @apply p-4 text-fg-muted text-xs;
   margin: 0;
 }
 
@@ -390,14 +364,14 @@ body,
   border-top: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  @apply px-2;
   user-select: none;
 }
 
 .statusbar-region {
   display: flex;
   align-items: center;
-  gap: 4px;
+  @apply gap-1;
   height: 100%;
 }
 
@@ -412,55 +386,51 @@ body,
 }
 
 .statusbar-entry {
-  font-size: 11px;
-  color: var(--color-fg-secondary);
+  @apply text-xs text-fg-secondary rounded-sm;
   padding: 3px 8px;
   cursor: default;
-  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   gap: 5px;
   background: transparent;
   border: none;
   white-space: nowrap;
-  font-family: var(--font-sans);
 }
 
 .statusbar-entry:hover {
   background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply text-fg-primary;
 }
 
 .statusbar-entry.statusbar-entry--ok {
-  color: var(--color-success);
+  @apply text-success;
 }
 
 .statusbar-entry.statusbar-entry--warning {
-  color: var(--color-warning);
-  background: var(--tint-warning-soft);
+  @apply text-warning bg-tint-warning-soft;
 }
 
 .statusbar-entry.statusbar-entry--error {
-  color: var(--color-error);
+  @apply text-error;
 }
 
 .sb-divider {
   width: 1px;
   height: 14px;
   background: var(--color-border);
-  margin: 0 6px;
+  @apply mx-1.5;
   display: inline-block;
 }
 
+/* NOTE(aesthetic): .sb-badge uses 9px → text-xs (12px, +3px). Badge is
+   tightly packed; 12px may expand height. Flagged for dogfood spot-check. */
 .sb-badge {
   background: var(--color-accent);
   color: var(--color-accent-fg);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 600;
+  @apply font-mono text-xs font-semibold;
   min-width: 14px;
   height: 14px;
-  padding: 0 4px;
+  @apply px-1;
   border-radius: 7px;
   display: inline-flex;
   align-items: center;
@@ -530,11 +500,8 @@ body,
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-2);
+  @apply gap-1 px-2 text-xs text-fg-muted;
   height: 30px;
-  font-size: 12px;
-  color: var(--color-fg-muted);
   background: var(--color-surface-panel);
   border-right: 1px solid var(--color-border);
   cursor: pointer;
@@ -546,12 +513,12 @@ body,
 
 .editor-tab:hover {
   background: var(--color-surface-elevated);
-  color: var(--color-fg-secondary);
+  @apply text-fg-secondary;
 }
 
 .editor-tab--active {
   background: var(--color-surface-base);
-  color: var(--color-fg-primary);
+  @apply text-fg-primary;
 }
 
 .editor-tab--active::before {
@@ -582,20 +549,20 @@ body,
   height: 16px;
   border: none;
   background: transparent;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  @apply text-sm;
   padding: 0;
-  border-radius: var(--radius-sm);
+  @apply rounded-sm;
   line-height: 1;
 }
 
 .editor-tab-close:hover {
   background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply text-fg-primary;
 }
 
 .editor-tab-close-dot { display: none; }
@@ -603,8 +570,7 @@ body,
 
 .editor-tab-close--dirty .editor-tab-close-dot {
   display: inline;
-  font-size: 10px;
-  color: var(--color-accent);
+  @apply text-xs text-accent;
 }
 .editor-tab-close--dirty .editor-tab-close-x { display: none; }
 
@@ -634,25 +600,21 @@ body,
   flex-direction: column;
   min-height: 0;
   background: var(--color-surface-base);
-  color: var(--color-fg-primary);
+  @apply text-fg-primary;
 }
 
 .ru-edit-scratch-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  @apply gap-2 px-3 py-2 text-xs text-fg-muted;
   border-bottom: 1px solid var(--color-border);
-  font-size: 12px;
-  color: var(--color-fg-muted);
 }
 
 .ru-edit-toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
+  @apply gap-3 px-3 py-2;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface-base);
   flex-wrap: wrap;
@@ -660,20 +622,18 @@ body,
 
 .ru-edit-toolbar-group {
   display: flex;
-  gap: 2px;
-  padding: 0 4px;
+  @apply gap-0.5 px-1;
   border-right: 1px solid var(--color-border);
 }
 .ru-edit-toolbar-group:last-child { border-right: 0; }
 
 .ru-edit-toolbar-btn {
   background: var(--color-surface-elevated);
-  color: var(--color-fg-primary);
+  @apply text-fg-primary;
   border: 1px solid var(--color-border);
   border-radius: 3px;
-  padding: 2px 8px;
+  @apply py-0.5 px-2 text-xs;
   font: inherit;
-  font-size: 12px;
   cursor: pointer;
   min-width: 28px;
 }
@@ -692,7 +652,7 @@ body,
 .ru-edit-toolbar-btn:disabled:hover { background: var(--color-surface-elevated); }
 
 .ru-edit-scratch-resource {
-  font-family: var(--font-mono, monospace);
+  @apply font-mono;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -711,8 +671,7 @@ body,
 .ru-edit-host .ProseMirror {
   outline: none;
   min-height: 100%;
-  font-size: 14px;
-  line-height: 1.55;
+  @apply text-sm;
 }
 
 .ru-edit-host .ProseMirror p,
@@ -723,29 +682,28 @@ body,
 .ru-edit-host .ProseMirror ul,
 .ru-edit-host .ProseMirror ol { margin: 0 0 0.5em; }
 
+/* NOTE(type): h1 was 1.6em ≈ 22px at parent 14px → text-lg (20px, −2px default-down).
+   letter-spacing -0.01em baked into text-lg (-0.005em) differs; keep explicit. */
 .ru-edit-host .ProseMirror h1 {
-  font-family: var(--font-display);
-  font-size: 1.6em;
-  font-weight: 600;
+  @apply font-display text-lg font-semibold;
   letter-spacing: -0.01em;
 }
+/* NOTE(type): h2 was 1.3em ≈ 18px at parent 14px → text-base (16px, −2px default-down).
+   letter-spacing -0.005em matches baked text-lg value but h2 uses text-base; keep explicit. */
 .ru-edit-host .ProseMirror h2 {
-  font-size: 1.3em;
-  font-weight: 600;
+  @apply text-base font-semibold;
   letter-spacing: -0.005em;
 }
-.ru-edit-host .ProseMirror h3 { font-size: 1.1em; font-weight: 600; }
+.ru-edit-host .ProseMirror h3 { @apply text-base font-semibold; }
 .ru-edit-host .ProseMirror blockquote {
   border-left: 3px solid var(--color-border);
-  padding-left: var(--space-3);
-  color: var(--color-fg-muted);
+  @apply pl-3 text-fg-muted;
 }
+/* NOTE(type): code font-size 0.92em → text-xs per table. */
 .ru-edit-host .ProseMirror code {
-  font-family: var(--font-mono, monospace);
-  background: var(--color-surface-elevated);
+  @apply font-mono text-xs bg-surface-elevated;
   padding: 0 4px;
   border-radius: 3px;
-  font-size: 0.92em;
 }
 .ru-edit-host .ProseMirror ul,
 .ru-edit-host .ProseMirror ol { padding-left: 1.5em; }
@@ -759,27 +717,23 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-4);
+  @apply p-4;
 }
 
 .editor-placeholder-label {
-  color: var(--color-fg-muted);
-  font-size: 12px;
+  @apply text-fg-muted text-xs font-mono;
   margin: 0;
-  font-family: var(--font-mono, monospace);
 }
 
 .editor-unknown {
-  padding: var(--space-4);
-  color: var(--color-fg-muted);
-  font-size: 12px;
+  @apply p-4 text-fg-muted text-xs;
 }
 
 /* Command Palette */
 .cmd-palette-overlay {
   position: fixed;
   inset: 0;
-  background: var(--scrim-overlay);
+  @apply bg-scrim-overlay;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -789,11 +743,10 @@ body,
 
 .cmd-palette {
   width: 560px;
-  max-width: calc(100vw - var(--space-8));
+  max-width: calc(100vw - 2rem);
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-overlay);
+  @apply rounded-md shadow-overlay;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -804,37 +757,32 @@ body,
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--color-border);
-  color: var(--color-fg-primary);
-  font-family: var(--font-sans);
-  font-size: 13px;
+  @apply text-fg-primary text-sm;
   outline: none;
-  padding: var(--space-3) var(--space-4);
+  @apply px-4 py-3;
   width: 100%;
 }
 
 .cmd-palette-input::placeholder {
-  color: var(--color-fg-muted);
+  @apply text-fg-muted;
 }
 
 .cmd-palette-list {
   list-style: none;
   margin: 0;
   overflow-y: auto;
-  padding: var(--space-1) 0;
+  @apply py-1;
 }
 
 .cmd-palette-empty {
-  color: var(--color-fg-muted);
-  font-size: 12px;
-  padding: var(--space-3) var(--space-4);
+  @apply text-fg-muted text-xs px-4 py-3;
 }
 
 .cmd-palette-item {
   align-items: center;
   cursor: default;
   display: flex;
-  font-size: 13px;
-  padding: var(--space-2) var(--space-4);
+  @apply text-sm px-4 py-2;
   user-select: none;
 }
 
@@ -847,13 +795,12 @@ body,
 }
 
 .cmd-palette-category {
-  color: var(--color-fg-muted);
-  font-size: 12px;
+  @apply text-fg-muted text-xs;
   margin-right: 2px;
 }
 
 .cmd-palette-title {
-  color: var(--color-fg-primary);
+  @apply text-fg-primary;
 }
 
 /* ── Snippet engine (Phase 8) ─────────────────────────────────────────────── */
@@ -862,7 +809,7 @@ body,
 .ru-snippet-trigger {
   background: var(--color-surface-active);
   border-radius: 2px;
-  color: var(--color-fg-primary);
+  @apply text-fg-primary;
   outline: 1px solid var(--color-accent);
   outline-offset: 1px;
 }
@@ -871,8 +818,7 @@ body,
 .ru-snippet-popup {
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-overlay);
+  @apply rounded-md shadow-overlay;
   min-width: 200px;
   max-width: 360px;
   max-height: 240px;
@@ -886,7 +832,7 @@ body,
   align-items: center;
   cursor: default;
   display: flex;
-  gap: 8px;
+  @apply gap-2;
   padding: 4px 10px;
   user-select: none;
 }
@@ -897,27 +843,24 @@ body,
 }
 
 .ru-snippet-popup-abbrev {
-  color: var(--color-accent);
-  font-family: var(--font-mono, monospace);
-  font-size: 12px;
+  @apply text-accent font-mono text-xs;
   flex-shrink: 0;
 }
 
 .ru-snippet-popup-label {
-  color: var(--color-fg-secondary);
-  font-size: 12px;
+  @apply text-fg-secondary text-xs;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 /* Inline placeholder chips */
+/* NOTE(type): font-size 0.85em → text-xs per table. */
 .ru-snippet-placeholder {
   border-radius: 3px;
   cursor: default;
   display: inline-block;
-  font-family: var(--font-mono, monospace);
-  font-size: 0.85em;
+  @apply font-mono text-xs;
   margin: 0 1px;
   padding: 1px 5px;
   user-select: none;
@@ -925,44 +868,35 @@ body,
 }
 
 .ru-snippet-placeholder--text {
-  background: var(--tint-info-subtle);
-  border: 1px solid var(--tint-info-strong);
-  color: var(--color-fg-secondary);
+  @apply bg-tint-info-subtle border border-tint-info-strong text-fg-secondary;
 }
 
 /* NodeSelection on a text placeholder */
 .ProseMirror-selectednode.ru-snippet-placeholder--text {
-  background: var(--tint-info-medium);
-  border-color: var(--tint-info-bold);
-  color: var(--color-fg-primary);
+  @apply bg-tint-info-medium border-tint-info-bold text-fg-primary;
   outline: none;
-  box-shadow: 0 0 0 2px var(--tint-info-medium);
+  box-shadow: 0 0 0 2px var(--color-tint-info-medium);
 }
 
 .ru-snippet-placeholder--picklist {
-  background: var(--tint-success-subtle);
-  border: 1px solid var(--tint-success-strong);
-  color: var(--color-fg-secondary);
+  @apply bg-tint-success-subtle border border-tint-success-strong text-fg-secondary;
   cursor: pointer;
 }
 
 .ru-snippet-placeholder--picklist:hover {
-  background: var(--tint-success-soft);
-  border-color: var(--tint-success-bold);
+  @apply bg-tint-success-soft border-tint-success-bold;
 }
 
 .ru-snippet-placeholder--picklist.is-open {
-  background: var(--tint-success-soft);
-  border-color: var(--tint-success-bold);
-  box-shadow: 0 0 0 2px var(--tint-success-medium);
+  @apply bg-tint-success-soft border-tint-success-bold;
+  box-shadow: 0 0 0 2px var(--color-tint-success-medium);
 }
 
 /* Picklist dropdown (appended to body, positioned fixed) */
 .ru-snippet-picklist-dropdown {
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-overlay);
+  @apply rounded-md shadow-overlay;
   max-height: 200px;
   min-width: 160px;
   overflow-y: auto;
@@ -971,7 +905,7 @@ body,
 
 .ru-snippet-picklist-item {
   cursor: default;
-  font-size: 13px;
+  @apply text-sm;
   padding: 4px 10px;
   user-select: none;
 }
