@@ -48,9 +48,9 @@ function renderIcon(name: string | undefined): React.ReactNode {
 }
 
 function severityClass(severity: StatusBarEntry['severity']): string {
-  if (severity === 'ok') return ' is-ok';
-  if (severity === 'warning') return ' is-warning';
-  if (severity === 'error') return ' is-error';
+  if (severity === 'ok') return ' statusbar-entry--ok';
+  if (severity === 'warning') return ' statusbar-entry--warning';
+  if (severity === 'error') return ' statusbar-entry--error';
   return '';
 }
 

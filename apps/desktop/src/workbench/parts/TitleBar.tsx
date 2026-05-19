@@ -66,7 +66,7 @@ export default function TitleBar({
           {MENUS.map((m) => (
             <button
               key={m}
-              className={`tb-menu-item${openMenu === m ? ' is-open' : ''}`}
+              className={`tb-menu-item${openMenu === m ? ' tb-menu-item--open' : ''}`}
               onClick={() => setOpenMenu(openMenu === m ? null : m)}
               aria-label={m}
             >
@@ -161,7 +161,7 @@ export default function TitleBar({
             <Square size={10} />
           </button>
           <button
-            className="tb-win-btn is-close"
+            className="tb-win-btn tb-win-btn--close"
             aria-label="Close"
             onClick={() => void proxy.current?.call('close')}
           >

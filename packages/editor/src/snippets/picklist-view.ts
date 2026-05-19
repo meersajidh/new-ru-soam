@@ -128,7 +128,7 @@ export class PicklistNodeView implements NodeView {
     const items = this.dropdown.querySelectorAll('.ru-snippet-picklist-item');
     items.forEach((item, i) => {
       const selected = i === this.selectedIdx;
-      item.classList.toggle('is-selected', selected);
+      item.classList.toggle('ru-snippet-picklist-item--selected', selected);
       item.setAttribute('aria-selected', String(selected));
       if (selected) (item as HTMLElement).scrollIntoView({ block: 'nearest' });
     });

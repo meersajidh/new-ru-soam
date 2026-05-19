@@ -190,11 +190,11 @@
     box-shadow 0.25s ease;
 }
 
-.setup-seg.is-done {
+.setup-seg--done {
   background: var(--color-accent);
 }
 
-.setup-seg.is-active {
+.setup-seg--active {
   background: var(--color-accent);
   box-shadow:
     0 0 calc(8px * var(--glow-mul))
@@ -253,17 +253,17 @@
   max-width: 100%;
 }
 
-.step.is-done .step-node {
+.step--done .step-node {
   border-color: var(--color-accent);
   color: var(--color-accent);
   background: var(--color-surface-base);
 }
 
-.step.is-done .step-label {
+.step--done .step-label {
   color: var(--color-fg-secondary);
 }
 
-.step.is-active .step-node {
+.step--active .step-node {
   border-color: var(--color-accent);
   color: var(--color-accent);
   background: var(--tint-accent-subtle);
@@ -274,7 +274,7 @@
   animation: progress-pulse 2.4s ease-in-out infinite;
 }
 
-.step.is-active .step-label {
+.step--active .step-label {
   color: var(--color-accent);
   font-weight: 600;
 }

@@ -29,14 +29,14 @@ export function ProgressRail({ step }: { step: number }) {
       <div className="progress-rail" aria-hidden="true">
         {STEPS.map((label, i) => {
           const n = i + 1;
-          const cls = n < step ? 'is-done' : n === step ? 'is-active' : '';
+          const cls = n < step ? 'setup-seg--done' : n === step ? 'setup-seg--active' : '';
           return <div key={label} className={`setup-seg ${cls}`} />;
         })}
       </div>
       <div className="setup-steps">
         {STEPS.map((label, i) => {
           const n = i + 1;
-          const cls = n < step ? 'is-done' : n === step ? 'is-active' : '';
+          const cls = n < step ? 'step--done' : n === step ? 'step--active' : '';
           return (
             <div
               key={label}

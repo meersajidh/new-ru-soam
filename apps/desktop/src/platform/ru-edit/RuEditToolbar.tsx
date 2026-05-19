@@ -63,7 +63,7 @@ export default function RuEditToolbar({ getHandle, active }: Props) {
           {specs.map((s) => {
             const isActive = !!(active && s.isActive?.(active));
             const isDisabled = !!(active && s.isDisabled?.(active));
-            const cls = `ru-edit-toolbar-btn${isActive ? ' is-active' : ''}`;
+            const cls = `ru-edit-toolbar-btn${isActive ? ' ru-edit-toolbar-btn--active' : ''}`;
             return (
               <button
                 key={s.label}

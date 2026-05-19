@@ -280,6 +280,15 @@ only the task-specific Goal / Scope / Constraints / Success criteria.
 - Developer command: `developer.audit.dump` calls `audit@1.0`.list via `bindCapability` and dumps via `console.table`.
 - Electron 41 pin holds (O157 stays open). BSMC@12.9.0 + SQLCipher works fine on V8 from Electron 41. Bump deferred until upstream ships V8-14 support.
 
+### 19 May 2026 — PR-6 delivered (BEM-strict naming codemod)
+
+- 14 `.is-{state}` selectors renamed to `.block--{modifier}` form across `workbench.css` (8) and `setup.css` (6); 9 JS/TSX call-sites updated (`StatusBar.tsx`, `TitleBar.tsx`, `RuEditToolbar.tsx`, `-keys-components.tsx`, `trigger-plugin.ts`, `picklist-view.ts`).
+- **Specificity-preserving doubled-class form** used at 4 sites where the naive rename would drop below a competing `:hover` rule: `.statusbar-entry.statusbar-entry--{ok,warning,error}` (the base `:hover` rule has 0,2,0 specificity; doubled form keeps modifier at 0,2,0), and `.ru-edit-toolbar-btn.ru-edit-toolbar-btn--active`. Verified in dogfood — statusbar warning entry retains warning bg on hover; toolbar active button retains active state on hover. Doubled-class is valid BEM (sometimes called "BEM with state").
+- One dead selector skipped: `.ru-snippet-placeholder--picklist.is-open` at `workbench.css:954` — no JS sets that class. Flagged for PR-8 cleanup.
+- After PR-6, zero `.is-{state}` selectors in scope CSS (except the one dead-flagged), zero `is-{state}` string literals in scope JS/TSX. CLAUDE.md "Styling system" Naming rule now satisfied across the codebase.
+- Defer to PR-7: type recipe (`.t-*`) adoption across duplicated font/size/color combinations.
+- Defer to PR-8+: dead-CSS cleanup, CSS file relocation (move colocated CSS next to components, decompose `workbench.css`/`setup.css`), recipe layer for repeated composites.
+
 ### 19 May 2026 — PR-5 delivered (inline `style={{}}` triage)
 
 - Replaced 14 of 21 inline `style={{}}` sites with Tailwind v4 utilities; 7 remaining sites are all runtime/dynamic values (StrengthMeter score-driven bg/color, EditorArea computed `flex: node.ratio`, WorkspaceTileGrid dynamic avatar bg, ChangePassphraseDialog strength meter) and intentionally kept.

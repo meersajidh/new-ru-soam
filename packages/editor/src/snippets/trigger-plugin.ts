@@ -214,7 +214,7 @@ export function createSnippetPlugin(registry: SnippetRegistry): Plugin<SnippetPl
         for (let i = 0; i < candidates.length; i++) {
           const m = candidates[i];
           const item = document.createElement('div');
-          item.className = 'ru-snippet-popup-item' + (i === selectedIdx ? ' is-selected' : '');
+          item.className = 'ru-snippet-popup-item' + (i === selectedIdx ? ' ru-snippet-popup-item--selected' : '');
 
           const abbrevEl = document.createElement('span');
           abbrevEl.className = 'ru-snippet-popup-abbrev';

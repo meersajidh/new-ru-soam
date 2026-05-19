@@ -106,7 +106,7 @@ body,
 }
 
 .tb-menu-item:hover,
-.tb-menu-item.is-open {
+.tb-menu-item--open {
   background: var(--color-surface-active);
   color: var(--color-fg-primary);
 }
@@ -232,7 +232,7 @@ body,
   background: var(--color-surface-active);
 }
 
-.tb-win-btn.is-close:hover {
+.tb-win-btn--close:hover {
   background: var(--color-error);
   color: var(--color-fg-primary);
 }
@@ -431,16 +431,16 @@ body,
   color: var(--color-fg-primary);
 }
 
-.statusbar-entry.is-ok {
+.statusbar-entry.statusbar-entry--ok {
   color: var(--color-success);
 }
 
-.statusbar-entry.is-warning {
+.statusbar-entry.statusbar-entry--warning {
   color: var(--color-warning);
   background: var(--tint-warning-soft);
 }
 
-.statusbar-entry.is-error {
+.statusbar-entry.statusbar-entry--error {
   color: var(--color-error);
 }
 
@@ -679,7 +679,7 @@ body,
 }
 .ru-edit-toolbar-btn:hover { background: var(--color-surface-active); }
 .ru-edit-toolbar-btn:active { transform: translateY(1px); }
-.ru-edit-toolbar-btn.is-active,
+.ru-edit-toolbar-btn.ru-edit-toolbar-btn--active,
 .ru-edit-toolbar-btn[aria-pressed="true"] {
   background: var(--color-accent-subtle, var(--color-surface-active));
   border-color: var(--color-accent, var(--color-fg-primary));
@@ -892,7 +892,7 @@ body,
 }
 
 .ru-snippet-popup-item:hover,
-.ru-snippet-popup-item.is-selected {
+.ru-snippet-popup-item--selected {
   background: var(--color-surface-active);
 }
 
@@ -977,6 +977,6 @@ body,
 }
 
 .ru-snippet-picklist-item:hover,
-.ru-snippet-picklist-item.is-selected {
+.ru-snippet-picklist-item--selected {
   background: var(--color-surface-active);
 }
