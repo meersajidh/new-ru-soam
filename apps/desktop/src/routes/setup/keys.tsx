@@ -29,11 +29,22 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import { ShieldAlert, Copy, Download } from 'lucide-react';
+import {
+  ShieldAlert,
+  Copy,
+  Download,
+  HelpCircle,
+  Check,
+  ShieldCheck,
+  Lock,
+  ArrowRight,
+  ArrowLeft,
+} from 'lucide-react';
 import { MockOAuthModal, ProgressRail } from './-keys-components';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
 import GoogleMark from '../../platform/auth/GoogleMark';
+import Wordmark from '../../workbench/parts/Wordmark';
 import { useModalKeys } from '../../platform/hooks/useModalKeys';
 import '../../styles/workbench.css';
 import '../../styles/setup.css';
@@ -100,9 +111,7 @@ function SetupKeysContent() {
   // Passphrase strength
   const passStrength = state.passphrase.length > 0 ? zxcvbn(state.passphrase).score : 0;
   const passphraseOk =
-    state.passphrase.length >= 12 &&
-    passStrength >= 3 &&
-    state.passphrase === confirmPassphrase;
+    state.passphrase.length >= 12 && passStrength >= 3 && state.passphrase === confirmPassphrase;
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -231,30 +240,22 @@ function SetupKeysContent() {
   function renderStep1() {
     return (
       <div className="setup-step">
-        <h1 className="setup-title">
-          {addNew ? 'Add a new workspace' : 'Welcome to Ru-Soam'}
-        </h1>
+        <h1 className="setup-title">{addNew ? 'Add a new workspace' : 'Welcome to Ru-Soam'}</h1>
         <p className="setup-description">
           {addNew
-            ? 'Sign in to create an additional workspace. Your data stays on this device.'
-            : 'Sign in to create your secure workspace. Your data stays on this device.'}
+            ? 'Sign in to create an additional workspace. Your data stays on this device — encrypted end-to-end by a passphrase only you hold.'
+            : 'Create your secure workspace. Your data stays on this device — encrypted end-to-end by a passphrase only you hold.'}
         </p>
-        <button
-          className="btn-google setup-btn-google"
-          onClick={() => setShowOAuthModal(true)}
-        >
+        <button className="btn-google setup-btn-google" onClick={() => setShowOAuthModal(true)}>
           <GoogleMark size={18} />
-          Sign in with Google
+          Continue with Google
         </button>
         {addNew && (
-          <div className="setup-actions">
-            <button
-              className="setup-btn-ghost"
-              onClick={() => void navigate({ to: '/workspaces' })}
-            >
-              Cancel
-            </button>
-          </div>
+          // <div className="setup-actions border-2">
+          <button className="setup-btn-ghost" onClick={() => void navigate({ to: '/workspaces' })}>
+            Cancel
+          </button>
+          // </div>
         )}
         {showOAuthModal && (
           <MockOAuthModal
@@ -273,7 +274,9 @@ function SetupKeysContent() {
         <p className="setup-description">
           This is a local label for this workspace. It is not shared with anyone.
         </p>
-        <label htmlFor="nickname" className="setup-label">Nickname</label>
+        <label htmlFor="nickname" className="setup-label">
+          Nickname
+        </label>
         <input
           id="nickname"
           type="text"
@@ -288,12 +291,23 @@ function SetupKeysContent() {
           <p className="setup-error">Nickname must be 4-64 characters.</p>
         )}
         <div className="setup-actions">
+          <button className="setup-btn-ghost" onClick={() => setState((s) => ({ ...s, step: 1 }))}>
+            <ArrowLeft size={14} /> Back
+          </button>
+          {addNew && (
+            <button
+              className="setup-btn-ghost"
+              onClick={() => void navigate({ to: '/workspaces' })}
+            >
+              Cancel
+            </button>
+          )}
           <button
             className="setup-btn-primary"
             onClick={() => setState((s) => ({ ...s, step: 3 }))}
             disabled={!nicknameValid}
           >
-            Next
+            Next step <ArrowRight size={14} />
           </button>
         </div>
       </div>
@@ -365,14 +379,29 @@ function SetupKeysContent() {
             onClick={() => setState((s) => ({ ...s, step: 2 }))}
             disabled={step3Loading}
           >
-            Back
+            <ArrowLeft size={14} /> Back
           </button>
+          {addNew && (
+            <button
+              className="setup-btn-ghost"
+              onClick={() => void navigate({ to: '/workspaces' })}
+              disabled={step3Loading}
+            >
+              Cancel
+            </button>
+          )}
           <button
             className="setup-btn-primary"
             onClick={handlePassphraseNext}
             disabled={!passphraseOk || step3Loading}
           >
-            {step3Loading ? 'Working…' : 'Next'}
+            {step3Loading ? (
+              'Working…'
+            ) : (
+              <>
+                Next step <ArrowRight size={14} />
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -439,7 +468,7 @@ function SetupKeysContent() {
             onClick={() => setState((s) => ({ ...s, step: 5 }))}
             disabled={!acknowledged}
           >
-            Continue
+            Continue <ArrowRight size={14} />
           </button>
         </div>
       </div>
@@ -449,12 +478,16 @@ function SetupKeysContent() {
   function renderStep5() {
     return (
       <div className="setup-step">
-        <h1 className="setup-title">Setup complete</h1>
-        <p className="setup-description">
-          Your workspace is ready. Click <strong>Finish setup</strong> to open it.
+        <div className="setup-finish-mark">
+          <Check size={42} strokeWidth={2.5} />
+        </div>
+        <h1 className="setup-finish-title">Setup complete</h1>
+        <p className="setup-finish-desc">
+          Your workspace <strong>{state.nickname || 'Practice'}</strong> is ready. Everything you
+          write here is encrypted on this device and never leaves it without your passphrase.
         </p>
         {finishError && <p className="setup-error">{finishError}</p>}
-        <div className="setup-actions">
+        <div className="setup-actions" style={{ justifyContent: 'center' }}>
           {finishError && finishError.includes('expired') && (
             <button
               className="setup-btn-ghost"
@@ -464,12 +497,14 @@ function SetupKeysContent() {
               Restart passphrase step
             </button>
           )}
-          <button
-            className="setup-btn-primary"
-            onClick={handleFinish}
-            disabled={finishLoading}
-          >
-            {finishLoading ? 'Finishing…' : 'Finish setup'}
+          <button className="setup-btn-primary" onClick={handleFinish} disabled={finishLoading}>
+            {finishLoading ? (
+              'Finishing…'
+            ) : (
+              <>
+                Open workspace <ArrowRight size={14} />
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -478,17 +513,51 @@ function SetupKeysContent() {
 
   return (
     <div className="setup-page">
-      <div className="setup-container">
-        <ProgressRail step={state.step} />
+      <div className="setup-topbar">
+        <Wordmark />
+        <button className="setup-help-btn" aria-label="Help">
+          <HelpCircle size={18} />
+        </button>
+      </div>
 
-        <div className="setup-content">
-          {state.step === 1 && renderStep1()}
-          {state.step === 2 && renderStep2()}
-          {state.step === 3 && renderStep3()}
-          {state.step === 4 && renderStep4()}
-          {state.step === 5 && renderStep5()}
+      <main className="setup-main">
+        <div className="setup-container">
+          <ProgressRail step={state.step} />
+
+          <div className="setup-content">
+            {state.step === 1 && renderStep1()}
+            {state.step === 2 && renderStep2()}
+            {state.step === 3 && renderStep3()}
+            {state.step === 4 && renderStep4()}
+            {state.step === 5 && renderStep5()}
+          </div>
+
+          <div className="setup-trust">
+            <div className="setup-trust-badge">
+              <span className="ico">
+                <ShieldCheck size={18} />
+              </span>
+              <span>
+                <strong>End-to-end encrypted.</strong> Your notes never leave this device
+                unencrypted.
+              </span>
+            </div>
+            <div className="setup-trust-badge">
+              <span className="ico">
+                <Lock size={18} />
+              </span>
+              <span>
+                <strong>Zero-knowledge.</strong> Only your passphrase can unlock the workspace.
+              </span>
+            </div>
+          </div>
         </div>
+      </main>
+
+      <div className="setup-foot">
+        Ru-Soam · <strong>local-first clinical practice.</strong> Your data stays on this device.
       </div>
     </div>
   );
 }
+

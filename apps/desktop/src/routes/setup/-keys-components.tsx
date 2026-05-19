@@ -15,28 +15,40 @@ import { useModalKeys } from '../../platform/hooks/useModalKeys';
 export { STEPS, STEP_HEADLINES };
 
 export function ProgressRail({ step }: { step: number }) {
-  const completed = Math.max(0, step - 1);
-  const pct = `${(completed / (STEPS.length - 1)) * 80}%`;
-
   return (
-    <div>
+    <div className="setup-progress" role="group" aria-label="Setup progress">
       <div className="progress-eyebrow">
+        <span>Setup progress</span>
         <span className="progress-counter">
-          Step <strong>{step}</strong> of {STEPS.length}
+          Step{' '}
+          <span className="now">{String(step).padStart(2, '0')}</span>
+          <span className="sep">/</span>
+          <span className="total">{String(STEPS.length).padStart(2, '0')}</span>
         </span>
-        <h3 className="progress-headline">{STEP_HEADLINES[step]}</h3>
       </div>
-      <div
-        className="progress-rail"
-        style={{ '--pct': pct } as React.CSSProperties}
-      >
+      <div className="progress-rail" aria-hidden="true">
+        {STEPS.map((label, i) => {
+          const n = i + 1;
+          const cls = n < step ? 'is-done' : n === step ? 'is-active' : '';
+          return <div key={label} className={`setup-seg ${cls}`} />;
+        })}
+      </div>
+      <div className="setup-steps">
         {STEPS.map((label, i) => {
           const n = i + 1;
           const cls = n < step ? 'is-done' : n === step ? 'is-active' : '';
           return (
-            <div key={label} className={`step ${cls}`}>
+            <div
+              key={label}
+              className={`step ${cls}`}
+              aria-current={n === step ? 'step' : undefined}
+            >
               <div className="step-node">
-                {n < step ? <Check size={14} /> : n}
+                {n < step ? (
+                  <Check size={13} strokeWidth={3} />
+                ) : (
+                  String(n).padStart(2, '0')
+                )}
               </div>
               <span className="step-label">{label}</span>
             </div>

@@ -23,6 +23,7 @@ import { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Navigate } from '@tanstack/react-router';
 import type { WorkspaceMeta } from '../../../electron/shared/lock-protocol';
 import WorkspaceTileGrid from '../../workbench/middle/WorkspaceTileGrid';
+import Wordmark from '../../workbench/parts/Wordmark';
 import '../../styles/workbench.css';
 import '../../styles/setup.css';
 
@@ -99,19 +100,11 @@ function WorkspacePickerContent() {
   }
 
   return (
-    <div className="setup-page" style={{ justifyContent: 'flex-start', paddingTop: '48px' }}>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '24px',
-          alignItems: 'flex-start',
-          maxWidth: '760px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '0 40px',
-        }}
-      >
+    <div className="setup-page justify-start overflow-auto">
+      <div className="setup-topbar">
+        <Wordmark />
+      </div>
+      <div className="flex flex-col m-auto items-start gap-6 w-full max-w-3xl p-10">
         <div>
           <h1 className="setup-title">Choose a workspace</h1>
           <p className="setup-description">Select a workspace to unlock, or add a new one.</p>

@@ -43,6 +43,17 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
 
   // ── Right region (highest priority = rightmost / corner) ─────────────────
   {
+    id: 'workbench.theme.darkMode',
+    region: 'right',
+    priority: 850,
+    text: '',
+    tooltip: 'Toggle dark / light mode',
+    command: 'workbench.toggleDarkMode',
+    visible: true,
+    icon: 'moon',
+    scope: 'always',
+  },
+  {
     id: 'workbench.notifications',
     region: 'right',
     priority: 1000,

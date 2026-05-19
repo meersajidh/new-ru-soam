@@ -175,6 +175,16 @@ export function boot(): ServiceRegistry {
   // ── Phase 10a: Prefs dev panel toggle ────────────────────────────────────
   contextKeys.set('developer.prefs.open', false);
 
+  // ── Dark-mode toggle StatusBar entry ─────────────────────────────────────
+  function syncDarkModeEntry(dark: boolean): void {
+    statusBar.update('workbench.theme.darkMode', {
+      icon: dark ? 'sun' : 'moon',
+      tooltip: dark ? 'Switch to light mode' : 'Switch to dark mode',
+    });
+  }
+  syncDarkModeEntry(theme.isDark());
+  theme.onDarkModeChange(syncDarkModeEntry);
+
   // ── Phase 9b: DEV-mode StatusBar entry ────────────────────────────────────
   // Use import.meta.env.DEV as an approximation of "not packaged".
   // Note: this is a build-time constant, so the entry will never appear in a

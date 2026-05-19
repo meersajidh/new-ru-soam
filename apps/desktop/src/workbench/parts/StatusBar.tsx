@@ -12,6 +12,8 @@ import {
   Info,
   Cloud,
   CircleDot,
+  Moon,
+  Sun,
   type LucideProps,
 } from 'lucide-react';
 import { useStatusBarEntries, useService } from '../../platform/services/hooks';
@@ -34,6 +36,8 @@ const ICON_MAP: Record<string, LucideComponent> = {
   info: Info,
   cloud: Cloud,
   'circle-dot': CircleDot,
+  moon: Moon,
+  sun: Sun,
 };
 
 function renderIcon(name: string | undefined): React.ReactNode {

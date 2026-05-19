@@ -1,83 +1,214 @@
-/* ── Setup ceremony styles ─────────────────────────────────────────────────── */
+/* ── Setup ceremony — modern, neon-leaning ────────────────────────────────
+ * Layered over Ru-Soam DS tokens. The DS provides the accent already; this
+ * stylesheet amps it up with glow halos on focus / hover / active states,
+ * a heavier display weight for the wordmark, and a tighter form rhythm.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --glow-mul: 0.8;
+  --setup-card-radius: 16px;
+  --setup-pill-radius: 9999px;
+}
+
+/* ── Page shell ──────────────────────────────────────────────────────────── */
 
 .setup-page {
   flex: 1 1 auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
   min-height: 0;
+  overflow-y: auto;
   background: var(--color-surface-base);
   color: var(--color-fg-primary);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Ambient accent halo behind everything */
+.setup-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      60% 50% at 50% 18%,
+      color-mix(in oklch, var(--color-accent) calc(7% * var(--glow-mul)), transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      40% 40% at 18% 90%,
+      color-mix(in oklch, var(--color-accent) calc(4% * var(--glow-mul)), transparent) 0%,
+      transparent 70%
+    );
+  pointer-events: none;
+  z-index: -1;
+}
+
+.setup-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 40px 0;
+}
+
+.setup-help-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-panel);
+  color: var(--color-fg-secondary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.setup-help-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: color-mix(in oklch, var(--color-accent) 8%, var(--color-surface-panel));
+}
+
+/* ── Wordmark ────────────────────────────────────────────────────────────── */
+
+.setup-wordmark {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  color: var(--color-accent);
+  text-shadow: 0 0 calc(24px * var(--glow-mul))
+    color-mix(in oklch, var(--color-accent) calc(45% * var(--glow-mul)), transparent);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  user-select: none;
+}
+
+.setup-wordmark .dash {
+  display: inline-block;
+  width: 0.4em;
+  height: 0.085em;
+  align-self: flex-end;
+  background: currentColor;
+  margin: 0 0.06em 0.32em;
+  border-radius: 1px;
+  box-shadow: 0 0 calc(12px * var(--glow-mul)) currentColor;
+}
+
+/* ── Main column ─────────────────────────────────────────────────────────── */
+
+.setup-main {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 24px 24px;
 }
 
 .setup-container {
-  width: 480px;
-  max-width: calc(100vw - var(--space-8));
+  width: 100%;
+  max-width: 560px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: 28px;
 }
 
-/* ── Progress rail ────────────────────────────────────────────────────────── */
+/* ── Progress section ────────────────────────────────────────────────────── */
+
+.setup-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .progress-eyebrow {
   display: flex;
+  justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.progress-counter {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   color: var(--color-fg-muted);
-  letter-spacing: 0.06em;
-}
-
-.progress-counter strong {
-  color: var(--color-accent);
-  font-weight: 600;
-}
-
-.progress-headline {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-fg-primary);
   margin: 0;
 }
 
+.progress-counter {
+  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.progress-counter .now {
+  color: var(--color-accent);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 calc(8px * var(--glow-mul))
+    color-mix(in oklch, var(--color-accent) calc(60% * var(--glow-mul)), transparent);
+}
+
+.progress-counter .sep {
+  opacity: 0.5;
+  margin: 0 3px;
+}
+
+.progress-counter .total {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 5-segment underline rail */
 .progress-rail {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  position: relative;
-  padding: 14px 0 6px;
+  gap: 8px;
+  padding: 0;
+  position: static;
 }
 
-.progress-rail::before {
-  content: '';
-  position: absolute;
-  top: 26px;
-  left: 10%;
-  right: 10%;
-  height: 2px;
-  background: var(--color-border);
-  border-radius: 1px;
-}
-
+.progress-rail::before,
 .progress-rail::after {
-  content: '';
-  position: absolute;
-  top: 26px;
-  left: 10%;
-  width: var(--pct, 0%);
+  display: none;
+}
+
+.setup-seg {
   height: 2px;
-  background: var(--color-accent);
   border-radius: 1px;
-  transition: width 0.3s ease-out;
+  background: color-mix(in oklch, var(--color-fg-primary) 12%, transparent);
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.setup-seg.is-done {
+  background: var(--color-accent);
+}
+
+.setup-seg.is-active {
+  background: var(--color-accent);
+  box-shadow:
+    0 0 calc(8px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(80% * var(--glow-mul)), transparent),
+    0 0 calc(16px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(35% * var(--glow-mul)), transparent);
+}
+
+/* Steps row with rings */
+.setup-steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .step {
@@ -85,6 +216,7 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   position: relative;
   z-index: 1;
 }
@@ -93,52 +225,57 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--color-surface-elevated);
-  border: 1.5px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 1.25px solid var(--color-border);
+  display: grid;
+  place-items: center;
   color: var(--color-fg-muted);
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
-  transition: all 0.15s ease-out;
+  font-variant-numeric: tabular-nums;
+  background: var(--color-surface-base);
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
 }
 
 .step-label {
+  font-family: var(--font-sans);
   font-size: 11px;
-  color: var(--color-fg-muted);
   font-weight: 500;
+  color: var(--color-fg-muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .step.is-done .step-node {
-  background: var(--color-accent);
   border-color: var(--color-accent);
-  color: var(--color-accent-fg);
+  color: var(--color-accent);
+  background: var(--color-surface-base);
 }
 
 .step.is-done .step-label {
   color: var(--color-fg-secondary);
 }
 
-.step.is-active {
-  margin-top: -3px;
-}
-
 .step.is-active .step-node {
-  width: 32px;
-  height: 32px;
   border-color: var(--color-accent);
   color: var(--color-accent);
-  background: color-mix(in oklch, var(--color-accent) 14%, var(--color-surface-elevated));
+  background: color-mix(in oklch, var(--color-accent) 8%, var(--color-surface-base));
   box-shadow:
-    0 0 0 4px color-mix(in oklch, var(--color-accent) 22%, transparent),
-    0 0 0 8px color-mix(in oklch, var(--color-accent) 8%, transparent);
+    inset 0 0 0 1px var(--color-accent),
+    0 0 calc(10px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(45% * var(--glow-mul)), transparent);
   animation: progress-pulse 2.4s ease-in-out infinite;
 }
 
 .step.is-active .step-label {
-  color: var(--color-fg-primary);
+  color: var(--color-accent);
   font-weight: 600;
 }
 
@@ -146,32 +283,38 @@
   0%,
   100% {
     box-shadow:
-      0 0 0 4px color-mix(in oklch, var(--color-accent) 22%, transparent),
-      0 0 0 8px color-mix(in oklch, var(--color-accent) 6%, transparent);
+      inset 0 0 0 1px var(--color-accent),
+      0 0 calc(10px * var(--glow-mul))
+        color-mix(in oklch, var(--color-accent) calc(45% * var(--glow-mul)), transparent);
   }
   50% {
     box-shadow:
-      0 0 0 5px color-mix(in oklch, var(--color-accent) 30%, transparent),
-      0 0 0 12px color-mix(in oklch, var(--color-accent) 10%, transparent);
+      inset 0 0 0 1px var(--color-accent),
+      0 0 calc(16px * var(--glow-mul))
+        color-mix(in oklch, var(--color-accent) calc(70% * var(--glow-mul)), transparent);
   }
 }
 
-/* ── Content card ─────────────────────────────────────────────────────────── */
+/* ── Content card ────────────────────────────────────────────────────────── */
 
 .setup-content {
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-8);
-  box-shadow: var(--shadow-card);
+  border-radius: var(--setup-card-radius);
+  padding: 32px;
+  box-shadow:
+    var(--shadow-card),
+    0 0 calc(40px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(5% * var(--glow-mul)), transparent);
+  min-height: 320px;
 }
 
-/* ── Step layout ──────────────────────────────────────────────────────────── */
+/* ── Step layout ─────────────────────────────────────────────────────────── */
 
 .setup-step {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 22px;
 }
 
 .setup-title {
@@ -180,66 +323,88 @@
   font-weight: 600;
   color: var(--color-fg-primary);
   margin: 0;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
+  letter-spacing: -0.012em;
+  line-height: 1.22;
 }
 
 .setup-description {
   font-size: 13px;
+  line-height: 1.55;
   color: var(--color-fg-secondary);
   margin: 0;
+  max-width: 48ch;
 }
 
-/* ── Form elements ────────────────────────────────────────────────────────── */
+/* ── Form elements ───────────────────────────────────────────────────────── */
 
 .setup-label {
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--color-fg-secondary);
-  font-weight: 500;
   display: block;
 }
 
 .setup-input {
   width: 100%;
-  background: var(--color-surface-panel);
+  background: color-mix(in oklch, var(--color-surface-panel) 80%, var(--color-surface-base));
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   color: var(--color-fg-primary);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   outline: none;
-  padding: var(--space-2) var(--space-3);
-  transition: border-color 0.1s;
+  padding: 13px 16px;
   box-sizing: border-box;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+}
+
+.setup-input::placeholder {
+  color: var(--color-fg-muted);
+}
+
+.setup-input:hover {
+  border-color: color-mix(in oklch, var(--color-fg-muted) 50%, var(--color-border));
 }
 
 .setup-input:focus {
-  border-color: var(--color-border-focus);
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 0 4px color-mix(in oklch, var(--color-accent) calc(14% * var(--glow-mul)), transparent),
+    0 0 calc(24px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(28% * var(--glow-mul)), transparent);
+  background: color-mix(in oklch, var(--color-surface-panel) 70%, var(--color-surface-base));
 }
 
 .setup-error {
   font-size: 12px;
   color: var(--color-error);
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* ── Password wrap + eye toggle ───────────────────────────────────────────── */
+/* ── Password wrap + eye toggle ──────────────────────────────────────────── */
 
 .pw-wrap {
   position: relative;
 }
 
 .pw-wrap .setup-input {
-  padding-right: 38px;
+  padding-right: 42px;
 }
 
 .pw-eye {
   position: absolute;
-  right: 4px;
+  right: 6px;
   top: 50%;
   transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -249,60 +414,105 @@
   color: var(--color-fg-muted);
   cursor: pointer;
   padding: 0;
-  transition: color 0.1s;
+  transition:
+    color 0.1s,
+    background 0.1s;
 }
 
 .pw-eye:hover {
   color: var(--color-fg-primary);
+  background: var(--color-surface-active);
 }
 
 .pw-eye[aria-pressed='true'] {
   color: var(--color-accent);
 }
 
-/* ── Buttons ──────────────────────────────────────────────────────────────── */
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.setup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 6px;
+  align-items: center;
+}
+
+.setup-actions > button {
+  min-width: 96px;
+}
 
 .setup-btn-primary {
   background: var(--color-accent);
-  border: none;
-  border-radius: var(--radius-sm);
   color: var(--color-accent-fg);
+  border: none;
+  border-radius: var(--setup-pill-radius);
   cursor: pointer;
   font-family: var(--font-sans);
   font-size: 13px;
-  font-weight: 500;
-  padding: var(--space-2) var(--space-6);
-  transition: background 0.1s;
+  font-weight: 600;
+  padding: 12px 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  line-height: 1;
+  transition:
+    background 0.12s,
+    box-shadow 0.15s,
+    transform 0.08s;
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--color-accent) 70%, transparent),
+    0 0 calc(28px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(55% * var(--glow-mul)), transparent),
+    inset 0 1px 0 color-mix(in oklch, white 30%, transparent);
 }
 
 .setup-btn-primary:hover:not(:disabled) {
   background: var(--color-accent-hover);
+  box-shadow:
+    0 0 0 1px var(--color-accent),
+    0 0 calc(40px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(70% * var(--glow-mul)), transparent),
+    inset 0 1px 0 color-mix(in oklch, white 35%, transparent);
 }
 
 .setup-btn-primary:active:not(:disabled) {
   background: var(--color-accent-pressed);
+  transform: translateY(1px);
 }
 
 .setup-btn-primary:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .setup-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--setup-pill-radius);
   color: var(--color-fg-secondary);
   cursor: pointer;
   font-family: var(--font-sans);
-  font-size: 13px;
-  padding: var(--space-2) var(--space-4);
-  transition: background 0.1s, border-color 0.1s;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 13px 22px;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+  /* width: 100%; */
 }
 
 .setup-btn-ghost:hover:not(:disabled) {
-  background: var(--color-surface-active);
+  background: color-mix(in oklch, var(--color-fg-primary) 4%, transparent);
   border-color: var(--color-fg-muted);
+  color: var(--color-fg-primary);
 }
 
 .setup-btn-ghost:disabled {
@@ -310,44 +520,42 @@
   cursor: not-allowed;
 }
 
-.setup-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
-}
+/* ── Google sign-in pill ─────────────────────────────────────────────────── */
 
-/* ── Google sign-in pill ──────────────────────────────────────────────────── */
-
-/* White pill with hairline border — Google brand spec */
 .btn-google,
 .setup-btn-google {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   background: #fff;
   border: 1px solid #dadce0;
-  border-radius: 9999px;
+  border-radius: var(--setup-pill-radius);
   color: #3c4043;
   cursor: pointer;
   font-family: 'Roboto', 'Inter Tight', system-ui;
   font-size: 14px;
   font-weight: 500;
-  padding: 10px 20px;
-  transition: background 0.1s, box-shadow 0.1s;
+  padding: 13px 22px;
+  transition:
+    background 0.1s,
+    box-shadow 0.1s,
+    transform 0.08s;
   width: 100%;
 }
 
 .btn-google:hover,
 .setup-btn-google:hover {
   background: #f8f9fa;
-  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.15);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, white 30%, transparent),
+    0 6px 24px rgba(0, 0, 0, 0.4);
 }
 
 .btn-google:active,
 .setup-btn-google:active {
   background: #f1f3f4;
+  transform: translateY(1px);
 }
 
 .dark .btn-google,
@@ -362,17 +570,17 @@
   background: #2a2a2a;
 }
 
-/* ── Strength meter ───────────────────────────────────────────────────────── */
+/* ── Strength meter ──────────────────────────────────────────────────────── */
 
 .strength-meter {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 12px;
 }
 
 .strength-bars {
   display: flex;
-  gap: 3px;
+  gap: 4px;
   flex: 0 0 auto;
 }
 
@@ -380,8 +588,28 @@
   height: 4px;
   width: 36px;
   border-radius: 2px;
-  background: var(--color-border);
-  transition: background 0.2s;
+  background: color-mix(in oklch, var(--color-fg-primary) 10%, transparent);
+  transition:
+    background 0.25s,
+    box-shadow 0.25s;
+}
+
+.strength-bar.on {
+  background: var(--color-accent);
+  box-shadow: 0 0 calc(8px * var(--glow-mul))
+    color-mix(in oklch, var(--color-accent) calc(60% * var(--glow-mul)), transparent);
+}
+
+.strength-bar.on-weak {
+  background: var(--color-error);
+  box-shadow: 0 0 calc(8px * var(--glow-mul))
+    color-mix(in oklch, var(--color-error) calc(55% * var(--glow-mul)), transparent);
+}
+
+.strength-bar.on-mid {
+  background: var(--color-warning);
+  box-shadow: 0 0 calc(8px * var(--glow-mul))
+    color-mix(in oklch, var(--color-warning) calc(55% * var(--glow-mul)), transparent);
 }
 
 .strength-label {
@@ -389,14 +617,16 @@
   color: var(--color-fg-muted);
 }
 
-/* ── Recovery surface ─────────────────────────────────────────────────────── */
+/* ── Recovery surface ────────────────────────────────────────────────────── */
 
 .recovery {
   border: 1px solid color-mix(in oklch, var(--color-warning) 60%, var(--color-border));
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   background: var(--color-surface-elevated);
   overflow: hidden;
-  box-shadow: 0 0 0 4px color-mix(in oklch, var(--color-warning) 8%, transparent);
+  box-shadow:
+    0 0 0 4px color-mix(in oklch, var(--color-warning) 8%, transparent),
+    var(--shadow-card);
 }
 
 .recovery-banner {
@@ -433,26 +663,26 @@
 .recovery-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0;
-  padding: 8px;
+  gap: 6px;
+  padding: 12px;
+  background: color-mix(in oklch, var(--color-surface-panel) 50%, transparent);
 }
 
 .recovery-word {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 10px 12px;
   font-family: var(--font-mono);
   font-size: 13px;
-  background: var(--color-surface-panel);
-  margin: 2px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
+  background: color-mix(in oklch, var(--color-surface-base) 60%, transparent);
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklch, var(--color-border) 60%, transparent);
 }
 
 .recovery-index {
   color: var(--color-fg-muted);
-  min-width: 18px;
+  min-width: 20px;
   text-align: right;
   font-size: 11px;
   font-weight: 500;
@@ -461,14 +691,14 @@
 .recovery-text {
   color: var(--color-fg-primary);
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
 }
 
 .recovery-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface-panel);
   gap: 10px;
@@ -476,7 +706,7 @@
 
 .recovery-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .recovery-btn {
@@ -485,16 +715,21 @@
   gap: 6px;
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--setup-pill-radius);
   color: var(--color-fg-secondary);
   font-family: var(--font-sans);
   font-size: 12px;
-  padding: 5px 10px;
+  font-weight: 500;
+  padding: 6px 14px;
   cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
 }
 
 .recovery-btn:hover {
-  background: var(--color-surface-active);
+  background: color-mix(in oklch, var(--color-fg-primary) 4%, transparent);
   color: var(--color-fg-primary);
   border-color: var(--color-fg-muted);
 }
@@ -504,16 +739,25 @@
   color: var(--color-fg-muted);
 }
 
-/* ── Acknowledge checkbox ─────────────────────────────────────────────────── */
+/* ── Acknowledge checkbox ────────────────────────────────────────────────── */
 
 .setup-checkbox-label {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-3);
+  gap: 12px;
   font-size: 12px;
   color: var(--color-fg-secondary);
   cursor: pointer;
-  line-height: 1.5;
+  line-height: 1.55;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--color-surface-panel) 50%, transparent);
+  transition: border-color 0.12s;
+}
+
+.setup-checkbox-label:hover {
+  border-color: color-mix(in oklch, var(--color-fg-muted) 50%, var(--color-border));
 }
 
 .setup-checkbox-label input[type='checkbox'] {
@@ -521,6 +765,118 @@
   margin-top: 2px;
   cursor: pointer;
   accent-color: var(--color-accent);
+}
+
+/* ── Trust strip ─────────────────────────────────────────────────────────── */
+
+.setup-trust {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.setup-trust-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--color-surface-panel) 60%, transparent);
+  font-size: 12px;
+  color: var(--color-fg-secondary);
+  line-height: 1.35;
+}
+
+.setup-trust-badge .ico {
+  color: var(--color-accent);
+  display: inline-flex;
+}
+
+.setup-trust-badge strong {
+  color: var(--color-fg-primary);
+  font-weight: 600;
+}
+
+/* ── Finish screen ───────────────────────────────────────────────────────── */
+
+.setup-finish-mark {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 2px solid var(--color-accent);
+  display: grid;
+  place-items: center;
+  color: var(--color-accent);
+  margin: 4px auto 0;
+  box-shadow:
+    0 0 0 8px color-mix(in oklch, var(--color-accent) calc(10% * var(--glow-mul)), transparent),
+    0 0 calc(40px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(40% * var(--glow-mul)), transparent);
+  background: color-mix(in oklch, var(--color-accent) calc(8% * var(--glow-mul)), transparent);
+}
+
+.setup-finish-title {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.setup-finish-desc {
+  text-align: center;
+  color: var(--color-fg-secondary);
+  margin: 0 auto;
+  font-size: 14px;
+  max-width: 44ch;
+}
+
+.setup-finish-desc strong {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* ── Footnote ────────────────────────────────────────────────────────────── */
+
+.setup-foot {
+  text-align: center;
+  padding: 20px 24px 28px;
+  font-size: 12px;
+  color: var(--color-fg-muted);
+}
+
+.setup-foot strong {
+  color: var(--color-fg-secondary);
+  font-weight: 500;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .setup-topbar {
+    padding: 20px 20px 0;
+  }
+  .setup-wordmark {
+    font-size: 26px;
+  }
+  .setup-main {
+    padding: 24px 16px 16px;
+  }
+  .setup-content {
+    padding: 24px 20px;
+    border-radius: 14px;
+  }
+  .recovery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .setup-trust {
+    grid-template-columns: 1fr;
+  }
+  .step-label {
+    display: none;
+  }
 }
 
 /* ── Modal overlay ────────────────────────────────────────────────────────── */
@@ -839,7 +1195,9 @@
   padding: var(--space-4) var(--space-5);
   cursor: pointer;
   text-align: left;
-  transition: background 0.1s, border-color 0.1s;
+  transition:
+    background 0.1s,
+    border-color 0.1s;
   font-family: var(--font-sans);
   color: var(--color-fg-primary);
 }
