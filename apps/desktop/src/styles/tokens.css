@@ -39,6 +39,35 @@
   --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.25);
   --shadow-overlay: 0 8px 32px rgba(0, 0, 0, 0.40);
   --shadow-modal:   0 8px 40px rgba(0, 0, 0, 0.50);
+
+  /* Semantic tints — N% of color over transparent.
+     5-step scale: subtle → soft → medium → strong → bold.
+     Add new steps here before using new percentages elsewhere. */
+  --tint-accent-subtle:  color-mix(in oklch, var(--color-accent)  10%, transparent);
+  --tint-accent-soft:    color-mix(in oklch, var(--color-accent)  20%, transparent);
+  --tint-accent-medium:  color-mix(in oklch, var(--color-accent)  35%, transparent);
+  --tint-accent-strong:  color-mix(in oklch, var(--color-accent)  55%, transparent);
+  --tint-accent-bold:    color-mix(in oklch, var(--color-accent)  75%, transparent);
+
+  --tint-info-subtle:    color-mix(in oklch, var(--color-info)    15%, transparent);
+  --tint-info-medium:    color-mix(in oklch, var(--color-info)    35%, transparent);
+  --tint-info-strong:    color-mix(in oklch, var(--color-info)    40%, transparent);
+  --tint-info-bold:      color-mix(in oklch, var(--color-info)    80%, transparent);
+
+  --tint-success-subtle: color-mix(in oklch, var(--color-success) 15%, transparent);
+  --tint-success-soft:   color-mix(in oklch, var(--color-success) 20%, transparent);
+  --tint-success-medium: color-mix(in oklch, var(--color-success) 30%, transparent);
+  --tint-success-strong: color-mix(in oklch, var(--color-success) 40%, transparent);
+  --tint-success-bold:   color-mix(in oklch, var(--color-success) 70%, transparent);
+
+  --tint-warning-subtle: color-mix(in oklch, var(--color-warning) 10%, transparent);
+  --tint-warning-soft:   color-mix(in oklch, var(--color-warning) 15%, transparent);
+  --tint-warning-medium: color-mix(in oklch, var(--color-warning) 40%, transparent);
+  --tint-warning-strong: color-mix(in oklch, var(--color-warning) 60%, transparent);
+
+  --tint-error-subtle:   color-mix(in oklch, var(--color-error)   12%, transparent);
+  --tint-error-medium:   color-mix(in oklch, var(--color-error)   35%, transparent);
+  --tint-error-strong:   color-mix(in oklch, var(--color-error)   60%, transparent);
 }
 
 /* Spacing and radius — structural, not theme-switched */

@@ -24,13 +24,13 @@
 
 .wtg-tile:hover:not(:disabled) {
   transform: translateY(-3px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.38);
+  box-shadow: var(--shadow-overlay);
   border-color: var(--color-border-focus);
 }
 
 .wtg-tile:disabled { opacity: 0.65; cursor: not-allowed; }
 
-.wtg-tile--mru { border-color: color-mix(in oklch, var(--color-accent) 55%, transparent); }
+.wtg-tile--mru { border-color: var(--tint-accent-strong); }
 
 .wtg-mru-dot {
   position: absolute;
@@ -114,8 +114,8 @@
 }
 
 .wtg-pill--recent {
-  background: color-mix(in oklch, var(--color-success) 18%, transparent);
-  border: 1px solid color-mix(in oklch, var(--color-success) 38%, transparent);
+  background: var(--tint-success-soft);
+  border: 1px solid var(--tint-success-strong);
   color: var(--color-success);
 }
 

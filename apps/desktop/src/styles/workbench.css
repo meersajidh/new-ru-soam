@@ -334,12 +334,12 @@ body,
   background-color: var(--color-surface-panel);
   background-image: repeating-linear-gradient(
       45deg,
-      color-mix(in oklch, var(--color-accent) 18%, transparent) 0 1px,
+      var(--tint-accent-soft) 0 1px,
       transparent 1px 14px
     ),
     repeating-linear-gradient(
       -45deg,
-      color-mix(in oklch, var(--color-accent) 12%, transparent) 0 1px,
+      var(--tint-accent-subtle) 0 1px,
       transparent 1px 14px
     );
   border: 1px solid var(--color-border);
@@ -437,7 +437,7 @@ body,
 
 .statusbar-entry.is-warning {
   color: var(--color-warning);
-  background: color-mix(in oklch, var(--color-warning) 12%, transparent);
+  background: var(--tint-warning-soft);
 }
 
 .statusbar-entry.is-error {
@@ -793,7 +793,7 @@ body,
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-overlay);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -925,36 +925,36 @@ body,
 }
 
 .ru-snippet-placeholder--text {
-  background: color-mix(in oklch, var(--color-info) 15%, transparent);
-  border: 1px solid color-mix(in oklch, var(--color-info) 40%, transparent);
+  background: var(--tint-info-subtle);
+  border: 1px solid var(--tint-info-strong);
   color: var(--color-fg-secondary);
 }
 
 /* NodeSelection on a text placeholder */
 .ProseMirror-selectednode.ru-snippet-placeholder--text {
-  background: color-mix(in oklch, var(--color-info) 35%, transparent);
-  border-color: color-mix(in oklch, var(--color-info) 80%, transparent);
+  background: var(--tint-info-medium);
+  border-color: var(--tint-info-bold);
   color: var(--color-fg-primary);
   outline: none;
-  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-info) 30%, transparent);
+  box-shadow: 0 0 0 2px var(--tint-info-medium);
 }
 
 .ru-snippet-placeholder--picklist {
-  background: color-mix(in oklch, var(--color-success) 15%, transparent);
-  border: 1px solid color-mix(in oklch, var(--color-success) 40%, transparent);
+  background: var(--tint-success-subtle);
+  border: 1px solid var(--tint-success-strong);
   color: var(--color-fg-secondary);
   cursor: pointer;
 }
 
 .ru-snippet-placeholder--picklist:hover {
-  background: color-mix(in oklch, var(--color-success) 25%, transparent);
-  border-color: color-mix(in oklch, var(--color-success) 70%, transparent);
+  background: var(--tint-success-soft);
+  border-color: var(--tint-success-bold);
 }
 
 .ru-snippet-placeholder--picklist.is-open {
-  background: color-mix(in oklch, var(--color-success) 25%, transparent);
-  border-color: color-mix(in oklch, var(--color-success) 70%, transparent);
-  box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-success) 30%, transparent);
+  background: var(--tint-success-soft);
+  border-color: var(--tint-success-bold);
+  box-shadow: 0 0 0 2px var(--tint-success-medium);
 }
 
 /* Picklist dropdown (appended to body, positioned fixed) */

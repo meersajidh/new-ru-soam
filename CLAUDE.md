@@ -103,6 +103,61 @@
 - TanStack Router: file-based routes in `apps/desktop/src/routes/`. Regenerate with `pnpm --filter ru-soam-app route-gen` after adding/renaming routes. Don't hand-edit `routeTree.gen.ts`.
 - Any architectural change (new trust-zone crossing, new contribution point, new protocol scheme, new persisted shape) requires an ADR or an Open Item entry — see `docs/README.md` and `docs/Open_Items.md`.
 
+### Styling system
+
+Tailwind v4 owns design tokens; CSS recipe files own component composites;
+JSX owns structure and state via utilities. Pick the right layer for the
+change.
+
+**Layer choices, in order of preference:**
+
+1. **Tailwind utilities in JSX** — structure, layout, spacing, one-off
+   variants. Write `flex gap-2 items-center text-fg-muted`, not hand-rolled
+   CSS classes.
+2. **Semantic type recipes (`styles/type.css`)** — typography role. Apply
+   `.t-body`, `.t-label`, etc., instead of re-declaring
+   `font-family + font-size + color`.
+3. **Component CSS recipes** — multi-property composites that recur (button
+   variants, card surfaces, dialog overlays). Colocated next to the
+   component as `Component.css`, imported by the component module.
+4. **Design tokens (`styles/tokens.css`)** — never hardcode colors, shadows,
+   spacing, or radii. If a value recurs, add a token first.
+
+**Hard rules:**
+
+- **No raw color literals.** No `rgba(0,0,0,*)`, no `#hex`, no `oklch(...)`
+  outside `tokens.css` and the theme/font-set files. Brand-mandated colors
+  (e.g. Google sign-in pill) live in a clearly-named isolated module.
+- **No inline `style={{}}` for theme-able properties.** Use Tailwind
+  utilities or recipe classes. Inline `style` is reserved for runtime values
+  the styling system cannot know (computed flex ratios, dynamic avatar
+  backgrounds, animation progress).
+- **Semantic tints via tint tokens.** Use `--tint-{color}-{step}`
+  (e.g. `var(--tint-accent-soft)`), not ad-hoc
+  `color-mix(... N%, transparent)`. Add a token if a step is missing; do not
+  introduce magic percentages.
+- **Shadows via shadow tokens.** Use
+  `var(--shadow-rest|card|overlay|modal)`, never raw
+  `box-shadow: ... rgba(0,0,0,*)`.
+- **Naming.** BEM-strict for component CSS: `block`, `block__element`,
+  `block--modifier`. State that does not belong to a single component
+  (`is-open`, `is-active`) may use the `is-*` prefix without the block
+  scope — but prefer modifiers when the state is component-local.
+- **CSS file location.** Component CSS lives next to its component
+  (`MyComponent.tsx` + `MyComponent.css`). The global `workbench.css` and
+  `setup.css` are legacy and being decomposed; do not add new selectors to
+  them.
+
+**Anti-patterns to reject in review:**
+
+- New entries in `workbench.css` or `setup.css`.
+- `style={{ display: 'flex', gap: ... }}` — use utilities.
+- `color-mix(... N%, transparent)` outside `tokens.css`.
+- `font-family: var(--font-sans); font-size: 13px;` — use `.t-body`.
+- New `*.css` file that is not colocated with a component.
+
+Architectural changes to the styling system require an ADR.
+
 ---
 
 ## Test Command
@@ -218,6 +273,17 @@ only the task-specific Goal / Scope / Constraints / Success criteria.
 - Workspace settings stub (migration 3): `workspace_settings` table + `LocalStore.getSetting/setSetting` — no capability surface yet (Phase 12 wires the UI cascade). Provides the foundation for audit retention reads (O49) without blocking the ledger.
 - Developer command: `developer.audit.dump` calls `audit@1.0`.list via `bindCapability` and dumps via `console.table`.
 - Electron 41 pin holds (O157 stays open). BSMC@12.9.0 + SQLCipher works fine on V8 from Electron 41. Bump deferred until upstream ships V8-14 support.
+
+### 19 May 2026 — Styling system audit + consolidation plan
+
+- Audit of design-code sprawl on top of the DS v1 handoff. Findings: Tailwind v4 is wired up for `@theme` tokens but the utility-class workflow was never adopted — 277 `className=` sites use ~13 utility tokens; the rest point at 176 unique hand-rolled selectors across `workbench.css` (982 LOC / 149 selectors) and `setup.css` (1,285 LOC / 142 selectors). Recipe layer thin (`type.css` underused, `@apply` count = 0). 62 ad-hoc `color-mix(... N%, transparent)` literals with magic percentages; 6 raw `rgba(0,0,0,*)` shadows bypass `--shadow-*` tokens; hex literals leaked into `setup.css` for the Google pill. Naming inconsistent (BEM-strict mixed with `is-*` state).
+- "Styling system" section added to **Conventions** in this file — layer order (utilities → type recipes → component CSS → tokens), hard rules (no raw color literals, no inline `style` for theme-able props, semantic tints via `--tint-*` tokens, shadows via `--shadow-*`, BEM-strict naming, CSS files colocated with components), and review anti-patterns.
+- Consolidation phased across four PRs to bound visual regression surface:
+  - **PR-1** — semantic tint tokens + shadow sweep (`docs/PRs/PR-styling-1-tokens.md`); pure mechanical, deferred surface-blend / white-highlight / scrim / fg-primary tints to PR-2.
+  - **PR-2** — scrim token, surface-blend / white-highlight / neutral tint normalisation, inline `style` triage, naming convention codemod.
+  - **PR-3** — type recipe adoption (`.t-*`) across duplicated font/size/color sites.
+  - **PR-4** — CSS file relocation (colocate next to components) + recipe layer for reusable composites; decompose `workbench.css` / `setup.css`.
+- Going-forward policy (encoded in the "Styling system" section): new code uses utilities for structure, tokens for theme, type recipes for typography, recipe classes for composites. No new selectors in `workbench.css` / `setup.css`.
 
 ---
 
