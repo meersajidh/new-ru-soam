@@ -204,15 +204,15 @@ export function registerPlatformCommands(
   );
 
   commands.register(
-    'workbench.theme.default',
-    'Color Theme: Default',
-    () => theme.setTheme('default'),
-    { category: 'Preferences' },
-  );
-  commands.register(
     'workbench.theme.bamboo',
     'Color Theme: Bamboo',
     () => theme.setTheme('bamboo'),
+    { category: 'Preferences' },
+  );
+  commands.register(
+    'workbench.theme.iris',
+    'Color Theme: Iris',
+    () => theme.setTheme('iris'),
     { category: 'Preferences' },
   );
   commands.register(

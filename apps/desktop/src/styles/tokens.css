@@ -1,36 +1,39 @@
 /* Design token declarations — overridden at runtime by theme + font-set classes on <html>. */
-/* Defaults mirror the `default` theme (cold-start). Per-theme files under
-   styles/themes/*.css override these via class selectors on <html>. Authoring
-   space per theme is the theme file's choice — bamboo/stone/geist author in
-   oklch for perceptual uniformity; default authors in hex. */
+/* Defaults mirror `.theme-bamboo.dark` — bamboo is the cold-start theme
+   (see initial-theme.ts). Per-theme files under styles/themes/*.css override
+   these via class selectors on <html>. The luminance axis (`.dark`) is OS-
+   decided on first run via prefers-color-scheme; the `@theme {}` default just
+   provides a stable frame for the brief window before applyInitialTheme runs.
+   Authoring space per theme is the theme file's choice — bamboo/stone/geist
+   author in oklch for perceptual uniformity; iris authors in hex. */
 
 @theme {
   /* Surfaces */
-  --color-surface-base:     #16171d;
-  --color-surface-panel:    #1f2028;
-  --color-surface-elevated: #20212a;
-  --color-surface-active:   #2a2b36;
+  --color-surface-base:     oklch(0.160 0.025 95.0);
+  --color-surface-panel:    oklch(0.195 0.030 95.0);
+  --color-surface-elevated: oklch(0.230 0.035 95.0);
+  --color-surface-active:   oklch(0.300 0.045 130.0);
 
   /* Foreground */
-  --color-fg-primary:   #f3f4f6;
-  --color-fg-secondary: #9ca3af;
-  --color-fg-muted:     #6c7086;
+  --color-fg-primary:   oklch(0.950 0.0072 95.0);
+  --color-fg-secondary: oklch(0.750 0.0090 95.0);
+  --color-fg-muted:     oklch(0.560 0.0114 95.0);
 
   /* Borders */
-  --color-border:       #2e303a;
-  --color-border-focus: #c084fc;
+  --color-border:       oklch(0.320 0.032 95.0);
+  --color-border-focus: oklch(0.740 0.1105 130.0);
 
   /* Accent */
-  --color-accent:         #c084fc;
-  --color-accent-fg:      #ffffff;
-  --color-accent-hover:   #cf9bf8;
-  --color-accent-pressed: #b56eea;
+  --color-accent:         oklch(0.740 0.1105 130.0);
+  --color-accent-fg:      oklch(0.141 0.0168 95.0);
+  --color-accent-hover:   oklch(0.768 0.0985 130.0);
+  --color-accent-pressed: oklch(0.692 0.0985 130.0);
 
   /* Semantic */
-  --color-info:    #89dceb;
-  --color-success: #a6e3a1;
-  --color-warning: #f9e2af;
-  --color-error:   #f38ba8;
+  --color-info:    oklch(0.720 0.1001 200.0);
+  --color-success: oklch(0.740 0.0897 145.0);
+  --color-warning: oklch(0.800 0.1105 75.0);
+  --color-error:   oklch(0.700 0.1300 25.0);
 
   /* Fonts */
   --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
