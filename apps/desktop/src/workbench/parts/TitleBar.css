@@ -179,10 +179,3 @@
   background: var(--color-error);
   @apply text-fg-primary;
 }
-
-/* Avatar scaled for 36px titlebar */
-.part-titlebar .avatar-btn {
-  width: 24px;
-  height: 24px;
-  @apply mx-1.5 text-xs;
-}

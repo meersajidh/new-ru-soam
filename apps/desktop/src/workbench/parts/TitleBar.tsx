@@ -1,5 +1,5 @@
 import './TitleBar.css';
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -26,7 +26,6 @@ interface TitleBarSections {
   quickOpen: boolean;
   panelToggles: boolean;
   divider: boolean;
-  avatar: boolean;
 }
 
 const TITLEBAR_SECTIONS: Record<WorkbenchMode, TitleBarSections> = {
@@ -36,7 +35,6 @@ const TITLEBAR_SECTIONS: Record<WorkbenchMode, TitleBarSections> = {
     quickOpen: false,
     panelToggles: false,
     divider: false,
-    avatar: false,
   },
   locked: {
     menu: false,
@@ -44,7 +42,6 @@ const TITLEBAR_SECTIONS: Record<WorkbenchMode, TitleBarSections> = {
     quickOpen: false,
     panelToggles: false,
     divider: false,
-    avatar: false,
   },
   workspace: {
     menu: true,
@@ -52,19 +49,16 @@ const TITLEBAR_SECTIONS: Record<WorkbenchMode, TitleBarSections> = {
     quickOpen: true,
     panelToggles: true,
     divider: true,
-    avatar: true,
   },
 };
 
 interface TitleBarProps {
   variant?: WorkbenchMode;
-  avatarSlot?: ReactNode;
   activeResource?: string;
 }
 
 export default function TitleBar({
   variant = 'workspace',
-  avatarSlot,
   activeResource = 'Open a file…',
 }: TitleBarProps = {}) {
   const [maximized, setMaximized] = useState(false);
@@ -177,7 +171,6 @@ export default function TitleBar({
           </>
         )}
         {cfg.divider && <span className="tb-divider" aria-hidden="true" />}
-        {cfg.avatar && avatarSlot}
         <div className="tb-win">
           <button
             className="tb-win-btn"

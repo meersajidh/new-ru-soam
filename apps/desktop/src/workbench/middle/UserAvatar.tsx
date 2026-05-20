@@ -1,16 +1,24 @@
 /**
- * UserAvatar — small component in the TitleBar right area.
+ * UserAvatar — workspace account button anchored in the Activity Bar footer.
  *
- * Placement: injected into TitleBar's controls region via the UserAvatarSlot
- * export. Renders a ~26x26 circle with the user email initial.
- * Click opens a dropdown menu with workspace management actions.
+ * Renders a small circle with the user email initial. Click opens a dropdown
+ * menu with workspace management actions.
  *
  * The avatar is only rendered when the workspace is unlocked
  * (workspace.kekLocked === false && workspace.setupComplete === true).
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { useContextKey } from '../../platform/services/hooks';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ArrowRightLeft,
+  HelpCircle,
+  KeyRound,
+  Lock,
+  LogOut,
+  Settings2,
+} from 'lucide-react';
+import { useContextKey, useService } from '../../platform/services/hooks';
+import { CommandServiceId } from '../../platform/services/ids';
 import ChangePassphraseDialog from './ChangePassphraseDialog';
 import './UserAvatar.css';
 
@@ -18,6 +26,7 @@ export default function UserAvatar() {
   const kekLocked = useContextKey('workspace.kekLocked') as boolean;
   const setupComplete = useContextKey('workspace.setupComplete') as boolean;
   const nickname = useContextKey('workspace.nickname') as string;
+  const commands = useService(CommandServiceId);
 
   const [email, setEmail] = useState<string>('');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -26,16 +35,19 @@ export default function UserAvatar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
-  // Fetch identity (email) once when unlocked
   useEffect(() => {
     if (!kekLocked && setupComplete) {
-      window.soam.workspace.getIdentity().then((identity) => {
-        if (identity) setEmail(identity.email);
-      }).catch(() => { /* non-fatal */ });
+      window.soam.workspace
+        .getIdentity()
+        .then((identity) => {
+          if (identity) setEmail(identity.email);
+        })
+        .catch(() => {
+          /* non-fatal */
+        });
     }
   }, [kekLocked, setupComplete]);
 
-  // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return;
     function handleClick(e: MouseEvent) {
@@ -52,6 +64,15 @@ export default function UserAvatar() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [menuOpen]);
+
   if (kekLocked || !setupComplete) return null;
 
   const initial = email ? email[0].toUpperCase() : nickname ? nickname[0].toUpperCase() : '?';
@@ -64,14 +85,26 @@ export default function UserAvatar() {
   async function handleSignOut() {
     setMenuOpen(false);
     await window.soam.workspace.signOut();
-    // Phase 9b: routes back to setup/keys since there's no workspace picker yet.
-    // Phase 9c will replace this with the workspace picker route.
-    // TODO(9c): replace with navigate('/workspaces') picker route
   }
 
   function handleChangePassphrase() {
     setMenuOpen(false);
     setShowChangePassphrase(true);
+  }
+
+  async function handleSwitchWorkspace() {
+    setMenuOpen(false);
+    await commands.execute('workbench.workspace.switch');
+  }
+
+  async function handlePreferences() {
+    setMenuOpen(false);
+    await commands.execute('workbench.openSettings');
+  }
+
+  function handleHelp() {
+    setMenuOpen(false);
+    window.open('https://ru-soam.com', '_blank', 'noopener,noreferrer');
   }
 
   return (
@@ -89,41 +122,90 @@ export default function UserAvatar() {
         </button>
 
         {menuOpen && (
-          <div ref={menuRef} className="user-avatar-menu" role="menu">
-            {/* Header */}
+          <div ref={menuRef} className="user-avatar-menu" role="menu" aria-label="User menu">
             <div className="user-avatar-menu-header">
-              <p className="user-avatar-menu-nickname">{nickname}</p>
-              <p className="user-avatar-menu-email">{email}</p>
+              <div className="user-avatar-menu-badge" aria-hidden="true">
+                {initial}
+              </div>
+              <div className="user-avatar-menu-copy">
+                <p className="user-avatar-menu-nickname">{nickname || 'Workspace user'}</p>
+                <p className="user-avatar-menu-email">{email || 'Signed in locally'}</p>
+              </div>
             </div>
 
-            {/* Actions */}
+            <div className="user-avatar-menu-group">
+              <button className="user-avatar-menu-item" role="menuitem" onClick={handleRelock}>
+                <span className="user-avatar-menu-item-icon">
+                  <Lock size={14} />
+                </span>
+                <span className="user-avatar-menu-item-label">Lock workspace</span>
+                <span className="user-avatar-menu-item-hint">Ctrl+Shift+L</span>
+              </button>
+              <button
+                className="user-avatar-menu-item"
+                role="menuitem"
+                onClick={handleChangePassphrase}
+              >
+                <span className="user-avatar-menu-item-icon">
+                  <KeyRound size={14} />
+                </span>
+                <span className="user-avatar-menu-item-label">Change passphrase</span>
+              </button>
+              <button
+                className="user-avatar-menu-item"
+                role="menuitem"
+                onClick={handleSwitchWorkspace}
+              >
+                <span className="user-avatar-menu-item-icon">
+                  <ArrowRightLeft size={14} />
+                </span>
+                <span className="user-avatar-menu-item-label">Switch workspace</span>
+              </button>
+            </div>
+
+            <div className="user-avatar-menu-divider" aria-hidden="true" />
+
+            <div className="user-avatar-menu-group">
+              <button
+                className="user-avatar-menu-item"
+                role="menuitem"
+                onClick={handlePreferences}
+              >
+                <span className="user-avatar-menu-item-icon">
+                  <Settings2 size={14} />
+                </span>
+                <span className="user-avatar-menu-item-label">Preferences</span>
+                <span className="user-avatar-menu-item-hint">Ctrl+,</span>
+              </button>
+              <button className="user-avatar-menu-item" role="menuitem" onClick={handleHelp}>
+                <span className="user-avatar-menu-item-icon">
+                  <HelpCircle size={14} />
+                </span>
+                <span className="user-avatar-menu-item-label">Help / documentation</span>
+              </button>
+            </div>
+
+            <div className="user-avatar-menu-divider" aria-hidden="true" />
+
             <button
-              className="user-avatar-menu-item"
-              role="menuitem"
-              onClick={handleRelock}
-            >
-              [L] Lock workspace
-            </button>
-            <button
-              className="user-avatar-menu-item"
-              role="menuitem"
-              onClick={handleChangePassphrase}
-            >
-              Change passphrase…
-            </button>
-            <button
-              className="user-avatar-menu-item"
+              className="user-avatar-menu-item user-avatar-menu-item--destructive"
               role="menuitem"
               onClick={handleSignOut}
             >
-              Sign out
+              <span className="user-avatar-menu-item-icon">
+                <LogOut size={14} />
+              </span>
+              <span className="user-avatar-menu-item-label">Sign out</span>
             </button>
 
-            {/* DEV-mode warning (approximate: import.meta.env.DEV) */}
             {import.meta.env.DEV && (
-              <div className="user-avatar-menu-item user-avatar-menu-item--disabled" role="none">
-                DEV MODE — mock user
-              </div>
+              <>
+                <div className="user-avatar-menu-divider" aria-hidden="true" />
+                <div className="user-avatar-menu-footer" role="none">
+                  <span className="user-avatar-menu-dev-label">DEV MODE</span>
+                  <span className="user-avatar-menu-dev-copy">mock user</span>
+                </div>
+              </>
             )}
           </div>
         )}

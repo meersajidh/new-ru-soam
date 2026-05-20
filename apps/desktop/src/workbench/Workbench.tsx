@@ -5,7 +5,6 @@ import Banner from './parts/Banner';
 import Middle from './middle/Middle';
 import StatusBar from './parts/StatusBar';
 import CommandPalette from './command-palette/CommandPalette';
-import UserAvatar from './middle/UserAvatar';
 import PrefsDevPanel from './middle/PrefsDevPanel';
 import { useContextKey, useService } from '../platform/services/hooks';
 import { ContextKeyServiceId } from '../platform/services/ids';
@@ -25,7 +24,7 @@ export default function Workbench({ renderMiddleOverride }: WorkbenchProps = {})
   const prefsOpen = useContextKey('developer.prefs.open') === true;
   return (
     <div className="workbench">
-      <TitleBar variant={mode} avatarSlot={<UserAvatar />} />
+      <TitleBar variant={mode} />
       <Banner />
       {renderMiddleOverride != null ? renderMiddleOverride : <Middle />}
       <StatusBar variant={mode} />

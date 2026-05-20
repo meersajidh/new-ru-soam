@@ -44,6 +44,19 @@
   @apply text-fg-primary;
 }
 
+.statusbar-entry:hover svg {
+  color: var(--color-fg-primary);
+}
+
+.statusbar-entry--icon-only {
+  gap: 0;
+  padding: 3px 6px;
+}
+
+.statusbar-entry--icon-only .sb-badge {
+  margin-left: 4px;
+}
+
 .statusbar-entry.statusbar-entry--ok {
   @apply text-success;
 }

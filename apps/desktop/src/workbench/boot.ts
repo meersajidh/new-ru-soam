@@ -75,19 +75,6 @@ export function boot(): ServiceRegistry {
   const workspace = new WorkspaceService(layout, contextKeys);
   registry.register(WorkspaceServiceId, workspace);
 
-  workspace.onDidOpen(state => {
-    statusBar.update('workbench.workspace.entity', {
-      text: state.entityId,
-      tooltip: `Workspace: ${state.entityId} (${state.entityType})`,
-    });
-  });
-  workspace.onDidClose(() => {
-    statusBar.update('workbench.workspace.entity', {
-      text: 'No workspace',
-      tooltip: 'No workspace open',
-    });
-  });
-
   // ── Phase 5 ───────────────────────────────────────────────────────────────
 
   const editor = new EditorService();
@@ -203,7 +190,7 @@ export function boot(): ServiceRegistry {
       statusBar.update('workbench.lock', {
         visible: true,
         icon: locked ? 'lock' : 'unlock',
-        text: locked ? 'Locked' : 'Unlocked',
+        text: '',
         tooltip: locked ? 'Workspace locked — enter passphrase to unlock' : 'Workspace unlocked — click to lock',
         command: locked ? undefined : 'workbench.workspace.relock',
       });
@@ -212,11 +199,17 @@ export function boot(): ServiceRegistry {
         visible: !locked && nickname.length > 0,
         text: nickname,
         tooltip: `Active workspace: ${nickname}`,
+        icon: 'database',
+      });
+      statusBar.update('workbench.sync.state', {
+        visible: !locked && nickname.length > 0,
+        tooltip: `Sync state for ${nickname}`,
       });
     } else {
-      // Pre-setup: hide both entries
+      // Pre-setup: hide status entries tied to workspace identity
       statusBar.update('workbench.lock', { visible: false });
       statusBar.update('workbench.workspace.nickname', { visible: false });
+      statusBar.update('workbench.sync.state', { visible: false });
     }
   }
 

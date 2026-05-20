@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import {
   Lock,
   Unlock,
-  CircleUser,
+  Database,
   Hash,
   Check,
   Bell,
@@ -27,7 +27,7 @@ type LucideComponent = React.ComponentType<LucideProps>;
 const ICON_MAP: Record<string, LucideComponent> = {
   lock: Lock,
   unlock: Unlock,
-  'circle-user': CircleUser,
+  database: Database,
   hash: Hash,
   check: Check,
   bell: Bell,
@@ -45,7 +45,7 @@ function renderIcon(name: string | undefined): React.ReactNode {
   if (!name) return null;
   const Comp = ICON_MAP[name];
   if (!Comp) return null;
-  return createElement(Comp, { size: 12 });
+  return createElement(Comp, { size: name === 'bell' ? 15 : 13 });
 }
 
 function severityClass(severity: StatusBarEntry['severity']): string {
@@ -61,7 +61,7 @@ interface EntryNodeProps {
 }
 
 function EntryNode({ entry, onCommand }: EntryNodeProps) {
-  const className = `statusbar-entry${severityClass(entry.severity)}`;
+  const className = `statusbar-entry${entry.text ? '' : ' statusbar-entry--icon-only'}${severityClass(entry.severity)}`;
   const iconNode = renderIcon(entry.icon);
   const contents = (
     <>
