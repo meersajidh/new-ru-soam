@@ -143,11 +143,6 @@
   min-width: 0;
 }
 
-.user-avatar-menu-item-hint {
-  @apply text-xs text-fg-muted font-mono;
-  flex: 0 0 auto;
-}
-
 .user-avatar-menu-item--destructive {
   @apply text-error;
 }

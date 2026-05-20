@@ -46,12 +46,6 @@ export function registerPlatformCommands(
     { category: 'View' },
   );
   commands.register(
-    'workbench.openSettings',
-    'Open Settings',
-    () => { /* Phase 11 */ },
-    { category: 'Preferences' },
-  );
-  commands.register(
     'workbench.developer.listContextKeys',
     'Developer: List Context Keys',
     () => console.log('[context-keys]', contextKeys.snapshot()),
@@ -548,7 +542,6 @@ export function registerPlatformCommands(
   keybindings.registerKeybinding('ctrl+j',       'workbench.togglePanel');
   keybindings.registerKeybinding('ctrl+alt+b',   'workbench.toggleAuxSideBar');
   keybindings.registerKeybinding('ctrl+shift+p', 'workbench.openCommandPalette');
-  keybindings.registerKeybinding('ctrl+,',       'workbench.openSettings');
   keybindings.registerKeybinding('ctrl+\\',      'editors.splitRight');
   keybindings.registerKeybinding('ctrl+w',       'editors.closeActive');
   keybindings.registerKeybinding('ctrl+tab',       'editors.nextTab');

@@ -15,7 +15,6 @@ import {
   KeyRound,
   Lock,
   LogOut,
-  Settings2,
 } from 'lucide-react';
 import { useContextKey, useService } from '../../platform/services/hooks';
 import { CommandServiceId } from '../../platform/services/ids';
@@ -97,11 +96,6 @@ export default function UserAvatar() {
     await commands.execute('workbench.workspace.switch');
   }
 
-  async function handlePreferences() {
-    setMenuOpen(false);
-    await commands.execute('workbench.openSettings');
-  }
-
   async function handleHelp() {
     setMenuOpen(false);
     const cap = await window.soam.bindCapability('platform.shell', '1.0');
@@ -146,7 +140,6 @@ export default function UserAvatar() {
                   <Lock size={14} />
                 </span>
                 <span className="user-avatar-menu-item-label">Lock workspace</span>
-                <span className="user-avatar-menu-item-hint">Ctrl+Shift+L</span>
               </button>
               <button
                 className="user-avatar-menu-item"
@@ -173,17 +166,6 @@ export default function UserAvatar() {
             <div className="user-avatar-menu-divider" aria-hidden="true" />
 
             <div className="user-avatar-menu-group">
-              <button
-                className="user-avatar-menu-item"
-                role="menuitem"
-                onClick={handlePreferences}
-              >
-                <span className="user-avatar-menu-item-icon">
-                  <Settings2 size={14} />
-                </span>
-                <span className="user-avatar-menu-item-label">Preferences</span>
-                <span className="user-avatar-menu-item-hint">Ctrl+,</span>
-              </button>
               <button className="user-avatar-menu-item" role="menuitem" onClick={handleHelp}>
                 <span className="user-avatar-menu-item-icon">
                   <HelpCircle size={14} />
