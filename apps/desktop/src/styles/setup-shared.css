@@ -1,80 +1,13 @@
 @reference "./theme.css";
 
-/* ── Setup ceremony — modern, neon-leaning ────────────────────────────────
- * Layered over Ru-Soam DS tokens. The DS provides the accent already; this
- * stylesheet amps it up with glow halos on focus / hover / active states,
- * a heavier display weight for the wordmark, and a tighter form rhythm.
+/* ── Setup ceremony — shared tokens ──────────────────────────────────────
+ * Reduced in PR-9. Remaining: glow/card vars, wordmark, help btn,
+ * main column, responsive. Deferred to PR-10 for full deletion.
  * ───────────────────────────────────────────────────────────────────────── */
 
 :root {
   --glow-mul: 0.8;
   --setup-card-radius: 16px;
-  --setup-pill-radius: 9999px;
-}
-
-/* ── Page shell ──────────────────────────────────────────────────────────── */
-
-.setup-page {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  min-height: 0;
-  overflow-y: auto;
-  background: var(--color-surface-base);
-  @apply text-fg-primary text-sm;
-  line-height: 1.5;
-  position: relative;
-  isolation: isolate;
-}
-
-/* Ambient accent halo behind everything */
-.setup-page::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(
-      60% 50% at 50% 18%,
-      color-mix(in oklch, var(--color-accent) calc(7% * var(--glow-mul)), transparent) 0%,
-      transparent 70%
-    ),
-    radial-gradient(
-      40% 40% at 18% 90%,
-      color-mix(in oklch, var(--color-accent) calc(4% * var(--glow-mul)), transparent) 0%,
-      transparent 70%
-    );
-  pointer-events: none;
-  z-index: -1;
-}
-
-.setup-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28px 40px 0;
-}
-
-.setup-help-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-panel);
-  @apply text-fg-secondary;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition:
-    border-color 0.15s,
-    color 0.15s,
-    background 0.15s;
-}
-
-.setup-help-btn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  @apply bg-tint-accent-subtle;
 }
 
 /* ── Wordmark ────────────────────────────────────────────────────────────── */
@@ -102,6 +35,30 @@
   box-shadow: 0 0 calc(12px * var(--glow-mul)) currentColor;
 }
 
+/* ── Help button ─────────────────────────────────────────────────────────── */
+
+.setup-help-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-panel);
+  @apply text-fg-secondary;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.setup-help-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  @apply bg-tint-accent-subtle;
+}
+
 /* ── Main column ─────────────────────────────────────────────────────────── */
 
 .setup-main {
@@ -120,103 +77,9 @@
   @apply gap-7;
 }
 
-/* ── Form elements ───────────────────────────────────────────────────────── */
-
-.setup-title {
-  @apply font-display text-xl font-semibold text-fg-primary;
-  margin: 0;
-  letter-spacing: -0.012em;
-  line-height: 1.22;
-}
-
-.setup-description {
-  @apply text-sm text-fg-secondary;
-  margin: 0;
-  max-width: 48ch;
-}
-
-.setup-label {
-  @apply text-xs font-semibold text-fg-secondary;
-  letter-spacing: 0.02em;
-  display: block;
-}
-
-.setup-input {
-  width: 100%;
-  @apply bg-surface-input;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  @apply text-fg-primary text-sm;
-  outline: none;
-  @apply px-4 py-3;
-  box-sizing: border-box;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s,
-    background 0.15s;
-}
-
-.setup-input::placeholder {
-  @apply text-fg-muted;
-}
-
-.setup-input:hover {
-  @apply border-border-hover;
-}
-
-.setup-input:focus {
-  border-color: var(--color-accent);
-  box-shadow:
-    0 0 0 4px color-mix(in oklch, var(--color-accent) calc(14% * var(--glow-mul)), transparent),
-    0 0 calc(24px * var(--glow-mul))
-      color-mix(in oklch, var(--color-accent) calc(28% * var(--glow-mul)), transparent);
-  @apply bg-surface-input-focus;
-}
-
-.setup-error {
-  @apply text-xs text-error;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  @apply gap-1.5;
-}
-
-/* ── Buttons ─────────────────────────────────────────────────────────────── */
-
-.setup-btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  @apply gap-3;
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--setup-pill-radius);
-  @apply text-fg-secondary text-sm font-medium;
-  cursor: pointer;
-  padding: 13px 22px;
-  transition:
-    background 0.12s,
-    border-color 0.12s,
-    color 0.12s;
-  /* width: 100%; */
-}
-
-.setup-btn-ghost:hover:not(:disabled) {
-  @apply bg-tint-neutral-subtle text-fg-primary;
-  border-color: var(--color-fg-muted);
-}
-
-.setup-btn-ghost:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
-  .setup-topbar {
-    padding: 20px 20px 0;
-  }
   .setup-wordmark {
     @apply text-xl;
   }

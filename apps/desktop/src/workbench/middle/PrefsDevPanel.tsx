@@ -16,7 +16,9 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePrefsCapability } from '../../platform/data/use-capability';
 import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import '../../styles/setup-shared.css';
+import { Button } from '../../platform/ui/Button';
+import { TextInput } from '../../platform/ui/TextInput';
+import { FormField } from '../../platform/ui/FormField';
 import './UnlockGate.css';
 
 interface Props {
@@ -60,77 +62,73 @@ export default function PrefsDevPanel({ onClose }: Props) {
       <div className="unlock-gate-card w-[520px] max-w-[calc(100vw-32px)]">
         <div className="flex justify-between items-baseline">
           <h2 className="unlock-gate-title">Preferences (dev)</h2>
-          <button
+          <Button
             type="button"
-            className="setup-btn-ghost"
+            variant="ghost"
             onClick={onClose}
             aria-label="Close"
           >
             Close
-          </button>
+          </Button>
         </div>
 
-        {prefs === null && <p className="setup-description">Binding prefs capability…</p>}
+        {prefs === null && <p className="t-description">Binding prefs capability…</p>}
 
         {prefs !== null && (
           <>
             <form className="unlock-gate-form" onSubmit={handleSubmit}>
-              <label htmlFor="pref-key" className="setup-label">
-                Key
-              </label>
-              <input
-                id="pref-key"
-                className="setup-input"
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                placeholder="theme.accent"
-                autoFocus
-              />
-              <label htmlFor="pref-value" className="setup-label">
-                Value
-              </label>
-              <input
-                id="pref-value"
-                className="setup-input"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="bamboo"
-              />
+              <FormField label="Key" htmlFor="pref-key">
+                <TextInput
+                  id="pref-key"
+                  value={key}
+                  onChange={(e) => setKey(e.target.value)}
+                  placeholder="theme.accent"
+                  autoFocus
+                />
+              </FormField>
+              <FormField label="Value" htmlFor="pref-value">
+                <TextInput
+                  id="pref-value"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="bamboo"
+                />
+              </FormField>
               {setMutation.isError && (
                 <p className="unlock-gate-error">
                   Set failed: {setMutation.error instanceof Error ? setMutation.error.message : String(setMutation.error)}
                 </p>
               )}
               <div className="setup-actions">
-                <button
+                <Button
                   type="submit"
-                  className="setup-btn-primary"
+                  variant="primary"
                   disabled={!key || setMutation.isPending}
                 >
                   {setMutation.isPending ? 'Saving…' : 'Set pref'}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="setup-btn-ghost"
+                  variant="ghost"
                   onClick={() => void queryClient.invalidateQueries({ queryKey: ['prefs'] })}
                 >
                   Force refetch
-                </button>
+                </Button>
               </div>
             </form>
 
             <div className="mt-4">
-              <p className="setup-label mb-2">
+              <p className="text-xs font-semibold text-fg-secondary mb-2" style={{ letterSpacing: '0.02em' }}>
                 Stored prefs{list.isFetching ? ' (refetching…)' : ''}
               </p>
-              {list.isLoading && <p className="setup-description">Loading…</p>}
+              {list.isLoading && <p className="t-description">Loading…</p>}
               {list.isError && (
                 <p className="unlock-gate-error">
                   List failed: {list.error instanceof Error ? list.error.message : String(list.error)}
                 </p>
               )}
               {list.data && list.data.length === 0 && (
-                <p className="setup-description">No prefs set yet. Add one above.</p>
+                <p className="t-description">No prefs set yet. Add one above.</p>
               )}
               {list.data && list.data.length > 0 && (
                 <ul className="list-none p-0 m-0 flex flex-col gap-1">

@@ -1,8 +1,8 @@
 @reference "../../styles/theme.css";
 
-/* ── Change passphrase dialog ─────────────────────────────────────────────── */
+/* ── Dialog primitive ──────────────────────────────────────────────────────── */
 
-.change-passphrase-overlay {
+.dialog-overlay {
   position: fixed;
   inset: 0;
   @apply bg-scrim-modal;
@@ -12,19 +12,12 @@
   z-index: 200;
 }
 
-.change-passphrase-card {
+.dialog-card {
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
   @apply rounded-md shadow-modal p-8;
-  width: 400px;
   max-width: calc(100vw - 2rem);
   display: flex;
   flex-direction: column;
   @apply gap-4;
-}
-
-/* NOTE(type): 16px → text-base (exact match). */
-.change-passphrase-title {
-  @apply text-base font-semibold text-fg-primary;
-  margin: 0;
 }

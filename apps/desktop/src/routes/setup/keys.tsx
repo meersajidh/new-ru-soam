@@ -46,6 +46,10 @@ import PasswordInput from '../../platform/auth/PasswordInput';
 import GoogleMark from '../../platform/auth/GoogleMark';
 import Wordmark from '../../workbench/parts/Wordmark';
 import { useModalKeys } from '../../platform/hooks/useModalKeys';
+import { Button } from '../../platform/ui/Button';
+import { TextInput } from '../../platform/ui/TextInput';
+import { FormField } from '../../platform/ui/FormField';
+import { PageShell } from '../../platform/ui/PageShell';
 import '../../styles/setup-shared.css';
 import './keys.css';
 
@@ -240,8 +244,8 @@ function SetupKeysContent() {
   function renderStep1() {
     return (
       <div className="setup-step">
-        <h1 className="setup-title">{addNew ? 'Add a new workspace' : 'Welcome to Ru-Soam'}</h1>
-        <p className="setup-description">
+        <h1 className="t-h2 font-display">{addNew ? 'Add a new workspace' : 'Welcome to Ru-Soam'}</h1>
+        <p className="t-description max-w-[48ch]">
           {addNew
             ? 'Sign in to create an additional workspace. Your data stays on this device — encrypted end-to-end by a passphrase only you hold.'
             : 'Create your secure workspace. Your data stays on this device — encrypted end-to-end by a passphrase only you hold.'}
@@ -252,9 +256,9 @@ function SetupKeysContent() {
         </button>
         {addNew && (
           // <div className="setup-actions border-2">
-          <button className="setup-btn-ghost" onClick={() => void navigate({ to: '/workspaces' })}>
+          <Button variant="ghost" onClick={() => void navigate({ to: '/workspaces' })}>
             Cancel
-          </button>
+          </Button>
           // </div>
         )}
         {showOAuthModal && (
@@ -270,45 +274,44 @@ function SetupKeysContent() {
   function renderStep2() {
     return (
       <div className="setup-step">
-        <h1 className="setup-title">Choose a nickname</h1>
-        <p className="setup-description">
+        <h1 className="t-h2 font-display">Choose a nickname</h1>
+        <p className="t-description max-w-[48ch]">
           This is a local label for this workspace. It is not shared with anyone.
         </p>
-        <label htmlFor="nickname" className="setup-label">
-          Nickname
-        </label>
-        <input
-          id="nickname"
-          type="text"
-          className="setup-input"
-          value={state.nickname}
-          onChange={(e) => setState((s) => ({ ...s, nickname: e.target.value }))}
-          maxLength={64}
-          placeholder="e.g. My Practice"
-          autoFocus
-        />
-        {state.nickname.length > 0 && !nicknameValid && (
-          <p className="setup-error">Nickname must be 4-64 characters.</p>
-        )}
+        <FormField
+          label="Nickname"
+          htmlFor="nickname"
+          error={state.nickname.length > 0 && !nicknameValid ? 'Nickname must be 4-64 characters.' : null}
+        >
+          <TextInput
+            id="nickname"
+            type="text"
+            value={state.nickname}
+            onChange={(e) => setState((s) => ({ ...s, nickname: e.target.value }))}
+            maxLength={64}
+            placeholder="e.g. My Practice"
+            autoFocus
+          />
+        </FormField>
         <div className="setup-actions">
-          <button className="setup-btn-ghost" onClick={() => setState((s) => ({ ...s, step: 1 }))}>
+          <Button variant="ghost" onClick={() => setState((s) => ({ ...s, step: 1 }))}>
             <ArrowLeft size={14} /> Back
-          </button>
+          </Button>
           {addNew && (
-            <button
-              className="setup-btn-ghost"
+            <Button
+              variant="ghost"
               onClick={() => void navigate({ to: '/workspaces' })}
             >
               Cancel
-            </button>
+            </Button>
           )}
-          <button
-            className="setup-btn-primary"
+          <Button
+            variant="primary"
             onClick={() => setState((s) => ({ ...s, step: 3 }))}
             disabled={!nicknameValid}
           >
             Next step <ArrowRight size={14} />
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -320,77 +323,72 @@ function SetupKeysContent() {
 
     return (
       <div className="setup-step">
-        <h1 className="setup-title">Set your passphrase</h1>
-        <p className="setup-description">
+        <h1 className="t-h2 font-display">Set your passphrase</h1>
+        <p className="t-description max-w-[48ch]">
           This passphrase encrypts all your data locally. Minimum 12 characters; strength 3/4
           required.
         </p>
 
-        <label htmlFor="passphrase" className="setup-label">
-          Passphrase
-        </label>
-        <PasswordInput
-          id="passphrase"
-          value={state.passphrase}
-          onChange={(v) => {
-            setState((s) => ({ ...s, passphrase: v }));
-            setPassphraseError('');
-          }}
-          autoFocus
-          autoComplete="new-password"
-        />
+        <FormField label="Passphrase" htmlFor="passphrase">
+          <PasswordInput
+            id="passphrase"
+            value={state.passphrase}
+            onChange={(v) => {
+              setState((s) => ({ ...s, passphrase: v }));
+              setPassphraseError('');
+            }}
+            autoFocus
+            autoComplete="new-password"
+          />
+        </FormField>
 
         {state.passphrase.length > 0 && <StrengthMeter score={passStrength} />}
 
         {state.passphrase.length > 0 && !lengthOk && (
-          <p className="setup-error">Passphrase must be at least 12 characters.</p>
+          <p className="text-xs text-error m-0 flex items-center gap-1.5">Passphrase must be at least 12 characters.</p>
         )}
         {state.passphrase.length >= 12 && !scoreOk && (
-          <p className="setup-error">
+          <p className="text-xs text-error m-0 flex items-center gap-1.5">
             Passphrase is too weak. Please choose something harder to guess.
           </p>
         )}
 
-        <label
-          htmlFor="confirm-passphrase"
-          className="setup-label mt-4"
-        >
-          Confirm passphrase
-        </label>
-        <PasswordInput
-          id="confirm-passphrase"
-          value={confirmPassphrase}
-          onChange={(v) => {
-            setConfirmPassphrase(v);
-            setPassphraseError('');
-          }}
-          autoComplete="new-password"
-        />
+        <FormField label="Confirm passphrase" htmlFor="confirm-passphrase" className="mt-4">
+          <PasswordInput
+            id="confirm-passphrase"
+            value={confirmPassphrase}
+            onChange={(v) => {
+              setConfirmPassphrase(v);
+              setPassphraseError('');
+            }}
+            autoComplete="new-password"
+          />
+        </FormField>
 
         {confirmPassphrase.length > 0 && state.passphrase !== confirmPassphrase && (
-          <p className="setup-error">Passphrases do not match.</p>
+          <p className="text-xs text-error m-0 flex items-center gap-1.5">Passphrases do not match.</p>
         )}
-        {passphraseError && <p className="setup-error">{passphraseError}</p>}
+        {passphraseError && <p className="text-xs text-error m-0 flex items-center gap-1.5">{passphraseError}</p>}
 
         <div className="setup-actions">
-          <button
-            className="setup-btn-ghost"
+          <Button
+            variant="ghost"
             onClick={() => setState((s) => ({ ...s, step: 2 }))}
             disabled={step3Loading}
           >
             <ArrowLeft size={14} /> Back
-          </button>
+          </Button>
           {addNew && (
-            <button
-              className="setup-btn-ghost"
+            <Button
+              variant="ghost"
               onClick={() => void navigate({ to: '/workspaces' })}
               disabled={step3Loading}
             >
               Cancel
-            </button>
+            </Button>
           )}
-          <button
-            className="setup-btn-primary"
+          <Button
+            variant="primary"
             onClick={handlePassphraseNext}
             disabled={!passphraseOk || step3Loading}
           >
@@ -401,7 +399,7 @@ function SetupKeysContent() {
                 Next step <ArrowRight size={14} />
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -410,7 +408,7 @@ function SetupKeysContent() {
   function renderStep4() {
     return (
       <div className="setup-step">
-        <h1 className="setup-title">Save your recovery code</h1>
+        <h1 className="t-h2 font-display">Save your recovery code</h1>
 
         <div className="recovery" role="group" aria-labelledby="rec-warn">
           <div className="recovery-banner">
@@ -462,13 +460,13 @@ function SetupKeysContent() {
         </label>
 
         <div className="setup-actions">
-          <button
-            className="setup-btn-primary"
+          <Button
+            variant="primary"
             onClick={() => setState((s) => ({ ...s, step: 5 }))}
             disabled={!acknowledged}
           >
             Continue <ArrowRight size={14} />
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -485,18 +483,18 @@ function SetupKeysContent() {
           Your workspace <strong>{state.nickname || 'Practice'}</strong> is ready. Everything you
           write here is encrypted on this device and never leaves it without your passphrase.
         </p>
-        {finishError && <p className="setup-error">{finishError}</p>}
+        {finishError && <p className="text-xs text-error m-0 flex items-center gap-1.5">{finishError}</p>}
         <div className="setup-actions justify-center">
           {finishError && finishError.includes('expired') && (
-            <button
-              className="setup-btn-ghost"
+            <Button
+              variant="ghost"
               onClick={handleRetryGenerate}
               disabled={step3Loading}
             >
               Restart passphrase step
-            </button>
+            </Button>
           )}
-          <button className="setup-btn-primary" onClick={handleFinish} disabled={finishLoading}>
+          <Button variant="primary" onClick={handleFinish} disabled={finishLoading}>
             {finishLoading ? (
               'Finishing…'
             ) : (
@@ -504,21 +502,23 @@ function SetupKeysContent() {
                 Open workspace <ArrowRight size={14} />
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="setup-page">
-      <div className="setup-topbar">
-        <Wordmark />
-        <button className="setup-help-btn" aria-label="Help">
-          <HelpCircle size={18} />
-        </button>
-      </div>
-
+    <PageShell
+      topbar={
+        <>
+          <Wordmark />
+          <button className="setup-help-btn" aria-label="Help">
+            <HelpCircle size={18} />
+          </button>
+        </>
+      }
+    >
       <main className="setup-main">
         <div className="setup-container">
           <ProgressRail step={state.step} />
@@ -556,7 +556,6 @@ function SetupKeysContent() {
       <div className="setup-foot">
         Ru-Soam · <strong>local-first clinical practice.</strong> Your data stays on this device.
       </div>
-    </div>
+    </PageShell>
   );
 }
-

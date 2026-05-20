@@ -3,6 +3,7 @@
 import './PasswordInput.css';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { TextInput } from '../ui/TextInput';
 
 interface PasswordInputProps {
   id?: string;
@@ -27,16 +28,16 @@ export default function PasswordInput({
 
   return (
     <div className="pw-wrap">
-      <input
+      <TextInput
         id={id}
         name={name}
         type={show ? 'text' : 'password'}
-        className="setup-input"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoFocus={autoFocus}
         autoComplete={autoComplete}
+        className="pr-[42px]"
       />
       <button
         type="button"

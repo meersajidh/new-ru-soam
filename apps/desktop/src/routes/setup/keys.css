@@ -36,52 +36,6 @@
   min-width: 96px;
 }
 
-/* ── Buttons ─────────────────────────────────────────────────────────────── */
-
-.setup-btn-primary {
-  background: var(--color-accent);
-  color: var(--color-accent-fg);
-  border: none;
-  border-radius: var(--setup-pill-radius);
-  cursor: pointer;
-  @apply text-sm font-semibold;
-  padding: 12px 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  @apply gap-2;
-  line-height: 1;
-  transition:
-    background 0.12s,
-    box-shadow 0.15s,
-    transform 0.08s;
-  box-shadow:
-    0 0 0 1px var(--color-tint-accent-strong),
-    0 0 calc(28px * var(--glow-mul))
-      color-mix(in oklch, var(--color-accent) calc(55% * var(--glow-mul)), transparent),
-    inset 0 1px 0 var(--color-highlight-edge);
-}
-
-.setup-btn-primary:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-  box-shadow:
-    0 0 0 1px var(--color-accent),
-    0 0 calc(40px * var(--glow-mul))
-      color-mix(in oklch, var(--color-accent) calc(70% * var(--glow-mul)), transparent),
-    inset 0 1px 0 var(--color-highlight-edge-hover);
-}
-
-.setup-btn-primary:active:not(:disabled) {
-  background: var(--color-accent-pressed);
-  transform: translateY(1px);
-}
-
-.setup-btn-primary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
 /* ── Google sign-in pill ─────────────────────────────────────────────────── */
 
 .btn-google,
@@ -92,7 +46,7 @@
   @apply gap-3;
   background: #fff;
   border: 1px solid #dadce0;
-  border-radius: var(--setup-pill-radius);
+  @apply rounded-full;
   color: #3c4043;
   cursor: pointer;
   font-family: 'Roboto', 'Inter Tight', system-ui;
@@ -217,7 +171,7 @@
   @apply gap-1.5;
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--setup-pill-radius);
+  @apply rounded-full;
   @apply text-fg-secondary text-xs font-medium;
   padding: 6px 14px;
   cursor: pointer;
@@ -338,60 +292,6 @@
 
 .setup-foot strong {
   @apply text-fg-secondary font-medium;
-}
-
-/* ── Modal overlay ────────────────────────────────────────────────────────── */
-
-.setup-modal-overlay {
-  position: fixed;
-  inset: 0;
-  @apply bg-scrim-modal;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-}
-
-.setup-modal-card {
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  @apply rounded-md shadow-modal p-8;
-  width: 360px;
-  max-width: calc(100vw - 2rem);
-  display: flex;
-  flex-direction: column;
-  @apply gap-4;
-}
-
-.setup-modal-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  @apply gap-3;
-  text-align: center;
-}
-
-/* NOTE(type): 18px → text-base (16px, −2px default-down). */
-.setup-modal-title {
-  @apply text-base font-semibold text-fg-primary;
-  margin: 0;
-}
-
-.setup-modal-subtitle {
-  @apply text-xs text-fg-muted;
-  margin: 0;
-}
-
-.setup-modal-form {
-  display: flex;
-  flex-direction: column;
-  @apply gap-3;
-}
-
-.setup-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  @apply gap-3 mt-2;
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */

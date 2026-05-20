@@ -1,0 +1,34 @@
+@reference "../../styles/theme.css";
+
+/* ── TextInput primitive ───────────────────────────────────────────────────── */
+
+.text-input {
+  width: 100%;
+  @apply bg-surface-input;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  @apply text-fg-primary text-sm;
+  outline: none;
+  @apply px-4 py-3;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+}
+
+.text-input::placeholder {
+  @apply text-fg-muted;
+}
+
+.text-input:hover {
+  @apply border-border-hover;
+}
+
+.text-input:focus {
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 0 4px color-mix(in oklch, var(--color-accent) calc(14% * var(--glow-mul)), transparent),
+    0 0 calc(24px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(28% * var(--glow-mul)), transparent);
+  @apply bg-surface-input-focus;
+}

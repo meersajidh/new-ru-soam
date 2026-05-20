@@ -19,6 +19,8 @@ import type { UnlockResult, RecoveryUnlockResult } from '../../../electron/share
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
 import { useModalKeys } from '../../platform/hooks/useModalKeys';
+import { Button } from '../../platform/ui/Button';
+import { FormField } from '../../platform/ui/FormField';
 import './UnlockGate.css';
 
 type GateMode = 'passphrase' | 'recovery' | 'reset-passphrase';
@@ -184,39 +186,41 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
 
         {mode === 'passphrase' && (
           <form className="unlock-gate-form" onSubmit={handleUnlock}>
-            <label htmlFor="unlock-passphrase" className="setup-label">
-              Passphrase
-            </label>
-            <PasswordInput
-              id="unlock-passphrase"
-              value={passphrase}
-              onChange={(v) => {
-                setPassphrase(v);
-                setUnlockError('');
-              }}
-              autoFocus
-              autoComplete="current-password"
-              placeholder="Enter your passphrase"
-            />
-            {unlockError && <p className="unlock-gate-error">{unlockError}</p>}
+            <FormField
+              label="Passphrase"
+              htmlFor="unlock-passphrase"
+              error={unlockError || null}
+            >
+              <PasswordInput
+                id="unlock-passphrase"
+                value={passphrase}
+                onChange={(v) => {
+                  setPassphrase(v);
+                  setUnlockError('');
+                }}
+                autoFocus
+                autoComplete="current-password"
+                placeholder="Enter your passphrase"
+              />
+            </FormField>
             <div className="setup-actions">
               {!forceResetMode && (
-                <button
+                <Button
                   type="button"
-                  className="setup-btn-ghost"
+                  variant="ghost"
                   onClick={() => void navigate({ to: '/workspaces' })}
                   disabled={unlocking}
                 >
                   Cancel
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 type="submit"
-                className="setup-btn-primary"
+                variant="primary"
                 disabled={!passphrase || unlocking}
               >
                 {unlocking ? 'Unlocking…' : 'Unlock'}
-              </button>
+              </Button>
             </div>
             <button
               type="button"
@@ -233,7 +237,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
 
         {mode === 'recovery' && (
           <form className="unlock-gate-form" onSubmit={handleRecoveryUnlock}>
-            <label htmlFor="recovery-entry" className="setup-label">
+            <label htmlFor="recovery-entry" className="text-xs font-semibold text-fg-secondary block" style={{ letterSpacing: '0.02em' }}>
               Recovery code (12 words, space-separated)
             </label>
             <textarea
@@ -250,47 +254,46 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
             />
             {recoveryError && <p className="unlock-gate-error">{recoveryError}</p>}
             <div className="setup-actions">
-              <button
+              <Button
                 type="button"
-                className="setup-btn-ghost"
+                variant="ghost"
                 onClick={() => {
                   setMode('passphrase');
                   setRecoveryError('');
                 }}
               >
                 Back
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                className="setup-btn-primary"
+                variant="primary"
                 disabled={!recoveryText.trim() || recoveryLoading}
               >
                 {recoveryLoading ? 'Checking…' : 'Unlock with recovery code'}
-              </button>
+              </Button>
             </div>
           </form>
         )}
 
         {mode === 'reset-passphrase' && (
           <form className="unlock-gate-form" onSubmit={handleResetPassphrase}>
-            <p className="setup-description mb-2">
+            <p className="t-description max-w-[48ch] mb-2">
               {forceResetMode
                 ? 'Your workspace was unlocked with a recovery code. Set a new passphrase to continue.'
                 : 'Recovery successful. Set a new passphrase to continue.'}
             </p>
-            <label htmlFor="new-passphrase" className="setup-label">
-              New passphrase
-            </label>
-            <PasswordInput
-              id="new-passphrase"
-              value={newPassphrase}
-              onChange={(v) => {
-                setNewPassphrase(v);
-                setResetError('');
-              }}
-              autoFocus
-              autoComplete="new-password"
-            />
+            <FormField label="New passphrase" htmlFor="new-passphrase">
+              <PasswordInput
+                id="new-passphrase"
+                value={newPassphrase}
+                onChange={(v) => {
+                  setNewPassphrase(v);
+                  setResetError('');
+                }}
+                autoFocus
+                autoComplete="new-password"
+              />
+            </FormField>
             {newPassphrase.length > 0 && <StrengthMeter score={newPassScore} />}
             {newPassphrase.length > 0 && newPassphrase.length < 12 && (
               <p className="unlock-gate-error">At least 12 characters required.</p>
@@ -298,30 +301,29 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
             {newPassphrase.length >= 12 && newPassScore < 3 && (
               <p className="unlock-gate-error">Passphrase too weak.</p>
             )}
-            <label htmlFor="confirm-new-passphrase" className="setup-label">
-              Confirm new passphrase
-            </label>
-            <PasswordInput
-              id="confirm-new-passphrase"
-              value={confirmNewPassphrase}
-              onChange={(v) => {
-                setConfirmNewPassphrase(v);
-                setResetError('');
-              }}
-              autoComplete="new-password"
-            />
+            <FormField label="Confirm new passphrase" htmlFor="confirm-new-passphrase">
+              <PasswordInput
+                id="confirm-new-passphrase"
+                value={confirmNewPassphrase}
+                onChange={(v) => {
+                  setConfirmNewPassphrase(v);
+                  setResetError('');
+                }}
+                autoComplete="new-password"
+              />
+            </FormField>
             {confirmNewPassphrase.length > 0 && newPassphrase !== confirmNewPassphrase && (
               <p className="unlock-gate-error">Passphrases do not match.</p>
             )}
             {resetError && <p className="unlock-gate-error">{resetError}</p>}
             <div className="setup-actions">
-              <button
+              <Button
                 type="submit"
-                className="setup-btn-primary"
+                variant="primary"
                 disabled={!newPassOk || resetLoading}
               >
                 {resetLoading ? 'Setting…' : 'Set passphrase'}
-              </button>
+              </Button>
             </div>
           </form>
         )}

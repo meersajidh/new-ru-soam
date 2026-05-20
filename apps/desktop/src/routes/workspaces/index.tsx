@@ -24,6 +24,7 @@ import { createFileRoute, useNavigate, Navigate } from '@tanstack/react-router';
 import type { WorkspaceMeta } from '../../../electron/shared/lock-protocol';
 import WorkspaceTileGrid from '../../workbench/middle/WorkspaceTileGrid';
 import Wordmark from '../../workbench/parts/Wordmark';
+import { PageShell } from '../../platform/ui/PageShell';
 import '../../styles/setup-shared.css';
 
 export const Route = createFileRoute('/workspaces/')({
@@ -99,16 +100,13 @@ function WorkspacePickerContent() {
   }
 
   return (
-    <div className="setup-page justify-start overflow-auto">
-      <div className="setup-topbar">
-        <Wordmark />
-      </div>
+    <PageShell topbar={<Wordmark />} className="justify-start overflow-auto">
       <div className="flex flex-col m-auto items-start gap-6 w-full max-w-3xl p-10">
         <div>
-          <h1 className="setup-title">Choose a workspace</h1>
-          <p className="setup-description">Select a workspace to unlock, or add a new one.</p>
+          <h1 className="t-h2 font-display">Choose a workspace</h1>
+          <p className="t-description max-w-[48ch]">Select a workspace to unlock, or add a new one.</p>
         </div>
-        {error && <p className="setup-error">{error}</p>}
+        {error && <p className="text-xs text-error flex items-center gap-1.5">{error}</p>}
         <WorkspaceTileGrid
           workspaces={workspaces}
           activating={activating}
@@ -116,6 +114,6 @@ function WorkspacePickerContent() {
           onAddNew={handleAddNew}
         />
       </div>
-    </div>
+    </PageShell>
   );
 }

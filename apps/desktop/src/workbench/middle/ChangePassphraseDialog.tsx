@@ -14,7 +14,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { zxcvbn } from '@zxcvbn-ts/core';
 import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import './ChangePassphraseDialog.css';
+import { Dialog } from '../../platform/ui/Dialog';
+import { Button } from '../../platform/ui/Button';
+import { TextInput } from '../../platform/ui/TextInput';
+import { FormField } from '../../platform/ui/FormField';
 
 interface Props {
   onClose: () => void;
@@ -84,125 +87,114 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
   ];
 
   return (
-    <div
-      className="change-passphrase-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="change-passphrase-title"
-    >
-      <div className="change-passphrase-card">
-        <h2 id="change-passphrase-title" className="change-passphrase-title">
-          Change passphrase
-        </h2>
+    <Dialog open={true} onClose={onClose} width={400} aria-labelledby="change-passphrase-title">
+      <h2 id="change-passphrase-title" className="t-base font-semibold text-fg-primary m-0">
+        Change passphrase
+      </h2>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          {/* Current passphrase */}
-          <label htmlFor="cp-current" className="setup-label">
-            Current passphrase
-          </label>
-          <div className="setup-input-row">
-            <input
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        {/* Current passphrase */}
+        <FormField label="Current passphrase" htmlFor="cp-current" error={currentError || null}>
+          <div className="flex gap-2 items-center">
+            <TextInput
               id="cp-current"
               ref={currentRef}
               type={showCurrent ? 'text' : 'password'}
-              className="setup-input"
               value={currentPassphrase}
               onChange={(e) => { setCurrentPassphrase(e.target.value); setCurrentError(''); }}
               autoComplete="current-password"
             />
-            <button
+            <Button
               type="button"
-              className="setup-btn-ghost setup-show-toggle"
+              variant="ghost"
+              size="sm"
               onClick={() => setShowCurrent((v) => !v)}
               aria-label={showCurrent ? 'Hide' : 'Show'}
             >
               {showCurrent ? 'Hide' : 'Show'}
-            </button>
+            </Button>
           </div>
-          {currentError && <p className="setup-error">{currentError}</p>}
+        </FormField>
 
-          {/* New passphrase */}
-          <label htmlFor="cp-new" className="setup-label mt-2">
-            New passphrase
-          </label>
-          <div className="setup-input-row">
-            <input
+        {/* New passphrase */}
+        <FormField label="New passphrase" htmlFor="cp-new">
+          <div className="flex gap-2 items-center">
+            <TextInput
               id="cp-new"
               type={showNew ? 'text' : 'password'}
-              className="setup-input"
               value={newPassphrase}
               onChange={(e) => { setNewPassphrase(e.target.value); setGeneralError(''); }}
               autoComplete="new-password"
             />
-            <button
+            <Button
               type="button"
-              className="setup-btn-ghost setup-show-toggle"
+              variant="ghost"
+              size="sm"
               onClick={() => setShowNew((v) => !v)}
               aria-label={showNew ? 'Hide' : 'Show'}
             >
               {showNew ? 'Hide' : 'Show'}
-            </button>
+            </Button>
           </div>
+        </FormField>
 
-          {/* Strength meter */}
-          {newPassphrase.length > 0 && (
-            <div className="strength-meter">
-              <div className="strength-bars">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="strength-bar"
-                    style={{
-                      background: i < newScore ? scoreColors[newScore - 1] : 'var(--color-border)',
-                    }}
-                  />
-                ))}
-              </div>
-              <span className="strength-label" style={{ color: newScore > 0 ? scoreColors[newScore - 1] : 'var(--color-fg-muted)' }}>
-                {scoreLabels[newScore]}
-              </span>
+        {/* Strength meter */}
+        {newPassphrase.length > 0 && (
+          <div className="strength-meter">
+            <div className="strength-bars">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="strength-bar"
+                  style={{
+                    background: i < newScore ? scoreColors[newScore - 1] : 'var(--color-border)',
+                  }}
+                />
+              ))}
             </div>
-          )}
+            <span className="strength-label" style={{ color: newScore > 0 ? scoreColors[newScore - 1] : 'var(--color-fg-muted)' }}>
+              {scoreLabels[newScore]}
+            </span>
+          </div>
+        )}
 
-          {newPassphrase.length > 0 && newPassphrase.length < 12 && (
-            <p className="setup-error">At least 12 characters required.</p>
-          )}
-          {newPassphrase.length >= 12 && newScore < 3 && (
-            <p className="setup-error">Passphrase too weak.</p>
-          )}
+        {newPassphrase.length > 0 && newPassphrase.length < 12 && (
+          <p className="text-xs text-error m-0 flex items-center gap-1.5">At least 12 characters required.</p>
+        )}
+        {newPassphrase.length >= 12 && newScore < 3 && (
+          <p className="text-xs text-error m-0 flex items-center gap-1.5">Passphrase too weak.</p>
+        )}
 
-          {/* Confirm */}
-          <label htmlFor="cp-confirm" className="setup-label">
-            Confirm new passphrase
-          </label>
-          <input
+        {/* Confirm */}
+        <FormField
+          label="Confirm new passphrase"
+          htmlFor="cp-confirm"
+          error={confirmPassphrase.length > 0 && newPassphrase !== confirmPassphrase ? 'Passphrases do not match.' : null}
+        >
+          <TextInput
             id="cp-confirm"
             type={showNew ? 'text' : 'password'}
-            className="setup-input"
             value={confirmPassphrase}
             onChange={(e) => { setConfirmPassphrase(e.target.value); setGeneralError(''); }}
             autoComplete="new-password"
           />
-          {confirmPassphrase.length > 0 && newPassphrase !== confirmPassphrase && (
-            <p className="setup-error">Passphrases do not match.</p>
-          )}
+        </FormField>
 
-          {generalError && <p className="setup-error">{generalError}</p>}
+        {generalError && <p className="text-xs text-error m-0 flex items-center gap-1.5">{generalError}</p>}
 
-          <div className="setup-actions">
-            <button type="button" className="setup-btn-ghost" onClick={onClose} disabled={loading}>
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="setup-btn-primary"
-              disabled={!currentPassphrase || !newOk || loading}
-            >
-              {loading ? 'Changing…' : 'Change passphrase'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="setup-actions">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={!currentPassphrase || !newOk || loading}
+          >
+            {loading ? 'Changing…' : 'Change passphrase'}
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }

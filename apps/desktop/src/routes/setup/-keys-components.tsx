@@ -12,6 +12,10 @@ import { generateMockGoogleId } from '../../platform/auth/mock-oauth';
 import GoogleMark from '../../platform/auth/GoogleMark';
 import { STEPS, STEP_HEADLINES } from './-keys-constants';
 import { useModalKeys } from '../../platform/hooks/useModalKeys';
+import { Button } from '../../platform/ui/Button';
+import { TextInput } from '../../platform/ui/TextInput';
+import { FormField } from '../../platform/ui/FormField';
+import { Dialog } from '../../platform/ui/Dialog';
 
 export { STEPS, STEP_HEADLINES };
 
@@ -90,31 +94,22 @@ export function MockOAuthModal({
   }
 
   return (
-    <div
-      className="setup-modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="mock-oauth-title"
-    >
-      <div className="setup-modal-card">
-        <div className="setup-modal-header">
-          <GoogleMark size={32} />
-          <h2 id="mock-oauth-title" className="setup-modal-title">
-            Sign in with Google
-          </h2>
-          <p className="setup-modal-subtitle">
-            (mock — real OAuth lands in a future release)
-          </p>
-        </div>
-        <form onSubmit={handleSubmit} className="setup-modal-form">
-          <label htmlFor="mock-email" className="setup-label">
-            Email address
-          </label>
-          <input
+    <Dialog open={true} onClose={onCancel} width={360} aria-labelledby="mock-oauth-title">
+      <div className="setup-modal-header">
+        <GoogleMark size={32} />
+        <h2 id="mock-oauth-title" className="setup-modal-title">
+          Sign in with Google
+        </h2>
+        <p className="setup-modal-subtitle">
+          (mock — real OAuth lands in a future release)
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="setup-modal-form">
+        <FormField label="Email address" htmlFor="mock-email" error={error || null}>
+          <TextInput
             id="mock-email"
             ref={inputRef}
             type="email"
-            className="setup-input"
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
@@ -123,17 +118,16 @@ export function MockOAuthModal({
             placeholder="you@example.com"
             autoComplete="email"
           />
-          {error && <p className="setup-error">{error}</p>}
-          <div className="setup-modal-actions">
-            <button type="button" className="setup-btn-ghost" onClick={onCancel}>
-              Cancel
-            </button>
-            <button type="submit" className="setup-btn-primary">
-              Sign in
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </FormField>
+        <div className="setup-modal-actions">
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="primary">
+            Sign in
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }
