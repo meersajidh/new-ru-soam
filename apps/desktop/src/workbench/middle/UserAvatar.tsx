@@ -102,9 +102,16 @@ export default function UserAvatar() {
     await commands.execute('workbench.openSettings');
   }
 
-  function handleHelp() {
+  async function handleHelp() {
     setMenuOpen(false);
-    window.open('https://ru-soam.com', '_blank', 'noopener,noreferrer');
+    const cap = await window.soam.bindCapability('platform.shell', '1.0');
+    try {
+      await cap.call('openExternal', 'https://ru-soam.com');
+    } catch (err) {
+      console.warn('[avatar] openExternal failed:', err);
+    } finally {
+      cap.dispose();
+    }
   }
 
   return (
