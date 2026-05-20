@@ -8,7 +8,7 @@ hand-editing.
 
 ```
 icon/
-├── README.md                  ← this file
+├── icon-assets.md             ← this file
 ├── master/                    ← vector source of truth (do edits here)
 │   ├── bridge.full.svg        ← currentColor variant for inlining in app code
 │   ├── bridge.full.light.svg  ← #F0EDE5 fill — for dark-mode raster export
@@ -53,7 +53,7 @@ your dev machine once the PNG set is committed.
 ### macOS `.icns`
 
 ```sh
-cd icon/png/light                                # or dark for light-mode builds
+cd ../../apps/desktop/public/icon/png/light                                # or dark for light-mode builds
 
 mkdir bridge.iconset
 cp bridge-16.png  bridge.iconset/icon_16x16.png
@@ -67,43 +67,43 @@ cp bridge-512.png bridge.iconset/icon_256x256@2x.png
 cp bridge-512.png bridge.iconset/icon_512x512.png
 cp bridge-1024.png bridge.iconset/icon_512x512@2x.png
 
-iconutil -c icns bridge.iconset -o ../../bundles/ru-soam.icns
+iconutil -c icns bridge.iconset -o ../../../../bundles/ru-soam.icns
 ```
 
 > The macOS dock historically expects the **tile** form for shipped apps.
 > If you're shipping a normal app and want it to feel native in the dock,
-> build the `.icns` from `icon/png/tile/` instead — `.icns` doesn't carry
-> transparency the same way for icon thumbnails.
+> build the `.icns` from `apps/desktop/public/icon/png/tile/` instead —
+> `.icns` doesn't carry transparency the same way for icon thumbnails.
 
 ### Windows `.ico`
 
 ```sh
 # ImageMagick — Windows expects multi-size .ico
 magick \
-  icon/png/light/bridge-16.png \
-  icon/png/light/bridge-24.png \
-  icon/png/light/bridge-32.png \
-  icon/png/light/bridge-48.png \
-  icon/png/light/bridge-64.png \
-  icon/png/light/bridge-128.png \
-  icon/png/light/bridge-256.png \
-  icon/bundles/ru-soam.ico
+  apps/desktop/public/icon/png/light/bridge-16.png \
+  apps/desktop/public/icon/png/light/bridge-24.png \
+  apps/desktop/public/icon/png/light/bridge-32.png \
+  apps/desktop/public/icon/png/light/bridge-48.png \
+  apps/desktop/public/icon/png/light/bridge-64.png \
+  apps/desktop/public/icon/png/light/bridge-128.png \
+  apps/desktop/public/icon/png/light/bridge-256.png \
+  ../../../../bundles/ru-soam.ico
 ```
 
 ### Electron / Tauri config
 
 ```jsonc
 {
-  "icon": "icon/bundles/ru-soam.icns",        // macOS
-  "win": { "icon": "icon/bundles/ru-soam.ico" },
-  "linux": { "icon": "icon/png/light/bridge-512.png" }
+  "icon": "bundles/ru-soam.icns",        // macOS
+  "win": { "icon": "bundles/ru-soam.ico" },
+  "linux": { "icon": "public/icon/png/light/bridge-512.png" }
 }
 ```
 
 ### Tray / menu-bar template (macOS)
 
 ```js
-const tray = new Tray(path.join(__dirname, 'icon/png/mask/bridge-mask-16.png'));
+const tray = new Tray(path.join(__dirname, 'public/icon/png/mask/bridge-mask-16.png'));
 tray.setImage(nativeImage.createFromPath(...).setTemplateImage(true));
 ```
 

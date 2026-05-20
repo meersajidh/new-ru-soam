@@ -2,10 +2,37 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<base href="../../apps/desktop/public/icon/">
 <title>Ru-Soam · icon contact sheet</title>
-<link rel="stylesheet" href="../ds/colors_and_type.css">
-<link rel="stylesheet" href="../ds/font-sets/ru-display.css">
 <style>
+  body.theme-bamboo.dark {
+    --color-surface-base:     oklch(0.160 0.025 95.0);
+    --color-surface-panel:    oklch(0.195 0.030 95.0);
+    --color-surface-elevated: oklch(0.230 0.035 95.0);
+    --color-fg-primary:       oklch(0.950 0.0072 95.0);
+    --color-fg-secondary:     oklch(0.750 0.0090 95.0);
+    --color-fg-muted:         oklch(0.560 0.0114 95.0);
+    --color-border:           oklch(0.320 0.032 95.0);
+    --color-accent:           oklch(0.740 0.1105 130.0);
+    --font-sans:              'Inter Tight', system-ui, 'Segoe UI', Roboto, sans-serif;
+    --font-mono:              'IBM Plex Mono', ui-monospace, Consolas, 'Courier New', monospace;
+    --font-display:           'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+    --radius-md: 0.5rem;
+  }
+  .font-set-ru-display {
+    --font-sans:    'Inter Tight', system-ui, 'Segoe UI', Roboto, sans-serif;
+    --font-mono:    'IBM Plex Mono', ui-monospace, Consolas, 'Courier New', monospace;
+    --font-display: 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+
+    --font-display-weight: 600;
+    --font-display-letter-spacing: -0.01em;
+
+    font-optical-sizing: auto;
+  }
+  .font-set-ru-display :is(h1, h2, .setup-title, .gate-title, .modal-title, .progress-headline) {
+    font-optical-sizing: auto;
+    text-wrap: pretty;
+  }
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; }
   body {
@@ -217,7 +244,7 @@
     Icon assets — contact sheet
   </h1>
   <p class="lede">
-    All assets sit under <code>icon/</code>. Vector masters are the source of truth; PNGs were exported from them and re-export deterministically if a master changes. Bundle steps (<code>.icns</code> / <code>.ico</code>) live in <code>icon/README.md</code> — those tools (iconutil, ImageMagick) need to run on your dev machine.
+    All assets sit under <code>icon/</code>. Vector masters are the source of truth; PNGs were exported from them and re-export deterministically if a master changes. Bundle steps (<code>.icns</code> / <code>.ico</code>) live in <code>icon-assets.md</code> — those tools (iconutil, ImageMagick) need to run on your dev machine.
   </p>
 </header>
 
@@ -374,7 +401,7 @@
 
   <div class="tree">
 <span class="dir">icon/</span>
-├── README.md                  <span class="note">← bundle instructions (icns / ico)</span>
+├── icon-assets.md             <span class="note">← bundle instructions (icns / ico)</span>
 ├── <span class="dir">master/</span>                    <span class="note">← vector source of truth</span>
 │   ├── bridge.full.svg              <span class="note">currentColor — inline this in app code</span>
 │   ├── bridge.full.light.svg        <span class="note">#F0EDE5 fill — for dark-mode export</span>
@@ -397,7 +424,7 @@
 </section>
 
 <footer>
-  <strong>Bundling step lives in <code>icon/README.md</code>.</strong> The browser sandbox can't produce <code>.icns</code> / <code>.ico</code> directly, so the README has the <code>iconutil</code> + <code>magick</code> one-liners you need on your dev machine. Once those run, drop the resulting bundles into <code>icon/bundles/</code> and wire them into <code>electron-builder</code> (or whatever you're using) via the snippet at the bottom of the README.<br><br>
+  <strong>Bundling step lives in <code>icon-assets.md</code>.</strong> The browser sandbox can't produce <code>.icns</code> / <code>.ico</code> directly, so the README has the <code>iconutil</code> + <code>magick</code> one-liners you need on your dev machine. Once those run, drop the resulting bundles into <code>icon/bundles/</code> and wire them into <code>electron-builder</code> (or whatever you're using) via the snippet at the bottom of the README.<br><br>
   <strong>Re-export.</strong> Edit a master, then re-run the raster batches in <code>Brand Icon A - Spec.html</code> (or split out the three <code>run_script</code> blocks here into a standalone script). All 27 PNGs regenerate from one source.
 </footer>
 
