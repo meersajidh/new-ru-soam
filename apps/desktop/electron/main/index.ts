@@ -29,20 +29,24 @@ import { workspaceRegistry } from './workspace/registry';
 import { installLockChannel, createAutoLockHandleRef, rebindAutoLock } from './ipc/lock-channel';
 import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
 
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('class', 'ru-soam');
+  const desktopAwareApp = app as typeof app & {
+    setDesktopFileName?: (name: string) => void;
+  };
+  if (typeof desktopAwareApp.setDesktopFileName === 'function') {
+    desktopAwareApp.setDesktopFileName('ru-soam.desktop');
+  }
+}
+
 const DEV = !app.isPackaged;
 const DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 const PRELOAD_TRIGGER = path.join(os.tmpdir(), 'ru-soam-preload-reload');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.setName('Ru-Soam');
-if (process.platform === 'linux') {
-  if (process.env['DISABLE_GPU'] === '1') app.disableHardwareAcceleration();
-  app.commandLine.appendSwitch('class', 'ru-soam');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const appAny = app as any;
-  if (typeof appAny.setDesktopFileName === 'function') {
-    appAny.setDesktopFileName('ru-soam.desktop');
-  }
+if (process.platform === 'linux' && process.env['DISABLE_GPU'] === '1') {
+  app.disableHardwareAcceleration();
 }
 
 let mainWindow: BrowserWindow | null = null;

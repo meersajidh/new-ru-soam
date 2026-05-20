@@ -66,7 +66,8 @@ dist
 # Local Env directories and files
 deploy/dev/**/*.yml
 !deploy/dev/**/*.example
-
+release/
+release/*
 # Others
 .notes/
 .gemini/

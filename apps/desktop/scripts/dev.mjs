@@ -47,7 +47,10 @@ function startElectron(url) {
   // It should be noted that using `--no-sandbox` can have security implications,
   // so it should be used with caution and only in development environments.
   // Add `--ozone-platform=x11` flag to fix warning about wayland vulcan support
-  const extraFlags = process.platform === 'linux' ? ['--ozone-platform=x11', '--no-sandbox'] : [];
+  const extraFlags =
+    process.platform === 'linux'
+      ? ['--ozone-platform=x11', '--no-sandbox', '--class=ru-soam']
+      : [];
   electronProcess = spawn(electronBin, [...extraFlags, '--remote-debugging-port=9333', '.'], {
     cwd: root,
     env: { ...process.env, VITE_DEV_SERVER_URL: url },

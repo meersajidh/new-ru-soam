@@ -12,7 +12,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "check:public": "node scripts/check-public.mjs",
-    "check:all": "pnpm --filter ru-soam-app compile && pnpm --filter ru-soam-app lint && pnpm check:public",
+    "check:all": "pnpm --filter ru-soam compile && pnpm --filter ru-soam lint && pnpm check:public",
     "prepare": "husky"
   },
   "devEngines": {

@@ -37,7 +37,7 @@
 - Main: `apps/desktop/electron/main/index.ts`
 - Preload: `apps/desktop/electron/preload/index.ts` (exposes `window.soam` — ADR-202)
 - Bundle Host: `apps/desktop/electron/bundle-host/index.ts` (Node process spawned on demand — ADR-410)
-- Dev: `just dev-desktop` or `pnpm --filter ru-soam-app dev`
+- Dev: `just dev-desktop` or `pnpm --filter ru-soam dev`
 
 ---
 
@@ -106,7 +106,7 @@
 - **No `<webview>` and no direct `BrowserWindow`** outside `electron/main/window-factory.ts` (ADR-201). Bundle UIs render through sandboxed iframe + `view://` bridge (ADR-411).
 - **Brokered networking only** — no direct `fetch` from Renderer to third-party origins; use `app://` protocol or capability wrapping it (ADR-203).
 - Workspace package imports: use `@ru-soam/editor` (alias from `packages/editor` via pnpm workspace), not relative paths into `packages/*`.
-- TanStack Router: file-based routes in `apps/desktop/src/routes/`. Regenerate with `pnpm --filter ru-soam-app route-gen` after add/rename routes. No hand-edit `routeTree.gen.ts`.
+- TanStack Router: file-based routes in `apps/desktop/src/routes/`. Regenerate with `pnpm --filter ru-soam route-gen` after add/rename routes. No hand-edit `routeTree.gen.ts`.
 - Any architectural change (new trust-zone crossing, new contribution point, new protocol scheme, new persisted shape) requires ADR or Open Item entry — see `docs/README.md` and `docs/Open_Items.md`.
 
 ### UI / styling
@@ -125,10 +125,10 @@ No automated test suite yet. Verify changes with type-check + lint:
 
 ```bash
 # Type-check the whole workspace (project references via tsc -b)
-pnpm --filter ru-soam-app compile && pnpm --filter @ru-soam/editor compile
+pnpm --filter ru-soam compile && pnpm --filter @ru-soam/editor compile
 
 # Lint the desktop app
-pnpm --filter ru-soam-app lint
+pnpm --filter ru-soam lint
 
 # Smoke-run the app (dogfood verification — Implementation_Plan.md uses
 # "you can open the app and see X work" as the exit criterion for each phase)

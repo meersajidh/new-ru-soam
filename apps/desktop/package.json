@@ -1,5 +1,5 @@
 {
-  "name": "ru-soam-app",
+  "name": "ru-soam",
   "version": "0.1.0",
   "description": "ru-soam practitioner desktop workbench app",
   "homepage": "https://ru-soam.com",
@@ -15,6 +15,8 @@
     "build": "tsr generate && tsc -b && vite build && vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts && vite build --config vite.bundle-host.config.ts",
     "dev": "tsr generate && node scripts/dev.mjs",
     "dist": "pnpm build && electron-builder",
+    "dist:install": "node scripts/install-launcher.mjs",
+    "dist:uninstall": "node scripts/uninstall-launcher.mjs",
     "compile": "tsr generate && tsc -b",
     "lint": "eslint .",
     "postinstall": "electron-builder install-app-deps",
@@ -55,7 +57,7 @@
     "lucide-react": "^1.16.0"
   },
   "build": {
-    "appId": "com.ru-soam.desktop",
+    "appId": "ru-soam",
     "productName": "Ru-Soam",
     "directories": {
       "output": "release"
@@ -66,9 +68,21 @@
     ],
     "linux": {
       "icon": "electron/assets/icon/icon-512.png",
+      "category": "Office",
       "target": [
         "AppImage"
-      ]
+      ],
+      "executableName": "ru-soam",
+      "desktop": {
+        "entry": {
+          "Name": "Ru-Soam",
+          "Icon": "ru-soam",
+          "StartupWMClass": "ru-soam",
+          "StartupNotify": "true",
+          "Categories": "Office;",
+          "Keywords": "ru-soam;practitioner;workbench;"
+        }
+      }
     },
     "win": {
       "icon": "electron/assets/icon/icon.ico",
