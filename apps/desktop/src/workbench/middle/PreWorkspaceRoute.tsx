@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 import { Navigate } from '@tanstack/react-router';
 import { useContextKey } from '../../platform/services/hooks';
 import Middle from './Middle';
+import LoadingSplash from './LoadingSplash';
 import UnlockGate from './UnlockGate';
 
 export default function PreWorkspaceRoute() {
@@ -35,11 +36,10 @@ export default function PreWorkspaceRoute() {
     });
   }, [activeId]); // re-fetch when activeId changes (sign-out etc.)
 
-  // While the workspace list is loading: if activeId is already set the routing
-  // branches below don't need the count, so let them render immediately.
-  // If activeId is not yet known, hold with a flex spacer so StatusBar stays pinned.
+  // Show the splash only while the route is still resolving. The splash itself
+  // delays its reveal so fast boots do not flash a loading state.
   if (workspaceCount === null && !activeId) {
-    return <div className="flex-auto" />;
+    return <LoadingSplash embedded />;
   }
 
   // Zero-workspaces: route to setup ceremony

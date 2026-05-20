@@ -9,7 +9,7 @@ export default function Wordmark() {
     <div className="setup-wordmark" aria-label="Ru-Soam">
       <span>Ru</span>
       <span className="dash" aria-hidden="true" />
-      <span>Soam</span>
+      <span className="soam">Soam</span>
     </div>
   );
 }

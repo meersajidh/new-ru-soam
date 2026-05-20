@@ -3,11 +3,11 @@
 /* ── Wordmark ────────────────────────────────────────────────────────────── */
 
 .setup-wordmark {
-  @apply font-display text-2xl font-bold text-accent;
+  @apply font-display text-2xl font-semibold text-accent;
   letter-spacing: -0.025em;
   line-height: 1;
   text-shadow: 0 0 calc(24px * var(--glow-mul))
-    color-mix(in oklch, var(--color-accent) calc(45% * var(--glow-mul)), transparent);
+    color-mix(in oklch, var(--color-accent) calc(80% * var(--glow-mul)), transparent);
   display: inline-flex;
   align-items: baseline;
   gap: 0;
@@ -15,14 +15,18 @@
 }
 
 .setup-wordmark .dash {
+  @apply rounded-full;
   display: inline-block;
   width: 0.4em;
   height: 0.085em;
   align-self: flex-end;
   background: currentColor;
   margin: 0 0.06em 0.32em;
-  border-radius: 1px;
   box-shadow: 0 0 calc(12px * var(--glow-mul)) currentColor;
+}
+
+.setup-wordmark .soam {
+  font-style: italic;
 }
 
 @media (max-width: 640px) {
