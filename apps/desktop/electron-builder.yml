@@ -1,30 +1,43 @@
 appId: ru-soam
-productName: ru-soam
+productName: Ru-Soam
+# Renderer/main/preload/bundle-host natives are rebuilt via the
+# `postinstall: electron-builder install-app-deps` step. Disable the
+# packager's own rebuild pass to avoid double work and asar-cache stalls.
 npmRebuild: false
-icon: src/assets/icon.png
 
 directories:
-  output: dist/release
-  buildResources: src/assets
+  output: release
 
 files:
   - dist/main/**
   - dist/preload/**
   - dist/renderer/**
+  - dist/bundle-host/**
   - package.json
 
-win:
-  target: nsis
+# First-party bundles ship under `resources/bundles/`, which is what
+# `bundle-host/loader.ts` reads via `path.join(process.resourcesPath, 'bundles')`
+# in packaged builds.
+extraResources:
+  - from: bundles
+    to: bundles
 
 linux:
+  icon: electron/assets/icon/icon-512.png
+  category: Office
   target:
     - AppImage
-  category: Utility
   executableName: ru-soam
   desktop:
     entry:
-      Name: ru-soam
+      Name: Ru-Soam
+      Icon: ru-soam
+      StartupWMClass: ru-soam
       StartupNotify: 'true'
+      Categories: Office;
+      Keywords: ru-soam;practitioner;workbench;
 
-mac:
-  target: dmg
+win:
+  icon: electron/assets/icon/icon.ico
+  target:
+    - nsis
