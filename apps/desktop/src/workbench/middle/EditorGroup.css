@@ -1,0 +1,132 @@
+@reference "../../styles/theme.css";
+
+/* Editor group */
+.editor-group {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.editor-group--focused::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 2px 0 0 var(--color-accent);
+}
+
+.editor-tabstrip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--color-surface-panel);
+  border-bottom: 1px solid var(--color-border);
+  scrollbar-width: none;
+  min-height: 30px;
+}
+
+.editor-tabstrip::-webkit-scrollbar { display: none; }
+
+.editor-tab {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  @apply gap-1 px-2 text-xs text-fg-muted;
+  height: 30px;
+  background: var(--color-surface-panel);
+  border-right: 1px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  max-width: 160px;
+  position: relative;
+}
+
+.editor-tab:hover {
+  background: var(--color-surface-elevated);
+  @apply text-fg-secondary;
+}
+
+.editor-tab--active {
+  background: var(--color-surface-base);
+  @apply text-fg-primary;
+}
+
+.editor-tab--active::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--color-accent);
+}
+
+.editor-group--focused .editor-tab--active::before {
+  background: var(--color-accent);
+}
+
+.editor-group:not(.editor-group--focused) .editor-tab--active::before {
+  background: var(--color-fg-muted);
+}
+
+.editor-tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.editor-tab-close {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  @apply text-fg-muted;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  @apply text-sm;
+  padding: 0;
+  @apply rounded-sm;
+  line-height: 1;
+}
+
+.editor-tab-close:hover {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+}
+
+.editor-tab-close-dot { display: none; }
+.editor-tab-close-x   { display: inline; }
+
+.editor-tab-close--dirty .editor-tab-close-dot {
+  display: inline;
+  @apply text-xs text-accent;
+}
+.editor-tab-close--dirty .editor-tab-close-x { display: none; }
+
+.editor-tab:hover .editor-tab-close--dirty .editor-tab-close-dot { display: none; }
+.editor-tab:hover .editor-tab-close--dirty .editor-tab-close-x   { display: inline; }
+
+.editor-content {
+  flex: 1 1 auto;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+
+.bundle-view-iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--color-surface-base);
+}

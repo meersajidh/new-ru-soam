@@ -1,3 +1,5 @@
+import './AuxSideBar.css';
+
 export default function AuxSideBar() {
   return (
     <div className="part-sidebar part-sidebar-aux" aria-label="Auxiliary Side Bar">

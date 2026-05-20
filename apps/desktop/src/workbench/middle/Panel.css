@@ -1,0 +1,14 @@
+@reference "../../styles/theme.css";
+
+/* Panel */
+.part-panel {
+  flex: 0 0 200px;
+  background: var(--color-surface-panel);
+  border-top: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.panel-empty-state {
+  @apply p-4 text-fg-muted text-xs;
+  margin: 0;
+}

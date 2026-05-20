@@ -1,10 +1,9 @@
 /**
  * Shared zxcvbn passphrase strength meter.
  * Used by the setup wizard (/setup/keys) and UnlockGate.
- *
- * CSS classes (.strength-meter, .strength-bars, .strength-bar, .strength-label)
- * are defined in styles/setup.css.
  */
+
+import './StrengthMeter.css';
 
 export default function StrengthMeter({ score }: { score: number }) {
   const labels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];

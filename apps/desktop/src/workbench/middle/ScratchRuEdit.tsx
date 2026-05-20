@@ -1,3 +1,4 @@
+import './ScratchRuEdit.css';
 import { useEffect, useRef, useState } from 'react';
 import RuEditView from '../../platform/ru-edit/RuEditView';
 import RuEditToolbar from '../../platform/ru-edit/RuEditToolbar';

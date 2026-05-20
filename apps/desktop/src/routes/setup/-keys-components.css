@@ -1,0 +1,170 @@
+@reference "../../styles/theme.css";
+
+/* ── Progress section ────────────────────────────────────────────────────── */
+
+.setup-progress {
+  display: flex;
+  flex-direction: column;
+  @apply gap-3.5;
+}
+
+.progress-eyebrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  @apply text-xs font-medium text-fg-muted;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.progress-counter {
+  letter-spacing: 0.1em;
+  @apply font-mono text-xs;
+}
+
+.progress-counter .now {
+  @apply text-accent font-semibold;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 calc(8px * var(--glow-mul))
+    color-mix(in oklch, var(--color-accent) calc(60% * var(--glow-mul)), transparent);
+}
+
+.progress-counter .sep {
+  opacity: 0.5;
+  @apply mx-0.5;
+}
+
+.progress-counter .total {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 5-segment underline rail */
+.progress-rail {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  @apply gap-2;
+  padding: 0;
+  position: static;
+}
+
+.progress-rail::before,
+.progress-rail::after {
+  display: none;
+}
+
+.setup-seg {
+  height: 2px;
+  border-radius: 1px;
+  @apply bg-tint-neutral-medium;
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.setup-seg--done {
+  background: var(--color-accent);
+}
+
+.setup-seg--active {
+  background: var(--color-accent);
+  box-shadow:
+    0 0 calc(8px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(80% * var(--glow-mul)), transparent),
+    0 0 calc(16px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(35% * var(--glow-mul)), transparent);
+}
+
+/* Steps row with rings */
+.setup-steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  @apply gap-2;
+  margin-top: 4px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  @apply gap-2;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.step-node {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.25px solid var(--color-border);
+  display: grid;
+  place-items: center;
+  @apply text-fg-muted font-mono text-xs font-semibold;
+  font-variant-numeric: tabular-nums;
+  background: var(--color-surface-base);
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+}
+
+.step-label {
+  @apply text-xs font-medium text-fg-muted;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.step--done .step-node {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-surface-base);
+}
+
+.step--done .step-label {
+  @apply text-fg-secondary;
+}
+
+.step--active .step-node {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  @apply bg-tint-accent-subtle;
+  box-shadow:
+    inset 0 0 0 1px var(--color-accent),
+    0 0 calc(10px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(45% * var(--glow-mul)), transparent);
+  animation: progress-pulse 2.4s ease-in-out infinite;
+}
+
+.step--active .step-label {
+  color: var(--color-accent);
+  @apply font-semibold;
+}
+
+@keyframes progress-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px var(--color-accent),
+      0 0 calc(10px * var(--glow-mul))
+        color-mix(in oklch, var(--color-accent) calc(45% * var(--glow-mul)), transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px var(--color-accent),
+      0 0 calc(16px * var(--glow-mul))
+        color-mix(in oklch, var(--color-accent) calc(70% * var(--glow-mul)), transparent);
+  }
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .step-label {
+    display: none;
+  }
+}

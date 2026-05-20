@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import '../styles/workbench.css';
+import './Workbench.css';
 import TitleBar from './parts/TitleBar';
 import Banner from './parts/Banner';
 import Middle from './middle/Middle';

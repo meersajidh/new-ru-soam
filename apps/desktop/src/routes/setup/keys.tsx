@@ -46,8 +46,8 @@ import PasswordInput from '../../platform/auth/PasswordInput';
 import GoogleMark from '../../platform/auth/GoogleMark';
 import Wordmark from '../../workbench/parts/Wordmark';
 import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import '../../styles/workbench.css';
-import '../../styles/setup.css';
+import '../../styles/setup-shared.css';
+import './keys.css';
 
 export const Route = createFileRoute('/setup/keys')({
   validateSearch: (search: Record<string, unknown>): { addNew?: boolean } => ({

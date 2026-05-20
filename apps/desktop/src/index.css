@@ -8,8 +8,6 @@
 @import "./styles/font-sets/ru-display.css";
 @import "./styles/font-sets/ru-editorial.css";
 @import "./styles/type.css";
-@import "./styles/workbench.css";
-
 :root {
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -19,6 +17,40 @@
 
 body {
   margin: 0;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Themed scrollbars — Webkit */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface-panel);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  @apply rounded-sm;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-fg-muted);
+}
+
+/* Themed scrollbars — Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) var(--color-surface-panel);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
 }
 
 /* Heading-element reset. From PR-7a onward, the type scale and recipe

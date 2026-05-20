@@ -1,5 +1,6 @@
 /** Shared password input with inline eye-toggle. */
 
+import './PasswordInput.css';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 

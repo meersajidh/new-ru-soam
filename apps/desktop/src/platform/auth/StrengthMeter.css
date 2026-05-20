@@ -1,0 +1,47 @@
+@reference "../../styles/theme.css";
+
+/* ── Strength meter ──────────────────────────────────────────────────────── */
+
+.strength-meter {
+  display: flex;
+  align-items: center;
+  @apply gap-3;
+}
+
+.strength-bars {
+  display: flex;
+  @apply gap-1;
+  flex: 0 0 auto;
+}
+
+.strength-bar {
+  height: 4px;
+  width: 36px;
+  border-radius: 2px;
+  @apply bg-tint-neutral-soft;
+  transition:
+    background 0.25s,
+    box-shadow 0.25s;
+}
+
+.strength-bar.on {
+  background: var(--color-accent);
+  box-shadow: 0 0 calc(8px * var(--glow-mul))
+    color-mix(in oklch, var(--color-accent) calc(60% * var(--glow-mul)), transparent);
+}
+
+.strength-bar.on-weak {
+  background: var(--color-error);
+  box-shadow: 0 0 calc(8px * var(--glow-mul))
+    color-mix(in oklch, var(--color-error) calc(55% * var(--glow-mul)), transparent);
+}
+
+.strength-bar.on-mid {
+  background: var(--color-warning);
+  box-shadow: 0 0 calc(8px * var(--glow-mul))
+    color-mix(in oklch, var(--color-warning) calc(55% * var(--glow-mul)), transparent);
+}
+
+.strength-label {
+  @apply text-xs text-fg-muted;
+}

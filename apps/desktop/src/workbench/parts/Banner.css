@@ -1,0 +1,7 @@
+@reference "../../styles/theme.css";
+
+/* Banner — auto height collapses to 0 when empty */
+.part-banner {
+  flex: 0 0 auto;
+  overflow: hidden;
+}

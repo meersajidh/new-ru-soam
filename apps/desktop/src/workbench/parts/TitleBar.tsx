@@ -1,3 +1,4 @@
+import './TitleBar.css';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, Search, ChevronDown, PanelLeft, PanelBottom, PanelRight, Minus, Square, X } from 'lucide-react';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';

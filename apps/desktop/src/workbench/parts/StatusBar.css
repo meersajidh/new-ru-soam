@@ -1,0 +1,81 @@
+@reference "../../styles/theme.css";
+
+/* StatusBar */
+.part-statusbar {
+  flex: 0 0 auto;
+  height: 24px;
+  background: var(--color-surface-panel);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  @apply px-2;
+  user-select: none;
+}
+
+.statusbar-region {
+  display: flex;
+  align-items: center;
+  @apply gap-1;
+  height: 100%;
+}
+
+.statusbar-region.left {
+  flex: 1 1 auto;
+}
+
+.statusbar-region.right {
+  margin-left: auto;
+}
+
+.statusbar-entry {
+  @apply text-xs text-fg-secondary rounded-sm;
+  padding: 3px 8px;
+  cursor: default;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  white-space: nowrap;
+}
+
+.statusbar-entry:hover {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+}
+
+.statusbar-entry.statusbar-entry--ok {
+  @apply text-success;
+}
+
+.statusbar-entry.statusbar-entry--warning {
+  @apply text-warning bg-tint-warning-soft;
+}
+
+.statusbar-entry.statusbar-entry--error {
+  @apply text-error;
+}
+
+.sb-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border);
+  @apply mx-1.5;
+  display: inline-block;
+}
+
+/* NOTE(aesthetic): .sb-badge uses 9px → text-xs (12px, +3px). Badge is
+   tightly packed; 12px may expand height. Flagged for dogfood spot-check. */
+.sb-badge {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  @apply font-mono text-xs font-semibold;
+  min-width: 14px;
+  height: 14px;
+  @apply px-1;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}

@@ -1,0 +1,18 @@
+@reference "../../styles/theme.css";
+
+/* Middle */
+.part-middle {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.middle-center {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}

@@ -1,3 +1,4 @@
+import './StatusBar.css';
 import { createElement } from 'react';
 import {
   Lock,

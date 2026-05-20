@@ -1,3 +1,4 @@
+import './EditorGroup.css';
 import { useEditorGroup, useService } from '../../platform/services/hooks';
 import { EditorServiceId } from '../../platform/services/ids';
 import PlaceholderEditor from './PlaceholderEditor';

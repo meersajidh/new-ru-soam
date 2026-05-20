@@ -1,0 +1,89 @@
+@reference "../../styles/theme.css";
+
+/* ── User avatar ──────────────────────────────────────────────────────────── */
+
+.user-avatar-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+}
+
+.user-avatar-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  border: none;
+  cursor: pointer;
+  @apply text-xs font-semibold;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+  padding: 0;
+}
+
+.user-avatar-btn:hover {
+  background: var(--color-accent-hover);
+}
+
+.user-avatar-menu {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  @apply rounded-md shadow-overlay;
+  min-width: 180px;
+  overflow: hidden;
+  z-index: 150;
+}
+
+.user-avatar-menu-header {
+  @apply px-4 py-3;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.user-avatar-menu-nickname {
+  @apply text-xs font-semibold text-fg-primary;
+  margin: 0;
+}
+
+.user-avatar-menu-email {
+  @apply text-xs text-fg-muted;
+  margin: 0;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-avatar-menu-item {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  @apply text-fg-secondary text-xs px-4 py-2;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  width: 100%;
+}
+
+.user-avatar-menu-item:hover {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+}
+
+.user-avatar-menu-item--disabled {
+  @apply text-fg-muted text-xs;
+  cursor: default;
+}
+
+.user-avatar-menu-item--disabled:hover {
+  background: transparent;
+  @apply text-fg-muted;
+}

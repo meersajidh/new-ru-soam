@@ -1,3 +1,5 @@
+import './PlaceholderEditor.css';
+
 interface Props { resource: string }
 
 export default function PlaceholderEditor({ resource }: Props) {

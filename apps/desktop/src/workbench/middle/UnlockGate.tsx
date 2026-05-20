@@ -19,7 +19,7 @@ import type { UnlockResult, RecoveryUnlockResult } from '../../../electron/share
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
 import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import '../../styles/setup.css';
+import './UnlockGate.css';
 
 type GateMode = 'passphrase' | 'recovery' | 'reset-passphrase';
 

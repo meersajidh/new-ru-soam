@@ -1,0 +1,410 @@
+@reference "../../styles/theme.css";
+
+/* ── Content card ────────────────────────────────────────────────────────── */
+
+.setup-content {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--setup-card-radius);
+  @apply p-8;
+  box-shadow:
+    var(--shadow-card),
+    0 0 calc(40px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(5% * var(--glow-mul)), transparent);
+  min-height: 320px;
+}
+
+/* ── Step layout ─────────────────────────────────────────────────────────── */
+
+.setup-step {
+  display: flex;
+  flex-direction: column;
+  @apply gap-5;
+}
+
+/* ── Form elements ───────────────────────────────────────────────────────── */
+
+.setup-actions {
+  display: flex;
+  justify-content: flex-end;
+  @apply gap-3;
+  margin-top: 6px;
+  align-items: center;
+}
+
+.setup-actions > button {
+  min-width: 96px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.setup-btn-primary {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  border: none;
+  border-radius: var(--setup-pill-radius);
+  cursor: pointer;
+  @apply text-sm font-semibold;
+  padding: 12px 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @apply gap-2;
+  line-height: 1;
+  transition:
+    background 0.12s,
+    box-shadow 0.15s,
+    transform 0.08s;
+  box-shadow:
+    0 0 0 1px var(--color-tint-accent-strong),
+    0 0 calc(28px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(55% * var(--glow-mul)), transparent),
+    inset 0 1px 0 var(--color-highlight-edge);
+}
+
+.setup-btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  box-shadow:
+    0 0 0 1px var(--color-accent),
+    0 0 calc(40px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(70% * var(--glow-mul)), transparent),
+    inset 0 1px 0 var(--color-highlight-edge-hover);
+}
+
+.setup-btn-primary:active:not(:disabled) {
+  background: var(--color-accent-pressed);
+  transform: translateY(1px);
+}
+
+.setup-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Google sign-in pill ─────────────────────────────────────────────────── */
+
+.btn-google,
+.setup-btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @apply gap-3;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: var(--setup-pill-radius);
+  color: #3c4043;
+  cursor: pointer;
+  font-family: 'Roboto', 'Inter Tight', system-ui;
+  @apply text-sm font-medium;
+  padding: 13px 22px;
+  transition:
+    background 0.1s,
+    box-shadow 0.1s,
+    transform 0.08s;
+  width: 100%;
+}
+
+.btn-google:hover,
+.setup-btn-google:hover {
+  background: #f8f9fa;
+  box-shadow:
+    0 0 0 1px var(--color-highlight-edge),
+    var(--shadow-card);
+}
+
+.btn-google:active,
+.setup-btn-google:active {
+  background: #f1f3f4;
+  transform: translateY(1px);
+}
+
+.dark .btn-google,
+.dark .setup-btn-google {
+  background: #1e1e1e;
+  border-color: #3c4043;
+  color: #e8eaed;
+}
+
+.dark .btn-google:hover,
+.dark .setup-btn-google:hover {
+  background: #2a2a2a;
+}
+
+/* ── Recovery surface ────────────────────────────────────────────────────── */
+
+.recovery {
+  @apply border border-border-warning-strong;
+  border-radius: 12px;
+  background: var(--color-surface-elevated);
+  overflow: hidden;
+  box-shadow:
+    0 0 0 4px var(--color-tint-warning-subtle),
+    var(--shadow-card);
+}
+
+.recovery-banner {
+  display: flex;
+  align-items: flex-start;
+  @apply gap-2.5;
+  padding: 12px 16px;
+  @apply bg-tint-warning-soft;
+  border-bottom: 1px solid var(--color-border-warning-soft);
+  color: var(--color-warning);
+}
+
+.recovery-banner .ico {
+  flex: 0 0 auto;
+  display: inline-flex;
+  margin-top: 1px;
+}
+
+.recovery-banner-title {
+  @apply text-xs font-semibold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.recovery-banner-body {
+  @apply text-fg-primary text-xs;
+  line-height: 1.5;
+}
+
+.recovery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  @apply gap-1.5 p-3 bg-surface-sunken-soft;
+}
+
+.recovery-word {
+  display: flex;
+  align-items: baseline;
+  @apply gap-2.5 py-2.5 px-3 font-mono text-sm bg-surface-recessed border border-border-subtle;
+  border-radius: 8px;
+}
+
+.recovery-index {
+  @apply text-fg-muted text-xs font-medium;
+  min-width: 20px;
+  text-align: right;
+}
+
+.recovery-text {
+  @apply text-fg-primary font-medium;
+  letter-spacing: 0.02em;
+}
+
+.recovery-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-panel);
+  @apply gap-2.5;
+}
+
+.recovery-actions {
+  display: flex;
+  @apply gap-2;
+}
+
+.recovery-btn {
+  display: inline-flex;
+  align-items: center;
+  @apply gap-1.5;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--setup-pill-radius);
+  @apply text-fg-secondary text-xs font-medium;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+
+.recovery-btn:hover {
+  @apply bg-tint-neutral-subtle text-fg-primary;
+  border-color: var(--color-fg-muted);
+}
+
+.recovery-footnote {
+  @apply text-xs text-fg-muted;
+}
+
+/* ── Acknowledge checkbox ────────────────────────────────────────────────── */
+
+.setup-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  @apply gap-3 text-xs text-fg-secondary bg-surface-sunken-soft;
+  cursor: pointer;
+  line-height: 1.55;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  transition: border-color 0.12s;
+}
+
+.setup-checkbox-label:hover {
+  @apply border-border-hover;
+}
+
+.setup-checkbox-label input[type='checkbox'] {
+  flex-shrink: 0;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--color-accent);
+}
+
+/* ── Trust strip ─────────────────────────────────────────────────────────── */
+
+.setup-trust {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  @apply gap-3;
+}
+
+.setup-trust-badge {
+  display: flex;
+  align-items: center;
+  @apply gap-2.5;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  @apply bg-surface-sunken-medium text-xs text-fg-secondary;
+  line-height: 1.35;
+}
+
+.setup-trust-badge .ico {
+  color: var(--color-accent);
+  display: inline-flex;
+}
+
+.setup-trust-badge strong {
+  @apply text-fg-primary font-semibold;
+}
+
+/* ── Finish screen ───────────────────────────────────────────────────────── */
+
+.setup-finish-mark {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 2px solid var(--color-accent);
+  display: grid;
+  place-items: center;
+  color: var(--color-accent);
+  margin: 4px auto 0;
+  box-shadow:
+    0 0 0 8px color-mix(in oklch, var(--color-accent) calc(10% * var(--glow-mul)), transparent),
+    0 0 calc(40px * var(--glow-mul))
+      color-mix(in oklch, var(--color-accent) calc(40% * var(--glow-mul)), transparent);
+  background: color-mix(in oklch, var(--color-accent) calc(8% * var(--glow-mul)), transparent);
+}
+
+/* NOTE(type): 26px → text-xl (24px, −2px default-down). letter-spacing -0.01em kept explicit
+   (text-xl bakes -0.012em; close but not identical). Flagged for dogfood. */
+.setup-finish-title {
+  text-align: center;
+  @apply font-display text-xl font-semibold;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.setup-finish-desc {
+  text-align: center;
+  @apply text-fg-secondary text-sm;
+  margin: 0 auto;
+  max-width: 44ch;
+}
+
+.setup-finish-desc strong {
+  color: var(--color-accent);
+  @apply font-semibold;
+}
+
+/* ── Footnote ────────────────────────────────────────────────────────────── */
+
+.setup-foot {
+  text-align: center;
+  padding: 20px 24px 28px;
+  @apply text-xs text-fg-muted;
+}
+
+.setup-foot strong {
+  @apply text-fg-secondary font-medium;
+}
+
+/* ── Modal overlay ────────────────────────────────────────────────────────── */
+
+.setup-modal-overlay {
+  position: fixed;
+  inset: 0;
+  @apply bg-scrim-modal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.setup-modal-card {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  @apply rounded-md shadow-modal p-8;
+  width: 360px;
+  max-width: calc(100vw - 2rem);
+  display: flex;
+  flex-direction: column;
+  @apply gap-4;
+}
+
+.setup-modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  @apply gap-3;
+  text-align: center;
+}
+
+/* NOTE(type): 18px → text-base (16px, −2px default-down). */
+.setup-modal-title {
+  @apply text-base font-semibold text-fg-primary;
+  margin: 0;
+}
+
+.setup-modal-subtitle {
+  @apply text-xs text-fg-muted;
+  margin: 0;
+}
+
+.setup-modal-form {
+  display: flex;
+  flex-direction: column;
+  @apply gap-3;
+}
+
+.setup-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  @apply gap-3 mt-2;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .setup-content {
+    padding: 24px 20px;
+    border-radius: 14px;
+  }
+  .recovery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .setup-trust {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,3 +1,4 @@
+import './Middle.css';
 import { useLayoutVisible } from '../../platform/services/hooks';
 import { SlotId } from '../../platform/layout/slots';
 import ActivityBar from './ActivityBar';

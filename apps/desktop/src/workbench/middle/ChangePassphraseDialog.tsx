@@ -14,7 +14,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { zxcvbn } from '@zxcvbn-ts/core';
 import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import '../../styles/setup.css';
+import './ChangePassphraseDialog.css';
 
 interface Props {
   onClose: () => void;

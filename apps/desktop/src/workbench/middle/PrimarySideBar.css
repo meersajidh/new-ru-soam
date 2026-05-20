@@ -1,0 +1,19 @@
+@reference "../../styles/theme.css";
+
+/* Side Bars */
+.part-sidebar {
+  flex: 0 0 240px;
+  background: var(--color-surface-panel);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.part-sidebar-primary {
+  border-right: 1px solid var(--color-border);
+}
+
+.sidebar-empty-state {
+  @apply p-4 text-fg-muted text-xs;
+  margin: 0;
+}

@@ -12,7 +12,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useContextKey } from '../../platform/services/hooks';
 import ChangePassphraseDialog from './ChangePassphraseDialog';
-import '../../styles/setup.css';
+import './UserAvatar.css';
 
 export default function UserAvatar() {
   const kekLocked = useContextKey('workspace.kekLocked') as boolean;

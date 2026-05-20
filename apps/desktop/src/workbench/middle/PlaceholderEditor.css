@@ -1,0 +1,14 @@
+@reference "../../styles/theme.css";
+
+.editor-placeholder {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  @apply p-4;
+}
+
+.editor-placeholder-label {
+  @apply text-fg-muted text-xs font-mono;
+  margin: 0;
+}

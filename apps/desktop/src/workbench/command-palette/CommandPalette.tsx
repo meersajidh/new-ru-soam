@@ -1,3 +1,4 @@
+import './CommandPalette.css';
 import { useState, useEffect, useRef } from 'react';
 import { useService } from '../../platform/services/hooks';
 import { CommandServiceId, ContextKeyServiceId } from '../../platform/services/ids';

@@ -1,3 +1,4 @@
+import './EditorArea.css';
 import type { ReactNode } from 'react';
 import { useEditorState } from '../../platform/services/hooks';
 import type { EditorLayoutNode } from '../../platform/editor/editor-service';

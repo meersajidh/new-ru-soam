@@ -16,7 +16,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePrefsCapability } from '../../platform/data/use-capability';
 import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import '../../styles/setup.css';
+import '../../styles/setup-shared.css';
+import './UnlockGate.css';
 
 interface Props {
   onClose: () => void;

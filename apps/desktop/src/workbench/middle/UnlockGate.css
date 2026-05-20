@@ -1,0 +1,82 @@
+@reference "../../styles/theme.css";
+
+/* ── Unlock gate ──────────────────────────────────────────────────────────── */
+
+.unlock-gate-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  background: var(--color-surface-base);
+  @apply p-8;
+}
+
+.unlock-gate-card {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  @apply rounded-md shadow-card p-8;
+  width: 400px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  @apply gap-4;
+}
+
+/* NOTE(type): 22px → text-lg (20px, −2px default-down). */
+.unlock-gate-title {
+  @apply font-display text-lg font-semibold text-fg-primary;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  @apply gap-2.5;
+}
+
+.unlock-gate-nickname {
+  @apply text-xs text-fg-muted;
+  margin: 0;
+}
+
+.unlock-gate-form {
+  display: flex;
+  flex-direction: column;
+  @apply gap-3;
+}
+
+.unlock-gate-error {
+  @apply text-xs text-error;
+  margin: 0;
+}
+
+.unlock-recovery-toggle {
+  background: transparent;
+  border: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  @apply text-xs;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  margin-top: calc(-1 * 0.25rem);
+}
+
+.unlock-recovery-toggle:hover {
+  color: var(--color-accent-hover);
+}
+
+/* Recovery code textarea entry */
+.recovery-entry-area {
+  width: 100%;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border);
+  @apply rounded-sm text-fg-primary font-mono text-xs;
+  min-height: 80px;
+  outline: none;
+  @apply px-3 py-2;
+  resize: vertical;
+  transition: border-color 0.1s;
+  box-sizing: border-box;
+}
+
+.recovery-entry-area:focus {
+  border-color: var(--color-border-focus);
+}

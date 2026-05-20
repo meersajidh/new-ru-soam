@@ -5,6 +5,7 @@
  * co-located components must live in a separate module.
  */
 
+import './-keys-components.css';
 import { useState, useEffect, useRef } from 'react';
 import { Check } from 'lucide-react';
 import { generateMockGoogleId } from '../../platform/auth/mock-oauth';

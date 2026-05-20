@@ -1,0 +1,52 @@
+@reference "../../styles/theme.css";
+
+.part-empty-editor,
+.editor-group-empty {
+  flex: 1 1 auto;
+  display: flex;
+}
+
+/* Editor-empty card (shared by EmptyEditorPart + EditorGroup empty state) */
+.editor-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  @apply gap-3.5 text-fg-muted p-12;
+  text-align: center;
+}
+
+.editor-empty-mark {
+  width: 96px;
+  height: 96px;
+  @apply rounded-md bg-surface-panel;
+  background-image: repeating-linear-gradient(
+      45deg,
+      var(--color-tint-accent-soft) 0 1px,
+      transparent 1px 14px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      var(--color-tint-accent-subtle) 0 1px,
+      transparent 1px 14px
+    );
+  border: 1px solid var(--color-border);
+}
+
+.editor-empty-title {
+  @apply font-display text-lg text-fg-secondary font-semibold;
+  margin: 0;
+}
+
+.editor-empty-line {
+  @apply text-sm;
+}
+
+.editor-empty-key {
+  @apply font-mono text-xs bg-surface-elevated text-fg-primary;
+  /* original: padding: 1px 5px; border-radius: 3px — keeping raw (non-scale values) */
+  padding: 1px 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+}
