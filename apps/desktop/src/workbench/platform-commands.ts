@@ -210,6 +210,12 @@ export function registerPlatformCommands(
   );
 
   commands.register(
+    'workbench.theme.default',
+    'Color Theme: Default',
+    () => theme.setTheme('default'),
+    { category: 'Preferences' },
+  );
+  commands.register(
     'workbench.theme.bamboo',
     'Color Theme: Bamboo',
     () => theme.setTheme('bamboo'),
