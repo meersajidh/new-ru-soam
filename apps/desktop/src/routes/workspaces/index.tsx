@@ -25,7 +25,6 @@ import type { WorkspaceMeta } from '../../../electron/shared/lock-protocol';
 import WorkspaceTileGrid from '../../workbench/middle/WorkspaceTileGrid';
 import Wordmark from '../../workbench/parts/Wordmark';
 import { PageShell } from '../../platform/ui/PageShell';
-import '../../styles/setup-shared.css';
 
 export const Route = createFileRoute('/workspaces/')({
   component: WorkspacePickerPage,

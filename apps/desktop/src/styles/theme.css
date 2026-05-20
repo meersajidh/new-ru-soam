@@ -6,7 +6,7 @@
    This file deliberately does NOT @import the component CSS files.
    Each colocated component CSS file (e.g. workbench/parts/TitleBar.css,
    workbench/middle/EditorGroup.css, platform/auth/StrengthMeter.css,
-   styles/setup-shared.css, type.css, WorkspaceTileGrid.css) uses
+   type.css, WorkspaceTileGrid.css) uses
    @reference to pull in tokens — if theme.css transitively imported
    component CSS, the @reference would recurse and OOM the Tailwind plugin
    (observed 2026-05-19 with @reference "../index.css"). */

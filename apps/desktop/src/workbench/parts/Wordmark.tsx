@@ -1,3 +1,5 @@
+import './Wordmark.css';
+
 /**
  * Ru-Soam wordmark — display-family text + glowing dash separator.
  * Used by the setup ceremony and the workspace picker.

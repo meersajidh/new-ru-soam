@@ -141,7 +141,7 @@
 .wtg-add-icon {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  @apply rounded-md;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border);
   display: flex;

@@ -1,11 +1,35 @@
 @reference "../../styles/theme.css";
 
+/* ── Main column ─────────────────────────────────────────────────────────── */
+
+.setup-main {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 24px 24px;
+}
+
+.setup-container {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  @apply gap-7;
+}
+
+@media (max-width: 640px) {
+  .setup-main {
+    padding: 24px 16px 16px;
+  }
+}
+
 /* ── Content card ────────────────────────────────────────────────────────── */
 
 .setup-content {
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--setup-card-radius);
+  @apply rounded-card;
   @apply p-8;
   box-shadow:
     var(--shadow-card),
@@ -136,7 +160,7 @@
   display: flex;
   align-items: baseline;
   @apply gap-2.5 py-2.5 px-3 font-mono text-sm bg-surface-recessed border border-border-subtle;
-  border-radius: 8px;
+  @apply rounded-md;
 }
 
 .recovery-index {
@@ -292,6 +316,30 @@
 
 .setup-foot strong {
   @apply text-fg-secondary font-medium;
+}
+
+/* ── Help button ─────────────────────────────────────────────────────────── */
+
+.setup-help-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-panel);
+  @apply text-fg-secondary;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.setup-help-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  @apply bg-tint-accent-subtle;
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */

@@ -155,7 +155,8 @@
   --spacing: 0.25rem;
 
   /* Radii — rem-based so they scale with root font-size.
-     Tailwind generates rounded-sm / rounded-md utilities from these. */
+     Tailwind generates rounded-sm / rounded-md / rounded-card utilities from these. */
+  --radius-card: 1rem;   /* 16px — setup content card, workspace tile parent */
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
 }
@@ -165,4 +166,5 @@
    at the document root. Tracked as O165. */
 :root {
   font-size: var(--root-font-size, 16px);
+  --glow-mul: 0.8;
 }

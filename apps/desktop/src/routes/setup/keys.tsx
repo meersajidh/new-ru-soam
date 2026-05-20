@@ -50,7 +50,6 @@ import { Button } from '../../platform/ui/Button';
 import { TextInput } from '../../platform/ui/TextInput';
 import { FormField } from '../../platform/ui/FormField';
 import { PageShell } from '../../platform/ui/PageShell';
-import '../../styles/setup-shared.css';
 import './keys.css';
 
 export const Route = createFileRoute('/setup/keys')({

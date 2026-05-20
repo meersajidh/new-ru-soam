@@ -45,9 +45,12 @@ only when the higher layers cannot express the value.
 | 3 | Component CSS (`MyComponent.css`, colocated) | Multi-property composites that recur. Authored via `@apply`. |
 | 4 | Design tokens (`styles/tokens.css`) | The values themselves. Never hardcode in components. Add a token first if a value recurs. |
 
-`workbench.css` and `setup.css` are legacy. Do not add new selectors to
-them — new component styles colocate next to the component
-(`MyComponent.tsx` + `MyComponent.css`).
+`workbench.css` and `setup.css` were deleted in PR-8. All component
+styles colocate next to the component
+(`MyComponent.tsx` + `MyComponent.css`). The only CSS that remains in
+`styles/` is foundation files (tokens, themes, font-sets, type recipes,
+`theme.css`, `index.css`) plus `setup-shared.css` (a thin bridge slated
+for elimination in PR-10).
 
 ---
 
@@ -135,9 +138,17 @@ them.
 
 ### Radius
 
-`--radius-sm: 0.25rem;` and `--radius-md: 0.5rem;` live in `@theme {}`.
-Use `rounded-sm` / `rounded-md`. Other radii are not on the scale; if
-you need one, add a token first.
+| Token | Value | Utility | Role |
+|---|---|---|---|
+| `--radius-sm` | `0.25rem` (4px) | `rounded-sm` | Small chrome — inline pills, tight cells. |
+| `--radius-md` | `0.5rem` (8px) | `rounded-md` | Default surface radius — buttons, panels, inputs that aren't text-input-pill-shaped. |
+| `--radius-card` | `1rem` (16px) | `rounded-card` | Content cards — setup content, workspace tile parents, dialog surfaces sized for paragraphs. |
+
+`rounded-full` (Tailwind built-in) covers pill buttons.
+
+Other radii are not on the scale. If you need one and it recurs at
+3+ sites, add a token first. One-offs (1px hairlines, 50% circles,
+geometric shapes) stay raw in component CSS.
 
 ### Shadows
 
@@ -192,8 +203,8 @@ selectors style headings inside the editor.
 
 Component CSS colocates next to its component:
 `MyComponent.tsx` + `MyComponent.css`, imported by the component
-module. `workbench.css` and `setup.css` are legacy; do not extend
-them.
+module. The historical monoliths `workbench.css` and `setup.css` are
+gone (PR-8 decomposed them into per-component files).
 
 ### Reference target
 
@@ -276,6 +287,42 @@ removed in PR-6. Global state (e.g. `is-open` on a portal root,
 managed outside the component) may use the `is-*` form, but prefer
 modifiers when state is component-local.
 
+### Cascade and source order
+
+CSS rules with the same specificity resolve by source order — later
+declarations win. `@media` queries do **not** raise specificity; they
+only gate when a rule applies. The cascade still picks the last-source
+match.
+
+When a base selector and its responsive override live in different
+files, the bundle order in which their `import` statements run decides
+which wins. If the file with the `@media` override loads **before** the
+file with the base rule, the override is dead even when the viewport
+matches.
+
+**Rule:** responsive overrides must live in the same file as the base
+selector. Split the `@media` block alongside the base rules, never one
+file behind.
+
+Same applies to any same-specificity override — pseudo-classes,
+descendant chains, state modifiers. If two rules can collide at the
+same specificity, colocate them.
+
+```css
+/* component MyCard.css — base + responsive together */
+.my-card { @apply p-6 rounded-md; }
+
+@media (max-width: 640px) {
+  .my-card { @apply p-4; }
+}
+```
+
+Discovered as the root cause of the PR-8 cascade bug: the `@media`
+block for `.setup-content` was split into `setup-shared.css` while the
+base rule moved to `keys.css`. `keys.tsx` imported `setup-shared.css`
+first, so the override fired first in source order and the base rule
+(loaded second) won at every viewport.
+
 ---
 
 ## JSX and inline `style={{}}`
@@ -300,6 +347,80 @@ remain.
 /* bad — theme-able values inline */
 <div style={{ display: 'flex', gap: 'var(--space-3)' }} />
 ```
+
+---
+
+## Component primitives
+
+Primitive React components live in
+`apps/desktop/src/platform/ui/`. They wrap recurring DOM + className
+shapes so consumer JSX writes typed props instead of raw class
+strings.
+
+PR-9 ships the first batch:
+
+| Primitive | Replaces |
+|---|---|
+| `Button` | `setup-btn-primary` / `setup-btn-ghost` (and analogues across the app). Variants: `primary`, `ghost`. Sizes: `md`, `sm`. |
+| `TextInput` | `setup-input`. Plain-ref prop (React 19 idiom — not `forwardRef`). |
+| `FormField` | The `<label> + input + error` triplet pattern. Utility-only, no CSS file. |
+| `Dialog` | `setup-modal-overlay/card`, `change-passphrase-overlay/card`. Scrim + card + escape-to-close. Does **not** replace `unlock-gate-overlay` (that one fills the flex area with no scrim — a Part, not a modal). |
+| `PageShell` | `setup-page` + `setup-topbar`. Used by setup wizard and workspace picker. |
+| `cn` | Tiny class-joining helper. No `clsx` / `classnames` dep. |
+
+### Pattern
+
+Source lives in this repo, owned by this app (shadcn-style). No
+external dep, no npm package, no `@ui-lib/Button` import. Primitives
+are Tailwind-native and theme-aware via the existing token layer; they
+do **not** introduce a parallel design-token system.
+
+### When to extract a primitive
+
+Extract when **three or more components** copy the same selector
+cluster with the same shape (border, radius, padding, transition).
+The PR-8 audit surfaced that `setup-btn-primary`, `.btn-google`, and
+the various `*-btn` selectors had ≈ 40% overlap — that was the trigger
+for `Button`.
+
+Do not extract speculatively. A single call site stays inline; two
+call sites stay inline; three is the threshold.
+
+### Variants live in primitive CSS
+
+Variants are addressed by primitive-internal class modifiers
+(`.btn--primary`, `.btn--ghost`, `.btn--sm`), not by consumer-passed
+`className` strings. Consumer JSX passes typed props:
+
+```tsx
+/* good */
+<Button variant="primary" disabled={busy}>Save</Button>
+
+/* bad — variant via className */
+<button className="btn btn--primary">Save</button>
+```
+
+`className` on a primitive is reserved for layout overrides
+(`mt-4 self-stretch`), not for shape variance. Shape variance goes
+into the primitive.
+
+### What stays raw
+
+Some surfaces look modal-shaped but are not modals:
+
+- `UnlockGate` fills its flex area, no scrim, no escape — stays raw
+  with its own `unlock-gate-overlay`/`unlock-gate-card` classes.
+- `PrefsDevPanel` re-uses the unlock-gate shell (it is the dev
+  equivalent of an unlock card).
+
+These are Parts, not Dialogs. Do not retrofit them under `Dialog`.
+
+### `setup-shared.css` is transitional
+
+`styles/setup-shared.css` (89 LOC as of PR-9) holds the residual
+wordmark / help-button / `:root` glow vars / setup-page-specific
+layout that was not absorbed into a primitive in PR-9. It is slated
+for elimination in PR-10. Do not add new selectors to it.
 
 ---
 
@@ -343,7 +464,15 @@ remain.
 
 Reject in review:
 
-- New entries in `workbench.css` or `setup.css`.
+- `@media` override for `.foo` declared in a different file from
+  `.foo`'s base rule. Same-specificity rules collide via source
+  order; the responsive block must live next to the base.
+- New `*.css` selector belonging to a shape that already has a
+  primitive in `platform/ui/` (e.g. a fresh `.my-btn-primary` instead
+  of `<Button variant="primary">`).
+- `className` on a primitive used to inject shape variance
+  (`className="btn--danger"`). Variants are typed props; add a new
+  variant to the primitive instead.
 - `style={{ display: 'flex', gap: ... }}` — use utilities.
 - `color-mix(... N%, transparent)` outside `tokens.css`.
 - `font-family: var(--font-sans); font-size: 13px;` — use `.t-body`.
@@ -388,6 +517,9 @@ The system reached its current shape across nine PRs landed 19 May 2026:
 | PR-7a | Type scale + rem foundation + `--text-*: initial;` closes the scale + `<hN>` reset. |
 | PR-7b | Type + spacing sweep via `@apply`; `--space-N` deleted; `type.css` rewritten. |
 | PR-7c | Token namespace migration to `--color-*`; consumers swept to utilities. |
+| PR-8 | `workbench.css` + `setup.css` monoliths decomposed into colocated component CSS (23 files); global resets moved to `index.css`; `setup-shared.css` left as transitional bridge. |
+| PR-9 | First-party component primitives under `platform/ui/` (`Button`, `TextInput`, `FormField`, `Dialog`, `PageShell`, `cn`); consumer sweep replaces raw `setup-*` class strings with typed React props; `setup-shared.css` reduced to 89 LOC pending PR-10. |
+| PR-10 | `setup-shared.css` eliminated (Wordmark CSS colocates, setup-main/container/help-btn move to `keys.css`, `--glow-mul` migrates to `tokens.css :root`); new `--radius-card: 1rem` token replaces `--setup-card-radius`; two stray `border-radius: 8px` literals migrate to `@apply rounded-md`. |
 
 Cumulative end state: zero static color literals outside `tokens.css`;
 zero `style={{}}` for non-runtime values; zero bespoke
