@@ -199,7 +199,7 @@ export function boot(): ServiceRegistry {
         visible: !locked && nickname.length > 0,
         text: nickname,
         tooltip: `Active workspace: ${nickname}`,
-        icon: 'database',
+        icon: 'briefcase',
       });
       statusBar.update('workbench.sync.state', {
         visible: !locked && nickname.length > 0,

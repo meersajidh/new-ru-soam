@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import {
   Lock,
   Unlock,
-  Database,
+  Briefcase,
   Hash,
   Check,
   Bell,
@@ -27,7 +27,7 @@ type LucideComponent = React.ComponentType<LucideProps>;
 const ICON_MAP: Record<string, LucideComponent> = {
   lock: Lock,
   unlock: Unlock,
-  database: Database,
+  briefcase: Briefcase,
   hash: Hash,
   check: Check,
   bell: Bell,
@@ -41,11 +41,12 @@ const ICON_MAP: Record<string, LucideComponent> = {
   sun: Sun,
 };
 
-function renderIcon(name: string | undefined): React.ReactNode {
+function renderIcon(entry: StatusBarEntry): React.ReactNode {
+  const { icon: name, iconSize = 13 } = entry;
   if (!name) return null;
   const Comp = ICON_MAP[name];
   if (!Comp) return null;
-  return createElement(Comp, { size: name === 'bell' ? 15 : 13 });
+  return createElement(Comp, { size: iconSize });
 }
 
 function severityClass(severity: StatusBarEntry['severity']): string {
@@ -62,7 +63,7 @@ interface EntryNodeProps {
 
 function EntryNode({ entry, onCommand }: EntryNodeProps) {
   const className = `statusbar-entry${entry.text ? '' : ' statusbar-entry--icon-only'}${severityClass(entry.severity)}`;
-  const iconNode = renderIcon(entry.icon);
+  const iconNode = renderIcon(entry);
   const contents = (
     <>
       {iconNode}

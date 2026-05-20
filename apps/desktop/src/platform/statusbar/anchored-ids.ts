@@ -20,7 +20,7 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
     text: '',
     tooltip: 'Active workspace',
     visible: false, // shown when unlocked and nickname available
-    icon: 'database',
+    icon: 'briefcase',
   },
   {
     id: 'workbench.sync.state',
@@ -72,6 +72,7 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
     tooltip: 'Notifications',
     visible: true,
     icon: 'bell',
+    iconSize: 15,
     badge: 0,
   },
   {
