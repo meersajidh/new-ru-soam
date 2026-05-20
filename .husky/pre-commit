@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Pre-commit gate. Runs type-check + lint + public-allowlist.
+# Skip ad-hoc with `git commit --no-verify` only when you have already run
+# `pnpm check:all` manually and know why.
+
+set -e
+
+pnpm check:all

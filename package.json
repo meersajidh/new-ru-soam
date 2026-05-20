@@ -10,7 +10,10 @@
   "license": "private",
   "scripts": {
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check:public": "node scripts/check-public.mjs",
+    "check:all": "pnpm --filter ru-soam-app compile && pnpm --filter ru-soam-app lint && pnpm check:public",
+    "prepare": "husky"
   },
   "devEngines": {
     "packageManager": {
@@ -27,6 +30,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "husky": "^9.1.7",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.2"
