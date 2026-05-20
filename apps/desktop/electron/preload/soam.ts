@@ -26,7 +26,10 @@ import type {
  * capabilities, never through new preload methods.
  *
  * Phase 9: `lock`, `setup`, and `workspace` namespaces are special-case
- * platform bedrock (not via bindCapability) — same precedent as `window.soam.window`.
+ * platform bedrock — they expose typed channels (e.g. `soam:lock:state`)
+ * rather than going through `bindCapability`. All other capabilities
+ * (e.g. `platform.window`, `platform.shell`) reach the renderer through
+ * `bindCapability('<name>', '<version>')` and must not add preload surface.
  */
 
 export interface SoamCapabilityProxy {
