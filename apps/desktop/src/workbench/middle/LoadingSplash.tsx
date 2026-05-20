@@ -1,5 +1,6 @@
 import './LoadingSplash.css';
 import BridgeMark from '../parts/BridgeMark';
+import Wordmark from '../parts/Wordmark';
 
 interface LoadingSplashProps {
   embedded?: boolean;
@@ -29,11 +30,7 @@ export default function LoadingSplash({ embedded = false }: LoadingSplashProps) 
           <BridgeMark size={72} />
         </div>
 
-        <div className="loading-splash__wordmark" aria-label="Ru-Soam">
-          <span>Ru</span>
-          <span className="loading-splash__dash" aria-hidden="true" />
-          <span className="loading-splash__soam">Soam</span>
-        </div>
+        <Wordmark variant="display" />
 
         <div className="loading-splash__subtitle">For mental health practice</div>
 

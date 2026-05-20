@@ -12,6 +12,7 @@
     linear-gradient(180deg, color-mix(in oklch, var(--color-surface-base) 92%, black), var(--color-surface-base));
   color: var(--color-fg-primary);
   opacity: 0;
+  /* Avoid flashing the splash on fast cold boots. */
   animation: rs-splash-fade-in 180ms ease 300ms forwards;
 }
 
@@ -52,36 +53,6 @@
   opacity: 0.92;
 }
 
-.loading-splash__wordmark {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0;
-  user-select: none;
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 4vw, 4.25rem);
-  line-height: 1;
-  letter-spacing: -0.03em;
-  color: var(--color-fg-primary);
-}
-
-.loading-splash__wordmark > span {
-  display: inline-block;
-}
-
-.loading-splash__soam {
-  font-style: italic;
-}
-
-.loading-splash__dash {
-  width: 0.42em;
-  height: 0.08em;
-  align-self: flex-end;
-  margin: 0 0.08em 0.25em;
-  border-radius: 999px;
-  background: currentColor;
-  box-shadow: 0 0 14px color-mix(in oklch, var(--color-fg-primary) 40%, transparent);
-}
-
 .loading-splash__subtitle,
 .loading-splash__status {
   font-family: var(--font-mono);
@@ -106,12 +77,11 @@
   width: 38%;
   border-radius: inherit;
   background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
-  animation: rs-loadbar 1.6s ease-in-out infinite;
+  animation: rs-loadbar 1.6s linear infinite;
 }
 
 @keyframes rs-loadbar {
   0% { transform: translateX(-120%); }
-  50% { transform: translateX(220%); }
   100% { transform: translateX(220%); }
 }
 
@@ -124,10 +94,6 @@
   .loading-splash__content {
     gap: 1.2rem;
     padding: 1.5rem;
-  }
-
-  .loading-splash__wordmark {
-    font-size: clamp(2rem, 11vw, 3rem);
   }
 
   .loading-splash__subtitle,
