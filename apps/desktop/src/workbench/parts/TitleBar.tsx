@@ -1,6 +1,17 @@
 import './TitleBar.css';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, Search, ChevronDown, PanelLeft, PanelBottom, PanelRight, Minus, Square, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Search,
+  ChevronDown,
+  PanelLeft,
+  PanelBottom,
+  PanelRight,
+  Minus,
+  Square,
+  X,
+} from 'lucide-react';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 import { useService } from '../../platform/services/hooks';
 import { CommandServiceId, ContextKeyServiceId } from '../../platform/services/ids';
@@ -19,9 +30,30 @@ interface TitleBarSections {
 }
 
 const TITLEBAR_SECTIONS: Record<WorkbenchMode, TitleBarSections> = {
-  setup:     { menu: false, nav: false, quickOpen: false, panelToggles: false, divider: false, avatar: false },
-  locked:    { menu: false, nav: false, quickOpen: false, panelToggles: false, divider: false, avatar: false },
-  workspace: { menu: true,  nav: true,  quickOpen: true,  panelToggles: true,  divider: true,  avatar: true  },
+  setup: {
+    menu: false,
+    nav: false,
+    quickOpen: false,
+    panelToggles: false,
+    divider: false,
+    avatar: false,
+  },
+  locked: {
+    menu: false,
+    nav: false,
+    quickOpen: false,
+    panelToggles: false,
+    divider: false,
+    avatar: false,
+  },
+  workspace: {
+    menu: true,
+    nav: true,
+    quickOpen: true,
+    panelToggles: true,
+    divider: true,
+    avatar: true,
+  },
 };
 
 interface TitleBarProps {
@@ -58,7 +90,7 @@ export default function TitleBar({
     <div className="part-titlebar">
       {/* App icon — cane suspension bridge */}
       <div className="tb-app" title="Ru-Soam">
-        <BridgeMark size={22} />
+        <BridgeMark size={32} />
       </div>
 
       {/* Menu strip */}

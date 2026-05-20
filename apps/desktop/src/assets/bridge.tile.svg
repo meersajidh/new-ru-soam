@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-label="Ru-Soam — filled tile">
+  <rect x="0" y="0" width="64" height="64" rx="14.34" fill="#B8C66F"></rect>
+  <g fill="#1F1F17">
+  <rect x="9" y="10" width="6" height="38" rx="2"></rect>
+  <rect x="49" y="10" width="6" height="38" rx="2"></rect>
+  <rect x="5" y="46" width="54" height="5" rx="1.5"></rect>
+  <path d="M12 14 Q 32 44 52 14 L 52 18 Q 32 38 12 18 Z"></path>
+  <rect x="22" y="28" width="2" height="18" rx="1"></rect>
+  <rect x="31" y="32" width="2" height="14" rx="1"></rect>
+  <rect x="40" y="28" width="2" height="18" rx="1"></rect>
+  </g>
+</svg>
