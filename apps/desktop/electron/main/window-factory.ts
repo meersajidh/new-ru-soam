@@ -22,10 +22,20 @@ export interface CreateWorkbenchWindowOptions {
  * unauthorised navigation, and forwards external links to the OS shell.
  */
 export function createWorkbenchWindow(opts: CreateWorkbenchWindowOptions): BrowserWindow {
+  // macOS reads the icon from the .icns embedded by electron-builder, not from
+  // BrowserWindow.icon — skip on darwin. Linux/Windows pick up the bridge mark
+  // from the bundled PNG at runtime; electron-builder also wires platform icons
+  // for the packaged dock / taskbar entries.
+  const iconPath =
+    process.platform === 'darwin'
+      ? undefined
+      : path.join(__dirname, 'assets/icon/icon-512.png');
+
   const win = new BrowserWindow({
     width: opts.width ?? 1280,
     height: opts.height ?? 800,
     frame: false,
+    ...(iconPath ? { icon: iconPath } : {}),
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.cjs'),
       ...RENDERER_WEB_PREFERENCES,

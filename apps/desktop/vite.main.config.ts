@@ -1,5 +1,21 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { builtinModules } from 'module';
+import { cpSync, existsSync } from 'fs';
+import { resolve } from 'path';
+
+// Copy main-process runtime assets (icons, etc.) into dist/main/assets so
+// `path.join(__dirname, 'assets/...')` in compiled main resolves both in dev
+// and in the packaged app (electron-builder includes dist/**).
+function copyMainAssets(): Plugin {
+  return {
+    name: 'copy-main-assets',
+    closeBundle() {
+      const src = resolve('electron/assets');
+      if (!existsSync(src)) return;
+      cpSync(src, resolve('dist/main/assets'), { recursive: true });
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -14,6 +30,7 @@ export default defineConfig(({ mode }) => {
           .map(([k, v]) => [`import.meta.env.${k}`, JSON.stringify(v)]),
       ),
     },
+    plugins: [copyMainAssets()],
     build: {
       lib: {
         entry: 'electron/main/index.ts',

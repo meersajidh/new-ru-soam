@@ -53,5 +53,28 @@
     "better-sqlite3": "npm:better-sqlite3-multiple-ciphers@^12.9.0",
     "better-sqlite3-multiple-ciphers": "^12.9.0",
     "lucide-react": "^1.16.0"
+  },
+  "build": {
+    "appId": "com.ru-soam.desktop",
+    "productName": "Ru-Soam",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "linux": {
+      "icon": "electron/assets/icon/icon-512.png",
+      "target": [
+        "AppImage"
+      ]
+    },
+    "win": {
+      "icon": "electron/assets/icon/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    }
   }
 }
