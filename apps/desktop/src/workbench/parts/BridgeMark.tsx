@@ -10,9 +10,9 @@ export default function BridgeMark({ size = 22, title }: BridgeMarkProps) {
     <BridgeFullSvg
       width={size}
       height={size}
-      aria-hidden={title == null ? true : undefined}
-      aria-label={title}
-      role={title != null ? 'img' : undefined}
+      {...(title != null
+        ? { 'aria-label': title, role: 'img' as const }
+        : { 'aria-hidden': true as const })}
     />
   );
 }
