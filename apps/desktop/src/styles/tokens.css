@@ -1,5 +1,8 @@
 /* Design token declarations — overridden at runtime by theme + font-set classes on <html>. */
-/* Defaults are the restored default dark theme (matches the app's cold-start appearance). */
+/* Defaults mirror the `default` theme (cold-start). Per-theme files under
+   styles/themes/*.css override these via class selectors on <html>. Authoring
+   space per theme is the theme file's choice — bamboo/stone/geist author in
+   oklch for perceptual uniformity; default authors in hex. */
 
 @theme {
   /* Surfaces */
