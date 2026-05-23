@@ -78,7 +78,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-201](ADRs/201-electron-hardening-baseline.md) — Electron hardening baseline. _(Accepted)_
 - [ADR-202](ADRs/202-narrow-preload-capability-surface.md) — Preload exposes narrow capability APIs only (`window.soam`). _(Accepted)_
 - [ADR-203](ADRs/203-brokered-networking-via-custom-protocol.md) — Brokered networking via custom protocol (`app://`). _(Accepted)_
-- ADR-204 — _(planned)_ Installer integrity and update channel.
+- [ADR-204](ADRs/204-installer-integrity-and-update-channel.md) — Installer integrity and update channel. _(Accepted)_
 
 #### Data & Secrets (300–399)
 
@@ -89,6 +89,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-305](ADRs/305-third-party-provider-credentials.md) — Third-party provider credentials: user-provided vs app-owned. _(Accepted)_
 - [ADR-306](ADRs/306-data-recovery-flows.md) — Data recovery flows (DPAPI reset, KMS loss, recovery-code loss, device loss). _(Accepted)_
 - [ADR-307](ADRs/307-app-level-kek-passphrase-and-auto-lock.md) — App-level KEK passphrase + inactivity auto-lock + endpoint threat model. _(Accepted)_
+- [ADR-308](ADRs/308-update-time-data-integrity.md) — Update-time data integrity (pre-migration backup, transactional DDL, schema gates). _(Accepted)_
 
 #### Workbench / UI composition (400–499)
 
