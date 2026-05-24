@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="currentColor" aria-label="Ru-Soam — bridge (simplified for ≤24px)">
+  <rect x="9" y="10" width="6" height="38" rx="2"></rect>
+  <rect x="49" y="10" width="6" height="38" rx="2"></rect>
+  <rect x="5" y="46" width="54" height="5" rx="1.5"></rect>
+  <path d="M12 14 Q 32 44 52 14 L 52 18 Q 32 38 12 18 Z"></path>
+</svg>

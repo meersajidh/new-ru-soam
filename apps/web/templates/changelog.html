@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en" class="theme-bamboo dark font-set-ru-display">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Changelog · Ru-Soam</title>
+  <meta name="description" content="Release history for Ru-Soam.">
+
+  <link rel="icon" type="image/svg+xml" href="assets/icon/bridge.full.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="assets/ds/fonts/google-fonts.css">
+  <link rel="stylesheet" href="assets/ds/colors_and_type.css">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; }
+    html, body { background: var(--color-surface-base); }
+
+    body {
+      color: var(--color-fg-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      min-height: 100vh;
+      padding: 64px 32px;
+    }
+
+    ::selection {
+      background: color-mix(in oklch, var(--color-accent) 32%, transparent);
+      color: var(--color-fg-primary);
+    }
+
+    a { color: var(--color-fg-secondary); text-decoration: none; }
+    a:hover { color: var(--color-fg-primary); }
+
+    .page {
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* ── Header ────────────────────────────────────────────────────── */
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .top-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .top .mark {
+      width: 28px;
+      height: 28px;
+      color: var(--color-fg-primary);
+      display: inline-flex;
+    }
+    .top .wordmark {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+      color: var(--color-fg-primary);
+    }
+    .top-nav {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .top-nav a {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--color-fg-muted);
+    }
+    .top-nav a:hover { color: var(--color-fg-primary); }
+
+    h1 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 36px;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin: 0 0 12px;
+      color: var(--color-fg-primary);
+    }
+    .lede {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 400;
+      font-size: 17px;
+      line-height: 1.55;
+      color: var(--color-fg-secondary);
+      margin: 0;
+      max-width: 50ch;
+      text-wrap: pretty;
+    }
+
+    .rule {
+      width: 32px;
+      height: 1px;
+      background: var(--color-accent);
+      border: 0;
+      margin: 8px 0 0;
+    }
+
+    /* ── Changelog body ────────────────────────────────────────────── */
+    .changelog { display: flex; flex-direction: column; gap: 40px; }
+
+    .cl-version {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .cl-version-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .cl-version-tag {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: -0.01em;
+      color: var(--color-fg-primary);
+      margin: 0;
+    }
+    .cl-version-date {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-fg-muted);
+      letter-spacing: 0.06em;
+    }
+
+    .cl-group { display: flex; flex-direction: column; gap: 6px; }
+    .cl-kind {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-fg-muted);
+      margin: 0;
+    }
+    .cl-items {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .cl-items li {
+      font-size: 14px;
+      color: var(--color-fg-secondary);
+      line-height: 1.65;
+      padding-left: 14px;
+      position: relative;
+      max-width: 64ch;
+      text-wrap: pretty;
+    }
+    .cl-items li::before {
+      content: '–';
+      position: absolute;
+      left: 0;
+      color: var(--color-accent);
+    }
+  </style>
+
+  <script>(function () {
+      try {
+        var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        if (prefersLight) document.documentElement.classList.remove('dark');
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+          document.documentElement.classList.toggle('dark', e.matches);
+        });
+      } catch (e) {}
+    })();</script>
+</head>
+<body>
+
+  <main class="page">
+
+    <div class="top">
+      <a class="top-brand" href="index.html" aria-label="Back to Ru-Soam">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="currentColor" width="28" height="28">
+            <rect x="9" y="10" width="6" height="38" rx="2"></rect>
+            <rect x="49" y="10" width="6" height="38" rx="2"></rect>
+            <rect x="5" y="46" width="54" height="5" rx="1.5"></rect>
+            <path d="M12 14 Q 32 44 52 14 L 52 18 Q 32 38 12 18 Z"></path>
+            <rect x="22" y="28" width="2" height="18" rx="1"></rect>
+            <rect x="31" y="32" width="2" height="14" rx="1"></rect>
+            <rect x="40" y="28" width="2" height="18" rx="1"></rect>
+          </svg>
+        </span>
+        <span class="wordmark">Ru-Soam</span>
+      </a>
+      <nav class="top-nav" aria-label="Site navigation">
+        <a href="download.html">Download</a>
+      </nav>
+    </div>
+
+    <div>
+      <h1>Changelog.</h1>
+      <p class="lede">All notable changes, newest first.</p>
+    </div>
+
+    <hr class="rule" aria-hidden="true">
+
+    <div class="changelog">
+      {{CHANGELOG_BODY}}
+    </div>
+
+  </main>
+
+</body>
+</html>

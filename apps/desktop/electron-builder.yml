@@ -23,11 +23,11 @@ extraResources:
   - from: bundles
     to: bundles
 
+generateUpdatesFilesForAllChannels: true
+
 publish:
-  provider: github
-  owner: meersajidh
-  repo: new-ru-soam
-  releaseType: release
+  provider: generic
+  url: https://dl.ru-soam.com
 
 linux:
   icon: electron/assets/icon/icon-512.png

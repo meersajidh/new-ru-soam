@@ -1,7 +1,7 @@
 # Installer integrity and update channel
 
 **ID:** ADR-204
-**Status:** Accepted
+**Status:** Accepted (amended 2026-05-24 — see Amendment 1)
 **Date:** 2026-05-22
 **Supersedes:** —
 **Superseded by:** —
@@ -152,8 +152,31 @@ ADR-301's PHI boundary is unaffected — update artefacts are code only.
 - **In-app banner for update notifications** — _Rejected_: alert real estate is owned by the StatusBar alert mechanism (ADR-409). Reusing it keeps the platform's notification surface single-sourced.
 - **Renderer drives `electron-updater` directly** — _Rejected_: violates ADR-102 (renderer owns no authority) and ADR-202 (renderer reaches Main only through `window.soam`). Update lifecycle lives in Main.
 
+## Amendment 1 (2026-05-24): artefact host → Cloudflare R2 (generic provider)
+
+**Trigger.** The source repository (`meersajidh/new-ru-soam`) is and stays **private**. GitHub release-asset visibility is inherited from the repository, so the §2/§3/§4 plan — public `…/releases/latest/download/…` URLs and public `latest*.yml` — returns **404 to anonymous clients**. That breaks both the website's download links and the shipped `electron-updater` feed (verified: anon `GET` on the asset and the API both 404). The original "self-hosted S3/R2" option was rejected for MVP on cost/effort grounds; the private-source constraint reverses that trade-off.
+
+**Decision.** Release artefacts are hosted on **Cloudflare R2** behind a public bucket URL, consumed via `electron-updater`'s **`generic`** provider. The source repo stays private; only the code-only artefacts (installers + manifests, no PHI per ADR-301) are public.
+
+This overrides:
+
+- **§2 Artefact store** — Cloudflare R2 bucket (public read) replaces GitHub Releases. The same five artefacts per release (`*.exe`, `*.deb`, `latest.yml`, `latest-linux.yml`, plus `*.blockmap`) are uploaded to the bucket root. Channel manifests for prereleases (`beta.yml` / `beta-linux.yml`) are written by `electron-builder` from the semver prerelease component and uploaded alongside.
+- **§3 Website download URLs** — point at `<R2_PUBLIC_URL>/<asset>` (stable) and the version-pinned beta assets. The site is built **full-B**: `apps/web/build.mjs` fetches `latest.yml` / `latest-linux.yml` (and `beta*.yml` when present) from the public bucket at build time and injects version, filenames, sizes, and checksums. No runtime fetch.
+- **§4 Update mechanism** — `electron-updater` reads `latest*.yml` from the R2 public URL (`provider: generic`). The lifecycle, capability surface, and StatusBar-alert data path are unchanged (provider-agnostic).
+- **§6 Staged rollouts** — prereleases are distinguished by the `electron-updater` **channel manifest** (`beta.yml`) derived from the `-beta.N` tag, not by a GitHub "prerelease" flag (no GitHub Release exists). `allowPrerelease=false` keeps stable clients on `latest`.
+- **§9 Integrity** — the website publishes the **SHA-512** carried in the `electron-updater` manifest (the canonical hash the updater verifies), not a separately-computed SHA-256. Signing (O172) is unaffected.
+
+**Publish pipeline change.** `electron-builder`'s `generic` provider is download-only; CI builds with `--publish never` and uploads `release/*.{exe,deb,yml,blockmap}` to R2 over the **S3-compatible API** (R2 endpoint `https://<account-id>.r2.cloudflarestorage.com`, region `auto`). No GitHub Release is created; the website is the changelog surface (§7's `release-notes-*.md` GH-body upload is dropped; `changelog.json` bundling is unchanged).
+
+**Roll-forward implication.** The bake-in feed URL (`app-update.yml`) is effectively permanent for an installed version. The R2 public URL must be fixed **before** the first release that ships on this channel. `v0.1.0` (built against the private GH provider) has a dead updater; the first R2 release becomes the working baseline.
+
+**Unchanged:** §1 targets, §5 per-platform UX, §7 changelog single-source (minus the GH-body step), §8 post-update modal.
+
 ## Open Items
 
+- **O186** — R2 bucket public-access surface. MVP uses the managed `r2.dev` URL or a custom domain (`dl.ru-soam.com`, gated on the deferred `ru-soam.com` setup). Custom domain + cache rules to be finalised when the domain lands.
+- **O187** — R2 artefact retention / lifecycle policy. Roll-forward keeps all historical installers reachable (the manual-downgrade escape hatch of §6); a retention rule (e.g. keep last N majors) is deferred until storage cost warrants it.
+- **O188** — Manifest/asset integrity in transit to R2. The S3-upload step trusts CI; a post-upload checksum verification (re-fetch `latest*.yml`, confirm asset SHA-512) is deferred. Tampering at rest in R2 would still be caught by `electron-updater` at install (manifests carry SHA-512).
 - **O172** — Code signing. Windows Authenticode certificate + Linux GPG signing for `.deb`. Lands before public availability. Until then, SHA-256 of each asset is published on the website and the user is warned about SmartScreen.
 - **O173** — Own APT repository for Linux (hosted on Cloudflare R2 or similar). Converts the Linux update from "download + guided install" to fully-background `apt upgrade`. Lands when the guided-install friction is observably blocking adoption.
 - **O174** — Prerelease (beta) channel UI. A Settings toggle that flips `electron-updater`'s `allowPrerelease`. Out of scope until Settings surface lands (Phase 12).

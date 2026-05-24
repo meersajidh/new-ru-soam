@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   desktop:
@@ -51,39 +51,69 @@ jobs:
       - name: Build app
         run: pnpm --filter ru-soam build
 
-      # Hyphenated semver tags (e.g. v0.1.1-beta.1) are staging builds. Flag the
-      # GitHub release as a prerelease so it is excluded from /releases/latest
-      # (keeps the website's stable download links + electron-updater's `latest`
-      # channel clean). electron-builder still writes the channel-specific
-      # manifest (beta.yml / alpha.yml) derived from the prerelease tag.
-      - name: Mark prerelease for hyphenated tags
+      # Channel is derived from the tag: hyphenated semver (v0.1.1-beta.1) → beta
+      # channel (writes beta.yml/alpha.yml, never latest.yml); plain tag → latest
+      # (writes latest.yml + cascades to beta.yml/alpha.yml via
+      # generateUpdatesFilesForAllChannels). --publish never = build only; R2 upload
+      # is the next step.
+      - name: Build installers
         shell: bash
         run: |
-          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
-            echo "EP_PRE_RELEASE=true" >> "$GITHUB_ENV"
-          fi
+          CHANNEL=latest
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then CHANNEL=beta; fi
+          echo "channel=$CHANNEL"
+          pnpm --filter ru-soam exec electron-builder --config electron-builder.yml -c.publish.channel="$CHANNEL" --publish never
 
-      # electron-builder --publish always uploads assets + manifests to the
-      # GitHub Release created by the tag push. GH_TOKEN is the auto-provided
-      # GITHUB_TOKEN for this repository.
-      - name: Publish
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm --filter ru-soam exec electron-builder --config electron-builder.yml --publish always
-
-      # Upload release notes as the GH Release body for the current tag.
-      # Only run once (on ubuntu, to avoid a race on windows).
-      - name: Set release body
-        if: matrix.os == 'ubuntu-latest'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Upload top-level distributables to R2. Globs are intentionally non-recursive
+      # so *-unpacked/ app executables are excluded.
+      - name: Upload to R2
         shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+          AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          VERSION="${TAG#v}"
-          NOTES_FILE="apps/desktop/release-notes-${VERSION}.md"
-          if [ -f "$NOTES_FILE" ]; then
-            gh release edit "$TAG" --notes-file "$NOTES_FILE"
-          else
-            echo "[release.yml] release-notes file not found: $NOTES_FILE"
-          fi
+          ENDPOINT="https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          for f in apps/desktop/release/*.exe apps/desktop/release/*.blockmap apps/desktop/release/*.deb apps/desktop/release/*.yml; do
+            [ -e "$f" ] || continue
+            echo "uploading $f"
+            aws s3 cp "$f" "s3://${R2_BUCKET}/" --endpoint-url "$ENDPOINT"
+          done
+
+  web:
+    name: Web (Cloudflare Pages)
+    runs-on: ubuntu-latest
+    # Wait for both matrix legs so all manifests are uploaded before site builds.
+    needs: desktop
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build site
+        run: node apps/web/build.mjs
+        env:
+          R2_PUBLIC_URL: https://dl.ru-soam.com
+          SITE_URL: https://ru-soam.pages.dev
+
+      - name: Deploy to Cloudflare Pages
+        run: pnpm dlx wrangler@4 pages deploy apps/web/dist --project-name=ru-soam --branch=main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

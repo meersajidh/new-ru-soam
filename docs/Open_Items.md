@@ -211,6 +211,9 @@ Single source of truth for every Open Item (O##) raised across ADRs and the Impl
 | O183 | Schema version wire-tagging for sync                       | ADR-308 / ADR-303            | Deferred | Phase 11 (sync transport)  | Concrete event-envelope shape for cross-version sync events. How a strictly-newer-schema event is held without loss. Lands with sync transport design. |
 | O184 | Encrypted backup schema version embedding                  | ADR-308 / ADR-303 / ADR-306  | Deferred | Backup format spec         | Cloud-backup envelope must carry schema version + minimum binary version required to restore. Lands with backup format spec. |
 | O185 | CI test gate for installer-side data-touch                 | ADR-308 / ADR-204            | Open     | Phase A (release pipeline) | Test harness for v1-install / v2-upgrade fingerprint-equality of user-data dir (ADR-308 §1). Needs Windows + Debian CI runners. Stub now, wire when Phase A lands. |
+| O186 | R2 bucket public-access surface                            | ADR-204 Amendment 1          | Open     | Phase A.2 / domain land | MVP uses managed `r2.dev` URL or custom domain (`dl.ru-soam.com`, gated on deferred `ru-soam.com`). Baked into `app-update.yml` so must be fixed before first R2 release. Custom domain + cache rules finalised when domain lands. |
+| O187 | R2 artefact retention / lifecycle                          | ADR-204 Amendment 1          | Deferred | When storage cost warrants | Roll-forward keeps all historical installers reachable (manual-downgrade escape hatch). Retention rule (keep last N majors) deferred. |
+| O188 | R2 upload integrity verification                           | ADR-204 Amendment 1          | Open     | Phase A.2 | S3-upload step trusts CI. Post-upload re-fetch + SHA-512 confirm deferred; at-rest tampering still caught by `electron-updater` at install. |
 
 ## Numbering hygiene
 
