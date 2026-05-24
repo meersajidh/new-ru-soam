@@ -74,6 +74,17 @@ export interface SoamWorkspace {
   readonly onChange: (listener: (e: WorkspaceChangedEvent) => void) => () => void;
 }
 
+// ── App namespace ──────────────────────────────────────────────────────────────
+
+/**
+ * Thin bedrock surface for app-level metadata.
+ * Renderer must never import `electron` (ADR-202) — version is read here only.
+ */
+export interface SoamApp {
+  /** Returns the running app version (e.g. "0.1.1"). */
+  readonly getVersion: () => Promise<string>;
+}
+
 // ── Update namespace ───────────────────────────────────────────────────────────
 
 /**
@@ -103,6 +114,7 @@ export interface Soam {
   readonly setup: SoamSetup;
   readonly workspace: SoamWorkspace;
   readonly update: SoamUpdate;
+  readonly app: SoamApp;
 }
 
 let nextId = 1;
@@ -239,6 +251,14 @@ const update: SoamUpdate = {
   },
 };
 
+// ── App bridge helpers ────────────────────────────────────────────────────────
+
+const appBedrock: SoamApp = {
+  async getVersion() {
+    return ipcRenderer.invoke('soam:app:get-version') as Promise<string>;
+  },
+};
+
 // ── Main export ────────────────────────────────────────────────────────────────
 
 export const soam: Soam = {
@@ -270,4 +290,5 @@ export const soam: Soam = {
   setup,
   workspace,
   update,
+  app: appBedrock,
 };

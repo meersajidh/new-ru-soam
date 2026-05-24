@@ -180,6 +180,17 @@ export function boot(): ServiceRegistry {
     statusBar.update('workbench.dev-mode', { visible: true });
   }
 
+  // ── Unit 1: version status-bar entry ─────────────────────────────────────
+  // Fire-and-forget — does not block boot; populates entry when resolved.
+  window.soam.app.getVersion().then((version) => {
+    statusBar.update('workbench.version', {
+      text: 'v' + version,
+      tooltip: "Ru-Soam " + version + " — what’s new",
+    });
+  }).catch((err) => {
+    console.error('[workbench] failed to fetch app version:', err);
+  });
+
   // Heartbeat — mount once; will be disposed on sign-out
   let heartbeatDisposable = mountHeartbeat();
 

@@ -27,6 +27,7 @@ import { ensureLocalStoreDbKey } from './credentials/db-key';
 import { LockService } from './lock/service';
 import { workspaceRegistry } from './workspace/registry';
 import { installLockChannel, createAutoLockHandleRef, rebindAutoLock } from './ipc/lock-channel';
+import { installAppChannel } from './ipc/app-channel';
 import { registerUpdateCapability } from './ipc/update-channel';
 import { initUpdater } from './updater/index';
 import { registerQuiesceHook } from './updater/db-quiesce';
@@ -151,6 +152,8 @@ app.whenReady().then(() => {
     setActiveLockService,
     autoLockHandleRef,
   );
+
+  installAppChannel();
 
   // ── Existing setup ────────────────────────────────────────────────────────
   installCsp(session.defaultSession, DEV);
