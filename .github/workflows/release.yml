@@ -51,6 +51,18 @@ jobs:
       - name: Build app
         run: pnpm --filter ru-soam build
 
+      # Hyphenated semver tags (e.g. v0.1.1-beta.1) are staging builds. Flag the
+      # GitHub release as a prerelease so it is excluded from /releases/latest
+      # (keeps the website's stable download links + electron-updater's `latest`
+      # channel clean). electron-builder still writes the channel-specific
+      # manifest (beta.yml / alpha.yml) derived from the prerelease tag.
+      - name: Mark prerelease for hyphenated tags
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            echo "EP_PRE_RELEASE=true" >> "$GITHUB_ENV"
+          fi
+
       # electron-builder --publish always uploads assets + manifests to the
       # GitHub Release created by the tag push. GH_TOKEN is the auto-provided
       # GITHUB_TOKEN for this repository.
