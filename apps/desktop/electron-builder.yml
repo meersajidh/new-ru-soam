@@ -52,7 +52,9 @@ win:
     - nsis
 
 # ADR-308 §1: installer must NOT touch userData.
+# One-click installer (oneClick default = true): double-click installs to
+# %LocalAppData% and launches, no wizard. allowToChangeInstallationDirectory
+# is intentionally omitted — it requires oneClick: false (assisted installer).
 nsis:
   artifactName: ${productName}-Setup-${version}.${ext}
   deleteAppDataOnUninstall: false
-  allowToChangeInstallationDirectory: true
