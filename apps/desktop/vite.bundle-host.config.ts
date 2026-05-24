@@ -24,7 +24,13 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: true,
       rollupOptions: {
-        output: { format: 'es' },
+        output: {
+          format: 'es',
+          // Same as main: ESM bundle of CJS deps yields Rolldown's __require
+          // helper, which throws without a real require. Provide one.
+          banner:
+            "import { createRequire } from 'node:module';\nconst require = createRequire(import.meta.url);",
+        },
         external: ['electron', ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
       },
     },

@@ -41,7 +41,16 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: true,
       rollupOptions: {
-        output: { format: 'es' },
+        output: {
+          format: 'es',
+          // ESM main bundles CJS deps (electron-updater, @scure/bip39, zxcvbn,
+          // lucide) whose internal require('fs') etc. compile to Rolldown's
+          // __require helper. ESM has no require → helper throws at startup.
+          // Provide a real require via createRequire so externalized builtins
+          // and native deps load at runtime.
+          banner:
+            "import { createRequire } from 'node:module';\nconst require = createRequire(import.meta.url);",
+        },
         external: [
           'electron',
           ...builtinModules,
