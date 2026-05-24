@@ -214,6 +214,7 @@ Single source of truth for every Open Item (O##) raised across ADRs and the Impl
 | O186 | R2 bucket public-access surface                            | ADR-204 Amendment 1          | Open     | Phase A.2 / domain land | MVP uses managed `r2.dev` URL or custom domain (`dl.ru-soam.com`, gated on deferred `ru-soam.com`). Baked into `app-update.yml` so must be fixed before first R2 release. Custom domain + cache rules finalised when domain lands. |
 | O187 | R2 artefact retention / lifecycle                          | ADR-204 Amendment 1          | Deferred | When storage cost warrants | Roll-forward keeps all historical installers reachable (manual-downgrade escape hatch). Retention rule (keep last N majors) deferred. |
 | O188 | R2 upload integrity verification                           | ADR-204 Amendment 1          | Open     | Phase A.2 | S3-upload step trusts CI. Post-upload re-fetch + SHA-512 confirm deferred; at-rest tampering still caught by `electron-updater` at install. |
+| O189 | Panel/flyout visibility → generic UI service               | ADR-412                      | Deferred | When 2nd flyout/panel lands | `NotificationService` owns `panelOpen` today (Unit 2 full-parity port). Hoist flyout/panel visibility into a generic renderer UI service (cf. `DialogService`, O156) when a second flyout consumer appears. |
 
 ## Numbering hygiene
 

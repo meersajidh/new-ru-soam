@@ -7,6 +7,7 @@ import type { IFontService } from '../platform/font/font-service';
 import type { IWorkspaceService } from '../platform/workspace/workspace-service';
 import type { IEditorService } from '../platform/editor/editor-service';
 import type { ISnippetService } from '../platform/snippet/snippet-service';
+import type { INotificationService } from '../platform/notification/notification-service';
 import { SlotId } from '../platform/layout/slots';
 import { router } from '../provider';
 
@@ -20,6 +21,7 @@ export function registerPlatformCommands(
   workspace: IWorkspaceService,
   editor: IEditorService,
   snippets: ISnippetService,
+  notificationSvc: INotificationService,
 ): void {
   commands.register(
     'workbench.togglePrimarySideBar',
@@ -495,6 +497,35 @@ export function registerPlatformCommands(
     () => contextKeys.set('developer.prefs.open', true),
     { category: 'Developer' },
   );
+
+  // ── Phase 9: Notification commands ───────────────────────────────────────
+  commands.register(
+    'workbench.notifications.toggle',
+    'Notifications: Toggle Panel',
+    () => notificationSvc.togglePanel(),
+    { category: 'View' },
+  );
+
+  if (import.meta.env.DEV) {
+    // DEV ONLY — push a sample notification for each severity to exercise
+    // the toast stack and panel. Accessible via Command Palette as
+    // "Developer: Push Test Notifications". Remove or keep — it is harmless
+    // in prod (gated by import.meta.env.DEV).
+    commands.register(
+      'developer.notifications.pushTest',
+      'Developer: Push Test Notifications',
+      () => {
+        notificationSvc.push({ severity: 'info',    title: 'Test info',    message: 'Info notification body', sticky: false });
+        notificationSvc.push({ severity: 'success', title: 'Test success', message: 'Action completed',        sticky: false });
+        notificationSvc.push({ severity: 'warning', title: 'Test warning', message: 'Something may be wrong',  sticky: false });
+        notificationSvc.push({ severity: 'error',   title: 'Test error',   message: 'An error occurred',       sticky: true,
+          actions: [{ label: 'Retry', onClick: () => console.log('[notif] retry') }],
+        });
+        notificationSvc.push({ severity: 'alarm',   title: 'Test alarm',   sticky: false });
+      },
+      { category: 'Developer' },
+    );
+  }
 
   commands.register(
     'workbench.workspace.relock',

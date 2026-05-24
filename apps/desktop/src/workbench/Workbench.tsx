@@ -6,6 +6,8 @@ import Middle from './middle/Middle';
 import StatusBar from './parts/StatusBar';
 import CommandPalette from './command-palette/CommandPalette';
 import PrefsDevPanel from './middle/PrefsDevPanel';
+import { ToastStack } from './notifications/ToastStack';
+import { NotificationPanel } from './notifications/NotificationPanel';
 import { useContextKey, useService } from '../platform/services/hooks';
 import { ContextKeyServiceId } from '../platform/services/ids';
 import { useWorkbenchMode } from './hooks/useWorkbenchMode';
@@ -29,6 +31,8 @@ export default function Workbench({ renderMiddleOverride }: WorkbenchProps = {})
       {renderMiddleOverride != null ? renderMiddleOverride : <Middle />}
       <StatusBar variant={mode} />
       <CommandPalette />
+      <ToastStack />
+      <NotificationPanel />
       {prefsOpen && (
         <PrefsDevPanel onClose={() => ctxSvc.set('developer.prefs.open', false)} />
       )}

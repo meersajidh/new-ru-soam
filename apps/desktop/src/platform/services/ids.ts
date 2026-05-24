@@ -10,6 +10,7 @@ import type { IWorkspaceService } from '../workspace/workspace-service';
 import type { IEditorService } from '../editor/editor-service';
 import type { IRuEditService } from '../ru-edit/ru-edit-service';
 import type { ISnippetService } from '../snippet/snippet-service';
+import type { INotificationService } from '../notification/notification-service';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -40,7 +41,7 @@ export const SnippetServiceId = serviceId<ISnippetService>('workbench.snippet');
 export const BundleServiceId = serviceId<unknown>('workbench.bundle');
 
 // Phase 9
-export const NotificationServiceId = serviceId<unknown>('workbench.notification');
+export const NotificationServiceId = serviceId<INotificationService>('workbench.notification');
 
 // Phase 11
 export const RouterServiceId = serviceId<unknown>('workbench.router');

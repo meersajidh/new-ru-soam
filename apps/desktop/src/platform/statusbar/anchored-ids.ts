@@ -81,6 +81,7 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
     priority: 10,
     text: '',
     tooltip: 'Notifications',
+    command: 'workbench.notifications.toggle',
     visible: true,
     icon: 'bell',
     iconSize: 15,

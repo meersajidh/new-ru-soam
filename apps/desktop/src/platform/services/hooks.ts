@@ -4,6 +4,7 @@ import {
   EditorServiceId,
   FontServiceId,
   LayoutServiceId,
+  NotificationServiceId,
   StatusBarServiceId,
   ThemeServiceId,
   RegistryContext,
@@ -15,6 +16,7 @@ import type { StatusBarEntry } from '../statusbar/statusbar-service';
 import type { CtxValue } from '../context-key/context-key-service';
 import type { ServiceId } from './service-id';
 import type { EditorGroup, EditorLayoutNode } from '../editor/editor-service';
+import type { Notification } from '../notification/notification-service';
 
 export function useService<T>(id: ServiceId<T>): T {
   const registry = useContext(RegistryContext);
@@ -103,4 +105,41 @@ export function useEditorGroup(groupId: string): EditorGroup | undefined {
     [editor, groupId],
   );
   return group;
+}
+
+export type NotificationsState = {
+  notifications: readonly Notification[];
+  toasts: readonly Notification[];
+  panelOpen: boolean;
+  unreadCount: number;
+};
+
+export function useNotifications(): NotificationsState {
+  const svc = useService(NotificationServiceId);
+  const [state, setState] = useState<NotificationsState>(() => ({
+    notifications: svc.getAll(),
+    toasts: svc.getToasts(),
+    panelOpen: svc.isPanelOpen(),
+    unreadCount: svc.getUnreadCount(),
+  }));
+  useEffect(
+    () =>
+      svc.onDidChange(() =>
+        setState({
+          notifications: svc.getAll(),
+          toasts: svc.getToasts(),
+          panelOpen: svc.isPanelOpen(),
+          unreadCount: svc.getUnreadCount(),
+        }),
+      ),
+    [svc],
+  );
+  return state;
+}
+
+export function useUnreadCount(): number {
+  const svc = useService(NotificationServiceId);
+  const [count, setCount] = useState(() => svc.getUnreadCount());
+  useEffect(() => svc.onDidChange(() => setCount(svc.getUnreadCount())), [svc]);
+  return count;
 }

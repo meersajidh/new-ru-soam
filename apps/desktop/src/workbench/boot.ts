@@ -1,8 +1,8 @@
 import { ServiceRegistry } from '../platform/services/registry';
 import {
   CommandServiceId, ContextKeyServiceId, EditorServiceId, FontServiceId,
-  KeybindingServiceId, LayoutServiceId, RuEditServiceId, SnippetServiceId,
-  StatusBarServiceId, ThemeServiceId, WorkspaceServiceId,
+  KeybindingServiceId, LayoutServiceId, NotificationServiceId, RuEditServiceId,
+  SnippetServiceId, StatusBarServiceId, ThemeServiceId, WorkspaceServiceId,
 } from '../platform/services/ids';
 import { LayoutService } from '../platform/layout/layout-service';
 import { ThemeService } from '../platform/theme/theme-service';
@@ -15,6 +15,7 @@ import { WorkspaceService } from '../platform/workspace/workspace-service';
 import { EditorService } from '../platform/editor/editor-service';
 import { RuEditService } from '../platform/ru-edit/ru-edit-service';
 import { SnippetService } from '../platform/snippet/snippet-service';
+import { NotificationService } from '../platform/notification/notification-service';
 import { BUILT_IN_THEMES } from '../platform/theme/themes/built-in';
 import { BUILT_IN_FONT_SETS } from '../platform/font/font-sets/built-in';
 import { ANCHORED_ENTRIES } from '../platform/statusbar/anchored-ids';
@@ -134,7 +135,18 @@ export function boot(): ServiceRegistry {
     }
   });
 
-  registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, font, workspace, editor, snippet);
+  // ── Phase 9: NotificationService ──────────────────────────────────────────
+  const notifications = new NotificationService();
+  registry.register(NotificationServiceId, notifications);
+
+  // Keep the bell badge in sync with unread count.
+  function syncNotificationBadge(): void {
+    statusBar.update('workbench.notifications', { badge: notifications.getUnreadCount() });
+  }
+  syncNotificationBadge();
+  notifications.onDidChange(syncNotificationBadge);
+
+  registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, font, workspace, editor, snippet, notifications);
 
   // Open mock workspace — real identity comes in Phase 8+
   workspace.open('entity-mock-001', 'individual');
