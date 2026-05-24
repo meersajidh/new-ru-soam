@@ -11,7 +11,16 @@ export type AuditEventKind =
   | 'workspace.setup.complete'
   | 'workspace.passphrase.changed'
   | 'workspace.recovery.used'
-  | 'prefs.set';
+  | 'prefs.set'
+  // ADR-308 §7: update-time audit trail
+  | 'update.backup.created'
+  | 'update.backup.rotated'
+  | 'update.migration.started'
+  | 'update.migration.succeeded'
+  | 'update.migration.failed'
+  | 'update.backup.restored'
+  | 'update.refused.older-than-min'
+  | 'update.refused.newer-than-max';
 
 /**
  * Arbitrary detail attached to an audit entry.

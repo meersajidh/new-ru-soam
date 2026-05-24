@@ -17,6 +17,7 @@ import type {
   WorkspaceCreateResult,
   WorkspaceSetActiveResult,
 } from '../shared/lock-protocol';
+import type { UpdateState, UpdateStateChangedPayload } from '../shared/update';
 
 /**
  * `window.soam` bridge per ADR-202.
@@ -73,12 +74,35 @@ export interface SoamWorkspace {
   readonly onChange: (listener: (e: WorkspaceChangedEvent) => void) => () => void;
 }
 
+// ── Update namespace ───────────────────────────────────────────────────────────
+
+/**
+ * Thin typed surface over the `platform.update@1.0` capability.
+ * Renderer-side consumption is A.3 — this surface exists so the bridge
+ * compiles and types are available for A.3 without further preload changes.
+ */
+export interface SoamUpdate {
+  /** Get current update state from Main. */
+  readonly getState: () => Promise<UpdateState>;
+  /** Trigger an immediate update check. */
+  readonly checkNow: () => Promise<void>;
+  /** Start downloading the available update. */
+  readonly downloadNow: () => Promise<void>;
+  /** Windows only: quit and install. No-op on Linux (guided install). */
+  readonly installAndRestart: () => Promise<void>;
+  /** Linux only: returns the copyable `sudo apt install ...` command, or null. */
+  readonly getCopyInstallCommand: () => Promise<string | null>;
+  /** Subscribe to state-change events pushed from Main. */
+  readonly onChange: (listener: (payload: UpdateStateChangedPayload) => void) => () => void;
+}
+
 export interface Soam {
   readonly bindCapability: (name: string, version: string) => Promise<SoamCapabilityProxy>;
   readonly events: SoamEvents;
   readonly lock: SoamLock;
   readonly setup: SoamSetup;
   readonly workspace: SoamWorkspace;
+  readonly update: SoamUpdate;
 }
 
 let nextId = 1;
@@ -186,6 +210,35 @@ const workspace: SoamWorkspace = {
   },
 };
 
+// ── Update bridge helpers ─────────────────────────────────────────────────────
+
+const update: SoamUpdate = {
+  async getState() {
+    return call({ capability: 'platform.update', version: '1.0', method: 'getState', args: [] }) as Promise<UpdateState>;
+  },
+  async checkNow() {
+    await call({ capability: 'platform.update', version: '1.0', method: 'checkNow', args: [] });
+  },
+  async downloadNow() {
+    await call({ capability: 'platform.update', version: '1.0', method: 'downloadNow', args: [] });
+  },
+  async installAndRestart() {
+    await call({ capability: 'platform.update', version: '1.0', method: 'installAndRestart', args: [] });
+  },
+  async getCopyInstallCommand() {
+    return call({ capability: 'platform.update', version: '1.0', method: 'getCopyInstallCommand', args: [] }) as Promise<string | null>;
+  },
+  onChange(listener) {
+    const handler = (_e: unknown, payload: PlatformEvent) => {
+      if (payload.name === 'platform.update.state-changed') {
+        listener(payload.payload as UpdateStateChangedPayload);
+      }
+    };
+    ipcRenderer.on(SOAM_EVENT_CHANNEL, handler);
+    return () => ipcRenderer.removeListener(SOAM_EVENT_CHANNEL, handler);
+  },
+};
+
 // ── Main export ────────────────────────────────────────────────────────────────
 
 export const soam: Soam = {
@@ -216,4 +269,5 @@ export const soam: Soam = {
   lock,
   setup,
   workspace,
+  update,
 };

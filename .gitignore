@@ -68,6 +68,8 @@ deploy/dev/**/*.yml
 !deploy/dev/**/*.example
 release/
 release/*
+# Generated per-release by build-changelog.mjs — not committed
+apps/desktop/release-notes-*.md
 # Others
 .notes/
 .gemini/

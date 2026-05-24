@@ -62,6 +62,16 @@ class LocalStoreManager {
     this._store = null;
   }
 
+  /**
+   * Quiesce the active store for update-time safety (ADR-308 §6).
+   * Runs WAL checkpoint then closes. Idempotent.
+   */
+  quiesceActive(): void {
+    if (!this._store) return;
+    this._store.quiesce();
+    this._store = null;
+  }
+
   /** The active LocalStore, or null if none is open. */
   current(): LocalStore | null {
     return this._store;

@@ -27,6 +27,9 @@ import { ensureLocalStoreDbKey } from './credentials/db-key';
 import { LockService } from './lock/service';
 import { workspaceRegistry } from './workspace/registry';
 import { installLockChannel, createAutoLockHandleRef, rebindAutoLock } from './ipc/lock-channel';
+import { registerUpdateCapability } from './ipc/update-channel';
+import { initUpdater } from './updater/index';
+import { registerQuiesceHook } from './updater/db-quiesce';
 import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
 
 if (process.platform === 'linux') {
@@ -117,6 +120,13 @@ app.whenReady().then(() => {
   // Phase 10b: wire audit service AFTER emitter, BEFORE capability registrations.
   auditService.setStoreGetter(() => localStoreManager.current());
 
+  // ADR-308 §6: register DB quiesce hook so the updater can safely close the
+  // store before installer relaunch. Runs PRAGMA wal_checkpoint(TRUNCATE) then
+  // db.close() via the store manager's quiesceActive() method.
+  registerQuiesceHook(async () => {
+    localStoreManager.quiesceActive();
+  });
+
   // 3. Resolve active LockService
   const activeId = workspaceRegistry.getActive();
   if (activeId) {
@@ -159,6 +169,7 @@ app.whenReady().then(() => {
   registerPlatformDevCapability();
   registerPrefsCapability();
   registerAuditCapability();
+  registerUpdateCapability();
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);
@@ -211,11 +222,16 @@ app.whenReady().then(() => {
   });
 });
 
+// Initialise the updater after boot (no-op in dev — gated on app.isPackaged).
+const updaterDisposable = initUpdater();
+
 let shutdownStarted = false;
 app.on('before-quit', (event) => {
   if (shutdownStarted) return;
   shutdownStarted = true;
   event.preventDefault();
+  // Dispose the updater (clears interval + event listeners).
+  updaterDisposable.dispose();
   // Phase 10a: close the Local Store cleanly so the next launch doesn't see
   // a busy / stale lock file from an open SQLite handle.
   try {

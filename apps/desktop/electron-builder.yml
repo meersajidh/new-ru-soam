@@ -13,6 +13,7 @@ files:
   - dist/preload/**
   - dist/renderer/**
   - dist/bundle-host/**
+  - changelog.json
   - package.json
 
 # First-party bundles ship under `resources/bundles/`, which is what
@@ -22,11 +23,19 @@ extraResources:
   - from: bundles
     to: bundles
 
+publish:
+  provider: github
+  owner: meersajidh
+  repo: new-ru-soam
+  releaseType: release
+
 linux:
   icon: electron/assets/icon/icon-512.png
   category: Office
+  # ADR-204 §1: deb only. AppImage dropped.
   target:
-    - AppImage
+    - deb
+  artifactName: ${name}_${version}_${arch}.${ext}
   executableName: ru-soam
   desktop:
     entry:
@@ -41,3 +50,9 @@ win:
   icon: electron/assets/icon/icon.ico
   target:
     - nsis
+
+# ADR-308 §1: installer must NOT touch userData.
+nsis:
+  artifactName: ${productName}-Setup-${version}.${ext}
+  deleteAppDataOnUninstall: false
+  allowToChangeInstallationDirectory: true

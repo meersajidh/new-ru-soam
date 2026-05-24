@@ -1,0 +1,86 @@
+{
+  "versions": [
+    {
+      "version": "0.1.0",
+      "date": "2026-05-24",
+      "entries": [
+        {
+          "kind": "Added",
+          "text": "Electron workbench shell with four-process trust-zone architecture (Main, Preload, Renderer, Bundle Host)."
+        },
+        {
+          "kind": "Added",
+          "text": "React 19 + TanStack Router composition shell with file-based routing."
+        },
+        {
+          "kind": "Added",
+          "text": "Tailwind v4 CSS theming system with palette × luminance × font-set axes."
+        },
+        {
+          "kind": "Added",
+          "text": "SQLCipher-backed local store (better-sqlite3-multiple-ciphers) with WAL mode and audit ledger."
+        },
+        {
+          "kind": "Added",
+          "text": "Workspace lock/unlock lifecycle with Argon2id KDF and BIP-39 recovery codes."
+        },
+        {
+          "kind": "Added",
+          "text": "Window controls, shell-open, prefs, audit, and platform-dev capabilities over the `window.soam` bridge."
+        },
+        {
+          "kind": "Added",
+          "text": "First-party bundle system with sandboxed iframe views (`view://` protocol)."
+        },
+        {
+          "kind": "Added",
+          "text": "App icon set (BridgeMark) wired to BrowserWindow and electron-builder targets."
+        },
+        {
+          "kind": "Added",
+          "text": "Loading splash with continuous progress sweep."
+        },
+        {
+          "kind": "Added",
+          "text": "StatusBar with workspace nickname, avatar, and activity slot."
+        },
+        {
+          "kind": "Added",
+          "text": "Linux `.desktop` integration via xdg post-install scripts."
+        },
+        {
+          "kind": "Added",
+          "text": "NSIS installer for Windows; `.deb` package for Linux (ADR-204)."
+        },
+        {
+          "kind": "Added",
+          "text": "GitHub Releases publish pipeline with `electron-updater` manifests."
+        },
+        {
+          "kind": "Added",
+          "text": "Changelog parser (`scripts/build-changelog.mjs`) producing `changelog.json` and per-version release notes."
+        },
+        {
+          "kind": "Changed",
+          "text": "Linux target changed from AppImage to `.deb` only (ADR-204 §1)."
+        },
+        {
+          "kind": "Changed",
+          "text": "Default colour theme renamed `iris`; cold-start inherits OS dark/light preference."
+        },
+        {
+          "kind": "Fixed",
+          "text": "electron-builder config unified so packaged assets resolve correctly from a single `dist/` tree."
+        },
+        {
+          "kind": "Fixed",
+          "text": "Ru-Soam identity class and `.desktop` name now match across all Linux surfaces."
+        },
+        {
+          "kind": "Fixed",
+          "text": "Preload capability doctrine clarified — all non-bedrock capabilities go through `bindCapability`."
+        }
+      ]
+    }
+  ]
+}

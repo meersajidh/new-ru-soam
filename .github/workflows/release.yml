@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Parse CHANGELOG.md and emit changelog.json + release-notes-<version>.md
+      # before electron-builder runs so changelog.json is picked up by the
+      # `files` glob in electron-builder.yml.
+      - name: Build changelog
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          cd apps/desktop
+          node scripts/build-changelog.mjs --release="$VERSION"
+
+      - name: Build app
+        run: pnpm --filter ru-soam build
+
+      # electron-builder --publish always uploads assets + manifests to the
+      # GitHub Release created by the tag push. GH_TOKEN is the auto-provided
+      # GITHUB_TOKEN for this repository.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm --filter ru-soam exec electron-builder --config electron-builder.yml --publish always
+
+      # Upload release notes as the GH Release body for the current tag.
+      # Only run once (on ubuntu, to avoid a race on windows).
+      - name: Set release body
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          NOTES_FILE="apps/desktop/release-notes-${VERSION}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            gh release edit "$TAG" --notes-file "$NOTES_FILE"
+          else
+            echo "[release.yml] release-notes file not found: $NOTES_FILE"
+          fi

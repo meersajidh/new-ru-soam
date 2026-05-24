@@ -129,6 +129,24 @@ export class LocalStore {
     }
   }
 
+  /**
+   * Quiesce the DB for update-time safety (ADR-308 §6).
+   * Runs PRAGMA wal_checkpoint(TRUNCATE) if WAL mode is active, then closes.
+   * Safe to call when already closed (no-op).
+   */
+  quiesce(): void {
+    if (this._db === null) return;
+    try {
+      const mode = this._db.pragma('journal_mode', { simple: true });
+      if (mode === 'wal') {
+        this._db.pragma('wal_checkpoint(TRUNCATE)');
+      }
+    } catch (err) {
+      console.warn('[local-store] quiesce WAL checkpoint failed:', err);
+    }
+    this.close();
+  }
+
   isOpen(): boolean {
     return this._db !== null;
   }

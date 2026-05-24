@@ -189,6 +189,8 @@ only task-specific Goal / Scope / Constraints / Success criteria.
 - Orchestration: Opus plans + reviews; Sonnet implements. Briefs thin (intent + scope + success criteria); implementer reads context from codebase.
 - Electron pinned `^41.2.2` — `better-sqlite3-multiple-ciphers` does not compile against Electron 42 V8-14 API (O157 open). Revisit when BSMC supports V8-14.
 - Styling system policy lives in **Conventions → Styling system**. Architectural changes to it require an ADR.
+- Release & update channel (ADR-204) + update-time data integrity (ADR-308) accepted. Auto-update via `electron-updater` from Main; GitHub Releases artefact store; NSIS (Win) + `.deb` (Linux) targets; roll-forward only; staging via prerelease semver tags (`allowPrerelease=false` hides them from stable). CI auto-publishes stable releases (`releaseType: release`).
+- Phase 10b migration runner must resolve O182 before wiring `schema-gate.ts`: migrations use a `_schema_version` table, but ADR-308 / `schema-gate.ts` assume `PRAGMA user_version` (reads 0 today). Pick one source of truth. `createPreMigrationBackup` + `quiesceForUpdate` helpers exist but are not yet wired into the live migration path.
 
 ---
 
