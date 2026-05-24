@@ -1,0 +1,21 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Webfont sources.
+ *
+ * Loaded via Google Fonts CSS — when the user confirms the families, port the
+ * .woff2 files into this folder and replace this file with explicit @font-face
+ * rules. The font-set files (font-sets/*.css) reference these families by name
+ * regardless of how they are sourced.
+ *
+ * Families:
+ *   Source Serif 4  — display + long-form body; optical sizing enabled
+ *   Inter Tight     — UI sans for every workbench surface
+ *   IBM Plex Mono   — mono; slight slab feet, scholarly / type-writer character
+ *
+ * Weights pulled:
+ *   400 (body), 500 (label / button / strong), 600 (display / heading), 700 (mark)
+ *
+ * font-display: swap is implicit in Google's CSS2 endpoint — text renders in
+ * fallback first and swaps in once the webfont arrives.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');

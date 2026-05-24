@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en" class="theme-bamboo dark font-set-ru-display">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ru-Soam</title>
+  <meta name="description" content="A bridge between you and your client.">
+
+  <meta property="og:title" content="Ru-Soam">
+  <meta property="og:description" content="A bridge between you and your client.">
+  <meta property="og:url" content="https://ru-soam.com/">
+  <meta property="og:type" content="website">
+
+  <link rel="icon" type="image/svg+xml" href="assets/icon/bridge.full.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="assets/ds/fonts/google-fonts.css">
+  <link rel="stylesheet" href="assets/ds/colors_and_type.css">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; }
+    html, body { background: var(--color-surface-base); }
+
+    body {
+      color: var(--color-fg-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 64px 32px;
+    }
+
+    ::selection {
+      background: color-mix(in oklch, var(--color-accent) 32%, transparent);
+      color: var(--color-fg-primary);
+    }
+
+    .page {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 36px;
+    }
+
+    /* ── Mark ──────────────────────────────────────────────────────── */
+    .mark {
+      width: 72px;
+      height: 72px;
+      color: var(--color-fg-primary);
+      display: inline-flex;
+    }
+    .mark svg { width: 100%; height: 100%; display: block; }
+
+    /* ── Wordmark + lede ───────────────────────────────────────────── */
+    .wordmark {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 40px;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin: 0;
+      color: var(--color-fg-primary);
+    }
+    .lede {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-weight: 400;
+      font-size: 19px;
+      line-height: 1.5;
+      color: var(--color-fg-secondary);
+      margin: 0;
+      max-width: 44ch;
+      text-wrap: pretty;
+    }
+
+    /* ── Story ─────────────────────────────────────────────────────── */
+    .story {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--color-fg-secondary);
+      max-width: 56ch;
+      text-wrap: pretty;
+    }
+    .story p { margin: 0 0 16px; }
+    .story p:last-child { margin: 0; }
+    .story strong {
+      color: var(--color-fg-primary);
+      font-weight: 500;
+    }
+    .story em {
+      font-family: var(--font-display);
+      font-style: italic;
+      color: var(--color-fg-primary);
+    }
+
+    .rule {
+      width: 32px;
+      height: 1px;
+      background: var(--color-accent);
+      border: 0;
+      margin: 0;
+    }
+
+    /* ── Download button ───────────────────────────────────────────── */
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      height: 40px;
+      padding: 0 18px;
+      border-radius: var(--radius-sm);
+      background: var(--color-accent);
+      color: var(--color-accent-fg);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: background 0.1s;
+    }
+    .btn:hover { background: var(--color-accent-hover); }
+    .btn:active { background: var(--color-accent-pressed); }
+    .btn .ico {
+      width: 14px;
+      height: 14px;
+      display: inline-flex;
+    }
+    .meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-fg-muted);
+      letter-spacing: 0.06em;
+    }
+
+    @media (max-width: 540px) {
+      .wordmark { font-size: 32px; }
+      .lede { font-size: 17px; }
+      .story { font-size: 14.5px; }
+    }
+  </style>
+
+  <script>
+    (function () {
+      try {
+        var prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        if (prefersLight) document.documentElement.classList.remove('dark');
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+          document.documentElement.classList.toggle('dark', e.matches);
+        });
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+
+  <main class="page">
+
+    <span class="mark" aria-hidden="true">
+      <svg viewBox="0 0 64 64" fill="currentColor" aria-label="Ru-Soam">
+        <rect x="9" y="10" width="6" height="38" rx="2"></rect>
+        <rect x="49" y="10" width="6" height="38" rx="2"></rect>
+        <rect x="5" y="46" width="54" height="5" rx="1.5"></rect>
+        <path d="M12 14 Q 32 44 52 14 L 52 18 Q 32 38 12 18 Z"></path>
+        <rect x="22" y="28" width="2" height="18" rx="1"></rect>
+        <rect x="31" y="32" width="2" height="14" rx="1"></rect>
+        <rect x="40" y="28" width="2" height="18" rx="1"></rect>
+      </svg>
+    </span>
+
+    <div>
+      <h1 class="wordmark">Ru-Soam</h1>
+      <p class="lede" style="margin-top: 12px;">
+        A bridge between you and your client.
+      </p>
+    </div>
+
+    <hr class="rule" aria-hidden="true">
+
+    <div class="story">
+      <p>
+        Named for the Lepcha cane suspension bridges of Sikkim — <em>Ru</em> (cane) + <em>Soam</em> (bridge). Each bridge is woven by hand from natural fibres and holds tension across impossible distances.
+      </p>
+      <p>
+        Ru-Soam carries the same idea for clinical practice: <strong>a careful structure, suspended quietly between you and your client</strong>. Nothing is structural alone; every fibre is doing its small job.
+      </p>
+    </div>
+
+    <div class="actions">
+      <a class="btn" href="download.html">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v12"></path>
+          <path d="m7 10 5 5 5-5"></path>
+          <path d="M5 21h14"></path>
+        </svg>
+        Download
+      </a>
+      <span class="meta">Windows · Linux</span>
+    </div>
+
+  </main>
+
+</body>
+</html>

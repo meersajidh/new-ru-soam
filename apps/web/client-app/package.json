@@ -1,5 +1,5 @@
 {
-  "name": "ru-soam-web",
+  "name": "ru-soam-client",
   "version": "0.1.0",
   "description": "ru-soam clients web application",
   "scripts": {

@@ -1,0 +1,21 @@
+# Cloudflare Pages — security & cache headers
+#
+# Reference: https://developers.cloudflare.com/pages/configuration/headers/
+# Apply long cache to fingerprinted assets; everything else gets a short TTL
+# plus the standard hardening headers.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+
+# HTML — revalidate on every request, never stale
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Long-lived assets (fingerprinted CSS / images / icons)
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
