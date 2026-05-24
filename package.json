@@ -15,13 +15,7 @@
     "check:all": "pnpm --filter ru-soam compile && pnpm --filter ru-soam lint && pnpm check:public",
     "prepare": "husky"
   },
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.0.9",
-      "onFail": "download"
-    }
-  },
+  "packageManager": "pnpm@11.2.2",
   "type": "module",
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -23,10 +23,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # No version pin — reads the `packageManager` field from package.json
+      # (pnpm@11.2.2) so CI and local use the same pnpm that produced the lockfile.
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node
         uses: actions/setup-node@v4
