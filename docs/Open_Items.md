@@ -215,6 +215,7 @@ Single source of truth for every Open Item (O##) raised across ADRs and the Impl
 | O187 | R2 artefact retention / lifecycle                          | ADR-204 Amendment 1          | Deferred | When storage cost warrants | Roll-forward keeps all historical installers reachable (manual-downgrade escape hatch). Retention rule (keep last N majors) deferred. |
 | O188 | R2 upload integrity verification                           | ADR-204 Amendment 1          | Open     | Phase A.2 | S3-upload step trusts CI. Post-upload re-fetch + SHA-512 confirm deferred; at-rest tampering still caught by `electron-updater` at install. |
 | O189 | Panel/flyout visibility → generic UI service               | ADR-412                      | Deferred | When 2nd flyout/panel lands | `NotificationService` owns `panelOpen` today (Unit 2 full-parity port). Hoist flyout/panel visibility into a generic renderer UI service (cf. `DialogService`, O156) when a second flyout consumer appears. |
+| O190 | Renderer platform signal for update ready-branch           | ADR-202 / ADR-204            | Open     | When a 2nd platform-conditional renderer path lands | Unit 3 `update-alerts.ts` distinguishes Windows (restart action) vs Linux (guided-install copy command) by `window.soam.update.getCopyInstallCommand()` returning non-null. Works, but brittle if the Linux guided-install path is ever removed. Expose a clean `window.soam.app.platform` bedrock signal instead. |
 
 ## Numbering hygiene
 

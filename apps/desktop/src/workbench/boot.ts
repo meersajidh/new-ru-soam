@@ -22,6 +22,7 @@ import { ANCHORED_ENTRIES } from '../platform/statusbar/anchored-ids';
 import { SlotId } from '../platform/layout/slots';
 import { registerPlatformCommands } from './platform-commands';
 import { mountHeartbeat } from './heartbeat';
+import { installUpdateAlerts } from '../platform/update/update-alerts';
 
 const SLOT_TO_CTX_KEY: Partial<Record<SlotId, string>> = {
   [SlotId.PrimarySideBar]: 'sideBar.visible',
@@ -146,6 +147,11 @@ export function boot(): ServiceRegistry {
   syncNotificationBadge();
   notifications.onDidChange(syncNotificationBadge);
 
+  // ── Unit 3: Update alerts ─────────────────────────────────────────────────
+  // Subscribes to update state changes; drives notification + status-bar entry.
+  // Disposable returned but not tracked — lives for the session (no teardown needed).
+  installUpdateAlerts(notifications, statusBar);
+
   registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, font, workspace, editor, snippet, notifications);
 
   // Open mock workspace — real identity comes in Phase 8+
@@ -173,6 +179,9 @@ export function boot(): ServiceRegistry {
 
   // ── Phase 10a: Prefs dev panel toggle ────────────────────────────────────
   contextKeys.set('developer.prefs.open', false);
+
+  // ── Unit 3: What's-new modal context key ─────────────────────────────────
+  contextKeys.set('whatsNew.open', false);
 
   // ── Dark-mode toggle StatusBar entry ─────────────────────────────────────
   function syncDarkModeEntry(dark: boolean): void {

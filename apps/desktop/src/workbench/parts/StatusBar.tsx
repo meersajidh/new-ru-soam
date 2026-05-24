@@ -15,6 +15,7 @@ import {
   CircleDot,
   Moon,
   Sun,
+  Download,
   type LucideProps,
 } from 'lucide-react';
 import { useStatusBarEntries, useService } from '../../platform/services/hooks';
@@ -39,6 +40,7 @@ const ICON_MAP: Record<string, LucideComponent> = {
   'circle-dot': CircleDot,
   moon: Moon,
   sun: Sun,
+  download: Download,
 };
 
 function renderIcon(entry: StatusBarEntry): React.ReactNode {

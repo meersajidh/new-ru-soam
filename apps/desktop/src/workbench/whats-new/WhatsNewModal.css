@@ -1,0 +1,79 @@
+@reference "../../styles/theme.css";
+
+/* ── What's New modal ─────────────────────────────────────────────────────── */
+
+.wn-header {
+  @apply flex flex-col gap-1;
+}
+
+.wn-header__eyebrow {
+  @apply text-xs text-fg-muted font-medium;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.wn-header__version {
+  margin: 0;
+}
+
+.wn-empty {
+  margin: 0;
+}
+
+.wn-body {
+  @apply flex flex-col gap-4;
+  max-height: 380px;
+  overflow-y: auto;
+  /* scrollbar styling is handled by index.css global; no per-component override needed */
+}
+
+.wn-version-block {
+  @apply flex flex-col gap-3;
+}
+
+.wn-kind-group {
+  @apply flex flex-col gap-1.5;
+}
+
+.wn-kind-label {
+  @apply text-xs font-medium;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wn-entry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  @apply flex flex-col gap-1;
+}
+
+.wn-entry {
+  @apply text-sm text-fg-secondary;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.wn-entry::before {
+  content: '–';
+  position: absolute;
+  left: 0;
+  @apply text-fg-muted;
+}
+
+.wn-footer {
+  @apply flex justify-end;
+}
+
+.wn-close-btn {
+  @apply text-sm font-medium text-fg-primary bg-surface-elevated rounded-md px-4 py-2;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.wn-close-btn:hover {
+  @apply bg-surface-active;
+  border-color: var(--color-border-hover);
+}

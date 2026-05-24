@@ -8,6 +8,7 @@ import CommandPalette from './command-palette/CommandPalette';
 import PrefsDevPanel from './middle/PrefsDevPanel';
 import { ToastStack } from './notifications/ToastStack';
 import { NotificationPanel } from './notifications/NotificationPanel';
+import { WhatsNewModal } from './whats-new/WhatsNewModal';
 import { useContextKey, useService } from '../platform/services/hooks';
 import { ContextKeyServiceId } from '../platform/services/ids';
 import { useWorkbenchMode } from './hooks/useWorkbenchMode';
@@ -33,6 +34,7 @@ export default function Workbench({ renderMiddleOverride }: WorkbenchProps = {})
       <CommandPalette />
       <ToastStack />
       <NotificationPanel />
+      <WhatsNewModal />
       {prefsOpen && (
         <PrefsDevPanel onClose={() => ctxSvc.set('developer.prefs.open', false)} />
       )}

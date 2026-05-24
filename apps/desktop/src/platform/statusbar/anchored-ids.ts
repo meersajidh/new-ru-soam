@@ -88,6 +88,18 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
     badge: 0,
   },
   {
+    id: 'workbench.update',
+    region: 'right',
+    priority: 75,
+    text: '',
+    tooltip: '',
+    command: 'workbench.update.downloadNow',
+    visible: false, // shown by update-alerts when available/downloading/ready
+    icon: 'download',
+    iconSize: 13,
+    scope: 'always',
+  },
+  {
     id: 'workbench.bundle.activity',
     region: 'right',
     priority: 700,

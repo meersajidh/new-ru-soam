@@ -506,6 +506,29 @@ export function registerPlatformCommands(
     { category: 'View' },
   );
 
+  // ── Unit 3: Update commands ───────────────────────────────────────────────
+  commands.register(
+    'workbench.update.downloadNow',
+    'Update: Download Available Update',
+    () => void window.soam.update.downloadNow(),
+    { category: 'Update' },
+  );
+  commands.register(
+    'workbench.update.installAndRestart',
+    'Update: Install and Restart',
+    () => void window.soam.update.installAndRestart(),
+    { category: 'Update' },
+  );
+
+  // ── Unit 3: What's New modal ──────────────────────────────────────────────
+  // Also consumed by the workbench.version status-bar entry (Unit 1).
+  commands.register(
+    'workbench.showWhatsNew',
+    "What's New",
+    () => contextKeys.set('whatsNew.open', true),
+    { category: 'Help' },
+  );
+
   if (import.meta.env.DEV) {
     // DEV ONLY — push a sample notification for each severity to exercise
     // the toast stack and panel. Accessible via Command Palette as
@@ -522,6 +545,52 @@ export function registerPlatformCommands(
           actions: [{ label: 'Retry', onClick: () => console.log('[notif] retry') }],
         });
         notificationSvc.push({ severity: 'alarm',   title: 'Test alarm',   sticky: false });
+      },
+      { category: 'Developer' },
+    );
+
+    // DEV ONLY — simulate update state cycle (available → downloading → ready)
+    // to exercise the update-alerts wiring without a real update.
+    // Accessible via Command Palette as "Developer: Simulate Update States".
+    // Each invocation advances to the next stage.
+    let _simStage = 0;
+    commands.register(
+      'developer.update.simulate',
+      'Developer: Simulate Update States',
+      () => {
+        const version = '99.0.0';
+        switch (_simStage % 3) {
+          case 0:
+            notificationSvc.push({
+              severity: 'info',
+              title: 'Update available',
+              message: `Version ${version} is ready to download.`,
+              sticky: true,
+              actions: [{ label: 'Download', onClick: () => void window.soam.update.downloadNow() }],
+            });
+            console.log('[update-sim] available — pushed notification');
+            break;
+          case 1:
+            notificationSvc.push({
+              severity: 'info',
+              title: 'Downloading update…',
+              message: `Version ${version} — 42% complete`,
+              sticky: false,
+            });
+            console.log('[update-sim] downloading — 42% (status-bar would show Updating… 42%)');
+            break;
+          case 2:
+            notificationSvc.push({
+              severity: 'success',
+              title: 'Update ready to install',
+              message: `Version ${version} has been downloaded.`,
+              sticky: true,
+              actions: [{ label: 'Restart to update', onClick: () => void window.soam.update.installAndRestart() }],
+            });
+            console.log('[update-sim] ready — pushed success notification');
+            break;
+        }
+        _simStage++;
       },
       { category: 'Developer' },
     );
