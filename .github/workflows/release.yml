@@ -23,19 +23,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # No version pin — reads the `packageManager` field from package.json
-      # (pnpm@11.2.2) so CI and local use the same pnpm that produced the lockfile.
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: pnpm
+          cache: npm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       # Parse CHANGELOG.md and emit changelog.json + release-notes-<version>.md
       # before electron-builder runs so changelog.json is picked up by the
@@ -49,7 +44,7 @@ jobs:
           node scripts/build-changelog.mjs --release="$VERSION"
 
       - name: Build app
-        run: pnpm --filter ru-soam build
+        run: npm run build -w ru-soam
 
       # Channel is derived from the tag: hyphenated semver (v0.1.1-beta.1) → beta
       # channel (writes beta.yml/alpha.yml, never latest.yml); plain tag → latest
@@ -62,7 +57,7 @@ jobs:
           CHANNEL=latest
           if [[ "${GITHUB_REF_NAME}" == *-* ]]; then CHANNEL=beta; fi
           echo "channel=$CHANNEL"
-          pnpm --filter ru-soam exec electron-builder --config electron-builder.yml -c.publish.channel="$CHANNEL" --publish never
+          cd apps/desktop && npx electron-builder --config electron-builder.yml -c.publish.channel="$CHANNEL" --publish never
 
       # Upload top-level distributables to R2. Globs are intentionally non-recursive
       # so *-unpacked/ app executables are excluded.
@@ -94,17 +89,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: pnpm
+          cache: npm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Build site
         run: node apps/web/build.mjs
@@ -113,7 +105,7 @@ jobs:
           SITE_URL: https://ru-soam.pages.dev
 
       - name: Deploy to Cloudflare Pages
-        run: pnpm dlx wrangler@4 pages deploy apps/web/dist --project-name=ru-soam --branch=main
+        run: npx wrangler@4 pages deploy apps/web/dist --project-name=ru-soam --branch=main
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

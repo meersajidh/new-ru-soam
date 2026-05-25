@@ -1,6 +1,6 @@
 {
   "name": "ru-soam",
-  "version": "0.1.1",
+  "version": "0.1.4",
   "description": "ru-soam practitioner desktop workbench app",
   "homepage": "https://ru-soam.com",
   "author": {
@@ -14,17 +14,18 @@
   "scripts": {
     "build": "tsr generate && tsc -b && vite build && vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts && vite build --config vite.bundle-host.config.ts",
     "dev": "tsr generate && node scripts/dev.mjs",
-    "dist": "pnpm build && node scripts/build-changelog.mjs && electron-builder --config electron-builder.yml",
+    "dist": "npm run build && node scripts/build-changelog.mjs && electron-builder --config electron-builder.yml",
     "dist:install": "node scripts/install-launcher.mjs",
     "dist:uninstall": "node scripts/uninstall-launcher.mjs",
     "compile": "tsr generate && tsc -b",
     "lint": "eslint .",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "node scripts/rebuild-natives.mjs",
     "route-gen": "tsr generate",
     "test": "node --experimental-strip-types --experimental-loader=./scripts/test-loader.mjs --test electron/main/store/backup.test.ts electron/main/store/schema-gate.test.ts"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
+    "@electron/rebuild": "^4.0.4",
     "@rolldown/plugin-babel": "^0.2.3",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-query": "^5.100.9",
@@ -40,7 +41,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
-    "electron": "^41.2.2",
+    "electron": "41.6.1",
     "electron-builder": "^26.8.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -50,7 +51,7 @@
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
-    "@ru-soam/editor": "workspace:*",
+    "@ru-soam/editor": "*",
     "@scure/bip39": "^2.2.0",
     "@zxcvbn-ts/core": "^3.0.4",
     "better-sqlite3": "npm:better-sqlite3-multiple-ciphers@^12.9.0",

@@ -1,6 +1,46 @@
 {
   "versions": [
     {
+      "version": "0.1.4",
+      "date": "2026-05-25",
+      "entries": [
+        {
+          "kind": "Added",
+          "text": "App version is now shown in the status bar; click it (or run \"What's New\" from the command palette) to see the changelog."
+        },
+        {
+          "kind": "Added",
+          "text": "Notification centre: toast pop-ups, a notifications panel opened from the status-bar bell, an unread badge, and mark-as-read / dismiss controls."
+        },
+        {
+          "kind": "Added",
+          "text": "Update alerts: when an update is available, downloading, or ready to install, the app surfaces an in-app notification and a status-bar indicator with one-click Download / Restart actions (guided install on Linux)."
+        },
+        {
+          "kind": "Added",
+          "text": "\"What's new\" dialog that shows the changelog automatically the first time you run a new version."
+        }
+      ]
+    },
+    {
+      "version": "0.1.1",
+      "date": "2026-05-24",
+      "entries": [
+        {
+          "kind": "Changed",
+          "text": "Release artefacts and the auto-update feed moved to Cloudflare R2 (`dl.ru-soam.com`); `electron-updater` now uses the `generic` provider (ADR-204 Amendment 1)."
+        },
+        {
+          "kind": "Added",
+          "text": "Public download website (`apps/web`) with per-platform installers (Windows `.exe`, Linux `.deb`), SHA-512 checksums, and a changelog page — built at release time from the update manifests and deployed to Cloudflare Pages."
+        },
+        {
+          "kind": "Fixed",
+          "text": "Auto-update now reaches its feed. The 0.1.0 updater pointed at a private GitHub Releases endpoint that returned 404 to clients; the R2 generic feed is publicly reachable."
+        }
+      ]
+    },
+    {
       "version": "0.1.0",
       "date": "2026-05-24",
       "entries": [

@@ -1,0 +1,20 @@
+# NOTE: Both Renovate (renovate.json) and Dependabot are active.
+# They may both open update PRs for the same deps. Consider scoping one
+# (e.g., Dependabot) to security-only via `open-pull-requests-limit: 0`
+# and adding `security-advisories-only: true` if the overlap becomes noisy.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

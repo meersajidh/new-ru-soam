@@ -42,8 +42,8 @@ node apps/web/build.mjs
 # With a token (higher rate limit — needed in CI)
 GITHUB_TOKEN=ghp_... node apps/web/build.mjs
 
-# Or via pnpm script
-pnpm --filter ru-soam-web build
+# Or via npm script
+npm run build -w ru-soam-web
 ```
 
 Build output lands in `apps/web/dist/`. Preview locally:
@@ -66,7 +66,7 @@ Manual deploy (requires `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`):
 
 ```bash
 node apps/web/build.mjs
-pnpm dlx wrangler@4 pages deploy apps/web/dist --project-name=ru-soam --branch=main
+npx wrangler@4 pages deploy apps/web/dist --project-name=ru-soam --branch=main
 ```
 
 Or load `.env.local` first (it contains the Cloudflare credentials):
@@ -74,7 +74,7 @@ Or load `.env.local` first (it contains the Cloudflare credentials):
 ```bash
 export $(grep -v '^#' apps/web/.env.local | xargs)
 node apps/web/build.mjs
-pnpm dlx wrangler@4 pages deploy apps/web/dist --project-name=ru-soam --branch=main
+npx wrangler@4 pages deploy apps/web/dist --project-name=ru-soam --branch=main
 ```
 
 ## Token reference

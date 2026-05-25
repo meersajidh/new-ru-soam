@@ -20,7 +20,7 @@ This document slices the committed ADRs (100 / 200 / 300 / 400 / 500 ranges) int
 
 **Goal:** confirm Electron + React SPA + TanStack scaffolding holds.
 
-**Deliverable:** `pnpm dev` opens an empty Electron window; React mounts; TanStack Router + Query initialised; type-check + lint pass.
+**Deliverable:** `npm run dev -w ru-soam` opens an empty Electron window; React mounts; TanStack Router + Query initialised; type-check + lint pass.
 
 **ADRs:** ADR-101, ADR-201
 
@@ -273,7 +273,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
   - `window.top.location` → blocked (cross-origin)
   - `window.origin === "null"`
 - Theme swap (`workbench.theme.bamboo` ↔ `stone`) and dark-mode toggle each trigger one fresh `theme` postMessage into the iframe; computed `--color-surface-base` flips appropriately (`oklch(0.985 …)` ↔ `oklch(0.160 …)`).
-- `pnpm exec tsc -b` clean.
+- `npx tsc -b` clean.
 
 **ADRs:** ADR-411 (load-bearing). Workbench CSP carve-out and view-CSP omission of `frame-ancestors` documented in `electron/main/security.ts` and `electron/main/bundle-host/view-protocol.ts`.
 
@@ -298,7 +298,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - ✅ `developer.bundles.openEchoView` opens a sandboxed iframe in the Editor Area; bridge initialises and round-trips a capability call.
 - ✅ Theme swap and dark-mode toggle propagate CSS variables into the iframe.
 - ✅ Iframe cannot reach `window.soam`, `window.parent.document`, `window.top.location`, `require`, or `process`.
-- ✅ `pnpm exec tsc -b` clean across renderer, main, preload, bundle-host.
+- ✅ `npx tsc -b` clean across renderer, main, preload, bundle-host.
 
 ## Phase 7.5a — RuEdit core skeleton — Complete
 
@@ -306,7 +306,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 
 **Landed (Phase 7.5a):**
 
-- New workspace package `packages/editor/` (`@ru-soam/editor`), MIT/BSD ProseMirror deps only (`prosemirror-{model,state,view,transform,commands,keymap,history,schema-list,inputrules}` + `orderedmap`). `pnpm-workspace.yaml` widened to `packages/*`; root `tsconfig.json` references the new package.
+- New workspace package `packages/editor/` (`@ru-soam/editor`), MIT/BSD ProseMirror deps only (`prosemirror-{model,state,view,transform,commands,keymap,history,schema-list,inputrules}` + `orderedmap`). root `package.json` `workspaces` widened to `packages/*`; root `tsconfig.json` references the new package.
 - ProseMirror schema v1 (`packages/editor/src/schema.ts`): `doc`, `paragraph`, `heading` (levels 1–3), `bullet_list`, `ordered_list`, `list_item`, `blockquote`, `horizontal_rule`, `hard_break`, `text`. Marks: `strong`, `em`, `underline`, `code`. Stable per-block `_id` attr (UUID v4) emitted as `data-soam-id` in the DOM.
 - Stable-ID plugin (`id-plugin.ts`): `appendTransaction` stamps fresh UUIDs onto id-bearing blocks lacking one or sharing an id (split-sibling case). `ensureStableIds(doc)` normalizes a doc tree synchronously so `getDoc()` is stable before the first transaction.
 - Versioned JSON envelope (`json.ts`): `{ schemaVersion: 1, doc }`. `nodeToJSON` / `nodeFromJSON`; schema-version mismatch and unknown-node-type both throw a named `RuEditSchemaError` (with `cause`), never silent coercion.
@@ -330,7 +330,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - `nodeFromJSON({ schemaVersion: 1, doc: { type: "doc", content: [{ type: "made_up_node" }] } })` throws `RuEditSchemaError: RuEdit doc failed schema validation: Unknown node type: made_up_node`.
 - Full setDoc round-trip: `getDoc()` → `JSON.stringify` → `JSON.parse` → `setDoc()` → `getDoc()`; second dump identical to first (string equality on a doc containing `heading`, `bullet_list`, two `list_item`s — 675 bytes).
 - `mountRuEdit` → `dispose()` removes `.ProseMirror` from the host (manual leak smoke-test; formal heap-snapshot harness deferred to O146).
-- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+- `npx tsc -b apps/desktop packages/editor` clean.
 
 **ADRs:** ADR-414 (RuEdit primitive), ADR-415 (React/PM boundary). ADR-404 amended to reflect that prose-bearing editor types now compose RuEdit.
 
@@ -360,7 +360,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - `Ctrl+R` (renderer reload) → tab "RuEdit Scratch 1" reopens with the bullet-list content intact; `data-soam-id` of the top `<ul>` matches the value captured before reload (`63970f10-…` → `63970f10-…`).
 - `window.__soamRegistry.get({ id: "workbench.ruEdit" }).getActive()` returns `{ resource: "ru-edit-scratch://scratch-1", instanceId: "instance-1", handle: { getDoc: [Function], … } }`.
 - `getActive().handle.getDoc()` → `setDoc(doc)` → `getDoc()` returns byte-identical serialization (384 bytes).
-- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+- `npx tsc -b apps/desktop packages/editor` clean.
 
 **Open items raised (Phase 7.5b):**
 - **O148** — *(resolved in 7.5c)* Mark / heading **active-state** highlighting on toolbar buttons.
@@ -394,7 +394,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - `getActive().handle.getActiveState()` returns the documented shape; reflects `canUndo:true` after typing, `marks.strong:true` after `Ctrl+B`, `block:"heading"` + `headingLevel:2` after `Ctrl+2`, `inBulletList:true` after wrap.
 - DOM snapshot of toolbar buttons confirms only the matching button carries `is-active` + `aria-pressed="true"` (e.g. after `Ctrl+2`: `H2` is the only active button; `Redo` is `disabled:true` until an undo is applied).
 - Clicking `• List` while the cursor is in an `<h2>` produces `bullet_list → list_item → paragraph` (verified via `getDoc()`); a single `Ctrl+Z` restores the original heading-only doc (single tr → single history step).
-- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+- `npx tsc -b apps/desktop packages/editor` clean.
 
 **Open items deferred (still open after 7.5c):**
 - **O146** — Heap-snapshot dispose-leak harness. Still targeted at the Phase 9 hardening pass.
@@ -435,7 +435,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - Type `/hpi` + Tab → cursor lands on `{{chief_complaint}}` placeholder. Type "headache" → Tab finalizes. Doc contains zero `placeholder` nodes; `headache` is plain text.
 - Type `/disp` + Tab → picklist dropdown opens. Arrow keys + Enter select option. Tab finalizes / advances.
 - `Ctrl+Z` immediately after `/hpi` expansion fully reverses (one history step). Esc mid-walk also reverts to pre-expansion doc.
-- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+- `npx tsc -b apps/desktop packages/editor` clean.
 
 **Exit criteria:**
 
@@ -443,7 +443,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 - Schema v2 codec round-trips docs both with and without placeholders. Mismatched-version error is named and recoverable.
 - Picklist nodeView is vanilla DOM (no React in content path); confirmed by inspection.
 - Heap snapshot before / after a mount + dispose with snippets in the doc shows no leaked `EditorView`.
-- `pnpm exec tsc -b` clean for both `apps/desktop` and `packages/editor`.
+- `npx tsc -b` clean for both `apps/desktop` and `packages/editor`.
 
 **Open items raised (sequenced past Phase 8):**
 
@@ -590,7 +590,7 @@ Delete-workspace command lives in Phase 12 (Settings) per scope discipline.
 - Cold inspection of `workspaces/<uuid>/identity.envelope` → KEK-encrypted; not decryptable without unlock. After unlock, `window.soam.workspace.getIdentity()` returns `{ email }`.
 - Keychain inspection → no `kek-material` entry. `ru-soam.<workspaceId>.local-store-db-key` present per provisioned workspace.
 - Sign-out (`window.soam.workspace.signOut()`) → relock + clear `active-workspace.json` → `getActive()` returns `null`; sign-in via `setActive()` restores.
-- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+- `npx tsc -b apps/desktop packages/editor` clean.
 
 **Exit:**
 
@@ -761,7 +761,7 @@ $userData/
 - Idle 5 min → workspace locks; unlock gate appears.
 - Stub PHI capability call while locked from a developer command → typed `cap.locked` error shown in renderer console.
 - Sign-out from user-avatar menu → relock + active-workspace pointer cleared → setup route (since 1 workspace).
-- `pnpm exec tsc -b apps/desktop packages/editor` clean.
+- `npx tsc -b apps/desktop packages/editor` clean.
 
 **Exit:**
 
@@ -881,7 +881,7 @@ Split into **10a** (data pipeline) and **10b** (encryption + audit). 10a landed;
 - Settings cascade UI / capability surface — Phase 12.
 
 **Exit (verified):**
-- `pnpm --filter ru-soam-app compile` clean; `pnpm --filter @ru-soam/editor compile` clean; `pnpm --filter ru-soam-app lint` clean.
+- `npm run compile -w ru-soam-app` clean; `npm run compile -w @ru-soam/editor` clean; `npm run lint -w ru-soam-app` clean.
 - `local-store.db` on disk is ciphertext (not readable by plain `sqlite3` CLI).
 - Audit entries accumulate on unlock/relock/setup/passphrase-change/recovery/prefs-set.
 - Hash chain valid: `entry[n].prev_hash === entry[n-1].entry_hash`; genesis `prev_hash` is 64 zeros.

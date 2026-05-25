@@ -8,14 +8,17 @@
   },
   "private": true,
   "license": "private",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "check:public": "node scripts/check-public.mjs",
-    "check:all": "pnpm --filter ru-soam compile && pnpm --filter ru-soam lint && pnpm check:public",
+    "check:all": "npm run compile -w ru-soam && npm run lint -w ru-soam && npm run check:public",
     "prepare": "husky"
   },
-  "packageManager": "pnpm@11.2.2",
   "type": "module",
   "devDependencies": {
     "@eslint/js": "^10.0.1",

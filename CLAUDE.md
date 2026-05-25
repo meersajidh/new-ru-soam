@@ -29,7 +29,7 @@
 - ProseMirror (in `@ru-soam/editor`, RuEdit primitive)
 - Vite for renderer, main, preload, bundle-host bundles (four `vite.*.config.ts`)
 - TypeScript ESNext, ESM-only, `strict`, `verbatimModuleSyntax`, `erasableSyntaxOnly`
-- pnpm workspace; `just` for dev recipes; `electron-builder` for packaging
+- npm workspaces; `just` for dev recipes; `electron-builder` for packaging (migrated off pnpm — ADR-204 Amendment 2; npm's flat node_modules is required for correct native-module packaging on Windows)
 
 **Entry points:**
 
@@ -37,7 +37,7 @@
 - Main: `apps/desktop/electron/main/index.ts`
 - Preload: `apps/desktop/electron/preload/index.ts` (exposes `window.soam` — ADR-202)
 - Bundle Host: `apps/desktop/electron/bundle-host/index.ts` (Node process spawned on demand — ADR-410)
-- Dev: `just dev-desktop` or `pnpm --filter ru-soam dev`
+- Dev: `just dev-desktop` or `npm run dev -w ru-soam`
 
 ---
 
@@ -66,7 +66,7 @@
 ├── docs/                          # ADRs/, Proposals/, Guides/, References/, Implementation_Plan.md, Open_Items.md
 ├── server/                        # Placeholder
 ├── justfile                       # `just dev-desktop`
-└── pnpm-workspace.yaml            # apps/* + packages/*
+└── package.json                   # npm workspaces: apps/* + packages/*
 ```
 
 ---
@@ -105,8 +105,8 @@
 - **Renderer must never import `electron`** or any node built-in. Cross-zone access go through `window.soam.*` capabilities only (ADR-202).
 - **No `<webview>` and no direct `BrowserWindow`** outside `electron/main/window-factory.ts` (ADR-201). Bundle UIs render through sandboxed iframe + `view://` bridge (ADR-411).
 - **Brokered networking only** — no direct `fetch` from Renderer to third-party origins; use `app://` protocol or capability wrapping it (ADR-203).
-- Workspace package imports: use `@ru-soam/editor` (alias from `packages/editor` via pnpm workspace), not relative paths into `packages/*`.
-- TanStack Router: file-based routes in `apps/desktop/src/routes/`. Regenerate with `pnpm --filter ru-soam route-gen` after add/rename routes. No hand-edit `routeTree.gen.ts`.
+- Workspace package imports: use `@ru-soam/editor` (alias from `packages/editor` via npm workspace), not relative paths into `packages/*`.
+- TanStack Router: file-based routes in `apps/desktop/src/routes/`. Regenerate with `npm run route-gen -w ru-soam` after add/rename routes. No hand-edit `routeTree.gen.ts`.
 - Any architectural change (new trust-zone crossing, new contribution point, new protocol scheme, new persisted shape) requires ADR or Open Item entry — see `docs/README.md` and `docs/Open_Items.md`.
 
 ### UI / styling
@@ -125,10 +125,10 @@ No automated test suite yet. Verify changes with type-check + lint:
 
 ```bash
 # Type-check the whole workspace (project references via tsc -b)
-pnpm --filter ru-soam compile && pnpm --filter @ru-soam/editor compile
+npm run compile -w ru-soam && npm run compile -w @ru-soam/editor
 
 # Lint the desktop app
-pnpm --filter ru-soam lint
+npm run lint -w ru-soam
 
 # Smoke-run the app (dogfood verification — Implementation_Plan.md uses
 # "you can open the app and see X work" as the exit criterion for each phase)
@@ -193,6 +193,7 @@ only task-specific Goal / Scope / Constraints / Success criteria.
 - **ADR-204 Amendment 1 (2026-05-24): artefact host = Cloudflare R2, not GitHub Releases.** Source repo is private → public GH release assets 404 for anon (breaks website downloads AND shipped `electron-updater` feed). Pivot: `electron-updater` `provider: generic` reading `latest*.yml` from a public R2 bucket URL. R2 is download-only for generic, so CI builds `--publish never` then uploads `release/*.{exe,deb,yml,blockmap}` to R2 over the S3 API (endpoint `https://<acct>.r2.cloudflarestorage.com`, region `auto`). No GitHub Release created; website is the changelog surface. Prerelease = channel manifest `beta.yml` (from `-beta.N` tag), not a GH prerelease flag. Website shows SHA-512 from the manifest (not SHA-256). **Feed URL bakes into `app-update.yml` → must be fixed before first R2 release; v0.1.0 (GH provider) has a dead updater, first R2 release is the working baseline.** New open items O186 (public-access surface), O187 (retention), O188 (upload integrity). Needs R2 S3 creds as GH secrets (`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET`/`R2_PUBLIC_URL`) — separate from the Pages `CLOUDFLARE_API_TOKEN`.
 - Phase 10b migration runner must resolve O182 before wiring `schema-gate.ts`: migrations use a `_schema_version` table, but ADR-308 / `schema-gate.ts` assume `PRAGMA user_version` (reads 0 today). Pick one source of truth. `createPreMigrationBackup` + `quiesceForUpdate` helpers exist but are not yet wired into the live migration path.
 - ESM main + bundle-host bundles need a `createRequire` banner. Vite 8/Rolldown bundles CJS deps (electron-updater, @scure/bip39, zxcvbn, lucide) whose internal `require('fs')` compiles to a `__require` helper that throws in ESM (`require` undefined) — packaged app crashed at startup with "Calling require for fs in an environment that doesn't expose the require function". Fix: `rollupOptions.output.banner` injecting `import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);` in `vite.main.config.ts` + `vite.bundle-host.config.ts`. Rolldown then routes all CJS requires through the real require (no `__require` helper emitted). Preserves ESM-only convention; preload already CJS so unaffected. Do NOT switch main to CJS.
+- **Package manager = npm (npm workspaces), NOT pnpm — required for correct native-module packaging (ADR-204 Amendment 2).** (Full pnpm post-mortem in ADR-204 Am.2: symlinked/junction layout not packed on Windows + the `node-linker=hoisted` wrong-ABI dead end; v0.1.0–0.1.3 burned.) **Do NOT reintroduce pnpm or `node-linker=hoisted`.** npm fixes it structurally: **flat real-dir `node_modules`** → the only packed modules are the two natives (no junctions), and `postinstall: node scripts/rebuild-natives.mjs` rebuilds them to the **Electron ABI (145)**. **Do NOT use `electron-builder install-app-deps` in postinstall — under npm workspaces it re-enters `npm install`, which re-fires postinstall → unbounded recursion (fork-bomb; ~150 stacked procs).** `rebuild-natives.mjs` calls `@electron/rebuild` (devDep `^4.0.4`) directly with **`buildPath=apps/desktop`** (dep discovery — root `package.json` doesn't list `better-sqlite3`) **+ `projectRootPath`=repo root** (locates the hoisted natives). BOTH args required: the flat hoist splits where the dep is *declared* (app) from where it physically *lives* (root `node_modules`); a single `buildPath` makes discovery and location disagree and the rebuild silently no-ops (reports "REBUILD DONE", touches nothing — verify via `.node` mtime + `ELECTRON_RUN_AS_NODE` ABI check, not the tool's exit code). `force:true`; `onlyModules` = `better-sqlite3` + its `better-sqlite3-multiple-ciphers` alias (both ship a `.node`, both rebuilt). `@node-rs/argon2` is napi/Node-API (ABI-stable) → intentionally NOT rebuilt. Packaging is plain `electron-builder --config electron-builder.yml` (no deploy hack); `electron-builder.yml` keeps `asarUnpack` (`**/*.node` + the two native pkgs) + `npmRebuild: false`. `@ru-soam/editor` is renderer-only (Vite-bundled into `dist/`), never packed. Commands: `npm ci`, `npm run <script> -w ru-soam`. Lockfile = committed `package-lock.json`. Dependency cooldown (npm has no install-time `minimumReleaseAge`): **Renovate** (`renovate.json`, `minimumReleaseAge: 7 days`) + **Dependabot** (`.github/dependabot.yml`, `cooldown.default-days: 7`) gate updates; npm runs all install scripts (no `allowBuilds` gate — O191). Verification gate before tagging a release: **launch the packaged binary** + `ELECTRON_RUN_AS_NODE` check that the packed `.node` loads under Electron (ABI 145). First working baseline = v0.1.4 (0.1.2/0.1.3 burned).
 
 ---
 

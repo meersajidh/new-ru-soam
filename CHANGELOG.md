@@ -7,6 +7,15 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-05-25
+
+### Added
+
+- App version is now shown in the status bar; click it (or run "What's New" from the command palette) to see the changelog.
+- Notification centre: toast pop-ups, a notifications panel opened from the status-bar bell, an unread badge, and mark-as-read / dismiss controls.
+- Update alerts: when an update is available, downloading, or ready to install, the app surfaces an in-app notification and a status-bar indicator with one-click Download / Restart actions (guided install on Linux).
+- "What's new" dialog that shows the changelog automatically the first time you run a new version.
+
 ## [0.1.1] - 2026-05-24
 
 ### Changed
@@ -51,6 +60,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ru-Soam identity class and `.desktop` name now match across all Linux surfaces.
 - Preload capability doctrine clarified — all non-bedrock capabilities go through `bindCapability`.
 
-[Unreleased]: https://github.com/meersajidh/new-ru-soam/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/meersajidh/new-ru-soam/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/meersajidh/new-ru-soam/compare/v0.1.1...v0.1.4
 [0.1.1]: https://github.com/meersajidh/new-ru-soam/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/meersajidh/new-ru-soam/releases/tag/v0.1.0

@@ -7,16 +7,16 @@ default:
 # ── Dev ──────────────────────────────────────────────────────────────────────
 
 dev-desktop:
-    @cd apps/desktop && pnpm dev
+    @cd apps/desktop && npm run dev
 
 # Build packaged release (.deb on Linux, .exe on Windows)
 build-desktop:
-    @cd apps/desktop && pnpm dist
+    @cd apps/desktop && npm run dist
 
-# Alias: same as build-desktop (mirrors `pnpm --filter ru-soam dist`)
+# Alias: same as build-desktop (mirrors `npm run dist -w ru-soam`)
 dist:
-    @cd apps/desktop && pnpm dist
+    @cd apps/desktop && npm run dist
 
 # Install .desktop + icons via xdg
 install-desktop:
-    @cd apps/desktop && pnpm dist:install
+    @cd apps/desktop && npm run dist:install
