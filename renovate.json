@@ -3,5 +3,13 @@
   "extends": ["config:recommended"],
   "minimumReleaseAge": "7 days",
   "internalChecksFilter": "strict",
-  "lockFileMaintenance": { "enabled": true }
+  "lockFileMaintenance": { "enabled": true },
+  "packageRules": [
+    {
+      "description": "Electron pinned to 41.x — v42's V8-14 API breaks better-sqlite3-multiple-ciphers compile (O157). Block major bumps until resolved.",
+      "matchPackageNames": ["electron"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
 }

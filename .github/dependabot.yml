@@ -12,6 +12,12 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 5
+    ignore:
+      # Electron is pinned to 41.x — Electron 42's V8-14 API breaks the
+      # better-sqlite3-multiple-ciphers native compile (O157). Allow 41.x
+      # patch/minor; block major bumps until O157 is resolved.
+      - dependency-name: "electron"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

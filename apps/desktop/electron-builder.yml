@@ -1,8 +1,8 @@
 appId: ru-soam
 productName: Ru-Soam
-# Renderer/main/preload/bundle-host natives are rebuilt via the
-# `postinstall: electron-builder install-app-deps` step. Disable the
-# packager's own rebuild pass to avoid double work and asar-cache stalls.
+# Native modules are rebuilt to the Electron ABI by the app's
+# `postinstall: node scripts/rebuild-natives.mjs` (@electron/rebuild). Disable
+# the packager's own rebuild pass to avoid double work and asar-cache stalls.
 npmRebuild: false
 
 directories:
@@ -58,6 +58,16 @@ win:
   icon: electron/assets/icon/icon.ico
   target:
     - nsis
+  # App-local VC++ runtime DLLs placed next to ru-soam.exe so the MSVC-linked
+  # native binding (@node-rs/argon2 imports vcruntime140.dll) loads on a clean
+  # Windows that has no VC++ redistributable installed. vcruntime140*.dll /
+  # msvcp140.dll are NOT part of Windows (only the Universal CRT is); MS licenses
+  # them for app-local redistribution. better-sqlite3 is statically linked and
+  # needs nothing here. (ADR-204 packaging amendment.)
+  extraFiles:
+    - from: build/win-runtime
+      to: .
+      filter: ["*.dll"]
 
 # ADR-308 §1: installer must NOT touch userData.
 # One-click installer (oneClick default = true): double-click installs to
