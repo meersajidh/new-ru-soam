@@ -12,6 +12,12 @@ jobs:
   desktop:
     name: Desktop (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # Use bash on both OSes (Git Bash on Windows). Default Windows shell is
+    # pwsh, which aborts a step on any native-command stderr / non-zero exit
+    # and can swallow npm output — npm ci then fails with zero diagnostics.
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -29,8 +35,14 @@ jobs:
           node-version: 24
           cache: npm
 
+      # `npm install`, not `npm ci`: the committed lockfile is generated on
+      # Linux and only records that platform's native optional deps, so a
+      # strict `npm ci` on Windows can't resolve `@rolldown/binding-win32-x64-msvc`
+      # (Vite/Rolldown) or `@node-rs/argon2-win32-x64-msvc` (npm bug #4828).
+      # `npm install` honours the locked versions but re-resolves the current
+      # runner's platform optionals. (O191 — revisit a fully cross-platform lock.)
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       # Parse CHANGELOG.md and emit changelog.json + release-notes-<version>.md
       # before electron-builder runs so changelog.json is picked up by the
