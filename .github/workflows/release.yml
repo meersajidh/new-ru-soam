@@ -132,10 +132,21 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
         run: |
           ENDPOINT="https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com"
-          for f in apps/desktop/release/*.exe apps/desktop/release/*.blockmap apps/desktop/release/*.deb apps/desktop/release/*.yml; do
+          put() {
+            echo "uploading $1 (cache-control: $2)"
+            aws s3 cp "$1" "s3://${R2_BUCKET}/" --endpoint-url "$ENDPOINT" --cache-control "$2"
+          }
+          # Versioned installers + blockmaps never change for a given version →
+          # cache hard at the edge (fast downloads, low R2 egress).
+          for f in apps/desktop/release/*.exe apps/desktop/release/*.deb apps/desktop/release/*.blockmap; do
             [ -e "$f" ] || continue
-            echo "uploading $f"
-            aws s3 cp "$f" "s3://${R2_BUCKET}/" --endpoint-url "$ENDPOINT"
+            put "$f" "public, max-age=31536000, immutable"
+          done
+          # Update manifests change in place across releases and MUST be fresh so
+          # electron-updater detects new versions → never cache them.
+          for f in apps/desktop/release/*.yml; do
+            [ -e "$f" ] || continue
+            put "$f" "no-cache, max-age=0, must-revalidate"
           done
 
   web:
@@ -163,7 +174,10 @@ jobs:
           R2_PUBLIC_URL: https://dl.ru-soam.com
           SITE_URL: https://ru-soam.pages.dev
 
+      # Skipped when build.mjs warned-and-skipped (no stable manifest → no dist/),
+      # keeping the previously deployed site live instead of failing the release.
       - name: Deploy to Cloudflare Pages
+        if: hashFiles('apps/web/dist/index.html') != ''
         run: npx wrangler@4 pages deploy apps/web/dist --project-name=ru-soam --branch=main
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -328,34 +328,34 @@ function copyDirSync(src, dest) {
 async function main() {
   console.log('[web/build] fetching update manifests from R2…');
 
-  // 1. Fetch stable manifests (fatal on missing/unparseable)
-  const stableWinYaml = await fetchText(`${R2_PUBLIC_URL}/latest.yml`).catch((err) => {
-    console.error(`[web/build] ERROR: failed to fetch latest.yml: ${err.message}`);
-    process.exit(1);
-  });
-  if (!stableWinYaml) {
-    console.error('[web/build] ERROR: latest.yml returned 404 — no stable release published yet');
-    process.exit(1);
-  }
+  // 1. Fetch stable manifests. Missing or unfetchable → WARN + skip the build
+  //    (exit 0, write no dist/) so a release isn't blocked and the previously
+  //    deployed site stays live; the Deploy step is guarded on dist/ existing.
+  //    A manifest that IS fetched but malformed stays fatal (real corruption).
+  const skip = (reason) => {
+    console.warn(`[web/build] WARN: ${reason} — skipping site build (no dist/ written).`);
+    process.exit(0);
+  };
 
-  const stableLinuxYaml = await fetchText(`${R2_PUBLIC_URL}/latest-linux.yml`).catch((err) => {
-    console.error(`[web/build] ERROR: failed to fetch latest-linux.yml: ${err.message}`);
-    process.exit(1);
-  });
-  if (!stableLinuxYaml) {
-    console.error('[web/build] ERROR: latest-linux.yml returned 404 — no stable release published yet');
-    process.exit(1);
-  }
+  const stableWinYaml = await fetchText(`${R2_PUBLIC_URL}/latest.yml`).catch((err) =>
+    skip(`failed to fetch latest.yml: ${err.message}`),
+  );
+  if (!stableWinYaml) skip('latest.yml returned 404 — no stable release published yet');
+
+  const stableLinuxYaml = await fetchText(`${R2_PUBLIC_URL}/latest-linux.yml`).catch((err) =>
+    skip(`failed to fetch latest-linux.yml: ${err.message}`),
+  );
+  if (!stableLinuxYaml) skip('latest-linux.yml returned 404 — no stable release published yet');
 
   const stableWin = parseManifest(stableWinYaml);
   if (!stableWin || !stableWin.path || !stableWin.version) {
-    console.error('[web/build] ERROR: latest.yml missing path or version');
+    console.error('[web/build] ERROR: latest.yml fetched but malformed (missing path/version)');
     process.exit(1);
   }
 
   const stableLinux = parseManifest(stableLinuxYaml);
   if (!stableLinux || !stableLinux.path || !stableLinux.version) {
-    console.error('[web/build] ERROR: latest-linux.yml missing path or version');
+    console.error('[web/build] ERROR: latest-linux.yml fetched but malformed (missing path/version)');
     process.exit(1);
   }
 
