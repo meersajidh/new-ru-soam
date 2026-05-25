@@ -86,26 +86,24 @@ jobs:
       - name: Build app
         run: npm run build -w ru-soam
 
-      # Stage the VC++ runtime app-local so @node-rs/argon2's native binding loads
-      # on a clean Windows with no VC++ redistributable (it imports vcruntime140.dll,
-      # which is NOT part of Windows). Sourced from the runner's VS redist
-      # (Microsoft.VC143.CRT) = MS-canonical app-local set → a build-environment
-      # input, not vendored in git (*.dll is gitignored). electron-builder.yml
-      # win.extraFiles copies build/win-runtime/*.dll next to ru-soam.exe.
-      # (ADR-204 packaging amendment. better-sqlite3 is statically linked.)
-      - name: Stage VC++ runtime DLLs (Windows)
+      # Node's dlopen uses LOAD_WITH_ALTERED_SEARCH_PATH → a .node's dependent DLLs
+      # are resolved from the .node's OWN directory, NOT the exe dir. So the VC++
+      # runtime must sit NEXT TO the binding: copy it into the argon2 package dir;
+      # asarUnpack (node_modules/@node-rs/argon2*/**) then ships it alongside
+      # argon2.win32-x64-msvc.node in app.asar.unpacked. argon2 imports
+      # vcruntime140.dll, which is NOT part of Windows (only the Universal CRT is) —
+      # without this the app crashes "Failed to load native binding" on a clean
+      # Windows with no VC++ redistributable. Source = the runner's installed VC++
+      # runtime (System32). better-sqlite3 is statically linked → needs nothing.
+      # (ADR-204 packaging amendment. *.dll is gitignored — staged, not vendored.)
+      - name: Stage VC++ runtime next to the native binding (Windows)
         if: runner.os == 'Windows'
         run: |
-          mkdir -p apps/desktop/build/win-runtime
-          crt="$(find '/c/Program Files/Microsoft Visual Studio/2022' -type d -name 'Microsoft.VC143.CRT' -path '*x64*' 2>/dev/null | sort | tail -1)"
-          if [ -n "$crt" ]; then
-            echo "Staging VC143.CRT from: $crt"
-            cp "$crt"/*.dll apps/desktop/build/win-runtime/
-          else
-            echo "VS redist dir not found; falling back to System32"
-            cp /c/Windows/System32/vcruntime140.dll /c/Windows/System32/vcruntime140_1.dll /c/Windows/System32/msvcp140.dll apps/desktop/build/win-runtime/
-          fi
-          ls -l apps/desktop/build/win-runtime/
+          dest="node_modules/@node-rs/argon2-win32-x64-msvc"
+          cp /c/Windows/System32/vcruntime140.dll \
+             /c/Windows/System32/vcruntime140_1.dll \
+             /c/Windows/System32/msvcp140.dll "$dest/"
+          ls -l "$dest"/*.dll
 
       # Channel is derived from the tag: hyphenated semver (v0.1.1-beta.1) → beta
       # channel (writes beta.yml/alpha.yml, never latest.yml); plain tag → latest
