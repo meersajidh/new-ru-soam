@@ -35,21 +35,40 @@ jobs:
           node-version: 24
           cache: npm
 
-      # `npm install`, not `npm ci`: the committed lockfile is generated on
-      # Linux and only records that platform's native optional deps, so a
-      # strict `npm ci` on Windows can't resolve `@rolldown/binding-win32-x64-msvc`
-      # (Vite/Rolldown) or `@node-rs/argon2-win32-x64-msvc` (npm bug #4828).
-      # `npm install` honours the locked versions but re-resolves the current
-      # runner's platform optionals. (O191 — revisit a fully cross-platform lock.)
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci
 
-      # npm still occasionally skips the Windows-native Rolldown binding in
-      # workspace installs, so install the exact native packages directly on
-      # Windows before the build starts.
-      - name: Install Windows native bindings
+      # npm bug #4828: a lockfile generated on Linux records NO win32 package
+      # nodes for platform-native optional deps, and neither `npm ci` nor
+      # `npm install` will synthesize them on Windows. Install every win32
+      # binding explicitly, pinned to the exact version its parent declares, so
+      # `vite build` (rolldown / lightningcss / @tailwindcss/oxide) and the
+      # packed runtime (@node-rs/argon2) get their native `.node`. Regenerate the
+      # family list if native deps change:
+      #   node -e 'const l=require("./package-lock.json");const s=new Set();for(const[p,i]of Object.entries(l.packages||{}))if(i&&(i.os||i.cpu))s.add(p.split("node_modules/").pop().replace(/-(win32|linux|darwin|android|freebsd|openharmony|wasm32)(-.*)?$/,""));console.log([...s].sort())'
+      - name: Install Windows native bindings (npm #4828)
         if: runner.os == 'Windows'
-        run: npm install --no-audit --no-fund --no-save @rolldown/binding-win32-x64-msvc@1.0.2 @node-rs/argon2-win32-x64-msvc@2.0.2
+        run: |
+          specs="$(node -e '
+            const l = require("./package-lock.json");
+            const binds = [
+              "@rolldown/binding-win32-x64-msvc",
+              "lightningcss-win32-x64-msvc",
+              "@tailwindcss/oxide-win32-x64-msvc",
+              "@node-rs/argon2-win32-x64-msvc",
+            ];
+            const out = [];
+            for (const b of binds) {
+              let v = null;
+              for (const i of Object.values(l.packages || {}))
+                if (i && i.optionalDependencies && i.optionalDependencies[b]) { v = i.optionalDependencies[b]; break; }
+              if (!v) { console.error("::error::no lockfile pin for " + b); process.exit(1); }
+              out.push(b + "@" + v);
+            }
+            process.stdout.write(out.join(" "));
+          ')"
+          echo "win32 native bindings: $specs"
+          npm install --no-save --no-audit --no-fund $specs
 
       # Parse CHANGELOG.md and emit changelog.json + release-notes-<version>.md
       # before electron-builder runs so changelog.json is picked up by the
