@@ -58,5 +58,9 @@
     "better-sqlite3-multiple-ciphers": "^12.9.0",
     "electron-updater": "^6.8.6",
     "lucide-react": "^1.16.0"
+  },
+  "optionalDependencies": {
+    "@node-rs/argon2-linux-x64-gnu": "2.0.2",
+    "@node-rs/argon2-win32-x64-msvc": "2.0.2"
   }
 }

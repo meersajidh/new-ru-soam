@@ -42,9 +42,12 @@ jobs:
       # nodes for platform-native optional deps, and neither `npm ci` nor
       # `npm install` will synthesize them on Windows. Install every win32
       # binding explicitly, pinned to the exact version its parent declares, so
-      # `vite build` (rolldown / lightningcss / @tailwindcss/oxide) and the
-      # packed runtime (@node-rs/argon2) get their native `.node`. Regenerate the
-      # family list if native deps change:
+      # `vite build` (rolldown / lightningcss / @tailwindcss/oxide) finds its
+      # native `.node`. These are BUILD-only and never packed. (@node-rs/argon2
+      # is a *runtime* dep that must ship in app.asar, so its win32 binding is
+      # declared in apps/desktop optionalDependencies → committed lockfile →
+      # npm ci installs it + electron-builder packs it; not handled here.)
+      # Regenerate the build-tool family list if native devDeps change:
       #   node -e 'const l=require("./package-lock.json");const s=new Set();for(const[p,i]of Object.entries(l.packages||{}))if(i&&(i.os||i.cpu))s.add(p.split("node_modules/").pop().replace(/-(win32|linux|darwin|android|freebsd|openharmony|wasm32)(-.*)?$/,""));console.log([...s].sort())'
       - name: Install Windows native bindings (npm #4828)
         if: runner.os == 'Windows'
@@ -55,7 +58,6 @@ jobs:
               "@rolldown/binding-win32-x64-msvc",
               "lightningcss-win32-x64-msvc",
               "@tailwindcss/oxide-win32-x64-msvc",
-              "@node-rs/argon2-win32-x64-msvc",
             ];
             const out = [];
             for (const b of binds) {
