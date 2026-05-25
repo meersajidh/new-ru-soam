@@ -44,6 +44,13 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      # npm still occasionally skips the Windows-native Rolldown binding in
+      # workspace installs, so install the exact native packages directly on
+      # Windows before the build starts.
+      - name: Install Windows native bindings
+        if: runner.os == 'Windows'
+        run: npm install --no-audit --no-fund --no-save @rolldown/binding-win32-x64-msvc@1.0.2 @node-rs/argon2-win32-x64-msvc@2.0.2
+
       # Parse CHANGELOG.md and emit changelog.json + release-notes-<version>.md
       # before electron-builder runs so changelog.json is picked up by the
       # `files` glob in electron-builder.yml.
