@@ -62,7 +62,7 @@ jobs:
           CHANNEL=latest
           if [[ "${GITHUB_REF_NAME}" == *-* ]]; then CHANNEL=beta; fi
           echo "channel=$CHANNEL"
-          pnpm --filter ru-soam exec electron-builder --config electron-builder.yml -c.publish.channel="$CHANNEL" --publish never
+          node apps/desktop/scripts/package.mjs --channel="$CHANNEL"
 
       # Upload top-level distributables to R2. Globs are intentionally non-recursive
       # so *-unpacked/ app executables are excluded.

@@ -16,6 +16,14 @@ files:
   - changelog.json
   - package.json
 
+# Native bindings must live outside app.asar (V8 cannot dlopen a .node
+# from inside an asar). electron-builder auto-unpacks *.node, but be
+# explicit so the napi-rs platform package + better-sqlite3 ship whole.
+asarUnpack:
+  - "**/*.node"
+  - "node_modules/better-sqlite3-multiple-ciphers/**"
+  - "node_modules/@node-rs/argon2*/**"
+
 # First-party bundles ship under `resources/bundles/`, which is what
 # `bundle-host/loader.ts` reads via `path.join(process.resourcesPath, 'bundles')`
 # in packaged builds.
