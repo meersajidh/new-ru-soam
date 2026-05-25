@@ -7,6 +7,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-05-25
+
+### Fixed
+
+- Windows app failed to launch with "Failed to load native binding" (affected 0.1.0–0.1.2). Native modules are now packaged from a flattened dependency tree so they load correctly on Windows. This restores the 0.1.2 features — version status bar, notification centre, update alerts, and the "What's new" dialog — for Windows users, who could not start the previous builds.
+
 ## [0.1.2] - 2026-05-25
 
 ### Added
