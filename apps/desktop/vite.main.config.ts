@@ -29,6 +29,14 @@ export default defineConfig(({ mode }) => {
           .filter(([k]) => k.startsWith('VITE_'))
           .map(([k, v]) => [`import.meta.env.${k}`, JSON.stringify(v)]),
       ),
+      // PROD-BUILD-ONLY credential injection (O309c). Set OAUTH_BUILD_CLIENT_ID /
+      // OAUTH_BUILD_CLIENT_SECRET in the CI/packaging environment — NOT in .env
+      // (which is the dev runtime file; setting them there would bake dev secrets
+      // into the prod bundle). Dev builds without these vars bake empty string →
+      // process.env['GOOGLE_*'] still wins at runtime. Do NOT key off
+      // GOOGLE_CLIENT_ID/SECRET here — reusing the dev vars would leak them.
+      __OAUTH_CLIENT_ID__: JSON.stringify(process.env['OAUTH_BUILD_CLIENT_ID'] ?? ''),
+      __OAUTH_CLIENT_SECRET__: JSON.stringify(process.env['OAUTH_BUILD_CLIENT_SECRET'] ?? ''),
     },
     plugins: [copyMainAssets()],
     build: {

@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import { app, BrowserWindow, net, protocol, session } from 'electron';
+import { app, BrowserWindow, dialog, net, protocol, session } from 'electron';
 import { installCsp } from './security';
 import { createWorkbenchWindow } from './window-factory';
 import { installSoamChannel } from './ipc/soam-channel';
@@ -20,6 +20,7 @@ import { registerPlatformDevCapability } from './capability/platform-dev';
 import { registerPrefsCapability } from './capability/prefs';
 import { registerAuditCapability } from './capability/audit-cap';
 import { registerPlatformAuthCapability } from './capability/platform-auth';
+import { isOAuthConfigured } from './auth/oauth.js';
 import { localStoreManager } from './local-store/index';
 import { auditService } from './audit/index';
 // Phase 9: crypto + credentials + lock + workspace
@@ -90,6 +91,16 @@ const autoLockHandleRef = createAutoLockHandleRef();
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
+  // ── OAuth configuration gate ──────────────────────────────────────────────
+  if (!isOAuthConfigured()) {
+    dialog.showErrorBox(
+      'OAuth not configured',
+      'The app cannot sign in and will now exit. Contact your app administrator.',
+    );
+    app.exit(1);
+    return;
+  }
+
   // ── Phase 9 bootstrap per Implementation_Plan.md §Phase 9a pinned decisions ──
   //
   // Order:

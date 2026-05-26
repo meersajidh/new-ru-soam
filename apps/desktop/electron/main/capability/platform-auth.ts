@@ -5,7 +5,8 @@
  *   signInWithGoogle(): SignInWithGoogleResult
  *     Opens system browser for Google OAuth PKCE flow. Returns { ok: true, email, googleId }
  *     on success. Returns { ok: false, code: 'not-configured' } when GOOGLE_CLIENT_ID /
- *     GOOGLE_CLIENT_SECRET are absent (renderer falls back to mock dialog in dev).
+ *     GOOGLE_CLIENT_SECRET are absent — defensive guard only; the app now exits at launch
+ *     if credentials are missing, so this code path is not normally reachable.
  *
  * ADR-202: renderer reaches this through bindCapability('platform.auth', '1.0').
  * ADR-304: tokens are discarded in oauth.ts — never returned to renderer.

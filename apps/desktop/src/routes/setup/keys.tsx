@@ -40,7 +40,7 @@ import {
   ArrowRight,
   ArrowLeft,
 } from 'lucide-react';
-import { MockOAuthModal, ProgressRail } from './-keys-components';
+import { ProgressRail } from './-keys-components';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
 import GoogleMark from '../../platform/auth/GoogleMark';
@@ -93,8 +93,6 @@ function SetupKeysContent() {
     workspaceId: null,
   });
 
-  // Step 1 modal visibility (mock fallback when capability is not-configured)
-  const [showOAuthModal, setShowOAuthModal] = useState(false);
   const [step1Loading, setStep1Loading] = useState(false);
   const [step1Error, setStep1Error] = useState('');
 
@@ -120,12 +118,6 @@ function SetupKeysContent() {
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  function handleOAuthSuccess(email: string, googleId: string) {
-    setShowOAuthModal(false);
-    setStep1Error('');
-    setState((s) => ({ ...s, email, googleId, step: 2 }));
-  }
-
   async function handleGoogleSignIn() {
     setStep1Loading(true);
     setStep1Error('');
@@ -137,11 +129,6 @@ function SetupKeysContent() {
           | { ok: false; code: string; message?: string };
         if (result.ok) {
           setState((s) => ({ ...s, email: result.email, googleId: result.googleId, step: 2 }));
-          return;
-        }
-        if (result.code === 'not-configured') {
-          // Dev fallback: show mock dialog
-          setShowOAuthModal(true);
           return;
         }
         setStep1Error(result.message ?? `Sign-in failed (${result.code}).`);
@@ -303,12 +290,6 @@ function SetupKeysContent() {
             Cancel
           </Button>
           // </div>
-        )}
-        {showOAuthModal && (
-          <MockOAuthModal
-            onSuccess={handleOAuthSuccess}
-            onCancel={() => setShowOAuthModal(false)}
-          />
         )}
       </div>
     );

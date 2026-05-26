@@ -2,8 +2,10 @@
  * Google OAuth PKCE + loopback flow (ADR-309 Part A).
  *
  * Scopes: openid email profile ONLY (ADR-310 defers calendar).
- * Client secret read from process.env (Google "Desktop app" clients require
- * it for code exchange even with PKCE).
+ * Credentials sourced from process.env (dev — GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+ * loaded from repo-root .env via justfile) OR build-time injection (prod — Vite
+ * `define` bakes OAUTH_BUILD_CLIENT_ID / OAUTH_BUILD_CLIENT_SECRET at package time,
+ * O309c stopgap). process.env takes precedence; baked constants are the fallback.
  *
  * After exchange: decode id_token payload locally → { email, googleId, name?, picture? }.
  * Access token, refresh token, and id_token are discarded immediately.
@@ -14,6 +16,12 @@ import { randomBytes } from 'crypto';
 import { shell } from 'electron';
 import { generateVerifier, generateChallenge } from './pkce.js';
 import { createLoopbackListener } from './loopback.js';
+
+// Build-time injected credentials (O309c stopgap) — baked by Vite `define` in
+// vite.main.config.ts from OAUTH_BUILD_CLIENT_ID / OAUTH_BUILD_CLIENT_SECRET.
+// Empty string when not set at build time (dev builds, CI without prod vars).
+declare const __OAUTH_CLIENT_ID__: string;
+declare const __OAUTH_CLIENT_SECRET__: string;
 
 export interface GoogleIdentityClaims {
   readonly email: string;
@@ -45,17 +53,30 @@ function decodeIdToken(idToken: string): {
 }
 
 /**
+ * Returns true only when BOTH a client id AND secret resolve via the same
+ * precedence used by signInWithGoogle: process.env wins, baked constants
+ * (O309c) are the fallback. Use at app startup to gate the OAuth launch-check.
+ */
+export function isOAuthConfigured(): boolean {
+  const clientId = process.env['GOOGLE_CLIENT_ID'] || __OAUTH_CLIENT_ID__;
+  const clientSecret = process.env['GOOGLE_CLIENT_SECRET'] || __OAUTH_CLIENT_SECRET__;
+  return Boolean(clientId && clientSecret);
+}
+
+/**
  * Run the full PKCE + loopback OAuth flow.
  *
  * Returns verified identity claims extracted from the id_token.
  * All tokens are discarded after claim extraction — never returned to caller.
  *
- * @throws if GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are unset, OAuth fails,
- *         or the id_token is malformed.
+ * @throws if GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (dev) and build-time
+ *         __OAUTH_CLIENT_ID__ / __OAUTH_CLIENT_SECRET__ (prod, O309c) are all
+ *         unset, OAuth fails, or the id_token is malformed.
  */
 export async function signInWithGoogle(): Promise<GoogleIdentityClaims> {
-  const clientId = process.env['GOOGLE_CLIENT_ID'];
-  const clientSecret = process.env['GOOGLE_CLIENT_SECRET'];
+  // Dev: process.env wins (root .env via justfile). Prod: falls back to baked constants (O309c).
+  const clientId = process.env['GOOGLE_CLIENT_ID'] || __OAUTH_CLIENT_ID__;
+  const clientSecret = process.env['GOOGLE_CLIENT_SECRET'] || __OAUTH_CLIENT_SECRET__;
 
   if (!clientId || !clientSecret) {
     throw Object.assign(new Error('Google OAuth credentials not configured'), {

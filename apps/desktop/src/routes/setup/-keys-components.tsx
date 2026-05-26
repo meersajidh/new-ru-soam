@@ -6,16 +6,8 @@
  */
 
 import './-keys-components.css';
-import { useState, useEffect, useRef } from 'react';
 import { Check } from 'lucide-react';
-import { generateMockGoogleId } from '../../platform/auth/mock-oauth';
-import GoogleMark from '../../platform/auth/GoogleMark';
 import { STEPS, STEP_HEADLINES } from './-keys-constants';
-import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import { Button } from '../../platform/ui/Button';
-import { TextInput } from '../../platform/ui/TextInput';
-import { FormField } from '../../platform/ui/FormField';
-import { Dialog } from '../../platform/ui/Dialog';
 
 export { STEPS, STEP_HEADLINES };
 
@@ -64,70 +56,3 @@ export function ProgressRail({ step }: { step: number }) {
   );
 }
 
-// ── Mock OAuth Modal ──────────────────────────────────────────────────────────
-
-export function MockOAuthModal({
-  onSuccess,
-  onCancel,
-}: {
-  onSuccess: (email: string, googleId: string) => void;
-  onCancel: () => void;
-}) {
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useModalKeys(onCancel);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const trimmed = email.trim();
-    if (!/.+@.+\..+/.test(trimmed)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-    onSuccess(trimmed, generateMockGoogleId());
-  }
-
-  return (
-    <Dialog open={true} onClose={onCancel} width={360} aria-labelledby="mock-oauth-title">
-      <div className="setup-modal-header">
-        <GoogleMark size={32} />
-        <h2 id="mock-oauth-title" className="setup-modal-title">
-          Sign in with Google
-        </h2>
-        <p className="setup-modal-subtitle">
-          (mock — real OAuth lands in a future release)
-        </p>
-      </div>
-      <form onSubmit={handleSubmit} className="setup-modal-form">
-        <FormField label="Email address" htmlFor="mock-email" error={error || null}>
-          <TextInput
-            id="mock-email"
-            ref={inputRef}
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setError('');
-            }}
-            placeholder="you@example.com"
-            autoComplete="email"
-          />
-        </FormField>
-        <div className="setup-modal-actions">
-          <Button type="button" variant="ghost" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" variant="primary">
-            Sign in
-          </Button>
-        </div>
-      </form>
-    </Dialog>
-  );
-}
