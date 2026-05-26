@@ -63,7 +63,7 @@ Old app at `/home/meer/Repos/msh/ru-soam` (OUTSIDE this repo; readable directly 
 - `apps/desktop/src/platform/statusbar/anchored-ids.ts` — add the `workbench.version` entry (initial `text: ''`, `visible: true`).
 - `apps/desktop/src/workbench/boot.ts` — fetch version at boot, `statusBar.update('workbench.version', { text: 'v'+version, tooltip: ... })`.
 
-**Success criteria:** App shows `v0.1.1` (matches `apps/desktop/package.json`) at the inner-right of the status bar; tooltip shows full name+version; `npm run compile -w ru-soam` + `lint` clean; visible in `just dev-desktop`.
+**Success criteria:** App shows `v0.1.1` (matches `apps/desktop/package.json`) at the inner-right of the status bar; tooltip shows full name+version; `pnpm --filter ru-soam compile` + `lint` clean; visible in `just dev-desktop`.
 
 **Watch out:** Renderer must never import `electron` (ADR-202) — version comes through `window.soam` only.
 
@@ -115,4 +115,4 @@ Old app at `/home/meer/Repos/msh/ru-soam` (OUTSIDE this repo; readable directly 
 - If Unit 1 uses a new `platform.app@1.0` capability instead of preload bedrock → log it (new contribution point).
 
 ## Verification (no automated test suite)
-Per `CLAUDE.md`: `npm run compile -w ru-soam && npm run compile -w @ru-soam/editor`, `npm run lint -w ru-soam`, then dogfood with `just dev-desktop`. Use the `agent-browser` skill for Electron dogfooding if needed.
+Per `CLAUDE.md`: `pnpm --filter ru-soam compile && pnpm --filter @ru-soam/editor compile`, `pnpm --filter ru-soam lint`, then dogfood with `just dev-desktop`. Use the `agent-browser` skill for Electron dogfooding if needed.
