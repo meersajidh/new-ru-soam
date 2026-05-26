@@ -7,7 +7,8 @@
  *   soam:lock:relock, soam:lock:heartbeat,
  *   soam:setup:generate, soam:setup:acknowledge,
  *   soam:workspace:list, soam:workspace:get-active, soam:workspace:set-active,
- *   soam:workspace:create, soam:workspace:sign-out, soam:workspace:get-identity.
+ *   soam:workspace:create, soam:workspace:sign-out, soam:workspace:get-identity,
+ *   soam:workspace:delete.
  *
  * Lock-state-change emits via soam:event with name 'lock.changed'.
  * Workspace-change emits via soam:event with name 'workspace.changed'.
@@ -31,7 +32,9 @@ import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol.js';
 import type {
   WorkspaceCreateResult,
   WorkspaceSetActiveResult,
+  DeleteWorkspaceResult,
 } from '../../shared/lock-protocol.js';
+import { credentialStore } from '../credentials/index.js';
 import type { BrowserWindow } from 'electron';
 
 type GetWindow = () => BrowserWindow | null;
@@ -342,6 +345,68 @@ export function installLockChannel(
     emitLockChanged(getWindow, getActiveLockService);
 
     return null;
+  });
+
+  // ── soam:workspace:delete ──────────────────────────────────────────────────
+  ipcMain.handle('soam:workspace:delete', async (event, args: unknown) => {
+    if (!isPlatformSender(event)) return null;
+
+    try {
+      // Validate args shape
+      if (
+        !args ||
+        typeof args !== 'object' ||
+        typeof (args as Record<string, unknown>)['nicknameConfirm'] !== 'string'
+      ) {
+        return { ok: false, code: 'not-active' } satisfies DeleteWorkspaceResult;
+      }
+      const { nicknameConfirm } = args as { nicknameConfirm: string };
+
+      // a. Resolve active workspace + service
+      const id = workspaceRegistry.getActive();
+      const svc = getActiveLockService();
+      if (!id || !svc) {
+        return { ok: false, code: 'not-active' } satisfies DeleteWorkspaceResult;
+      }
+
+      // b. Must be unlocked
+      if (svc.getState().locked) {
+        return { ok: false, code: 'locked' } satisfies DeleteWorkspaceResult;
+      }
+
+      // c. Confirm nickname matches stored meta
+      const meta = workspaceRegistry.getMeta(id);
+      if (!meta || nicknameConfirm.trim() !== meta.nickname) {
+        return { ok: false, code: 'nickname-mismatch' } satisfies DeleteWorkspaceResult;
+      }
+
+      // e. Close SQLite handle FIRST (open handle blocks dir removal on Windows)
+      localStoreManager.closeActive();
+
+      // f. Dispose LockService + cancel auto-lock
+      svc.relock();
+      rebindAutoLock(autoLockHandleRef, null);
+      setActiveLockService(null);
+
+      // g. Erase credentials
+      credentialStore.deleteAllForWorkspace(id);
+
+      // h. Remove workspace directory
+      workspaceRegistry.delete(id);
+
+      // i. Clear active pointer
+      workspaceRegistry.setActive(null);
+
+      // j. Emit events — renderer routes to picker/onboarding
+      emitWorkspaceChanged(getWindow);
+      emitLockChanged(getWindow, getActiveLockService);
+
+      // k. Done — no audit emit (per ADR-403: ledger destroyed with workspace)
+      return { ok: true } satisfies DeleteWorkspaceResult;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, code: 'error', message } satisfies DeleteWorkspaceResult;
+    }
   });
 
   // ── soam:workspace:get-identity ────────────────────────────────────────────

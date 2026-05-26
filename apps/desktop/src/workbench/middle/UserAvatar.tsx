@@ -15,10 +15,12 @@ import {
   KeyRound,
   Lock,
   LogOut,
+  Trash2,
 } from 'lucide-react';
 import { useContextKey, useService } from '../../platform/services/hooks';
 import { CommandServiceId } from '../../platform/services/ids';
 import ChangePassphraseDialog from './ChangePassphraseDialog';
+import DeleteWorkspaceDialog from './DeleteWorkspaceDialog';
 import './UserAvatar.css';
 
 export default function UserAvatar() {
@@ -30,6 +32,7 @@ export default function UserAvatar() {
   const [email, setEmail] = useState<string>('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [showChangePassphrase, setShowChangePassphrase] = useState(false);
+  const [showDeleteWorkspace, setShowDeleteWorkspace] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -89,6 +92,11 @@ export default function UserAvatar() {
   function handleChangePassphrase() {
     setMenuOpen(false);
     setShowChangePassphrase(true);
+  }
+
+  function handleDeleteWorkspace() {
+    setMenuOpen(false);
+    setShowDeleteWorkspace(true);
   }
 
   async function handleSwitchWorkspace() {
@@ -187,6 +195,17 @@ export default function UserAvatar() {
               <span className="user-avatar-menu-item-label">Sign out</span>
             </button>
 
+            <button
+              className="user-avatar-menu-item user-avatar-menu-item--destructive"
+              role="menuitem"
+              onClick={handleDeleteWorkspace}
+            >
+              <span className="user-avatar-menu-item-icon">
+                <Trash2 size={14} />
+              </span>
+              <span className="user-avatar-menu-item-label">Delete workspace…</span>
+            </button>
+
             {import.meta.env.DEV && (
               <>
                 <div className="user-avatar-menu-divider" aria-hidden="true" />
@@ -202,6 +221,13 @@ export default function UserAvatar() {
 
       {showChangePassphrase && (
         <ChangePassphraseDialog onClose={() => setShowChangePassphrase(false)} />
+      )}
+
+      {showDeleteWorkspace && (
+        <DeleteWorkspaceDialog
+          nickname={nickname}
+          onClose={() => setShowDeleteWorkspace(false)}
+        />
       )}
     </>
   );

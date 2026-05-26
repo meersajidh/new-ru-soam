@@ -124,6 +124,25 @@ The `unlocked` state is when the workspace shell renders normally. Auto-lock tri
 
 **Multi-window for multi-Entity (post-503).** ADR-503's multi-Entity-per-practitioner case may want concurrent multi-workspace views (two clinic workspaces side-by-side). That uses **separate windows**, each bound to a different workspace. The MVP (ADR-501) supports a single bound workspace per window with switching; the Clinic extension is additive per the §Forward-compatibility section above.
 
+### Workspace deletion (self) — _Added 2026-05-26_
+
+A workspace's owner can **permanently delete the workspace they are currently signed into**. This is the only deletion path in MVP: an Individual Entity's sole principal retiring their own Entity (ADR-501 — admin and practitioner roles collapse into one identity). Cross-workspace / super-admin deletion (one principal deleting another's workspace) is **out of MVP scope** — it is a multi-principal authority operation that belongs to Clinic tenancy (ADR-503) and must be **server-enforced** once the Cloud Backend zone exists; a locally-asserted authority provides no real boundary (any principal with filesystem access can already remove a workspace directory). Tracked as **O417**.
+
+**Preconditions.** Delete acts only on the **active, unlocked** workspace (the user is "within" it). It is reached from the in-workspace account surface (the user-avatar menu danger action), not the picker — the picker delete affordance is reserved for the deferred super-admin case (O417). Confirmation is by **typing the workspace nickname** — the guard against *accidental* deletion, which is the real risk here. **No passphrase re-entry:** the workspace is already unlocked, so the KEK is in memory and the principal is already past the auth boundary (they can read/export all PHI and change the passphrase from this same session) — a passphrase prompt to delete would be confirmation theatre, not a security control. The walk-up threat (an unlocked machine left unattended) is owned by auto-lock (ADR-307), not by this dialog. The typed-nickname check must pass before any teardown begins. _(Self-delete differs from the deferred super-admin path (O417), which **does** re-auth: there the admin acts on a workspace that is **not** unlocked to them, so they authenticate with their own credential — a real boundary, server-enforced.)_
+
+**Teardown is irreversible and ordered.** Deletion destroys the workspace's encrypted Local Store, `identity.envelope`, and the means to recover them (the recovery code is not re-derivable). The teardown sequence is load-bearing:
+
+1. Verify active + unlocked; reject otherwise.
+2. Verify typed nickname equals `meta.nickname`.
+3. **Close the open Local Store handle first** (release the SQLite file handle — an open handle blocks directory removal on Windows; cf. the clean-close discipline in the quit path / ADR-308 §6).
+4. Dispose the active `LockService` and cancel its auto-lock handle (zeroing the in-memory KEK).
+5. Delete every `workspaceId`-namespaced CredentialStore entry (ADR-304) — `local-store-db-key` today; the full type set as it grows under O307f.
+6. Recursively remove `$userData/workspaces/<uuid>/`.
+7. Clear the `active-workspace.json` pointer (`setActive(null)`).
+8. Emit `workspace.changed` (active = null) + `lock.changed`; the renderer routes to the picker or zero-workspaces onboarding per the four-state lifecycle table above.
+
+**No local audit entry.** A `workspace.deleted` event has no durable home: the per-workspace audit/consent ledger (ADR-502) lives *inside* the workspace and is destroyed with it, so a local emit would be written then immediately deleted. Auditing a deletion durably requires an out-of-workspace sink — a server/Clinic concern, deferred with O417. (Self-deletion by the sole principal is also low audit-value: there is no second party to attribute the action to.)
+
 ## Consequences
 
 ### Positive
@@ -157,3 +176,4 @@ The `unlocked` state is when the workspace shell renders normally. Auto-lock tri
 - **O54** — Workspace-scoped bundle enablement (clinic admin disables a bundle for the whole Entity). Useful for Clinic case; not in MVP scope. Settings-shape question for ADR-407 follow-ups.
 - **O55** — Workspace settings cloud-mirror policy. Are layout and recents Operational (cloud-mirrored if sync is on) or device-local (never synced)? Layout = arguable Operational; recents = arguable PHI-adjacent (a list of patient IDs is access metadata). Default: layout local-only, recents local-only, explicit settings (configuration values) Operational. Confirm when first first-party bundle ships.
 - **O56** — Workspace-level bundle setting risk surface (a bundle setting that points to an external endpoint, etc.). For MVP no such surface exists; for the longer term, decide whether workspace settings need a trust prompt analogous to VSCode workspace trust.
+- **O417** — Super-admin cross-workspace delete (deferred). Cross-principal deletion is out of MVP scope per §"Workspace deletion (self)"; it requires server-enforced authority (ADR-503 / Cloud Backend). Self-delete (this ADR) ships now.

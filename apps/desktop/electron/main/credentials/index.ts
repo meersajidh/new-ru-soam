@@ -86,6 +86,23 @@ export class CredentialStore {
     delete store[k];
     writeStore(store);
   }
+
+  /**
+   * Remove every credential whose key begins with `ru-soam.<workspaceId>.`.
+   * Future-proofs against new credential types added beyond `local-store-db-key`.
+   */
+  deleteAllForWorkspace(workspaceId: string): void {
+    const prefix = `ru-soam.${workspaceId}.`;
+    const store = readStore();
+    let changed = false;
+    for (const key of Object.keys(store)) {
+      if (key.startsWith(prefix)) {
+        delete store[key];
+        changed = true;
+      }
+    }
+    if (changed) writeStore(store);
+  }
 }
 
 export const credentialStore = new CredentialStore();

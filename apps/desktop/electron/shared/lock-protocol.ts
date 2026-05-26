@@ -60,3 +60,7 @@ export type WorkspaceCreateResult =
 export type WorkspaceSetActiveResult =
   | { ok: true }
   | { ok: false; code: 'unknown-workspace' };
+
+export type DeleteWorkspaceResult =
+  | { ok: true }
+  | { ok: false; code: 'not-active' | 'locked' | 'nickname-mismatch' | 'error'; message?: string };

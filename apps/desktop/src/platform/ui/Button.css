@@ -69,6 +69,35 @@
   cursor: not-allowed;
 }
 
+/* ── Danger variant ────────────────────────────────────────────────────────── */
+
+.btn--danger {
+  background: var(--color-error);
+  color: #fff;
+  border: none;
+  @apply rounded-full;
+  @apply text-sm font-semibold;
+  padding: 12px 22px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-error) 70%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 15%, transparent);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 85%, black 15%);
+}
+
+.btn--danger:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 75%, black 25%);
+  transform: translateY(1px);
+}
+
+.btn--danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 /* ── Small modifier ────────────────────────────────────────────────────────── */
 
 .btn--sm {

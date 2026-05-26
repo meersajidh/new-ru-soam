@@ -144,6 +144,15 @@ export class WorkspaceRegistry {
   }
 
   /**
+   * Permanently remove a workspace directory and all its contents.
+   * Does NOT touch the active-workspace pointer or credentials — caller handles those.
+   */
+  delete(workspaceId: string): void {
+    const dir = path.join(userDataRoot(), 'workspaces', workspaceId);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+
+  /**
    * Bump lastSignedIn to now for a workspace.
    * Called on successful unlock.
    */

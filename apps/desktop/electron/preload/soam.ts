@@ -16,6 +16,7 @@ import type {
   WorkspaceChangedEvent,
   WorkspaceCreateResult,
   WorkspaceSetActiveResult,
+  DeleteWorkspaceResult,
 } from '../shared/lock-protocol';
 import type { UpdateState, UpdateStateChangedPayload } from '../shared/update';
 
@@ -71,6 +72,7 @@ export interface SoamWorkspace {
   readonly create: (args: { nickname: string; email: string }) => Promise<WorkspaceCreateResult>;
   readonly signOut: () => Promise<void>;
   readonly getIdentity: () => Promise<{ email: string; googleId?: string } | null>;
+  readonly delete: (args: { nicknameConfirm: string }) => Promise<DeleteWorkspaceResult>;
   readonly onChange: (listener: (e: WorkspaceChangedEvent) => void) => () => void;
 }
 
@@ -119,17 +121,14 @@ export interface Soam {
 
 let nextId = 1;
 
-function call(req: Omit<CapabilityCallRequest, 'id'>): Promise<unknown> {
+async function call(req: Omit<CapabilityCallRequest, 'id'>): Promise<unknown> {
   const id = nextId++;
   const payload: CapabilityCallRequest = { id, ...req };
-  return ipcRenderer
-    .invoke(SOAM_CALL_CHANNEL, payload)
-    .then((res: CapabilityCallResponse) => {
-      if (res.ok) return res.data;
-      const err = new Error(`[${res.error.code}] ${res.error.message}`);
-      (err as Error & { code?: string }).code = res.error.code;
-      throw err;
-    });
+  const res = (await ipcRenderer.invoke(SOAM_CALL_CHANNEL, payload)) as CapabilityCallResponse;
+  if (res.ok) return res.data;
+  const err = new Error(`[${res.error.code}] ${res.error.message}`);
+  (err as Error & { code?: string }).code = res.error.code;
+  throw err;
 }
 
 // ── Lock bridge helpers ────────────────────────────────────────────────────────
@@ -210,6 +209,9 @@ const workspace: SoamWorkspace = {
     return ipcRenderer.invoke('soam:workspace:get-identity') as Promise<
       { email: string } | null
     >;
+  },
+  async delete(args) {
+    return ipcRenderer.invoke('soam:workspace:delete', args) as Promise<DeleteWorkspaceResult>;
   },
   onChange(listener) {
     const handler = (_e: unknown, payload: PlatformEvent) => {
