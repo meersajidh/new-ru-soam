@@ -1,0 +1,32 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Flat real-dir node_modules — NOT pnpm's default isolated/symlinked linker.
+# The isolated linker is what left electron-builder unable to pack native
+# .node files on Windows (junctions not followed) across v0.1.0–0.1.2; the npm
+# migration fixed that structurally with a flat layout. `hoisted` reproduces
+# that flat layout under pnpm. (pnpm 11 reads nodeLinker from THIS file, not
+# .npmrc.)
+nodeLinker: hoisted
+
+# pnpm 10+ gates ALL dependency lifecycle (install/postinstall) scripts by
+# default (supply-chain guard — a reason to prefer pnpm). pnpm 11.3 expects the
+# `allowBuilds` MAP here (the older `onlyBuiltDependencies` array is NOT read),
+# one explicit true/false per build-script dep:
+#   electron                        → true: postinstall downloads the Electron
+#                                     binary (needed for dev / `electron .`)
+#   better-sqlite3-multiple-ciphers → true: node-gyp build of the SQLCipher
+#                                     .node (also re-pinned to Electron ABI 145
+#                                     by apps/desktop's postinstall rebuild-natives)
+#   electron-winstaller             → false: Squirrel.Windows packer, unused
+#                                     (we ship NSIS only — ADR-204)
+# @node-rs/argon2 ships prebuilt napi binaries → no build script → absent here;
+# its correct per-platform optional is resolved by pnpm itself from the single
+# committed lockfile (the npm #4828 workaround is intentionally dropped to test
+# exactly that). The apps/desktop postinstall is a workspace-project script,
+# which pnpm does NOT gate.
+allowBuilds:
+  electron: true
+  better-sqlite3-multiple-ciphers: true
+  electron-winstaller: false

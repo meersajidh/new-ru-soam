@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     # Use bash on both OSes (Git Bash on Windows). Default Windows shell is
     # pwsh, which aborts a step on any native-command stderr / non-zero exit
-    # and can swallow npm output — npm ci then fails with zero diagnostics.
+    # and can swallow output — pnpm install then fails with zero diagnostics.
     defaults:
       run:
         shell: bash
@@ -29,48 +29,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
+          cache: pnpm
 
+      # pnpm resolves platform-native optional deps per-platform from the single
+      # committed pnpm-lock.yaml — so the npm #4828 win32-binding workaround step
+      # is intentionally absent here. If `vite build` (rolldown / lightningcss /
+      # @tailwindcss/oxide) or @node-rs/argon2 fails to find its win32 .node on
+      # the Windows leg, that's the experiment FAILING its core hypothesis — do
+      # not paper over it with an explicit install.
       - name: Install dependencies
-        run: npm ci
-
-      # npm bug #4828: a lockfile generated on Linux records NO win32 package
-      # nodes for platform-native optional deps, and neither `npm ci` nor
-      # `npm install` will synthesize them on Windows. Install every win32
-      # binding explicitly, pinned to the exact version its parent declares, so
-      # `vite build` (rolldown / lightningcss / @tailwindcss/oxide) finds its
-      # native `.node`. These are BUILD-only and never packed. (@node-rs/argon2
-      # is a *runtime* dep that must ship in app.asar, so its win32 binding is
-      # declared in apps/desktop optionalDependencies → committed lockfile →
-      # npm ci installs it + electron-builder packs it; not handled here.)
-      # Regenerate the build-tool family list if native devDeps change:
-      #   node -e 'const l=require("./package-lock.json");const s=new Set();for(const[p,i]of Object.entries(l.packages||{}))if(i&&(i.os||i.cpu))s.add(p.split("node_modules/").pop().replace(/-(win32|linux|darwin|android|freebsd|openharmony|wasm32)(-.*)?$/,""));console.log([...s].sort())'
-      - name: Install Windows native bindings (npm #4828)
-        if: runner.os == 'Windows'
-        run: |
-          specs="$(node -e '
-            const l = require("./package-lock.json");
-            const binds = [
-              "@rolldown/binding-win32-x64-msvc",
-              "lightningcss-win32-x64-msvc",
-              "@tailwindcss/oxide-win32-x64-msvc",
-            ];
-            const out = [];
-            for (const b of binds) {
-              let v = null;
-              for (const i of Object.values(l.packages || {}))
-                if (i && i.optionalDependencies && i.optionalDependencies[b]) { v = i.optionalDependencies[b]; break; }
-              if (!v) { console.error("::error::no lockfile pin for " + b); process.exit(1); }
-              out.push(b + "@" + v);
-            }
-            process.stdout.write(out.join(" "));
-          ')"
-          echo "win32 native bindings: $specs"
-          npm install --no-save --no-audit --no-fund $specs
+        run: pnpm install --frozen-lockfile
 
       # Parse CHANGELOG.md and emit changelog.json + release-notes-<version>.md
       # before electron-builder runs so changelog.json is picked up by the
@@ -84,7 +59,7 @@ jobs:
           node scripts/build-changelog.mjs --release="$VERSION"
 
       - name: Build app
-        run: npm run build -w ru-soam
+        run: pnpm --filter ru-soam build
 
       # Node's dlopen uses LOAD_WITH_ALTERED_SEARCH_PATH → a .node's dependent DLLs
       # are resolved from the .node's OWN directory, NOT the exe dir. So the VC++
@@ -116,7 +91,7 @@ jobs:
           CHANNEL=latest
           if [[ "${GITHUB_REF_NAME}" == *-* ]]; then CHANNEL=beta; fi
           echo "channel=$CHANNEL"
-          cd apps/desktop && npx electron-builder --config electron-builder.yml -c.publish.channel="$CHANNEL" --publish never
+          cd apps/desktop && pnpm exec electron-builder --config electron-builder.yml -c.publish.channel="$CHANNEL" --publish never
 
       # Upload top-level distributables to R2. Globs are intentionally non-recursive
       # so *-unpacked/ app executables are excluded.
@@ -159,14 +134,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build site
         run: node apps/web/build.mjs
