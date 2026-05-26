@@ -53,7 +53,17 @@ Exact credential-type names and per-type wrap policy are settled at implementati
 
 **A4. Identity is workspace-scoped.** Old auth was a single global account. Here identity binds to the active workspace's Entity (ADR-501): email/`googleId` land in that workspace's `identity.envelope`; CredentialStore keys are `workspaceId`-namespaced (ADR-304). Switching workspaces is sign-out + sign-in (ADR-403). The stable `{ email, googleId }` interface of `mock-oauth.ts` is the seam real OAuth slots into.
 
-**A5. Thin first slice.** The committed slice is **identity only** — obtain a verified `{ email, googleId }` (+ refresh token storage), bind it to the workspace, replace the mock. No server round-trip, no calendar, no licensing. Those are deferred (Part B; ADR-310).
+**A5. Thin first slice.** The committed slice is **identity only** — obtain a verified `{ email, googleId }`, bind it to the workspace, replace the mock. No refresh/access token storage (no consumer yet, and no workspaceId/KEK exists at the point OAuth fires), no server round-trip, no calendar, no licensing. Those are deferred (Part B; ADR-310; O309a).
+
+**A6. Credential delivery (dev vs prod).** The flow needs a Google OAuth `client_id` and (for "Desktop app" clients) a `client_secret`, read by Main from `process.env`.
+
+- **`client_id` is not secret** — it appears in the authorization URL and is safe to ship.
+- **The Desktop-app `client_secret` is a pseudo-secret.** Per Google's installed-app model, a desktop client cannot keep a secret confidential; security rests on **PKCE + loopback**, not on the secret. Shipping it in a desktop binary is accepted practice, but a leaked `client_id`+`client_secret` lets a third party impersonate this OAuth client (phishing under the app's identity) — a bounded but real risk for a PHI product.
+
+Delivery by environment:
+
+- **Dev (committed):** credentials live in a **repo-root `.env`** loaded by the `justfile`'s `set dotenv-load`, inherited by `cd apps/desktop && pnpm run dev` into Main's runtime `process.env`. **Not** `apps/desktop/.env` — Vite's `loadEnv` only injects `import.meta.env.VITE_*`, never `process.env.GOOGLE_*` into Main, and inlining the secret via Vite `define` would bake it into the production bundle. A root `.env.example` documents the contract. `.env` is gitignored. When Main reads an empty `client_id`, the `platform.auth` capability returns `not-configured` and the renderer falls back to the mock dialog.
+- **Prod (deferred — O309c):** the packaged app has no `just` and no `.env`; runtime `process.env` is empty, so the dev mechanism does not carry over. Prod credential delivery is **intentionally unsolved here** and coupled to Part B (O309a), because (1) real identity OAuth has no prod consumer until cloud sync lands (Phase 11/12), and (2) the correct prod shape ships **no** secret — the Cloud Backend performs the code exchange, the client carries only `client_id`. A pre-backend prod build that needs identity is the only case requiring the stopgap: build-time injection of `client_id`+`client_secret` into the Main bundle (a small code path, since packaged runtime `process.env` is empty), accepting the desktop pseudo-secret caveat above.
 
 ### Part B — Cloud Backend identity service (deferred, Proposed direction)
 
@@ -97,4 +107,5 @@ Reusable with light adaptation: `electron/main/auth/{oauth,loopback,pkce,token}.
 - **O307g** — Real Google OAuth integration (Part A). Now scoped by this ADR: PKCE+loopback in Main, capability surface, storage decomposition, workspace binding.
 - **O307f** — Per-credential wrap policy; settles `google-oauth-refresh` / `cloud-session-token` raw-vs-kek-wrapped.
 - **O309a** — Cloud Backend identity service design (Part B): verification, JWT, refresh rotation, token-exchange home (Main vs backend / client-secret removal). Own ADR when taken up. Phase 11/12.
+- **O309c** — Prod OAuth credential delivery (§A6). Dev uses root `.env`; packaged builds have no `.env`/`just`, runtime `process.env` is empty. End state: Cloud Backend does the exchange, client ships only `client_id` (folds into O309a). Stopgap if a pre-backend prod identity build is needed: build-time inject `client_id`+`client_secret` into the Main bundle. Gated on Part B unless a prod identity build is forced earlier.
 - **O309b** — Subscription & licensing model (old ADR-0013 successor): server JWT + offline license JWT, plan-as-claim, grace period. Own ADR. Gated on Part B.
