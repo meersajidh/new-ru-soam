@@ -28,6 +28,13 @@ export type SetupGenerateResult =
   | { ok: true; recoveryCode: string[] }
   | { ok: false; code: 'already-set-up' | 'no-active-workspace' };
 
+/** Identity payload accepted by setup:acknowledge. googleId optional (O307g). */
+export interface SetupAcknowledgeIdentity {
+  readonly email: string;
+  /** Google account subject claim. Present when real OAuth ran; absent in dev mock flow. */
+  readonly googleId?: string;
+}
+
 export type SetupAcknowledgeResult =
   | { ok: true }
   | { ok: false; code: 'not-generated' | 'expired' | 'no-active-workspace' };

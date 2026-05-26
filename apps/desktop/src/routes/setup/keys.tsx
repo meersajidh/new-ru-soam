@@ -93,8 +93,10 @@ function SetupKeysContent() {
     workspaceId: null,
   });
 
-  // Step 1 modal visibility
+  // Step 1 modal visibility (mock fallback when capability is not-configured)
   const [showOAuthModal, setShowOAuthModal] = useState(false);
+  const [step1Loading, setStep1Loading] = useState(false);
+  const [step1Error, setStep1Error] = useState('');
 
   // Step 3 passphrase fields
   const [confirmPassphrase, setConfirmPassphrase] = useState('');
@@ -120,7 +122,37 @@ function SetupKeysContent() {
 
   function handleOAuthSuccess(email: string, googleId: string) {
     setShowOAuthModal(false);
+    setStep1Error('');
     setState((s) => ({ ...s, email, googleId, step: 2 }));
+  }
+
+  async function handleGoogleSignIn() {
+    setStep1Loading(true);
+    setStep1Error('');
+    try {
+      const cap = await window.soam.bindCapability('platform.auth', '1.0');
+      try {
+        const result = (await cap.call('signInWithGoogle')) as
+          | { ok: true; email: string; googleId: string }
+          | { ok: false; code: string; message?: string };
+        if (result.ok) {
+          setState((s) => ({ ...s, email: result.email, googleId: result.googleId, step: 2 }));
+          return;
+        }
+        if (result.code === 'not-configured') {
+          // Dev fallback: show mock dialog
+          setShowOAuthModal(true);
+          return;
+        }
+        setStep1Error(result.message ?? `Sign-in failed (${result.code}).`);
+      } finally {
+        cap.dispose();
+      }
+    } catch (err) {
+      setStep1Error(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setStep1Loading(false);
+    }
   }
 
   async function handlePassphraseNext() {
@@ -180,7 +212,12 @@ function SetupKeysContent() {
     setFinishLoading(true);
     setFinishError('');
     try {
-      const res = await window.soam.setup.acknowledge({ identity: { email: state.email } });
+      const res = await window.soam.setup.acknowledge({
+        identity: {
+          email: state.email,
+          ...(state.googleId ? { googleId: state.googleId } : {}),
+        },
+      });
       if (res.ok) {
         await navigate({ to: '/' });
         return;
@@ -249,10 +286,17 @@ function SetupKeysContent() {
             ? 'Sign in to create an additional workspace. Your data stays on this device — encrypted end-to-end by a passphrase only you hold.'
             : 'Create your secure workspace. Your data stays on this device — encrypted end-to-end by a passphrase only you hold.'}
         </p>
-        <button className="btn-google setup-btn-google" onClick={() => setShowOAuthModal(true)}>
+        <button
+          className="btn-google setup-btn-google"
+          onClick={() => void handleGoogleSignIn()}
+          disabled={step1Loading}
+        >
           <GoogleMark size={18} />
-          Continue with Google
+          {step1Loading ? 'Signing in…' : 'Continue with Google'}
         </button>
+        {step1Error && (
+          <p className="text-xs text-error m-0 flex items-center gap-1.5">{step1Error}</p>
+        )}
         {addNew && (
           // <div className="setup-actions border-2">
           <Button variant="ghost" onClick={() => void navigate({ to: '/workspaces' })}>

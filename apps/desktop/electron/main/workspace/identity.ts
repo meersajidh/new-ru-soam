@@ -13,6 +13,8 @@ import { identityPath } from './paths.js';
 
 export interface Identity {
   readonly email: string;
+  /** Google account subject (sub) claim. Optional: absent in pre-O307g envelopes. */
+  readonly googleId?: string;
 }
 
 /** Canonical-JSON AAD for identity envelope. Keys sorted: purpose, workspaceId. */

@@ -19,6 +19,7 @@ import { registerPhiDemoEchoCapability } from './capability/phi-demo-echo';
 import { registerPlatformDevCapability } from './capability/platform-dev';
 import { registerPrefsCapability } from './capability/prefs';
 import { registerAuditCapability } from './capability/audit-cap';
+import { registerPlatformAuthCapability } from './capability/platform-auth';
 import { localStoreManager } from './local-store/index';
 import { auditService } from './audit/index';
 // Phase 9: crypto + credentials + lock + workspace
@@ -172,6 +173,7 @@ app.whenReady().then(() => {
   registerPlatformDevCapability();
   registerPrefsCapability();
   registerAuditCapability();
+  registerPlatformAuthCapability();
   registerUpdateCapability();
 
   protocol.handle('app', (request) => {

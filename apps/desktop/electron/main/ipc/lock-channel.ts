@@ -218,7 +218,12 @@ export function installLockChannel(
     ) {
       return { ok: false, code: 'not-generated' };
     }
-    const identity = (args as { identity: { email: string } }).identity;
+    const rawIdentity = (args as { identity: { email: string; googleId?: unknown } }).identity;
+    // Accept optional googleId if it is a string; ignore if present but wrong type.
+    const identity: { email: string; googleId?: string } = {
+      email: rawIdentity.email,
+      ...(typeof rawIdentity.googleId === 'string' ? { googleId: rawIdentity.googleId } : {}),
+    };
     const result = svc.setupAcknowledge({ identity });
     if (result.ok) {
       const workspaceId = workspaceRegistry.getActive();

@@ -421,7 +421,7 @@ export class LockService {
    *
    * Writes lock.json, identity.envelope, bumps lastSignedIn, sets active workspace pointer.
    */
-  setupAcknowledge(args: { identity: { email: string } }): SetupAcknowledgeResult {
+  setupAcknowledge(args: { identity: { email: string; googleId?: string } }): SetupAcknowledgeResult {
     if (!this._staged) {
       return { ok: false, code: 'not-generated' };
     }

@@ -59,7 +59,7 @@ export interface SoamLock {
 
 export interface SoamSetup {
   readonly generate: (args: { passphrase: string }) => Promise<SetupGenerateResult>;
-  readonly acknowledge: (args: { identity: { email: string } }) => Promise<SetupAcknowledgeResult>;
+  readonly acknowledge: (args: { identity: { email: string; googleId?: string } }) => Promise<SetupAcknowledgeResult>;
 }
 
 // ── Workspace namespace ────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ export interface SoamWorkspace {
   readonly setActive: (workspaceId: string) => Promise<WorkspaceSetActiveResult>;
   readonly create: (args: { nickname: string; email: string }) => Promise<WorkspaceCreateResult>;
   readonly signOut: () => Promise<void>;
-  readonly getIdentity: () => Promise<{ email: string } | null>;
+  readonly getIdentity: () => Promise<{ email: string; googleId?: string } | null>;
   readonly onChange: (listener: (e: WorkspaceChangedEvent) => void) => () => void;
 }
 

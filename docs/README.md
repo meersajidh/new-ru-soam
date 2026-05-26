@@ -90,6 +90,8 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-306](ADRs/306-data-recovery-flows.md) — Data recovery flows (DPAPI reset, KMS loss, recovery-code loss, device loss). _(Accepted)_
 - [ADR-307](ADRs/307-app-level-kek-passphrase-and-auto-lock.md) — App-level KEK passphrase + inactivity auto-lock + endpoint threat model. _(Accepted)_
 - [ADR-308](ADRs/308-update-time-data-integrity.md) — Update-time data integrity (pre-migration backup, transactional DDL, schema gates). _(Accepted)_
+- [ADR-309](ADRs/309-cloud-identity-and-authentication.md) — Cloud identity and authentication (Google OAuth + cloud session). _(Draft)_
+- [ADR-310](ADRs/310-google-calendar-provider-integration.md) — Google Calendar provider integration. _(Proposed)_
 
 #### Workbench / UI composition (400–499)
 
