@@ -7,6 +7,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-05-26
+
+### Added
+
+- Delete a workspace you own — from the account menu. Deletion is permanent (all records, notes, and session data in that workspace are destroyed and the recovery code stops working), so it asks you to type the workspace name to confirm.
+
+### Changed
+
+- Sign-in now uses your real Google account. The development placeholder sign-in has been removed; a correctly configured build is required to sign in.
+
 ## [0.1.4] - 2026-05-25
 
 ### Added

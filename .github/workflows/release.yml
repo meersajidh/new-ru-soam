@@ -58,7 +58,15 @@ jobs:
           cd apps/desktop
           node scripts/build-changelog.mjs --release="$VERSION"
 
+      # OAuth creds are baked into the Main bundle here, at Vite build time
+      # (vite.main.config.ts `define` reads process.env.OAUTH_BUILD_*). They must
+      # sit on THIS step, not "Build installers" — electron-builder only packages
+      # the already-built dist/, it does not re-run Vite. Without these the launch
+      # gate (isOAuthConfigured) fails and the packaged app exits on open (O309c).
       - name: Build app
+        env:
+          OAUTH_BUILD_CLIENT_ID: ${{ secrets.OAUTH_BUILD_CLIENT_ID }}
+          OAUTH_BUILD_CLIENT_SECRET: ${{ secrets.OAUTH_BUILD_CLIENT_SECRET }}
         run: pnpm --filter ru-soam build
 
       # Node's dlopen uses LOAD_WITH_ALTERED_SEARCH_PATH → a .node's dependent DLLs
