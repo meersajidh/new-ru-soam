@@ -11,6 +11,7 @@ import type { IEditorService } from '../editor/editor-service';
 import type { IRuEditService } from '../ru-edit/ru-edit-service';
 import type { ISnippetService } from '../snippet/snippet-service';
 import type { INotificationService } from '../notification/notification-service';
+import type { IProductConfigService } from '../product-config/product-config-service';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -45,5 +46,8 @@ export const NotificationServiceId = serviceId<INotificationService>('workbench.
 
 // Phase 11
 export const RouterServiceId = serviceId<unknown>('workbench.router');
+
+// ADR-106: base product-config seam (domain overrides via bootstrap)
+export const ProductConfigServiceId = serviceId<IProductConfigService>('workbench.productConfig');
 
 export const RegistryContext = createContext<ServiceRegistry | null>(null);

@@ -1,8 +1,8 @@
 import { ServiceRegistry } from '../platform/services/registry';
 import {
   CommandServiceId, ContextKeyServiceId, EditorServiceId, FontServiceId,
-  KeybindingServiceId, LayoutServiceId, NotificationServiceId, RuEditServiceId,
-  SnippetServiceId, StatusBarServiceId, ThemeServiceId, WorkspaceServiceId,
+  KeybindingServiceId, LayoutServiceId, NotificationServiceId, ProductConfigServiceId,
+  RuEditServiceId, SnippetServiceId, StatusBarServiceId, ThemeServiceId, WorkspaceServiceId,
 } from '../platform/services/ids';
 import { LayoutService } from '../platform/layout/layout-service';
 import { ThemeService } from '../platform/theme/theme-service';
@@ -23,6 +23,7 @@ import { SlotId } from '../platform/layout/slots';
 import { registerPlatformCommands } from './platform-commands';
 import { mountHeartbeat } from './heartbeat';
 import { installUpdateAlerts } from '../platform/update/update-alerts';
+import { ProductConfigService } from '../platform/product-config/product-config-service';
 
 const SLOT_TO_CTX_KEY: Partial<Record<SlotId, string>> = {
   [SlotId.PrimarySideBar]: 'sideBar.visible',
@@ -32,6 +33,10 @@ const SLOT_TO_CTX_KEY: Partial<Record<SlotId, string>> = {
 
 export function boot(): ServiceRegistry {
   const registry = new ServiceRegistry();
+
+  // ── ADR-106: product-config seam (domain overrides after boot via domainBootstrap) ──
+  const productConfig = new ProductConfigService();
+  registry.register(ProductConfigServiceId, productConfig);
 
   // ── Phase 2 ───────────────────────────────────────────────────────────────
 

@@ -15,7 +15,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { KeyRound, ArrowRight, CornerDownLeft } from 'lucide-react';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import { useContextKey } from '../../platform/services/hooks';
+import { useContextKey, useService } from '../../platform/services/hooks';
+import { ProductConfigServiceId } from '../../platform/services/ids';
 import type { UnlockResult, RecoveryUnlockResult, WorkspaceMeta } from '../../../electron/shared/lock-protocol';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
@@ -53,6 +54,8 @@ interface LoginModalProps {
 export default function LoginModal({ mode, forceResetMode = false }: LoginModalProps) {
   const nickname = useContextKey('workspace.nickname') as string;
   const navigate = useNavigate();
+  const productConfig = useService(ProductConfigServiceId);
+  const { tagline } = productConfig.get();
 
   // Inner unlock step
   const [innerMode, setInnerMode] = useState<InnerMode>(
@@ -322,7 +325,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
           </div>
           <div className="login-modal-wordmark-group">
             <Wordmark variant="inline" />
-            <p className="login-modal-tagline">For mental health practice</p>
+            {tagline && <p className="login-modal-tagline">{tagline}</p>}
           </div>
         </div>
 

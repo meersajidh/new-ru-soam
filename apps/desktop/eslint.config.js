@@ -41,6 +41,25 @@ const RENDERER_RESTRICTED_SYNTAX = [
   },
 ];
 
+// ADR-106: base→domain import boundary.
+// All files under src/** EXCEPT src/domain/** and the composition-root
+// (src/App.tsx) must not import from src/domain/**. The composition root
+// is the single seam where the domain bootstrap is wired into the base.
+const DOMAIN_BOUNDARY_RESTRICTED_IMPORTS = {
+  patterns: [
+    {
+      group: [
+        './domain/*', './domain/**',
+        '../domain/*', '../domain/**',
+        '../../domain/*', '../../domain/**',
+        '../../../domain/*', '../../../domain/**',
+        '../../../../domain/*', '../../../../domain/**',
+      ],
+      message: 'ADR-106: base layer must not import from src/domain/**. Use the ProductConfigService seam (platform/services/ids ProductConfigServiceId) instead.',
+    },
+  ],
+};
+
 export default defineConfig([
   globalIgnores(['dist']),
   {
@@ -63,6 +82,26 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', RENDERER_RESTRICTED_IMPORTS],
       'no-restricted-syntax': ['error', ...RENDERER_RESTRICTED_SYNTAX],
+    },
+  },
+  // ADR-106: enforce one-way base→domain boundary for all base files.
+  // Excludes: src/domain/** (domain-internal imports OK) and src/App.tsx (composition seam).
+  // Both option objects are passed so this block does NOT clobber the ADR-202/203
+  // electron/node-builtin restriction (flat-config rules are last-wins, not merged).
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/domain/**', 'src/App.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: RENDERER_RESTRICTED_IMPORTS.paths,
+          patterns: [
+            ...RENDERER_RESTRICTED_IMPORTS.patterns,
+            ...DOMAIN_BOUNDARY_RESTRICTED_IMPORTS.patterns,
+          ],
+        },
+      ],
     },
   },
 ]);

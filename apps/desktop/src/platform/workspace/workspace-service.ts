@@ -2,7 +2,12 @@ import type { ILayoutService } from '../layout/layout-service';
 import type { IContextKeyService } from '../context-key/context-key-service';
 import type { SlotId } from '../layout/slots';
 
-export type WorkspaceEntityType = 'individual' | 'clinic';
+/**
+ * Opaque entity-type string (ADR-106).
+ * The base layer treats this as a plain string. Concrete values
+ * ('individual' | 'clinic') are owned by src/domain/tenancy.ts.
+ */
+export type WorkspaceEntityType = string;
 
 export interface WorkspaceState {
   entityId: string;

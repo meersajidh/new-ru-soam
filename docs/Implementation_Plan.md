@@ -466,7 +466,7 @@ This is a documentation-only pass; no code changes. It is a hard gate, not a sid
 
 ## Phase 9 — Crypto + KEK + multi-workspace lock / unlock (umbrella)
 
-**Status:** Draft (2026-05-17). Restructured into three sub-phases (9a / 9b / 9c) after multi-account requirement landed. ADR-307 created; ADR-303 / ADR-304 / ADR-403 / ADR-412 / ADR-501 amended; Guide §2.3 + §6 rewritten.
+**Status:** Complete. All three sub-phases (9a / 9b / 9c) landed in `main`. Restructured after the multi-account requirement landed. ADR-307 created; ADR-303 / ADR-304 / ADR-403 / ADR-412 / ADR-501 amended; Guide §2.3 + §6 rewritten. (Status corrected 2026-05-27: this umbrella + 9a + 9b still read "Draft"/"Pending" long after landing — Phase 10a/10b were built on top of them. The 9c picker has since been superseded by the sign-in modal — see the 9c note.)
 
 **Goal:** PHI gate exists before Phase 10 writes anything sensitive. Workspace lock state is enforceable, observable, and structural. Walk-up attacker on an unlocked OS session is blocked at the app boundary. Multi-account support (one OS user → many workspaces) is structural from day one; UI lands progressively.
 
@@ -483,7 +483,7 @@ Delete-workspace command lives in Phase 12 (Settings) per scope discipline.
 
 ## Phase 9a — Main-side primitives + multi-workspace storage
 
-**Status:** Draft (2026-05-17). Restructured to absorb multi-workspace storage shape from day one (closes future retrofit pain on `_workspaceId` AAD lock-in and credential namespacing).
+**Status:** Complete. Landed in `main`. Restructured to absorb multi-workspace storage shape from day one (closes future retrofit pain on `_workspaceId` AAD lock-in and credential namespacing). Crypto primitives, CredentialStore, WorkspaceRegistry, LockService, and IPC surface all present under `apps/desktop/electron/main/{crypto,credentials,workspace}/`.
 
 **Goal:** Main-side lock state machine is complete and verifiable from the renderer console via developer commands. Storage layout is multi-workspace-ready. No setup-ceremony UI; no unlock gate UI; no real OAuth — those are Phase 9b. Dev-mode auto-provisions a `dev-workspace` to skip manual setup during iteration.
 
@@ -724,7 +724,7 @@ $userData/
 
 ## Phase 9b — UI: setup ceremony (mocked OAuth) + unlock gate + capability decorator
 
-**Status:** Pending (lands after 9a).
+**Status:** Complete. Landed in `main`. Setup route, unlock gate Part, capability decorator (`cap.locked`), StatusBar entries, user-avatar slot, and activity heartbeat all shipped. The mocked OAuth at signup has since been replaced by real Google OAuth (PKCE + loopback in Main) per O307g / ADR-309 Part A — landed v0.1.5.
 
 **Goal:** Renderer surfaces for the single-workspace flow. Mocked OAuth at signup; setup ceremony multi-step UI; unlock gate Part; StatusBar lock + nickname entries; user-avatar slot showing nickname + email post-unlock; capability decorator wired with `cap.locked`; stub PHI capability proves the refusal pattern via UI; activity heartbeat fired from real UI events. Multi-workspace picker = 9c.
 
@@ -780,7 +780,7 @@ Tracked in `docs/Open_Items.md`; surfaced here for the next delegation brief.
 
 ## Phase 9c — Multi-workspace picker (post-Phase-10)
 
-**Status:** In progress (started 2026-05-18, after 10a). Lands after Phase 10a (Local Store + TanStack Query); 10b is independent and can land before or after 9c. Rationale: workspace switching is most useful when there's real PHI data to validate isolation against; Phase 10 provides that.
+**Status:** Complete, then superseded (2026-05-27). The `/workspaces` picker grid + add-new flow + switcher command landed after 10a as described below. It was then **replaced** by a polished in-renderer sign-in modal (commit `feat(auth): replace workspace picker with polished sign-in modal`, → v0.1.6): ADR-403 reframed Account = Entity = Workspace (1:1) — the app signs into one account at a time, switching = sign-out + sign-in. `WorkspaceTileGrid` + the `/workspaces` route were removed; `workbench.workspace.switch` command dropped. The LoginModal does passphrase-only unlock for the last-active account, with an `AccountSelect` dropdown (defaulted to max `lastSignedIn`) when several accounts exist. A SettingsMenu gear (Appearance + Danger Zone) was added above the user avatar. ADR-403 amended (Picker→Identify lifecycle); Open Items O191 (email-identify deferred), O192 (zoom deferred), O193 (Settings menu, resolved) raised. (Leftover: empty `apps/desktop/src/routes/workspaces/` dir remains after the route removal — harmless, git does not track empty dirs.)
 
 **Goal:** Multiple workspaces on one OS user with picker UI; add-new flow; switcher command.
 

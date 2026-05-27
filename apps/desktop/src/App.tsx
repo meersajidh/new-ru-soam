@@ -5,9 +5,15 @@ import { queryClient, router } from './provider';
 import { ServiceRegistryProvider } from './platform/services/context';
 import { boot } from './workbench/boot';
 import { mountStoreEventsBridge } from './platform/data/store-events-bridge';
+// ADR-106 composition seam — the ONLY base file permitted to import src/domain/**.
+import { domainBootstrap } from './domain/bootstrap';
 
 export default function App() {
-  const [registry] = useState(() => boot());
+  const [registry] = useState(() => {
+    const reg = boot();
+    domainBootstrap(reg);
+    return reg;
+  });
 
   useEffect(() => {
     if (import.meta.env.DEV) {

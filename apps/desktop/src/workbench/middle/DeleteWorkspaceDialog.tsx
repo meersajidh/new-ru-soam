@@ -18,6 +18,8 @@ import { Dialog } from '../../platform/ui/Dialog';
 import { Button } from '../../platform/ui/Button';
 import { TextInput } from '../../platform/ui/TextInput';
 import { FormField } from '../../platform/ui/FormField';
+import { useService } from '../../platform/services/hooks';
+import { ProductConfigServiceId } from '../../platform/services/ids';
 import './DeleteWorkspaceDialog.css';
 
 interface Props {
@@ -26,6 +28,8 @@ interface Props {
 }
 
 export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
+  const productConfig = useService(ProductConfigServiceId);
+  const { deleteWarningAddendum } = productConfig.get();
   const [nicknameInput, setNicknameInput] = useState('');
   const [nicknameError, setNicknameError] = useState('');
   const [generalError, setGeneralError] = useState('');
@@ -118,7 +122,7 @@ export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
         <p className="delete-workspace-warning-body">
           Deleting <strong>&ldquo;{nickname}&rdquo;</strong> permanently removes all records,
           notes, and session data stored in this account. Your recovery code will no longer
-          work. PHI stored locally will be destroyed.
+          work.{deleteWarningAddendum ? ` ${deleteWarningAddendum}` : ''}
         </p>
       </div>
 

@@ -1,12 +1,16 @@
 import './LoadingSplash.css';
 import BridgeMark from '../parts/BridgeMark';
 import Wordmark from '../parts/Wordmark';
+import { useService } from '../../platform/services/hooks';
+import { ProductConfigServiceId } from '../../platform/services/ids';
 
 interface LoadingSplashProps {
   embedded?: boolean;
 }
 
 export default function LoadingSplash({ embedded = false }: LoadingSplashProps) {
+  const productConfig = useService(ProductConfigServiceId);
+  const { tagline } = productConfig.get();
   return (
     <div
       className={`loading-splash${embedded ? ' loading-splash--embedded' : ''}`}
@@ -32,7 +36,7 @@ export default function LoadingSplash({ embedded = false }: LoadingSplashProps) 
 
         <Wordmark variant="display" />
 
-        <div className="loading-splash__subtitle">For mental health practice</div>
+        {tagline && <div className="loading-splash__subtitle">{tagline}</div>}
 
         <div className="loading-splash__rail" aria-hidden="true">
           <div className="loading-splash__rail-fill" />

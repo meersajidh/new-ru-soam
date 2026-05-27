@@ -37,7 +37,7 @@ The ADRs are layered: later ones rest on earlier ones. A newcomer should read in
 1. **[ADR-301](ADRs/301-phi-boundary-architectural-not-ux.md)** — the first principle. PHI never reaches the cloud in plaintext, enforced structurally. Everything else exists in service of this.
 2. **[ADR-101](ADRs/101-three-authority-zones.md)** — trust vocabulary. Renderer / Main / Cloud Backend. The whole architecture references these names.
 3. **[ADR-102](ADRs/102-renderer-is-composition-shell.md)** — what the Renderer is allowed to be.
-4. **[ADR-103](ADRs/103-capability-based-service-model.md)**, **[ADR-104](ADRs/104-contribution-model.md)**, **[ADR-105](ADRs/105-bundle-activation-lifecycle.md)** — capability + contribution + lifecycle. How features compose with the platform.
+4. **[ADR-103](ADRs/103-capability-based-service-model.md)**, **[ADR-104](ADRs/104-contribution-model.md)**, **[ADR-105](ADRs/105-bundle-activation-lifecycle.md)** — capability + contribution + lifecycle. How features compose with the platform. **[ADR-106](ADRs/106-domain-agnostic-base-and-domain-layer.md)** then draws the base/domain boundary (`basebench` platform vs `ru-soam` product) that the whole composition sits inside.
 5. **[ADR-201](ADRs/201-electron-hardening-baseline.md)**, **[ADR-202](ADRs/202-narrow-preload-capability-surface.md)**, **[ADR-203](ADRs/203-brokered-networking-via-custom-protocol.md)** — security baseline that enforces the trust model at runtime.
 6. **[ADR-302](ADRs/302-local-first-data-model.md)** — read/write topology. The local-first stance.
 7. **[ADR-303](ADRs/303-phi-sync-and-backup-via-e2ee.md)** — how PHI is protected on the wire and at rest in the cloud (E2EE).
@@ -72,6 +72,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-103](ADRs/103-capability-based-service-model.md) — Capability-based service model. _(Accepted)_
 - [ADR-104](ADRs/104-contribution-model.md) — Contribution model for bundle registration. _(Accepted)_
 - [ADR-105](ADRs/105-bundle-activation-lifecycle.md) — Bundle activation lifecycle. _(Accepted)_
+- [ADR-106](ADRs/106-domain-agnostic-base-and-domain-layer.md) — Two-layer architecture: domain-agnostic base (`basebench`) + domain layer (`ru-soam`). _(Accepted)_
 
 #### Security (200–299)
 

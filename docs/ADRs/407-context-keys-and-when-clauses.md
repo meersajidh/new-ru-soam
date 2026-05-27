@@ -64,6 +64,16 @@ The platform reserves the following top-level key prefixes; bundles may not writ
 
 Bundle-owned keys live under `<bundleId>.*`. Registering a key under a reserved prefix is rejected at contribution-registration time.
 
+> **ADR-106 (2026-05-27) — base/domain split of these prefixes.** The reserved
+> prefixes divide across the base/domain axis. **Base**-reserved (owned by the
+> `basebench` platform): `workspace.`, `view.`, `editor.`, `panel.`, `sideBar.`,
+> `auxSideBar.`, `commandPalette.`, `bundle.`, `kek.`, `sync.`, `config.`.
+> **Domain**-reserved (owned by the `ru-soam` domain layer, still rejected for
+> third-party bundles): `record.`, `patient.`, `consent.`. The
+> `workspace.entityType` value set `'individual' | 'clinic'` is likewise
+> domain-supplied — the base treats entity type as an opaque string. Full table
+> reconciliation is deferred to O195.
+
 ### Initial platform-key catalogue (illustrative)
 
 Not exhaustive; this is the starting set the workbench commits to maintaining:
