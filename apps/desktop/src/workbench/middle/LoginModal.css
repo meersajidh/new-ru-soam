@@ -1,0 +1,327 @@
+@reference "../../styles/theme.css";
+
+/* ── Login modal — contemporary left-aligned sign-in card ── */
+
+/* Overlay: full-bleed, flex-center, neutral gradient background */
+.login-modal-overlay {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--color-surface-base) 94%, black) 0%,
+    var(--color-surface-base) 100%
+  );
+  @apply py-12 px-5;
+}
+
+/* Version badge — absolutely positioned top-right of overlay */
+.login-modal-version-badge {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem; /* 11px */
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  @apply text-fg-muted;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Catenary arc SVG — same idiom as LoadingSplash */
+.login-modal-overlay__arcs {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.08;
+  color: var(--color-fg-primary);
+}
+
+.login-modal-overlay__arcs path,
+.login-modal-overlay__arcs line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+}
+
+/* Card: elevated, bordered, large radius, generous padding */
+.login-modal-card {
+  position: relative;
+  z-index: 1;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-modal);
+  width: min(460px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding: 2.75rem 3rem;
+}
+
+/* ── Card header: logo tile + wordmark + tagline — left-aligned horizontal row ── */
+
+.login-modal-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+/* Solid accent tile housing BridgeMark */
+.login-modal-logo-tile {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--color-accent);
+  box-shadow: 0 6px 20px -6px color-mix(in oklch, var(--color-accent) 55%, transparent);
+  color: var(--color-accent-fg);
+}
+
+.login-modal-wordmark-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.login-modal-tagline {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem; /* 11px */
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  @apply text-fg-muted;
+  margin: 0;
+  line-height: 1;
+}
+
+/* ── Mode heading — left-aligned ── */
+
+.login-modal-heading-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  text-align: left;
+}
+
+.login-modal-title {
+  font-family: var(--font-display);
+  font-size: 1.625rem; /* ~26px */
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.15;
+  @apply text-fg-primary;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.login-modal-title__icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  @apply text-fg-secondary;
+}
+
+.login-modal-subtitle {
+  font-size: 0.875rem; /* 14px */
+  @apply text-fg-secondary;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ── Forms ── */
+
+.login-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Passphrase field with inline label row ── */
+
+.login-modal-passphrase-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.login-modal-passphrase-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.login-modal-passphrase-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  @apply text-fg-secondary;
+}
+
+.login-modal-forgot-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  @apply text-fg-muted;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.login-modal-forgot-link:hover {
+  @apply text-fg-secondary;
+}
+
+/* ── Submit CTA — full-width, near-black ── */
+
+.login-modal-submit {
+  width: 100% !important;
+  background: var(--color-fg-primary) !important;
+  color: var(--color-surface-base) !important;
+  /* Match .text-input: 10px radius + 1px (transparent) border so the fill insets
+     identically and the button reads exactly as wide as the passphrase field. */
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px -2px color-mix(in oklch, var(--color-fg-primary) 30%, transparent) !important;
+  /* Override the pill / green box-shadow from Button variant="primary" */
+  border: 1px solid transparent !important;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease,
+    box-shadow 0.15s ease !important;
+}
+
+.login-modal-submit:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--color-fg-primary) 88%, transparent) !important;
+}
+
+.login-modal-submit:active:not(:disabled) {
+  background: color-mix(in oklch, var(--color-fg-primary) 80%, transparent) !important;
+  box-shadow: 0 1px 4px -1px color-mix(in oklch, var(--color-fg-primary) 20%, transparent) !important;
+}
+
+.login-modal-submit:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed;
+}
+
+/* ── Footer link row (space-between) ── */
+
+.login-modal-footer-links {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.login-modal-recovery-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  @apply text-fg-muted;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in oklch, var(--color-fg-muted) 50%, transparent);
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.login-modal-recovery-link:hover {
+  @apply text-fg-secondary;
+  text-decoration-color: var(--color-fg-secondary);
+}
+
+.login-modal-create-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  @apply text-fg-muted;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.login-modal-create-link:hover {
+  @apply text-fg-secondary;
+}
+
+/* ── Thin divider ── */
+
+.login-modal-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0 calc(-1 * 0.5rem);
+}
+
+/* ── Trust footer row ── */
+
+.login-modal-trust {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.login-modal-trust__label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem; /* 10px */
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  @apply text-fg-muted;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.login-modal-trust__bullet {
+  font-size: 0.4rem;
+  line-height: 1;
+  @apply text-fg-muted;
+}
+
+.login-modal-trust__glyph {
+  @apply text-fg-muted;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+/* Account picker (identify mode) lives in AccountSelect.css */
+
+/* ── Responsive ── */
+
+@media (max-width: 480px) {
+  .login-modal-card {
+    padding: 1.75rem 1.5rem;
+    gap: 1.25rem;
+  }
+
+  .login-modal-overlay {
+    @apply py-6 px-3;
+  }
+
+  .login-modal-version-badge {
+    top: 0.875rem;
+    right: 1rem;
+  }
+}

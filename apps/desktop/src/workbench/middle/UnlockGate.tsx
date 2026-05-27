@@ -40,7 +40,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
 
   const [mode, setMode] = useState<GateMode>(forceResetMode ? 'reset-passphrase' : 'passphrase');
 
-  useModalKeys(!forceResetMode ? () => void navigate({ to: '/workspaces' }) : undefined);
+  useModalKeys(!forceResetMode ? () => void navigate({ to: '/' }) : undefined);
 
   // Passphrase mode
   const [passphrase, setPassphrase] = useState('');
@@ -208,7 +208,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => void navigate({ to: '/workspaces' })}
+                  onClick={() => void navigate({ to: '/' })}
                   disabled={unlocking}
                 >
                   Cancel

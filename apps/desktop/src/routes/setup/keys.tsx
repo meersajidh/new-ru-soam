@@ -20,7 +20,7 @@
  * On next boot PreWorkspaceRoute detects setup-pending state and routes
  * back here from step 1 (the 10-min staged setup is gone; safer to re-derive).
  *
- * Reached via /workspaces "Add new" with `?addNew=true` — the fresh-create
+ * Reached via the login modal "Create new account" link with `?addNew=true` — the fresh-create
  * flow shares this route. When addNew=true the wizard always runs all five steps
  * regardless of whether a workspace is currently active.
  */
@@ -81,7 +81,7 @@ function SetupKeysContent() {
   // addNew=true when reached via the workspace picker's "Add new workspace" button.
   const { addNew } = useSearch({ from: '/setup/keys' });
 
-  useModalKeys(addNew ? () => void navigate({ to: '/workspaces' }) : undefined);
+  useModalKeys(addNew ? () => void navigate({ to: '/' }) : undefined);
 
   const [state, setState] = useState<WizardState>({
     step: 1,
@@ -286,7 +286,7 @@ function SetupKeysContent() {
         )}
         {addNew && (
           // <div className="setup-actions border-2">
-          <Button variant="ghost" onClick={() => void navigate({ to: '/workspaces' })}>
+          <Button variant="ghost" onClick={() => void navigate({ to: '/' })}>
             Cancel
           </Button>
           // </div>
@@ -324,7 +324,7 @@ function SetupKeysContent() {
           {addNew && (
             <Button
               variant="ghost"
-              onClick={() => void navigate({ to: '/workspaces' })}
+              onClick={() => void navigate({ to: '/' })}
             >
               Cancel
             </Button>
@@ -405,7 +405,7 @@ function SetupKeysContent() {
           {addNew && (
             <Button
               variant="ghost"
-              onClick={() => void navigate({ to: '/workspaces' })}
+              onClick={() => void navigate({ to: '/' })}
               disabled={step3Loading}
             >
               Cancel

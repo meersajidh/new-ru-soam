@@ -107,18 +107,20 @@ A workbench window with no Entity loaded is a valid state — for example, just 
 
 The empty state is not the same as "Entity exists but is locked" — the latter renders the unlock gate; the former renders onboarding. The two are different surfaces in the recovery view shell (ADR-306 / ADR-401 planned).
 
-_Amended 2026-05-17 per ADR-307:_ multi-workspace support adds a picker fork. The workspace lifecycle now has four render-distinct pre-workspace states. Routing among them happens before the workspace shell mounts:
+_Amended 2026-05-17 per ADR-307:_ multi-workspace support adds lifecycle branching. The workspace lifecycle has four render-distinct pre-workspace states. Routing among them happens before the workspace shell mounts:
 
 | State | Condition | Surface |
 |---|---|---|
 | **Zero-workspaces** | `WorkspaceRegistry.list()` empty | `/setup/keys` route (first-run setup ceremony — owned by ADR-307; Phase 9b) |
-| **Picker** | Workspaces exist, no active | `/workspaces` picker route (Phase 9c; lists nicknames, "Add new", sign-in selector) |
+| **Identify** | Workspaces exist, no active | Login modal in **identify mode** — typed nickname + passphrase (no account list rendered); "Create new account" link navigates `/setup/keys?addNew=true` |
 | **Setup pending** | Active workspace exists, `!workspace.setupComplete` | `/setup/keys` route bound to the active workspace (ceremony was interrupted before acknowledge) |
-| **Locked** | `workspace.setupComplete && workspace.kekLocked` | Unlock gate Part (passphrase input + recovery-code link — owned by ADR-307) |
+| **Locked** | `workspace.setupComplete && workspace.kekLocked` | Login modal in **default mode** — passphrase only, with recovery-code and forceResetMode paths (owned by ADR-307) |
 
-The `unlocked` state is when the workspace shell renders normally. Auto-lock triggers (idle, system suspend, OS screen-lock) flip the workspace back to **Locked** without unloading the workspace itself; the unlock gate replaces workspace surfaces in place. ADR-307 owns the trigger set and the timer policy.
+_Amended 2026-05-27:_ **Account = Entity = Workspace is 1:1 in Individual MVP (ADR-501).** Account switching is sign-out + sign-in via the login modal in identify mode — the `workbench.workspace.switch` command signs out and routes to `/` where `PreWorkspaceRoute` renders the identify modal. The in-shell workspace tile picker (`/workspaces` route and `WorkspaceTileGrid`) is removed; the in-shell workspace switcher (O53) stays deferred to ADR-503/Clinic. Identify is nickname-only for now (see O191); email-based identify is deferred to the server era when email can be read pre-unlock without reversing the email-encryption-at-rest decision in ADR-501.
 
-**One OS user, many workspaces.** ADR-307's storage layout puts each workspace under `$userData/workspaces/<uuid>/`. A single OS user can host any number of workspaces; the `active-workspace.json` pointer names the currently-bound one. Sign-out clears the pointer (workspace stays on disk; KEK is wiped from memory); the user can sign back into any other workspace via the picker without quitting the app or switching OS users.
+The `unlocked` state is when the workspace shell renders normally. Auto-lock triggers (idle, system suspend, OS screen-lock) flip the workspace back to **Locked** without unloading the workspace itself; the login modal (default mode) replaces workspace surfaces in place. ADR-307 owns the trigger set and the timer policy.
+
+**One OS user, many workspaces.** ADR-307's storage layout puts each workspace under `$userData/workspaces/<uuid>/`. A single OS user can host any number of workspaces; the `active-workspace.json` pointer names the currently-bound one. Sign-out clears the pointer (workspace stays on disk; KEK is wiped from memory); the user can sign back into any other workspace via the login modal's identify mode without quitting the app or switching OS users.
 
 **One window, one bound workspace at a time.** The "one workspace per window" discipline (§"One workspace per window" above) still holds — but the *which* workspace is bound to a window can change at runtime via sign-out + sign-in, without quitting. Bundles see only the currently-active workspace; on sign-out + sign-in to a different workspace, services reset per the workspace-lifecycle rules in ADR-412.
 

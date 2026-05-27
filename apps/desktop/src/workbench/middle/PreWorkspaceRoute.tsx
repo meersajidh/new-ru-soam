@@ -4,28 +4,31 @@
  *
  * Reads context keys set by boot.ts and decides:
  *   - !activeId && list().length === 0  → Navigate to /setup/keys (zero-workspaces)
- *   - !activeId && list().length > 0    → Navigate to /workspaces (multi-workspace picker)
+ *   - !activeId && list().length > 0    → <LoginModal mode="identify" />
  *   - activeId && !setupComplete        → Navigate to /setup/keys (setup-pending;
  *                                         ceremony interrupted before acknowledge)
- *   - activeId && setupComplete && locked → render <UnlockGate />
- *   - activeId && setupComplete && !locked → render <Workbench /> (workspace shell)
+ *   - activeId && setupComplete && locked → <LoginModal mode="default" />
+ *   - activeId && setupComplete && mustResetPassphrase → <LoginModal mode="default" forceResetMode />
+ *   - activeId && setupComplete && !locked → render <Workbench /> (workspace shell, lazy-loaded)
  *
  * Race-condition guard: the `workspace.setupComplete` context key is seeded
- * `false` at boot and corrected asynchronously by `lock.changed`. When the
- * picker calls `setActive()` then navigates here, this component can render
+ * `false` at boot and corrected asynchronously by `lock.changed`. When
+ * setActive() is called then the route renders, this component can render
  * before `lock.changed` arrives — reading the stale `false` would misroute to
  * /setup/keys. To guard against this, we fetch `lock.state()` directly for the
  * current `activeId` before evaluating the setup-pending branch. While that
  * confirmation is in-flight we render <LoadingSplash embedded />.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Navigate } from '@tanstack/react-router';
 import type { LockState } from '../../../electron/shared/lock-protocol';
 import { useContextKey } from '../../platform/services/hooks';
-import Middle from './Middle';
 import LoadingSplash from './LoadingSplash';
-import UnlockGate from './UnlockGate';
+import LoginModal from './LoginModal';
+
+// Lazy-load the workbench shell so its code is NOT in the pre-auth bundle.
+const Middle = lazy(() => import('./Middle'));
 
 export default function PreWorkspaceRoute() {
   const activeId = useContextKey('workspace.activeId') as string;
@@ -34,7 +37,7 @@ export default function PreWorkspaceRoute() {
   const kekLocked = useContextKey('workspace.kekLocked') as boolean;
   const mustResetPassphrase = useContextKey('workspace.mustResetPassphrase') as boolean;
 
-  // List check: only needed for the zero-workspaces redirect; fetch once at mount.
+  // List check: needed for the zero-workspaces and identify-mode branches.
   // Refresh on workspace.changed events (handled by context-key subscription in boot.ts).
   const [workspaceCount, setWorkspaceCount] = useState<number | null>(null);
 
@@ -61,7 +64,7 @@ export default function PreWorkspaceRoute() {
       }).catch(() => {
         if (!cancelled) {
           // On error fall back to treating as locked + setupComplete so we land
-          // on UnlockGate rather than looping through setup.
+          // on LoginModal (default) rather than looping through setup.
           setConfirmed({
             state: { locked: true, setupComplete: true, mustResetPassphrase: false },
             forId: activeId,
@@ -75,8 +78,7 @@ export default function PreWorkspaceRoute() {
     };
   }, [activeId]); // re-fetch when activeId changes (sign-out etc.)
 
-  // Show the splash only while the route is still resolving. The splash itself
-  // delays its reveal so fast boots do not flash a loading state.
+  // Show splash only while route is still resolving.
   if (workspaceCount === null && !activeId) {
     return <LoadingSplash embedded />;
   }
@@ -86,9 +88,9 @@ export default function PreWorkspaceRoute() {
     return <Navigate to="/setup/keys" />;
   }
 
-  // No active pointer but workspaces exist → show the workspace picker
+  // No active pointer but workspaces exist → identify mode login modal
   if (!activeId && (workspaceCount ?? 0) > 0) {
-    return <Navigate to="/workspaces" />;
+    return <LoginModal mode="identify" />;
   }
 
   // activeId is set from here on. Wait for lock-state confirmation before
@@ -105,17 +107,21 @@ export default function PreWorkspaceRoute() {
     return <Navigate to="/setup/keys" />;
   }
 
-  // Setup complete but workspace is locked.
+  // Setup complete but workspace is locked → default mode login modal.
   // kekLocked from context key drives live unlock transitions (re-renders on lock.changed).
   if (activeId && confirmedSetupComplete && kekLocked) {
-    return <UnlockGate />;
+    return <LoginModal mode="default" />;
   }
 
   // Unlocked via recovery code — force passphrase reset before workspace access.
   if (activeId && confirmedSetupComplete && !kekLocked && mustResetPassphrase) {
-    return <UnlockGate forceResetMode />;
+    return <LoginModal mode="default" forceResetMode />;
   }
 
-  // Fully unlocked — render the normal workspace shell
-  return <Middle />;
+  // Fully unlocked — lazy-load the workspace shell.
+  return (
+    <Suspense fallback={<LoadingSplash embedded />}>
+      <Middle />
+    </Suspense>
+  );
 }

@@ -1,0 +1,252 @@
+@reference "../../styles/theme.css";
+
+/* ── Gear button ──────────────────────────────────────────────────────────── */
+
+.settings-menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+}
+
+.settings-gear-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  @apply text-fg-muted;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    transform 0.1s;
+  padding: 0;
+}
+
+.settings-gear-btn:hover {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+  transform: rotate(15deg);
+}
+
+.settings-gear-btn[aria-expanded='true'] {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+}
+
+/* ── Popover ──────────────────────────────────────────────────────────────── */
+
+.settings-popover {
+  position: absolute;
+  left: calc(100% + 0.75rem);
+  bottom: -0.5rem;
+  width: 232px;
+  max-width: min(232px, calc(100vw - 72px));
+  max-height: calc(100vh - 72px);
+  background: color-mix(in srgb, var(--color-surface-elevated) 96%, black 4%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  @apply rounded-xl shadow-overlay;
+  overflow: auto;
+  z-index: 150;
+  backdrop-filter: blur(10px);
+  box-sizing: border-box;
+}
+
+.settings-popover-header {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 0.75rem 0.5rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-surface-active) 50%, transparent),
+    transparent
+  );
+}
+
+.settings-popover-title {
+  @apply text-sm font-semibold text-fg-primary;
+}
+
+.settings-popover-divider {
+  height: 1px;
+  margin: 0.25rem 0.5rem;
+  background: color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+/* ── Sections ─────────────────────────────────────────────────────────────── */
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  padding: 0.375rem 0.5rem;
+  gap: 0.25rem;
+}
+
+.settings-section-label {
+  @apply text-xs font-semibold text-fg-muted tracking-wide;
+  padding: 0 0.25rem;
+  margin-bottom: 0.125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.settings-section-label--danger {
+  @apply text-error;
+}
+
+.settings-subsection-label {
+  @apply text-xs text-fg-muted;
+  padding: 0.25rem 0.25rem 0.125rem;
+}
+
+/* ── Mode row ─────────────────────────────────────────────────────────────── */
+
+.settings-mode-row {
+  display: flex;
+  gap: 0.375rem;
+  padding: 0 0.125rem 0.25rem;
+}
+
+.settings-mode-btn {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: transparent;
+  @apply text-fg-secondary text-xs rounded-lg;
+  padding: 0.375rem 0;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+
+.settings-mode-btn:hover {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+}
+
+.settings-mode-btn[data-active] {
+  background: var(--color-surface-active);
+  border-color: var(--color-accent);
+  @apply text-fg-primary font-medium;
+}
+
+/* ── Theme swatches ───────────────────────────────────────────────────────── */
+
+.settings-theme-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding: 0 0.125rem 0.25rem;
+}
+
+.settings-theme-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent);
+  transition:
+    border-color 0.12s,
+    transform 0.1s;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.settings-theme-swatch:hover {
+  transform: scale(1.1);
+}
+
+.settings-theme-swatch[data-active] {
+  border-color: var(--color-fg-primary);
+}
+
+.settings-swatch-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-accent-fg);
+  opacity: 0.7;
+}
+
+/* ── Font list ────────────────────────────────────────────────────────────── */
+
+.settings-font-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 0.125rem 0.125rem;
+}
+
+.settings-font-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  @apply text-fg-secondary text-sm rounded-lg px-2.5 py-1.5;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.settings-font-row:hover {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+}
+
+.settings-font-row[data-active] {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  @apply text-fg-primary font-medium;
+}
+
+.settings-font-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ── Danger button ────────────────────────────────────────────────────────── */
+
+.settings-danger-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  @apply text-error text-sm rounded-lg px-2.5 py-1.5;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 0.12s;
+}
+
+.settings-danger-btn:hover {
+  background: color-mix(in srgb, var(--color-error) 14%, transparent);
+}
+
+.settings-danger-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}

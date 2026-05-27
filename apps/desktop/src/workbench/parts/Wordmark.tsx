@@ -15,7 +15,7 @@ export default function Wordmark({ variant = 'inline' }: WordmarkProps = {}) {
     <div className={className} aria-label="Ru-Soam">
       <span>Ru</span>
       <span className="dash" aria-hidden="true" />
-      <span className="soam">Soam</span>
+      <span>Soam</span>
     </div>
   );
 }

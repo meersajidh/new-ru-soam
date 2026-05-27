@@ -5,6 +5,7 @@ export interface IThemeService {
   setDarkMode(enabled: boolean): void;
   isDark(): boolean;
   getActive(): ThemeDescriptor;
+  list(): ThemeDescriptor[];
   getTokenSnapshot(): Record<string, string>;
   onThemeChange(listener: (theme: ThemeDescriptor) => void): () => void;
   onDarkModeChange(listener: (dark: boolean) => void): () => void;
@@ -54,6 +55,10 @@ export class ThemeService implements IThemeService {
 
   getActive(): ThemeDescriptor {
     return this._active;
+  }
+
+  list(): ThemeDescriptor[] {
+    return Array.from(this._registry.values());
   }
 
   getTokenSnapshot(): Record<string, string> {

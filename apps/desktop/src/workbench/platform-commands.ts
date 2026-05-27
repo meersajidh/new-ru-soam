@@ -9,7 +9,6 @@ import type { IEditorService } from '../platform/editor/editor-service';
 import type { ISnippetService } from '../platform/snippet/snippet-service';
 import type { INotificationService } from '../platform/notification/notification-service';
 import { SlotId } from '../platform/layout/slots';
-import { router } from '../provider';
 
 export function registerPlatformCommands(
   layout: ILayoutService,
@@ -610,18 +609,6 @@ export function registerPlatformCommands(
     'Workspace: Sign Out',
     async () => {
       await window.soam.workspace.signOut();
-    },
-    { category: 'Workspace' },
-  );
-
-  commands.register(
-    'workbench.workspace.switch',
-    'Workspace: Switch…',
-    async () => {
-      // Only meaningful when there is more than one workspace; silently no-op otherwise.
-      const list = await window.soam.workspace.list();
-      if (list.length <= 1) return;
-      await router.navigate({ to: '/workspaces' });
     },
     { category: 'Workspace' },
   );

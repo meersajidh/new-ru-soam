@@ -1,5 +1,5 @@
 /**
- * ChangePassphraseDialog — modal Part for changing the workspace passphrase.
+ * ChangePassphraseDialog — modal Part for changing the account passphrase.
  *
  * Fields: current passphrase + new passphrase + confirm new passphrase + zxcvbn meter.
  * On submit calls window.soam.lock.changePassphrase(current, next).

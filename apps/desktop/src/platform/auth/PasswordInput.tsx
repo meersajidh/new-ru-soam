@@ -13,6 +13,8 @@ interface PasswordInputProps {
   autoFocus?: boolean;
   autoComplete?: string;
   name?: string;
+  /** Forwarded to the underlying <input> for programmatic focus. */
+  inputRef?: React.Ref<HTMLInputElement>;
 }
 
 export default function PasswordInput({
@@ -23,12 +25,14 @@ export default function PasswordInput({
   autoFocus,
   autoComplete = 'current-password',
   name,
+  inputRef,
 }: PasswordInputProps) {
   const [show, setShow] = useState(false);
 
   return (
     <div className="pw-wrap">
       <TextInput
+        ref={inputRef}
         id={id}
         name={name}
         type={show ? 'text' : 'password'}

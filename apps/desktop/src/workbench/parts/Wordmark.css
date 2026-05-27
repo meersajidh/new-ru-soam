@@ -29,10 +29,6 @@
   box-shadow: 0 0 calc(12px * var(--glow-mul)) currentColor;
 }
 
-.setup-wordmark .soam {
-  font-style: italic;
-}
-
 @media (max-width: 640px) {
   .setup-wordmark {
     @apply text-xl;

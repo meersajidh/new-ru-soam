@@ -67,10 +67,10 @@ export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
           setNicknameInput('');
           break;
         case 'locked':
-          setGeneralError('Workspace is locked. Unlock first.');
+          setGeneralError('Account is locked. Unlock first.');
           break;
         case 'not-active':
-          setGeneralError('No active workspace.');
+          setGeneralError('No active account.');
           break;
         default:
           setGeneralError(result.message ?? 'An unexpected error occurred. Please try again.');
@@ -109,7 +109,7 @@ export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
           </svg>
         </div>
         <h2 id="delete-workspace-title" className="delete-workspace-title">
-          Delete workspace
+          Delete account
         </h2>
       </div>
 
@@ -117,14 +117,14 @@ export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
         <p className="delete-workspace-warning-headline">This cannot be undone.</p>
         <p className="delete-workspace-warning-body">
           Deleting <strong>&ldquo;{nickname}&rdquo;</strong> permanently removes all records,
-          notes, and session data stored in this workspace. Your recovery code will no longer
+          notes, and session data stored in this account. Your recovery code will no longer
           work. PHI stored locally will be destroyed.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <FormField
-          label={`Type the workspace name to confirm: "${nickname}"`}
+          label={`Type the account name to confirm: "${nickname}"`}
           htmlFor="dw-nickname"
           error={nicknameError || null}
         >
@@ -155,7 +155,7 @@ export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
             variant="danger"
             disabled={!canSubmit}
           >
-            {loading ? 'Deleting…' : 'Delete workspace'}
+            {loading ? 'Deleting…' : 'Delete account'}
           </Button>
         </div>
       </form>

@@ -1,38 +1,31 @@
 /**
- * UserAvatar — workspace account button anchored in the Activity Bar footer.
+ * UserAvatar — account button anchored in the Activity Bar footer.
  *
  * Renders a small circle with the user email initial. Click opens a dropdown
- * menu with workspace management actions.
+ * menu with account management actions.
  *
  * The avatar is only rendered when the workspace is unlocked
  * (workspace.kekLocked === false && workspace.setupComplete === true).
+ *
+ * Items: Lock account, Change passphrase, Help / documentation, Sign out.
+ * Delete account moved to SettingsMenu (Danger Zone).
+ * Switch workspace removed (command removed — single-workspace MVP).
  */
 
 import { useEffect, useRef, useState } from 'react';
-import {
-  ArrowRightLeft,
-  HelpCircle,
-  KeyRound,
-  Lock,
-  LogOut,
-  Trash2,
-} from 'lucide-react';
-import { useContextKey, useService } from '../../platform/services/hooks';
-import { CommandServiceId } from '../../platform/services/ids';
+import { HelpCircle, KeyRound, Lock, LogOut } from 'lucide-react';
+import { useContextKey } from '../../platform/services/hooks';
 import ChangePassphraseDialog from './ChangePassphraseDialog';
-import DeleteWorkspaceDialog from './DeleteWorkspaceDialog';
 import './UserAvatar.css';
 
 export default function UserAvatar() {
   const kekLocked = useContextKey('workspace.kekLocked') as boolean;
   const setupComplete = useContextKey('workspace.setupComplete') as boolean;
   const nickname = useContextKey('workspace.nickname') as string;
-  const commands = useService(CommandServiceId);
 
   const [email, setEmail] = useState<string>('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [showChangePassphrase, setShowChangePassphrase] = useState(false);
-  const [showDeleteWorkspace, setShowDeleteWorkspace] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -94,16 +87,6 @@ export default function UserAvatar() {
     setShowChangePassphrase(true);
   }
 
-  function handleDeleteWorkspace() {
-    setMenuOpen(false);
-    setShowDeleteWorkspace(true);
-  }
-
-  async function handleSwitchWorkspace() {
-    setMenuOpen(false);
-    await commands.execute('workbench.workspace.switch');
-  }
-
   async function handleHelp() {
     setMenuOpen(false);
     const cap = await window.soam.bindCapability('platform.shell', '1.0');
@@ -123,7 +106,7 @@ export default function UserAvatar() {
           ref={btnRef}
           className="user-avatar-btn"
           onClick={() => setMenuOpen((v) => !v)}
-          aria-label={`User menu — ${nickname || email || 'user'}`}
+          aria-label={`Account — ${nickname || email || 'user'}`}
           aria-expanded={menuOpen}
           title={email || nickname}
         >
@@ -131,13 +114,13 @@ export default function UserAvatar() {
         </button>
 
         {menuOpen && (
-          <div ref={menuRef} className="user-avatar-menu" role="menu" aria-label="User menu">
+          <div ref={menuRef} className="user-avatar-menu" role="menu" aria-label="Account menu">
             <div className="user-avatar-menu-header">
               <div className="user-avatar-menu-badge" aria-hidden="true">
                 {initial}
               </div>
               <div className="user-avatar-menu-copy">
-                <p className="user-avatar-menu-nickname">{nickname || 'Workspace user'}</p>
+                <p className="user-avatar-menu-nickname">{nickname || 'Account'}</p>
                 <p className="user-avatar-menu-email">{email || 'Signed in locally'}</p>
               </div>
             </div>
@@ -147,7 +130,7 @@ export default function UserAvatar() {
                 <span className="user-avatar-menu-item-icon">
                   <Lock size={14} />
                 </span>
-                <span className="user-avatar-menu-item-label">Lock workspace</span>
+                <span className="user-avatar-menu-item-label">Lock account</span>
               </button>
               <button
                 className="user-avatar-menu-item"
@@ -158,16 +141,6 @@ export default function UserAvatar() {
                   <KeyRound size={14} />
                 </span>
                 <span className="user-avatar-menu-item-label">Change passphrase</span>
-              </button>
-              <button
-                className="user-avatar-menu-item"
-                role="menuitem"
-                onClick={handleSwitchWorkspace}
-              >
-                <span className="user-avatar-menu-item-icon">
-                  <ArrowRightLeft size={14} />
-                </span>
-                <span className="user-avatar-menu-item-label">Switch workspace</span>
               </button>
             </div>
 
@@ -195,23 +168,11 @@ export default function UserAvatar() {
               <span className="user-avatar-menu-item-label">Sign out</span>
             </button>
 
-            <button
-              className="user-avatar-menu-item user-avatar-menu-item--destructive"
-              role="menuitem"
-              onClick={handleDeleteWorkspace}
-            >
-              <span className="user-avatar-menu-item-icon">
-                <Trash2 size={14} />
-              </span>
-              <span className="user-avatar-menu-item-label">Delete workspace…</span>
-            </button>
-
             {import.meta.env.DEV && (
               <>
                 <div className="user-avatar-menu-divider" aria-hidden="true" />
                 <div className="user-avatar-menu-footer" role="none">
-                  <span className="user-avatar-menu-dev-label">DEV MODE</span>
-                  <span className="user-avatar-menu-dev-copy">mock user</span>
+                  <span className="user-avatar-menu-dev-label">DEV BUILD</span>
                 </div>
               </>
             )}
@@ -221,13 +182,6 @@ export default function UserAvatar() {
 
       {showChangePassphrase && (
         <ChangePassphraseDialog onClose={() => setShowChangePassphrase(false)} />
-      )}
-
-      {showDeleteWorkspace && (
-        <DeleteWorkspaceDialog
-          nickname={nickname}
-          onClose={() => setShowDeleteWorkspace(false)}
-        />
       )}
     </>
   );

@@ -7,6 +7,7 @@ export interface FontSetDescriptor {
 export interface IFontService {
   setFontSet(id: string): void;
   getActive(): FontSetDescriptor;
+  list(): FontSetDescriptor[];
   onFontSetChange(listener: (fs: FontSetDescriptor) => void): () => void;
 }
 
@@ -39,6 +40,10 @@ export class FontService implements IFontService {
 
   getActive(): FontSetDescriptor {
     return this._active;
+  }
+
+  list(): FontSetDescriptor[] {
+    return Array.from(this._registry.values());
   }
 
   onFontSetChange(listener: (fs: FontSetDescriptor) => void): () => void {
