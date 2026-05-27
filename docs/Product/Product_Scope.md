@@ -1,0 +1,143 @@
+# Product Scope — First-Party Activity Catalogue
+
+**Status:** Draft (living document)
+**Owner:** Product
+**Date:** 2026-05-28
+**Layer:** domain (`ru-soam`) — see [ADR-106](../ADRs/106-domain-agnostic-base-and-domain-layer.md)
+**Related:** ADR-405 (activity-bar surfaces), ADR-402 (middle-section slots), ADR-408 (panel content), ADR-404 (editor model), ADR-403 (workspace = Entity), ADR-407 (context keys), ADR-502 (audit ledger), ADR-104 (contribution model), ADR-410 (bundle host)
+
+## Purpose
+
+ADR-405 commits the activity-bar *mechanism* and the four core-shell items
+(Bundles, Settings, Recovery, Onboarding), and anchors exactly one first-party
+bundle (Audit Viewer, via ADR-502). It explicitly defers the **catalogue** of
+practitioner-facing surfaces to a product-scoping pass. This document is that
+catalogue.
+
+It records **which** first-party surfaces ship, what role each takes in the
+workbench, and under what names. It does **not** design them: the internal feature
+scope of each surface, its data model, and its view contents are deferred to a
+per-surface scoping pass + a bundle ADR (see [Lifecycle](#lifecycle--ownership) and
+O197).
+
+This is a domain-layer (`ru-soam`) artifact. The base layer (`basebench`) knows
+nothing about this catalogue.
+
+## Vocabulary: Activity and Aspect
+
+The workbench middle section (ADR-402) has five slots: **Activity Bar · Primary Side
+Bar · Secondary (Auxiliary) Side Bar · Editor Area · Panel**. A practitioner-facing
+surface takes one of two roles across those slots:
+
+- **Activity** — a top-level domain. Contributes an `activityBar.items` entry + one
+  Primary Side Bar `viewContainer` (the ADR-405 shape), workspace-scoped
+  (`group: 'top'`, `when: workspace.entityId`). The things you *navigate to*.
+- **Aspect** — a contextual/dimensional view *bound to the active entity or editor*,
+  contributed to the **Secondary Side Bar** or the **Panel** (ADR-402 / ADR-408),
+  never the activity bar. The things you *see about what's open*.
+
+### Classification rule — start as Aspect, promote to Activity
+
+Anything a practitioner *carries out* is a **potential** Activity — but it earns a
+top-level activity-bar slot only with a **compelling case**: a distinct sub-space of
+actions large enough that you navigate *to* it. If it is small (a granular state
+transition like a task `open → done`), or it is something you mainly *read in the
+context of* another entity, it stays an **Aspect**.
+
+> **The default is Aspect. "Promotion" to Activity requires justification.**
+
+Granularity and the size of the action sub-space decide the slot. This keeps the
+activity bar to genuine top-level domains and avoids bloat.
+
+**Duality.** An Activity routinely *projects* an Aspect of itself into another
+context. **Sessions** is an Activity, but "this client's sessions" is an Aspect shown
+on **Practice**; **Audit Viewer** is an Activity (anchored), but "audit entries for
+this record" is an Aspect of any record. An Aspect is often just an Activity's data
+scoped to the active entity, rendered in the Secondary Side Bar or Panel.
+
+## MVP Activity catalogue
+
+Top-level domains (Activity Bar → Primary Side Bar). All MVP *catalogue*; per the
+product decision, each Activity's internal feature scope is cut to an MVP slice in a
+later per-Activity pass (O197) — naming an Activity here does not commit its full
+feature set.
+
+| Activity | Bundle id | What the practitioner does | Owns / references |
+| --- | --- | --- | --- |
+| **Practice** | `ru-soam.practice` | Manage the practice roster and each person's record (demographics, contact, status). The central entity surface. | **Owns** the Client/Patient record (canonical — see [O69](#cross-surface-data--o69)) |
+| **Sessions** | `ru-soam.sessions` | Document clinical sessions (progress notes). The core daily activity; composes the `BaseEdit` primitive (ADR-414) + clinical note types (ADR-404). | refs Client/Patient |
+| **Schedule** | `ru-soam.schedule` | Book and view appointments. Integrates the Google Calendar provider (ADR-310, proposed). | refs Client/Patient |
+| **Assessments** | `ru-soam.assessments` | Administer standardized measures (e.g. PHQ-9, GAD-7) and track outcomes over time. | refs Client/Patient (± Session) |
+| **Planner** | `ru-soam.planner` | Plan forward across horizons: near-term tasks/follow-ups **and** longer-horizon treatment goals/objectives (the former Tasks + Treatment Plans, merged). | refs Client/Patient |
+| **Catalog** | `ru-soam.catalog` | Browse and maintain reusable, non-client assets: templates, worksheets, psychoeducation materials, and clinical snippet *content* (domain content for the base snippet engine, ADR-416 / ADR-106). | — (reusable; not client-bound) |
+| **Audit Viewer** | `ru-soam.audit-viewer` | Review the practitioner-facing audit/consent log. Anchored by ADR-502; not deferred. Note: also projects as an Aspect ("audit for this record"). | refs audit ledger |
+
+Bottom-group platform items (Bundles, Settings, Recovery, Onboarding) are core-shell,
+not Activities — owned by ADR-405, out of this catalogue.
+
+## Aspects
+
+Contextual surfaces (Secondary Side Bar / Panel), bound to the active entity or
+editor. Per the classification rule, most contextual/dimensional information lands
+here rather than on the activity bar.
+
+| Aspect | Role | Bound to | Notes |
+| --- | --- | --- | --- |
+| **Documents** | Client-bound PHI files: consent forms, releases, uploads. | active Client/Patient (and their Sessions) | Deliberately *not* an Activity and *not* part of Catalog — Catalog is reusable non-client assets; Documents are per-client PHI instances. Surfaced in the Secondary Side Bar / Panel when a client is open. Ownership TBD (O69/O197). |
+
+Further Aspects (e.g. this-client's sessions, assessment history, related audit
+entries, client-scoped tasks) are identified during per-Activity scoping (O197) as
+projections of the Activities above. Not enumerated here to avoid over-designing.
+
+## Terminology: Client vs Patient
+
+The person receiving care is labelled **configurably**: the practitioner chooses
+"Client" or "Patient" in Settings. This is a domain product-configuration value
+(surfaced through the `ProductConfigService` seam, ADR-106) consumed by every surface.
+
+- The choice is **UI copy only**. The reserved context-key namespace stays
+  `patient.*` (ADR-407) regardless, and the persisted record type is unchanged.
+- Default label: **Client** (field-standard for mental-health/therapy practice).
+
+## Cross-surface data & O69
+
+Almost every Activity and the Documents Aspect references the Client/Patient record
+(Sessions, Schedule, Assessments, Planner, Documents all do). Cross-bundle record
+sharing is therefore pervasive from MVP day one — this triggers **O69** (canonical
+domain-type ownership), which ADR-405 left open until "the first first-party bundle
+that consumes a record owned by another bundle" landed. That condition is now met.
+
+**Recommendation (to be ratified in an ADR):** a foundational domain bundle —
+`ru-soam.core-domain` — owns the canonical Client/Patient record (and other shared
+types as they appear) and exposes them as capabilities. Activity/Aspect surfaces
+consume through those capabilities rather than each re-declaring the type. Rationale:
+with this many cross-referencing surfaces, per-bundle ownership produces a reference
+tangle and an undefined degraded state when an owning bundle is disabled (O70).
+
+This is an architectural decision, not a product one — it lands in its own ADR
+(promote O69). It is the immediate next decision gated by this catalogue.
+
+## Lifecycle & ownership
+
+- **This doc is the catalogue source of truth.** It is product-owned and living: new
+  surfaces are added here first (defaulting to Aspect, promoted to Activity only on a
+  compelling case), then designed.
+- **Per-surface design lives in a bundle ADR**, not here. Each Activity (and any
+  Aspect substantial enough to warrant it) gets a domain-range ADR (500–599) covering
+  its data model, view contents, and feature scope, referencing this catalogue. The
+  per-surface MVP feature cut + the bundle-ADR series is tracked as **O197**.
+- **Downstream references point here**, not the other way around: a bundle ADR cites
+  this doc for "why this surface exists / what it's called / Activity vs Aspect"; this
+  doc does not depend on any bundle ADR.
+- The activity bar grows additively (ADR-405) — adding a future Activity needs a row
+  here + a bundle ADR, no amendment to ADR-405.
+
+## Open items
+
+- **O69** — canonical domain-type ownership. Now triggered (see above). Recommended:
+  `ru-soam.core-domain` foundational bundle. Needs an ADR.
+- **O70** — degraded state when an owning bundle is disabled while others hold refs.
+  Applies once `core-domain` (or per-bundle ownership) is decided.
+- **O197** — per-surface MVP feature scoping + the per-bundle ADR series, including
+  which projected Aspects each Activity warrants. Done per surface ahead of building it.
+- **O72** — resolved by this document (catalogue location, vocabulary, lifecycle).

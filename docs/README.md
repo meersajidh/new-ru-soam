@@ -8,6 +8,7 @@ Project documentation for the workbench platform.
 - `Proposals/` — Proposals under discussion or accepted as direction.
 - `References/` — External case studies and internal design-reasoning references.
 - `Guides/` — How-to guides derived from ADRs (e.g. feature development).
+- `Product/` — Product-scope docs (first-party Activity catalogue). Domain-layer (`ru-soam`), product-owned.
 
 ## ADR Number Ranges
 
@@ -137,6 +138,10 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [Feature development](Guides/feature-development.md) — Checklist for adding a feature without re-litigating the architecture each time.
 - [Disposable pattern](Guides/disposable-pattern.md) — Platform-wide convention for cleanup.
 - [Data encryption, key management, and recovery](Guides/data-encryption-and-recovery.md) — Operational companion to ADR-302/303/304/306.
+
+### Product
+
+- [Product Scope](Product/Product_Scope.md) — first-party **Activity** catalogue (the surfaces ADR-405 deferred). Domain-layer, product-owned source of truth; per-Activity design lives in 500-series bundle ADRs.
 
 ## Open Items
 
