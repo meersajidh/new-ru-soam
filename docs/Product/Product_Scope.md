@@ -26,34 +26,51 @@ nothing about this catalogue.
 ## Vocabulary: Activity and Aspect
 
 The workbench middle section (ADR-402) has five slots: **Activity Bar · Primary Side
-Bar · Secondary (Auxiliary) Side Bar · Editor Area · Panel**. A practitioner-facing
-surface takes one of two roles across those slots:
+Bar · Secondary (Auxiliary) Side Bar · Editor Area (Work Area) · Panel**. The model
+follows VS Code's intent — *"the Activity Bar is a core navigation surface"* — and
+renames its mechanism (a *View Container* holds *Views*) into the functional domain:
 
-- **Activity** — a top-level domain. Contributes an `activityBar.items` entry + one
-  Primary Side Bar `viewContainer` (the ADR-405 shape), workspace-scoped
-  (`group: 'top'`, `when: workspace.entityId`). The things you *navigate to*.
-- **Aspect** — a contextual/dimensional view *bound to the active entity or editor*,
-  contributed to the **Secondary Side Bar** or the **Panel** (ADR-402 / ADR-408),
-  never the activity bar. The things you *see about what's open*.
+- **Aspect** — the uniform view primitive (VS Code's *View*), renamed to the
+  functional domain so design reasons in clinical-workflow terms, not technical ones.
+  It is **one** thing, not a per-location kind. An Aspect plays one of **two functional
+  roles by axis**, and the **slot it sits in encodes its role**:
+  - **Navigation Aspect** — sits in the **Primary Side Bar**, **tightly coupled to the
+    Activity Bar** (selecting an Activity opens its navigation Aspects here). The
+    drill-in lists/trees you pick from; a selection opens in the **Work Area**. (e.g.
+    the roster list under Practice; Explorer's Folders/Outline/Timeline in VS Code.)
+  - **Contextual Aspect** — sits in the **Secondary Side Bar** or **Panel** (ADR-402 /
+    ADR-408), **bound to the active Work-Area entity/action**. The things you *see
+    about what's open*.
+- **Activity** — a **navigation surface** item in the Activity Bar: a top-level domain
+  you move *between*, not merely a container that groups children. Contributes an
+  `activityBar.items` entry + a Primary Side Bar `viewContainer` (the ADR-405 shape),
+  workspace-scoped (`group: 'top'`, `when: workspace.entityId`). The things you
+  *navigate to*.
 
 ### Classification rule — start as Aspect, promote to Activity
 
-Anything a practitioner *carries out* is a **potential** Activity — but it earns a
-top-level activity-bar slot only with a **compelling case**: a distinct sub-space of
-actions large enough that you navigate *to* it. If it is small (a granular state
-transition like a task `open → done`), or it is something you mainly *read in the
-context of* another entity, it stays an **Aspect**.
+Anything a practitioner *carries out* starts as an **Aspect**. It earns a top-level
+Activity slot only with a **compelling case**: a distinct sub-space of actions large
+enough that you navigate *to* it as its own domain. If it is small (a granular state
+transition like a task `open → done`), or something you mainly *read in the context
+of* another entity, it stays an Aspect.
 
 > **The default is Aspect. "Promotion" to Activity requires justification.**
 
-Granularity and the size of the action sub-space decide the slot. This keeps the
-activity bar to genuine top-level domains and avoids bloat.
+**Promotion is an abstraction lift, not a slot relocation.** A Contextual Aspect that
+grows broad / important / frequent enough graduates into its own navigation domain — an
+Activity with its own Primary Side Bar (and, in turn, its own Navigation Aspects). The
+test is functional: the granularity of the action, the breadth that must be visible at
+once, and the importance / frequency of the action — i.e. the user experience — decide
+whether something stays an Aspect or has lifted to an Activity. This keeps the Activity
+Bar to genuine top-level domains and avoids bloat.
 
-**Duality.** An Activity routinely *projects* an Aspect of itself into another
-context. **Sessions** is an Activity, but "this client's sessions" is an Aspect shown
-on **Practice**; **Audit Viewer** is an Activity (anchored), but "audit entries for
-this record" is an Aspect of any record. An Aspect is often just an Activity's data
-scoped to the active entity, rendered in the Secondary Side Bar or Panel.
+**Duality.** An Activity routinely *projects* a Contextual Aspect of itself into
+another context. **Sessions** is an Activity, but "this client's sessions" is a
+Contextual Aspect shown on **Practice**; **Audit Viewer** is an Activity (anchored),
+but "audit entries for this record" is a Contextual Aspect of any record. A Contextual
+Aspect is often just an Activity's data scoped to the active entity, rendered in the
+Secondary Side Bar or Panel.
 
 ## MVP Activity catalogue
 
@@ -75,11 +92,13 @@ feature set.
 Bottom-group platform items (Bundles, Settings, Recovery, Onboarding) are core-shell,
 not Activities — owned by ADR-405, out of this catalogue.
 
-## Aspects
+## Aspects (Contextual)
 
-Contextual surfaces (Secondary Side Bar / Panel), bound to the active entity or
-editor. Per the classification rule, most contextual/dimensional information lands
-here rather than on the activity bar.
+**Contextual Aspects** (Secondary Side Bar / Panel), bound to the active Work-Area
+entity/action. Per the classification rule, most contextual/dimensional information
+lands here rather than on the Activity Bar. (Navigation Aspects — the Primary Side Bar
+lists each Activity owns — are scoped inside that Activity's own bundle ADR, not
+catalogued here.)
 
 | Aspect | Role | Bound to | Notes |
 | --- | --- | --- | --- |
