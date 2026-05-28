@@ -69,6 +69,27 @@ const MIGRATIONS: ReadonlyArray<Migration> = [
       `);
     },
   },
+  {
+    version: 4,
+    description: 'core-domain: patients roster table (ADR-504 / ADR-505)',
+    up(db) {
+      db.exec(`
+        CREATE TABLE patients (
+          id              TEXT PRIMARY KEY,
+          created_at      INTEGER NOT NULL,
+          updated_at      INTEGER NOT NULL,
+          given_name      TEXT NOT NULL,
+          family_name     TEXT,
+          contact_phone   TEXT,
+          contact_email   TEXT,
+          dob             TEXT,
+          status          TEXT NOT NULL DEFAULT 'active'
+        );
+        CREATE INDEX idx_patients_status     ON patients(status);
+        CREATE INDEX idx_patients_updated_at ON patients(updated_at);
+      `);
+    },
+  },
 ];
 
 function ensureSchemaVersionTable(db: DatabaseT.Database): void {

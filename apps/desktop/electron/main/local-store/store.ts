@@ -156,6 +156,27 @@ export class LocalStore {
     return this._workspaceId;
   }
 
+  /**
+   * Expose the raw SQLite database handle for domain modules that need to
+   * execute their own SQL (ADR-504: domain capabilities in Main that own their
+   * own tables but must not import domain SQL into the base store class).
+   *
+   * Returns null when the store is not open. Callers MUST check for null.
+   * Only domain modules inside `electron/main/domain/` should use this.
+   */
+  rawDb(): DatabaseT.Database | null {
+    return this._db;
+  }
+
+  /**
+   * Broadcast a `store.changed` event for a table write performed outside of
+   * the built-in store methods (e.g. domain module SQL). Mirrors the internal
+   * `_emitChange` call that prefs/settings methods make automatically.
+   */
+  emitTableChange(table: string, op: 'set' | 'delete', keys: ReadonlyArray<string>): void {
+    this._emitChange({ table, op, keys });
+  }
+
   private requireDb(): DatabaseT.Database {
     if (this._db === null) {
       throw Object.assign(new Error('LocalStore is not open'), {

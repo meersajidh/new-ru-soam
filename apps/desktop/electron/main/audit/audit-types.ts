@@ -20,7 +20,13 @@ export type AuditEventKind =
   | 'update.migration.failed'
   | 'update.backup.restored'
   | 'update.refused.older-than-min'
-  | 'update.refused.newer-than-max';
+  | 'update.refused.newer-than-max'
+  // ADR-505 §6: record.patient audit trail (core-domain)
+  | 'record.patient.created'
+  | 'record.patient.updated'
+  | 'record.patient.status.changed'
+  | 'record.patient.viewed'
+  | 'record.patient.listed';
 
 /**
  * Arbitrary detail attached to an audit entry.
