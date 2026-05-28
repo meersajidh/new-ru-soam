@@ -64,7 +64,7 @@ feature set.
 
 | Activity | Bundle id | What the practitioner does | Owns / references |
 | --- | --- | --- | --- |
-| **Practice** | `ru-soam.practice` | Manage the practice roster and each person's record (demographics, contact, status). The central entity surface. | **Owns** the Client/Patient record (canonical — see [O69](#cross-surface-data--o69)) |
+| **Practice** | `ru-soam.practice` | Manage the practice roster and each person's record (demographics, contact, status). The central entity surface. Scoped in [ADR-505](../ADRs/505-practice-activity.md). | Primary **editor** of the Client/Patient record; the canonical record is **owned** by `core-domain` (ADR-504, see [O69](#cross-surface-data--o69)) |
 | **Sessions** | `ru-soam.sessions` | Document clinical sessions (progress notes). The core daily activity; composes the `BaseEdit` primitive (ADR-414) + clinical note types (ADR-404). | refs Client/Patient |
 | **Schedule** | `ru-soam.schedule` | Book and view appointments. Integrates the Google Calendar provider (ADR-310, proposed). | refs Client/Patient |
 | **Assessments** | `ru-soam.assessments` | Administer standardized measures (e.g. PHQ-9, GAD-7) and track outcomes over time. | refs Client/Patient (± Session) |

@@ -120,6 +120,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-502](ADRs/502-audit-and-consent-ledger.md) — Audit and consent ledger. _(Accepted)_
 - [ADR-503](ADRs/503-tenancy-clinic-proposed.md) — Tenancy model: Clinic. _(Proposed)_
 - [ADR-504](ADRs/504-canonical-domain-record-ownership.md) — Canonical domain record ownership: `core-domain` Main-resident service (resolves O69). _(Draft)_
+- [ADR-505](ADRs/505-practice-activity.md) — Practice Activity: roster + Client/Patient record management (first per-Activity pass, O197). _(Draft)_
 
 ### Proposals
 
