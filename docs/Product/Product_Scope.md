@@ -83,7 +83,7 @@ here rather than on the activity bar.
 
 | Aspect | Role | Bound to | Notes |
 | --- | --- | --- | --- |
-| **Documents** | Client-bound PHI files: consent forms, releases, uploads. | active Client/Patient (and their Sessions) | Deliberately *not* an Activity and *not* part of Catalog — Catalog is reusable non-client assets; Documents are per-client PHI instances. Surfaced in the Secondary Side Bar / Panel when a client is open. Ownership TBD (O69/O197). |
+| **Documents** | Client-bound PHI files: consent forms, releases, uploads. | active Client/Patient (and their Sessions) | Deliberately *not* an Activity and *not* part of Catalog — Catalog is reusable non-client assets; Documents are per-client PHI instances. Surfaced in the Secondary Side Bar / Panel when a client is open. Document-type ownership TBD (O197); consumes the canonical record via `record.*` (ADR-504). |
 
 Further Aspects (e.g. this-client's sessions, assessment history, related audit
 entries, client-scoped tasks) are identified during per-Activity scoping (O197) as
@@ -107,15 +107,18 @@ sharing is therefore pervasive from MVP day one — this triggers **O69** (canon
 domain-type ownership), which ADR-405 left open until "the first first-party bundle
 that consumes a record owned by another bundle" landed. That condition is now met.
 
-**Recommendation (to be ratified in an ADR):** a foundational domain bundle —
-`ru-soam.core-domain` — owns the canonical Client/Patient record (and other shared
-types as they appear) and exposes them as capabilities. Activity/Aspect surfaces
-consume through those capabilities rather than each re-declaring the type. Rationale:
-with this many cross-referencing surfaces, per-bundle ownership produces a reference
-tangle and an undefined degraded state when an owning bundle is disabled (O70).
+**Ratified in [ADR-504](../ADRs/504-canonical-domain-record-ownership.md).** A
+foundational domain component — `ru-soam.core-domain` — owns the canonical
+Client/Patient record (and other shared types as they appear) and exposes it as the
+`record.*` capability namespace (first member `record.patient`). Activity/Aspect
+surfaces consume through that capability rather than each re-declaring the type.
+Rationale: with this many cross-referencing surfaces, per-bundle ownership produces a
+reference tangle and an undefined degraded state when an owning bundle is disabled (O70).
 
-This is an architectural decision, not a product one — it lands in its own ADR
-(promote O69). It is the immediate next decision gated by this catalogue.
+ADR-504 refines this: `core-domain` is a **Main-resident** domain service (PHI-flagged,
+on the base Local Store), **not** a Bundle-Host bundle — keeping PHI plaintext out of the
+third-party-trust process (ADR-410). The user-facing roster UI remains the separate
+**Practice** Activity, which consumes `record.*` rather than owning the record.
 
 ## Lifecycle & ownership
 
@@ -134,10 +137,11 @@ This is an architectural decision, not a product one — it lands in its own ADR
 
 ## Open items
 
-- **O69** — canonical domain-type ownership. Now triggered (see above). Recommended:
-  `ru-soam.core-domain` foundational bundle. Needs an ADR.
+- **O69** — canonical domain-type ownership. **Resolved by [ADR-504](../ADRs/504-canonical-domain-record-ownership.md):**
+  `ru-soam.core-domain` Main-resident service owns the record, exposes `record.*`.
 - **O70** — degraded state when an owning bundle is disabled while others hold refs.
-  Applies once `core-domain` (or per-bundle ownership) is decided.
+  **Resolved by design in ADR-504** (record is Main-resident always-on, not a peer
+  bundle). Residual cross-Activity projection fallbacks → O197.
 - **O197** — per-surface MVP feature scoping + the per-bundle ADR series, including
   which projected Aspects each Activity warrants. Done per surface ahead of building it.
 - **O72** — resolved by this document (catalogue location, vocabulary, lifecycle).

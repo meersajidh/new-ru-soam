@@ -119,6 +119,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-501](ADRs/501-tenancy-individual-mvp.md) — Tenancy model: Individual (MVP). _(Accepted)_
 - [ADR-502](ADRs/502-audit-and-consent-ledger.md) — Audit and consent ledger. _(Accepted)_
 - [ADR-503](ADRs/503-tenancy-clinic-proposed.md) — Tenancy model: Clinic. _(Proposed)_
+- [ADR-504](ADRs/504-canonical-domain-record-ownership.md) — Canonical domain record ownership: `core-domain` Main-resident service (resolves O69). _(Draft)_
 
 ### Proposals
 
