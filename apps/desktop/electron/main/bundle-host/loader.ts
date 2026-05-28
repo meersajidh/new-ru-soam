@@ -9,6 +9,7 @@ import {
 } from './manager';
 import { registerCapability } from '../capability/registry';
 import { registerBundleViews } from './view-protocol';
+import { registerBundleContributions } from './contributions-registry';
 import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol';
 
 /**
@@ -93,6 +94,7 @@ export async function loadAndActivateBundles(): Promise<LoaderResult> {
   for (const bundle of discovered) {
     registerRoutingHandlers(bundle);
     registerBundleViews(bundle);
+    registerBundleContributions(bundle.manifest.id, bundle.manifest.contributes);
 
     if (!bundle.manifest.activationEvents.includes('eager')) continue;
 

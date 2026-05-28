@@ -1,6 +1,6 @@
 import { ServiceRegistry } from '../platform/services/registry';
 import {
-  CommandServiceId, ContextKeyServiceId, EditorServiceId, FontServiceId,
+  CommandServiceId, ContributionServiceId, ContextKeyServiceId, EditorServiceId, FontServiceId,
   KeybindingServiceId, LayoutServiceId, NotificationServiceId, ProductConfigServiceId,
   RuEditServiceId, SnippetServiceId, StatusBarServiceId, ThemeServiceId, WorkspaceServiceId,
 } from '../platform/services/ids';
@@ -16,6 +16,7 @@ import { EditorService } from '../platform/editor/editor-service';
 import { RuEditService } from '../platform/ru-edit/ru-edit-service';
 import { SnippetService } from '../platform/snippet/snippet-service';
 import { NotificationService } from '../platform/notification/notification-service';
+import { ContributionService } from '../platform/contributions/contribution-service';
 import { BUILT_IN_THEMES } from '../platform/theme/themes/built-in';
 import { BUILT_IN_FONT_SETS } from '../platform/font/font-sets/built-in';
 import { ANCHORED_ENTRIES } from '../platform/statusbar/anchored-ids';
@@ -141,6 +142,10 @@ export function boot(): ServiceRegistry {
     }
   });
 
+  // ── Stage 2: ContributionService ─────────────────────────────────────────
+  const contributions = new ContributionService();
+  registry.register(ContributionServiceId, contributions);
+
   // ── Phase 9: NotificationService ──────────────────────────────────────────
   const notifications = new NotificationService();
   registry.register(NotificationServiceId, notifications);
@@ -162,6 +167,27 @@ export function boot(): ServiceRegistry {
   // Open mock workspace — real identity comes in Phase 8+
   workspace.open('entity-mock-001', 'individual');
 
+  // Stage 2: seed contributions from platform.contributions capability.
+  // Re-exposed as a helper so bundle.crashed can trigger a fresh seed.
+  function reseedContributions(): void {
+    window.soam
+      .bindCapability('platform.contributions', '1.0')
+      .then((p) =>
+        p
+          .call('list')
+          .then((snap) => {
+            contributions.seed(snap as Parameters<typeof contributions.seed>[0]);
+            p.dispose();
+          })
+          .catch((err) => {
+            console.error('[workbench] contributions.seed list failed:', err);
+            p.dispose();
+          }),
+      )
+      .catch(console.error);
+  }
+  reseedContributions();
+
   // Phase 6: surface bundle-crash events so a host crash is observable in the
   // renderer. Banner contribution lands Phase 7; for now console + context key.
   contextKeys.set('bundles.lastCrash', '');
@@ -171,6 +197,8 @@ export function boot(): ServiceRegistry {
       const ids = payload?.bundleIds ?? [];
       console.error('[workbench] bundle(s) crashed, marked inactive:', ids);
       contextKeys.set('bundles.lastCrash', ids.join(','));
+      // Re-seed contributions so crashed bundle's items drop out.
+      reseedContributions();
     }
   });
 

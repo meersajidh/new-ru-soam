@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'"
+    />
+    <title>Client</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        color-scheme: light dark;
+        --shell-font: 13px/1.5 'SF Pro Text', system-ui, -apple-system, sans-serif;
+        --shell-font-mono: 11px/1.4 'SF Mono', 'Fira Code', ui-monospace, monospace;
+        --shell-transition: 150ms ease;
+        --shell-radius: 6px;
+      }
+
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font: var(--shell-font);
+        background: var(--color-surface-base, #f2f2f7);
+        color: var(--color-fg-primary, #1c1c1e);
+      }
+
+      /* ── Page scroll wrapper ─────────────────────── */
+      #page {
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 24px 28px 40px;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 18%, transparent) transparent;
+      }
+
+      /* ── Bridge wait ─────────────────────────────── */
+      #bridge-wait {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-base, #f2f2f7);
+        z-index: 100;
+        gap: 8px;
+        font-size: 12px;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 42%, transparent);
+      }
+      .spinner {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 1.5px solid color-mix(in srgb, currentColor 28%, transparent);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ── Card ────────────────────────────────────── */
+      #form-card {
+        background: var(--color-surface-elevated, #ffffff);
+        border: 1px solid var(--color-border, #d1d1d6);
+        border-radius: var(--shell-radius);
+        overflow: hidden;
+        max-width: 560px;
+      }
+
+      /* ── Card header ─────────────────────────────── */
+      #card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 15px 18px 13px;
+        border-bottom: 1px solid var(--color-border, #d1d1d6);
+        background: var(--color-surface-panel, #f6f6f6);
+      }
+
+      #card-avatar {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 9%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 700;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 52%, transparent);
+      }
+
+      #card-meta { flex: 1; min-width: 0; }
+      #card-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--color-fg-primary, #1c1c1e);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #card-subtitle {
+        font: var(--shell-font-mono);
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 36%, transparent);
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* ── Form body ───────────────────────────────── */
+      #patient-form {
+        padding: 18px 18px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .field-group.full { grid-column: 1 / -1; }
+
+      label {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 48%, transparent);
+        user-select: none;
+      }
+      label .req {
+        color: var(--color-error, #c0392b);
+        margin-left: 2px;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="tel"],
+      input[type="date"],
+      select {
+        width: 100%;
+        padding: 7px 10px;
+        font: var(--shell-font);
+        border: 1px solid var(--color-border, #d1d1d6);
+        border-radius: 5px;
+        background: var(--color-surface-base, #f2f2f7);
+        color: var(--color-fg-primary, #1c1c1e);
+        appearance: none;
+        -webkit-appearance: none;
+        transition: border-color var(--shell-transition), box-shadow var(--shell-transition);
+        outline: none;
+      }
+      input:focus, select:focus {
+        border-color: color-mix(in srgb, var(--color-success, #1a7f1a) 55%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success, #1a7f1a) 11%, transparent);
+      }
+      input::placeholder {
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 26%, transparent);
+      }
+      input[aria-invalid="true"] {
+        border-color: color-mix(in srgb, var(--color-error, #c0392b) 65%, transparent);
+      }
+
+      .select-wrap {
+        position: relative;
+      }
+      .select-wrap::after {
+        content: '';
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0; height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 5px solid color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 42%, transparent);
+        pointer-events: none;
+      }
+      .select-wrap select { padding-right: 28px; }
+
+      /* ── Section divider ─────────────────────────── */
+      .divider {
+        height: 1px;
+        background: var(--color-border, #d1d1d6);
+        opacity: 0.55;
+        margin: 2px 0;
+      }
+
+      /* ── Form actions ────────────────────────────── */
+      #form-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 13px 18px 14px;
+        border-top: 1px solid var(--color-border, #d1d1d6);
+        background: var(--color-surface-panel, #f6f6f6);
+        margin-top: 18px;
+        gap: 8px;
+      }
+
+      #save-status {
+        font-size: 11.5px;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        opacity: 0;
+        transition: opacity var(--shell-transition);
+      }
+      #save-status.visible { opacity: 1; }
+      #save-status.ok { color: var(--color-success, #1a7f1a); }
+      #save-status.err { color: var(--color-error, #c0392b); font-weight: 500; }
+      #save-status.locked { color: var(--color-error, #c0392b); font-weight: 600; }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 15px;
+        font: var(--shell-font);
+        font-weight: 500;
+        border-radius: 5px;
+        border: 1px solid var(--color-border, #d1d1d6);
+        cursor: pointer;
+        transition: background var(--shell-transition), border-color var(--shell-transition), opacity var(--shell-transition);
+        outline: none;
+        white-space: nowrap;
+      }
+      .btn:focus-visible {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success, #1a7f1a) 22%, transparent);
+      }
+      .btn-primary {
+        background: var(--color-success, #1a7f1a);
+        color: #fff;
+        border-color: transparent;
+        font-weight: 600;
+      }
+      .btn-primary:hover { background: color-mix(in srgb, var(--color-success, #1a7f1a) 84%, #000); }
+      .btn-primary:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+
+      /* ── Error / not-found states ────────────────── */
+      #state-not-found, #state-locked {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        gap: 10px;
+        text-align: center;
+        padding: 32px 24px;
+      }
+      #state-not-found.visible, #state-locked.visible { display: flex; }
+      #state-not-found p, #state-locked p {
+        font-size: 13px;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 48%, transparent);
+        max-width: 280px;
+        line-height: 1.6;
+      }
+      #state-locked p {
+        color: var(--color-error, #c0392b);
+        opacity: 0.8;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bridge-wait">
+      <span class="spinner"></span>
+      Connecting…
+    </div>
+
+    <!-- Not-found state (outside card, shown instead of card) -->
+    <div id="state-not-found">
+      <p>Client record not found. It may have been deleted.</p>
+    </div>
+
+    <!-- Locked state (shown instead of card) -->
+    <div id="state-locked">
+      <p>🔒 Workspace is locked — unlock to view this client.</p>
+    </div>
+
+    <div id="page" style="display:none">
+      <div id="form-card">
+        <div id="card-header">
+          <div id="card-avatar">?</div>
+          <div id="card-meta">
+            <div id="card-title">New Client</div>
+            <div id="card-subtitle" style="display:none"></div>
+          </div>
+        </div>
+
+        <form id="patient-form" novalidate>
+          <div class="field-row">
+            <div class="field-group">
+              <label for="f-given">Given name<span class="req">*</span></label>
+              <input type="text" id="f-given" name="givenName" placeholder="First / given name" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="field-group">
+              <label for="f-family">Family name</label>
+              <input type="text" id="f-family" name="familyName" placeholder="Last / family name" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label for="f-phone">Phone</label>
+              <input type="tel" id="f-phone" name="contactPhone" placeholder="+1 555 000 1234" autocomplete="off" />
+            </div>
+            <div class="field-group">
+              <label for="f-email">Email</label>
+              <input type="email" id="f-email" name="contactEmail" placeholder="client@example.com" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label for="f-dob">Date of birth</label>
+              <input type="date" id="f-dob" name="dob" />
+            </div>
+            <div class="field-group">
+              <label for="f-status">Status</label>
+              <div class="select-wrap">
+                <select id="f-status" name="status">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <div id="form-actions">
+          <span id="save-status" role="status" aria-live="polite"></span>
+          <button type="button" id="btn-save" class="btn btn-primary">
+            <span id="btn-save-label">Create Client</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        'use strict';
+
+        // Parse id from query string. null / 'new' = create mode.
+        var _clientId = new URLSearchParams(location.search).get('id');
+        var _isCreate = !_clientId || _clientId === 'new';
+        var _proxy = null;
+        var _saving = false;
+        var _statusTimer = null;
+
+        var elBridgeWait = document.getElementById('bridge-wait');
+        var elPage       = document.getElementById('page');
+        var elNotFound   = document.getElementById('state-not-found');
+        var elLocked     = document.getElementById('state-locked');
+        var elFormCard   = document.getElementById('form-card');
+        var elCardAvatar = document.getElementById('card-avatar');
+        var elCardTitle  = document.getElementById('card-title');
+        var elCardSub    = document.getElementById('card-subtitle');
+        var elForm       = document.getElementById('patient-form');
+        var elGiven      = document.getElementById('f-given');
+        var elFamily     = document.getElementById('f-family');
+        var elPhone      = document.getElementById('f-phone');
+        var elEmail      = document.getElementById('f-email');
+        var elDob        = document.getElementById('f-dob');
+        var elStatus     = document.getElementById('f-status');
+        var elSaveStatus = document.getElementById('save-status');
+        var elBtnSave    = document.getElementById('btn-save');
+        var elBtnLabel   = document.getElementById('btn-save-label');
+
+        function isLockedError(err) {
+          return err && (err.code === 'cap.locked' || (err.message && err.message.indexOf('cap.locked') !== -1));
+        }
+
+        function showSaveStatus(msg, kind, autoClear) {
+          clearTimeout(_statusTimer);
+          elSaveStatus.textContent = msg;
+          elSaveStatus.className = 'visible ' + (kind || '');
+          if (autoClear !== false) {
+            _statusTimer = setTimeout(function () {
+              elSaveStatus.className = '';
+              elSaveStatus.textContent = '';
+            }, 3500);
+          }
+        }
+
+        function clearSaveStatus() {
+          clearTimeout(_statusTimer);
+          elSaveStatus.className = '';
+          elSaveStatus.textContent = '';
+        }
+
+        function setSaving(val) {
+          _saving = val;
+          elBtnSave.disabled = val;
+          if (val) {
+            elBtnLabel.textContent = _isCreate ? 'Creating…' : 'Saving…';
+          } else {
+            elBtnLabel.textContent = _isCreate ? 'Create Client' : 'Save Changes';
+          }
+        }
+
+        function displayName(given, family) {
+          var g = (given || '').trim();
+          var f = (family || '').trim();
+          if (f) return f + ', ' + g;
+          return g || '—';
+        }
+
+        function initials(given, family) {
+          var g = (given || '').trim();
+          var f = (family || '').trim();
+          var a = '';
+          if (g) a += g[0].toUpperCase();
+          if (f) a += f[0].toUpperCase();
+          return a || '?';
+        }
+
+        function populateForm(rec) {
+          elGiven.value  = rec.givenName    || '';
+          elFamily.value = rec.familyName   || '';
+          elPhone.value  = rec.contactPhone || '';
+          elEmail.value  = rec.contactEmail || '';
+          elDob.value    = rec.dob          || '';
+          elStatus.value = rec.status       || 'active';
+
+          var dn = displayName(rec.givenName, rec.familyName);
+          elCardTitle.textContent = dn;
+          elCardAvatar.textContent = initials(rec.givenName, rec.familyName);
+          elCardSub.textContent = rec.id;
+          elCardSub.style.display = '';
+          elBtnLabel.textContent = 'Save Changes';
+        }
+
+        function onFormInput() {
+          if (_isCreate) {
+            var g = elGiven.value.trim();
+            var f = elFamily.value.trim();
+            elCardTitle.textContent = g ? displayName(g, f) : 'New Client';
+            elCardAvatar.textContent = g ? initials(g, f) : '?';
+          }
+        }
+
+        function onSave() {
+          if (_saving) return;
+          var givenName    = elGiven.value.trim();
+          var familyName   = elFamily.value.trim();
+          var contactPhone = elPhone.value.trim();
+          var contactEmail = elEmail.value.trim();
+          var dob          = elDob.value;
+          var status       = elStatus.value;
+
+          if (!givenName) {
+            showSaveStatus('Given name is required.', 'err');
+            elGiven.setAttribute('aria-invalid', 'true');
+            elGiven.focus();
+            return;
+          }
+          elGiven.removeAttribute('aria-invalid');
+          clearSaveStatus();
+          setSaving(true);
+
+          if (_isCreate) {
+            var input = { givenName: givenName, status: status };
+            if (familyName)   input.familyName   = familyName;
+            if (contactPhone) input.contactPhone = contactPhone;
+            if (contactEmail) input.contactEmail = contactEmail;
+            if (dob)          input.dob          = dob;
+
+            _proxy.call('create', input).then(function () {
+              setSaving(false);
+              // Close this tab — roster will refresh via store.changed.
+              window.soamView.requestClose();
+            }).catch(function (err) {
+              setSaving(false);
+              if (isLockedError(err)) {
+                showSaveStatus('Workspace locked — unlock to save.', 'locked', false);
+              } else {
+                showSaveStatus('Create failed: ' + (err && err.message), 'err');
+              }
+            });
+
+          } else {
+            var patch = {
+              givenName:    givenName,
+              familyName:   familyName   || null,
+              contactPhone: contactPhone || null,
+              contactEmail: contactEmail || null,
+              dob:          dob          || null,
+              status:       status
+            };
+
+            _proxy.call('update', _clientId, patch).then(function (rec) {
+              setSaving(false);
+              if (rec) { populateForm(rec); }
+              showSaveStatus('Saved.', 'ok');
+            }).catch(function (err) {
+              setSaving(false);
+              if (isLockedError(err)) {
+                showSaveStatus('Workspace locked — unlock to save.', 'locked', false);
+              } else {
+                showSaveStatus('Save failed: ' + (err && err.message), 'err');
+              }
+            });
+          }
+        }
+
+        function awaitBridge() {
+          return new Promise(function (resolve) {
+            if (window.soamView) return resolve(window.soamView);
+            var iv = setInterval(function () {
+              if (window.soamView) { clearInterval(iv); resolve(window.soamView); }
+            }, 25);
+          });
+        }
+
+        window.addEventListener('message', function (e) {
+          var d = e.data;
+          if (!d || d.__soamView !== true) return;
+          if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
+            var root = document.documentElement;
+            Object.keys(d.theme).forEach(function (k) { root.style.setProperty(k, d.theme[k]); });
+          }
+        });
+
+        awaitBridge().then(function (soamView) {
+          elBridgeWait.style.display = 'none';
+
+          if (_isCreate) {
+            // Create mode: show form immediately, no cap needed yet.
+            elPage.style.display = '';
+            elBtnLabel.textContent = 'Create Client';
+            elCardTitle.textContent = 'New Client';
+            elCardAvatar.textContent = '?';
+
+            soamView.events.onActivate(function () {
+              if (_proxy) return;
+              soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+                _proxy = proxy;
+              }).catch(function (err) {
+                if (isLockedError(err)) {
+                  elPage.style.display = 'none';
+                  elLocked.classList.add('visible');
+                } else {
+                  showSaveStatus('Bridge error: ' + (err && err.message), 'err');
+                }
+              });
+            });
+
+          } else {
+            // Edit mode: bind cap, load record, then show page.
+            soamView.events.onActivate(function () {
+              if (_proxy) return;
+              soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+                _proxy = proxy;
+                return _proxy.call('get', _clientId);
+              }).then(function (rec) {
+                if (!rec) {
+                  elNotFound.classList.add('visible');
+                  return;
+                }
+                populateForm(rec);
+                elPage.style.display = '';
+              }).catch(function (err) {
+                if (isLockedError(err)) {
+                  elLocked.classList.add('visible');
+                } else {
+                  elNotFound.classList.add('visible');
+                }
+              });
+            });
+          }
+
+          elBtnSave.addEventListener('click', onSave);
+          elGiven.addEventListener('input', onFormInput);
+          elFamily.addEventListener('input', onFormInput);
+          elForm.addEventListener('submit', function (e) { e.preventDefault(); onSave(); });
+        });
+
+      })();
+    </script>
+  </body>
+</html>

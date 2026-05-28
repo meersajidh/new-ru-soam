@@ -20,6 +20,7 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
   var pending = new Map();
   var activateHandlers = new Set();
   var deactivateHandlers = new Set();
+  var storeChangeHandlers = new Set();
   var themeSnapshot = {};
   var resolvedReady;
   var ready = new Promise(function (r) { resolvedReady = r; });
@@ -56,6 +57,9 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
       case 'theme':
         themeSnapshot = m.theme || {};
         applyTheme(themeSnapshot);
+        break;
+      case 'store.changed':
+        storeChangeHandlers.forEach(function (h) { try { h(m.payload); } catch (err) { console.error(err); } });
         break;
       case 'cap.response': {
         var entry = pending.get(m.requestId);
@@ -100,11 +104,18 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
       onDeactivate: function (h) {
         deactivateHandlers.add(h);
         return { dispose: function () { deactivateHandlers.delete(h); } };
+      },
+      onStoreChange: function (h) {
+        storeChangeHandlers.add(h);
+        return { dispose: function () { storeChangeHandlers.delete(h); } };
       }
     }),
     get theme() { var snap = {}; for (var k in themeSnapshot) snap[k] = themeSnapshot[k]; return snap; },
     requestClose: function () { send({ __soamView: true, kind: 'request.close' }); },
     requestFocus: function () { send({ __soamView: true, kind: 'request.focus' }); },
+    openInEditor: function (viewId, opts) {
+      send({ __soamView: true, kind: 'request.openEditor', viewId: viewId, query: (opts && opts.query) || undefined, title: (opts && opts.title) || undefined });
+    },
     ready: ready
   });
 

@@ -27,6 +27,8 @@ import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 interface Props {
   readonly resource: string;
   readonly instanceId: string;
+  readonly onRequestClose?: () => void;
+  readonly onRequestFocus?: () => void;
 }
 
 interface ViewMessage {
@@ -40,7 +42,7 @@ function isViewMessage(data: unknown): data is ViewMessage {
     && typeof (data as { kind?: unknown }).kind === 'string';
 }
 
-export default function BundleViewIframe({ resource, instanceId }: Props) {
+export default function BundleViewIframe({ resource, instanceId, onRequestClose, onRequestFocus }: Props) {
   const theme = useService(ThemeServiceId);
   const editor = useService(EditorServiceId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -110,18 +112,53 @@ export default function BundleViewIframe({ resource, instanceId }: Props) {
           }
           break;
         }
+        case 'request.openEditor': {
+          const viewId = m.viewId as string;
+          const query = m.query as string | undefined;
+          const title = m.title as string | undefined;
+          try {
+            const bundleId = new URL(resource).hostname;
+            const viewsProxy = await getProxy('platform.views', '1.0');
+            const result = await viewsProxy.call('resolve', bundleId, viewId) as { found: boolean; url?: string };
+            if (result.found && result.url) {
+              const finalUrl = result.url + (query ? '?' + query : '');
+              editor.open(finalUrl, { title: title ?? viewId });
+            } else {
+              console.error('[BundleViewIframe] request.openEditor: view not found', bundleId, viewId);
+            }
+          } catch (err) {
+            console.error('[BundleViewIframe] request.openEditor failed:', err);
+          }
+          break;
+        }
         case 'request.close': {
-          editor.close(instanceId);
+          if (onRequestClose) {
+            onRequestClose();
+          } else {
+            editor.close(instanceId);
+          }
           break;
         }
         case 'request.focus': {
-          iframe.focus();
+          if (onRequestFocus) {
+            onRequestFocus();
+          } else {
+            iframe.focus();
+          }
           break;
         }
       }
     };
 
     window.addEventListener('message', onMessage);
+
+    // Forward store.changed events from the renderer to the iframe.
+    const offStoreEvents = window.soam.events.on((event) => {
+      if (event.name === 'store.changed') {
+        post({ __soamView: true, kind: 'store.changed', payload: event.payload });
+      }
+    });
+
     const readyTimeout = setTimeout(() => {
       if (!viewReady && !disposed) {
         console.warn(
@@ -139,6 +176,7 @@ export default function BundleViewIframe({ resource, instanceId }: Props) {
       clearTimeout(readyTimeout);
       if (activated) post({ __soamView: true, kind: 'deactivate' });
       window.removeEventListener('message', onMessage);
+      offStoreEvents();
       offTheme();
       offDark();
       for (const p of proxyCache.values()) {
@@ -146,7 +184,7 @@ export default function BundleViewIframe({ resource, instanceId }: Props) {
       }
       proxyCache.clear();
     };
-  }, [resource, instanceId, theme, editor]);
+  }, [resource, instanceId, theme, editor, onRequestClose, onRequestFocus]);
 
   return (
     <iframe

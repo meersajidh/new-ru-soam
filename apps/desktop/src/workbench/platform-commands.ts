@@ -181,30 +181,6 @@ export function registerPlatformCommands(
     { category: 'Developer' },
   );
 
-  // TEMPORARY Stage-1 launcher — remove when the Practice Activity Bar item lands (Stage 2).
-  commands.register(
-    'developer.practice.open',
-    'Developer: Open Practice',
-    async () => {
-      const proxy = await window.soam.bindCapability('platform.views', '1.0');
-      try {
-        const res = (await proxy.call('resolve', 'ru-soam-practice', 'main')) as
-          | { found: false }
-          | { found: true; url: string };
-        if (!res.found) {
-          console.error('[practice] resolve returned not-found for ru-soam-practice/main');
-          return;
-        }
-        editor.open(res.url, { title: 'Practice' });
-      } catch (err) {
-        console.error('[practice] open failed:', err);
-      } finally {
-        proxy.dispose();
-      }
-    },
-    { category: 'Developer' },
-  );
-
   commands.register(
     'developer.bundles.dumpOutput',
     'Developer: Dump bundle Output ring buffer',

@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'"
+    />
+    <title>Practice — Clients</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        color-scheme: light dark;
+        --shell-font: 13px/1.5 'SF Pro Text', system-ui, -apple-system, sans-serif;
+        --shell-font-mono: 11px/1.4 'SF Mono', 'Fira Code', ui-monospace, monospace;
+        --shell-transition: 160ms ease;
+        --shell-radius: 5px;
+      }
+
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font: var(--shell-font);
+        background: var(--color-surface-panel, #f5f5f7);
+        color: var(--color-fg-primary, #1c1c1e);
+      }
+
+      /* ── Root layout ─────────────────────────────── */
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* ── Toolbar ──────────────────────────────────── */
+      #toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 10px 8px;
+        border-bottom: 1px solid var(--color-border, #d1d1d6);
+        flex-shrink: 0;
+        background: var(--color-surface-panel, #f5f5f7);
+      }
+
+      #toolbar-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 44%, transparent);
+        user-select: none;
+      }
+
+      #btn-new {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 9px 3px 7px;
+        font: var(--shell-font);
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: var(--shell-radius);
+        border: 1px solid var(--color-border, #d1d1d6);
+        background: var(--color-surface-elevated, #ffffff);
+        color: var(--color-fg-primary, #1c1c1e);
+        transition: background var(--shell-transition), border-color var(--shell-transition), box-shadow var(--shell-transition);
+        line-height: 1;
+      }
+      #btn-new:hover {
+        background: var(--color-surface-active, #e8e8ed);
+      }
+      #btn-new:active {
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 12%, transparent);
+      }
+      #btn-new .plus {
+        font-size: 14px;
+        line-height: 1;
+        margin-top: -1px;
+        font-weight: 400;
+        opacity: 0.7;
+      }
+
+      /* ── Status message ───────────────────────────── */
+      #status-msg {
+        font-size: 11px;
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--color-border, #d1d1d6);
+        background: color-mix(in srgb, var(--color-error, #c0392b) 9%, transparent);
+        color: var(--color-error, #c0392b);
+        font-weight: 500;
+        display: none;
+        flex-shrink: 0;
+      }
+      #status-msg.visible { display: block; }
+
+      /* ── Roster scroll area ───────────────────────── */
+      #roster {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 3px 0 8px;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 18%, transparent) transparent;
+      }
+
+      /* ── Empty state ──────────────────────────────── */
+      #roster-empty {
+        padding: 28px 14px 20px;
+        text-align: center;
+        display: none;
+      }
+      #roster-empty.visible { display: block; }
+      #roster-empty .empty-graphic {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 7%, transparent);
+        margin: 0 auto 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #roster-empty .empty-graphic svg {
+        width: 18px;
+        height: 18px;
+        opacity: 0.3;
+        stroke: var(--color-fg-primary, #1c1c1e);
+        fill: none;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      #roster-empty p {
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 42%, transparent);
+        max-width: 180px;
+        margin: 0 auto;
+      }
+      #roster-empty strong {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 55%, transparent);
+      }
+
+      /* ── Locked state ─────────────────────────────── */
+      #roster-locked {
+        padding: 22px 14px;
+        text-align: center;
+        display: none;
+      }
+      #roster-locked.visible { display: block; }
+      #roster-locked p {
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: var(--color-error, #c0392b);
+        opacity: 0.78;
+        font-weight: 500;
+      }
+
+      /* ── Roster items ─────────────────────────────── */
+      .roster-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        cursor: pointer;
+        border-left: 2px solid transparent;
+        transition: background var(--shell-transition), border-left-color var(--shell-transition);
+        outline: none;
+      }
+      .roster-item:hover {
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 5%, transparent);
+      }
+      .roster-item:focus-visible {
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 6%, transparent);
+        outline: 2px solid color-mix(in srgb, var(--color-success, #1a7f1a) 60%, transparent);
+        outline-offset: -2px;
+      }
+      .roster-item:active {
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 9%, transparent);
+      }
+
+      /* ── Avatar ───────────────────────────────────── */
+      .roster-avatar {
+        flex-shrink: 0;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 10%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 62%, transparent);
+      }
+
+      /* ── Item text ────────────────────────────────── */
+      .roster-info { flex: 1; min-width: 0; }
+      .roster-name {
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--color-fg-primary, #1c1c1e);
+        line-height: 1.3;
+      }
+
+      /* ── Status badge ─────────────────────────────── */
+      .roster-badge {
+        display: inline-block;
+        font-size: 9.5px;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: capitalize;
+        margin-top: 2px;
+      }
+      .roster-badge.active {
+        background: color-mix(in srgb, var(--color-success, #1a7f1a) 13%, transparent);
+        color: var(--color-success, #1a7f1a);
+      }
+      .roster-badge.inactive {
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 9%, transparent);
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 52%, transparent);
+      }
+      .roster-badge.archived {
+        background: color-mix(in srgb, var(--color-error, #c0392b) 10%, transparent);
+        color: color-mix(in srgb, var(--color-error, #c0392b) 75%, transparent);
+      }
+
+      /* ── Bridge wait ──────────────────────────────── */
+      #bridge-wait {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-panel, #f5f5f7);
+        z-index: 100;
+        gap: 8px;
+        font-size: 11.5px;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 40%, transparent);
+      }
+      .spinner {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div id="bridge-wait">
+      <span class="spinner"></span>
+      Loading…
+    </div>
+
+    <div id="root" style="display:none">
+      <div id="toolbar">
+        <span id="toolbar-label">Clients</span>
+        <button id="btn-new" type="button" title="New client">
+          <span class="plus">+</span> New
+        </button>
+      </div>
+
+      <div id="status-msg" role="alert"></div>
+
+      <div id="roster">
+        <div id="roster-empty">
+          <div class="empty-graphic">
+            <!-- person/users icon -->
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <strong>No clients yet</strong>
+          <p>Add your first client with the New button above.</p>
+        </div>
+
+        <div id="roster-locked">
+          <p>🔒 Workspace locked — unlock to view clients.</p>
+        </div>
+        <!-- roster items injected here -->
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        'use strict';
+
+        var _proxy = null;
+        var _roster = [];
+
+        var elBridgeWait  = document.getElementById('bridge-wait');
+        var elRoot        = document.getElementById('root');
+        var elStatusMsg   = document.getElementById('status-msg');
+        var elRoster      = document.getElementById('roster');
+        var elRosterEmpty = document.getElementById('roster-empty');
+        var elRosterLocked= document.getElementById('roster-locked');
+        var elBtnNew      = document.getElementById('btn-new');
+
+        function showStatus(msg) {
+          elStatusMsg.textContent = msg;
+          elStatusMsg.classList.add('visible');
+        }
+        function clearStatus() {
+          elStatusMsg.classList.remove('visible');
+          elStatusMsg.textContent = '';
+        }
+
+        function isLockedError(err) {
+          return err && (err.code === 'cap.locked' || (err.message && err.message.indexOf('cap.locked') !== -1));
+        }
+
+        function renderRoster() {
+          // Remove previous dynamic items.
+          elRoster.querySelectorAll('.roster-item').forEach(function (el) { el.remove(); });
+
+          elRosterEmpty.classList.remove('visible');
+          elRosterLocked.classList.remove('visible');
+
+          if (_roster.length === 0) {
+            elRosterEmpty.classList.add('visible');
+            return;
+          }
+
+          _roster.forEach(function (p) {
+            var item = document.createElement('div');
+            item.className = 'roster-item';
+            item.setAttribute('data-id', p.id);
+            item.setAttribute('role', 'button');
+            item.setAttribute('tabindex', '0');
+
+            var initials = p.displayName ? p.displayName[0].toUpperCase() : '?';
+
+            var avatar = document.createElement('div');
+            avatar.className = 'roster-avatar';
+            avatar.textContent = initials;
+
+            var info = document.createElement('div');
+            info.className = 'roster-info';
+
+            var name = document.createElement('div');
+            name.className = 'roster-name';
+            name.textContent = p.displayName || '(unnamed)';
+
+            var badge = document.createElement('span');
+            badge.className = 'roster-badge ' + (p.status || 'active');
+            badge.textContent = p.status || 'active';
+
+            info.appendChild(name);
+            info.appendChild(badge);
+            item.appendChild(avatar);
+            item.appendChild(info);
+
+            item.addEventListener('click', function () { openClient(p); });
+            item.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openClient(p); }
+            });
+
+            elRoster.appendChild(item);
+          });
+        }
+
+        function openClient(p) {
+          window.soamView.openInEditor('form', {
+            query: 'id=' + encodeURIComponent(p.id),
+            title: p.displayName || 'Client'
+          });
+        }
+
+        function loadRoster() {
+          if (!_proxy) return;
+          clearStatus();
+          _proxy.call('list').then(function (data) {
+            elRosterLocked.classList.remove('visible');
+            _roster = Array.isArray(data) ? data : [];
+            renderRoster();
+          }).catch(function (err) {
+            if (isLockedError(err)) {
+              elRoster.querySelectorAll('.roster-item').forEach(function (el) { el.remove(); });
+              elRosterEmpty.classList.remove('visible');
+              elRosterLocked.classList.add('visible');
+            } else {
+              showStatus('Failed to load: ' + (err && err.message));
+            }
+          });
+        }
+
+        function awaitBridge() {
+          return new Promise(function (resolve) {
+            if (window.soamView) return resolve(window.soamView);
+            var iv = setInterval(function () {
+              if (window.soamView) { clearInterval(iv); resolve(window.soamView); }
+            }, 25);
+          });
+        }
+
+        window.addEventListener('message', function (e) {
+          var d = e.data;
+          if (!d || d.__soamView !== true) return;
+          if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
+            var root = document.documentElement;
+            Object.keys(d.theme).forEach(function (k) { root.style.setProperty(k, d.theme[k]); });
+          }
+        });
+
+        awaitBridge().then(function (soamView) {
+          elBridgeWait.style.display = 'none';
+          elRoot.style.display = '';
+
+          soamView.events.onActivate(function () {
+            if (_proxy) {
+              loadRoster();
+              return;
+            }
+            soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+              _proxy = proxy;
+              loadRoster();
+            }).catch(function (err) {
+              if (isLockedError(err)) {
+                elRosterLocked.classList.add('visible');
+              } else {
+                showStatus('Bridge error: ' + (err && err.message));
+              }
+            });
+          });
+
+          soamView.events.onStoreChange(function (payload) {
+            if (payload && payload.table === 'patients') {
+              loadRoster();
+            }
+          });
+
+          elBtnNew.addEventListener('click', function () {
+            soamView.openInEditor('form', { query: 'id=new', title: 'New Client' });
+          });
+        });
+
+      })();
+    </script>
+  </body>
+</html>

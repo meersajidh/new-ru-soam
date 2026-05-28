@@ -12,6 +12,7 @@ import type { IRuEditService } from '../ru-edit/ru-edit-service';
 import type { ISnippetService } from '../snippet/snippet-service';
 import type { INotificationService } from '../notification/notification-service';
 import type { IProductConfigService } from '../product-config/product-config-service';
+import type { IContributionService } from '../contributions/contribution-service';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -49,5 +50,8 @@ export const RouterServiceId = serviceId<unknown>('workbench.router');
 
 // ADR-106: base product-config seam (domain overrides via bootstrap)
 export const ProductConfigServiceId = serviceId<IProductConfigService>('workbench.productConfig');
+
+// Stage 2: contribution host (activity bar items + view containers)
+export const ContributionServiceId = serviceId<IContributionService>('workbench.contributions');
 
 export const RegistryContext = createContext<ServiceRegistry | null>(null);

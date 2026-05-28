@@ -13,6 +13,7 @@ import { registerViewProtocol } from './bundle-host/view-protocol';
 import { registerWindowControlsCapability } from './capability/window-controls';
 import { registerBundlesOutputCapability } from './capability/bundles-output';
 import { registerBundleViewsCapability } from './capability/bundle-views';
+import { registerContributionsCapability } from './capability/contributions';
 import { registerShellCapability } from './capability/shell';
 import { setLockServiceGetter } from './capability/registry';
 import { registerPhiDemoEchoCapability } from './capability/phi-demo-echo';
@@ -180,6 +181,7 @@ app.whenReady().then(() => {
   registerWindowControlsCapability(() => mainWindow);
   registerBundlesOutputCapability();
   registerBundleViewsCapability();
+  registerContributionsCapability();
   registerShellCapability();
   registerPhiDemoEchoCapability();
   registerPlatformDevCapability();

@@ -15,6 +15,11 @@
 
 .activitybar-top {
   flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px 0;
 }
 
 .activitybar-bottom {
@@ -24,4 +29,55 @@
   align-items: center;
   gap: 6px;
   padding: 0 6px 2px;
+}
+
+/* Activity item buttons */
+.activitybar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.activitybar-item:hover {
+  background: var(--color-tint-neutral-soft);
+  color: var(--color-fg-secondary);
+}
+
+.activitybar-item:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-border-focus);
+  color: var(--color-fg-secondary);
+}
+
+.activitybar-item--active {
+  color: var(--color-accent);
+  background: var(--color-tint-accent-subtle);
+}
+
+.activitybar-item--active:hover {
+  background: var(--color-tint-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+/* Active indicator — left-edge pip */
+.activitybar-item--active::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-accent);
 }

@@ -5,6 +5,26 @@
   "activationEvents": ["lazy"],
   "capabilities": [],
   "views": [
-    { "id": "main", "path": "practice.html" }
-  ]
+    { "id": "roster", "path": "roster.html" },
+    { "id": "form", "path": "form.html" }
+  ],
+  "contributes": {
+    "activityBar.items": [
+      {
+        "id": "ru-soam-practice.activity",
+        "label": "Practice",
+        "icon": "users",
+        "viewContainer": "ru-soam-practice.container",
+        "group": "top",
+        "when": "workspace.activeId"
+      }
+    ],
+    "viewContainers": [
+      {
+        "id": "ru-soam-practice.container",
+        "title": "Practice",
+        "view": "roster"
+      }
+    ]
+  }
 }

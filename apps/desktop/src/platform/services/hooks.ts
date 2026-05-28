@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import {
+  ContributionServiceId,
   ContextKeyServiceId,
   EditorServiceId,
   FontServiceId,
@@ -17,6 +18,7 @@ import type { CtxValue } from '../context-key/context-key-service';
 import type { ServiceId } from './service-id';
 import type { EditorGroup, EditorLayoutNode } from '../editor/editor-service';
 import type { Notification } from '../notification/notification-service';
+import type { ActivityBarItem, ViewContainer } from '../contributions/contribution-service';
 
 export function useService<T>(id: ServiceId<T>): T {
   const registry = useContext(RegistryContext);
@@ -142,4 +144,38 @@ export function useUnreadCount(): number {
   const [count, setCount] = useState(() => svc.getUnreadCount());
   useEffect(() => svc.onDidChange(() => setCount(svc.getUnreadCount())), [svc]);
   return count;
+}
+
+export function useActivityBarItems(): readonly ActivityBarItem[] {
+  const svc = useService(ContributionServiceId);
+  const [items, setItems] = useState(() => svc.getActivityBarItems());
+  useEffect(() => svc.onDidChange(() => setItems(svc.getActivityBarItems())), [svc]);
+  return items;
+}
+
+export function useActiveViewContainerId(): string | null {
+  const svc = useService(ContributionServiceId);
+  const [id, setId] = useState<string | null>(() => svc.getActiveContainerId());
+  useEffect(
+    () => svc.onDidChange(() => setId(svc.getActiveContainerId())),
+    [svc],
+  );
+  return id;
+}
+
+export function useActiveViewContainer(): ViewContainer | undefined {
+  const svc = useService(ContributionServiceId);
+  const [container, setContainer] = useState<ViewContainer | undefined>(() => {
+    const id = svc.getActiveContainerId();
+    return id !== null ? svc.getViewContainer(id) : undefined;
+  });
+  useEffect(
+    () =>
+      svc.onDidChange(() => {
+        const id = svc.getActiveContainerId();
+        setContainer(id !== null ? svc.getViewContainer(id) : undefined);
+      }),
+    [svc],
+  );
+  return container;
 }
