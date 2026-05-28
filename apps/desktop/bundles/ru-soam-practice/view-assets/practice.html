@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'"
+    />
+    <title>Practice</title>
+    <style>
+      /* ── Reset + root ─────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        color-scheme: light dark;
+        --shell-sidebar-w: 240px;
+        --shell-header-h: 40px;
+        --shell-radius: 6px;
+        --shell-font: 13px/1.5 'SF Pro Text', system-ui, -apple-system, sans-serif;
+        --shell-font-mono: 11px/1.4 'SF Mono', 'Fira Code', ui-monospace, monospace;
+        --shell-transition: 160ms ease;
+      }
+
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font: var(--shell-font);
+        background: var(--color-surface-base, #f2f2f7);
+        color: var(--color-fg-primary, #1c1c1e);
+      }
+
+      /* ── Layout shell ─────────────────────────────────────── */
+      #app {
+        display: grid;
+        grid-template-columns: var(--shell-sidebar-w) 1fr;
+        grid-template-rows: var(--shell-header-h) 1fr;
+        height: 100%;
+      }
+
+      /* ── Top header bar ───────────────────────────────────── */
+      #header {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 14px;
+        background: var(--color-surface-elevated, #ffffff);
+        border-bottom: 1px solid var(--color-border, #d1d1d6);
+      }
+
+      #header-title {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: var(--color-fg-primary, #1c1c1e);
+        flex: 1;
+      }
+
+      #status-bar {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        max-width: 380px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: opacity var(--shell-transition);
+        opacity: 0;
+        background: transparent;
+      }
+      #status-bar.visible { opacity: 1; }
+      #status-bar.ok { color: var(--color-success, #1a7f1a); background: color-mix(in srgb, var(--color-success, #1a7f1a) 10%, transparent); }
+      #status-bar.err { color: var(--color-error, #c0392b); background: color-mix(in srgb, var(--color-error, #c0392b) 10%, transparent); font-weight: 600; }
+      #status-bar.locked {
+        color: var(--color-error, #c0392b);
+        background: color-mix(in srgb, var(--color-error, #c0392b) 10%, transparent);
+        font-weight: 600;
+        max-width: 480px;
+      }
+
+      /* ── Roster sidebar ───────────────────────────────────── */
+      #sidebar {
+        grid-row: 2;
+        display: flex;
+        flex-direction: column;
+        background: var(--color-surface-panel, #f6f6f6);
+        border-right: 1px solid var(--color-border, #d1d1d6);
+        overflow: hidden;
+      }
+
+      #sidebar-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px 6px;
+        border-bottom: 1px solid var(--color-border, #d1d1d6);
+        flex-shrink: 0;
+      }
+
+      #sidebar-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 45%, transparent);
+      }
+
+      #btn-new {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        border-radius: 5px;
+        border: 1px solid var(--color-border, #d1d1d6);
+        background: var(--color-surface-elevated, #ffffff);
+        color: var(--color-fg-primary, #1c1c1e);
+        transition: background var(--shell-transition), border-color var(--shell-transition);
+      }
+      #btn-new:hover {
+        background: var(--color-surface-active, #e8e8ed);
+        border-color: color-mix(in srgb, var(--color-border, #d1d1d6) 140%, transparent);
+      }
+      #btn-new::before { content: '+'; font-size: 14px; line-height: 1; margin-top: -1px; }
+
+      #roster {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px 0;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 20%, transparent) transparent;
+      }
+
+      #roster-empty {
+        padding: 32px 16px;
+        text-align: center;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 40%, transparent);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      #roster-empty strong {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 55%, transparent);
+      }
+
+      .roster-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        cursor: pointer;
+        border-left: 2px solid transparent;
+        transition: background var(--shell-transition), border-color var(--shell-transition);
+      }
+      .roster-item:hover {
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 5%, transparent);
+      }
+      .roster-item.active {
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 8%, transparent);
+        border-left-color: var(--color-success, #1a7f1a);
+      }
+
+      .roster-avatar {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 12%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 70%, transparent);
+      }
+
+      .roster-info { flex: 1; min-width: 0; }
+      .roster-name {
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--color-fg-primary, #1c1c1e);
+      }
+      .roster-badge {
+        display: inline-block;
+        font-size: 10px;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: capitalize;
+      }
+      .roster-badge.active   { background: color-mix(in srgb, var(--color-success, #1a7f1a) 14%, transparent); color: var(--color-success, #1a7f1a); }
+      .roster-badge.inactive { background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 10%, transparent); color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 55%, transparent); }
+      .roster-badge.archived { background: color-mix(in srgb, var(--color-error, #c0392b) 10%, transparent); color: color-mix(in srgb, var(--color-error, #c0392b) 80%, transparent); }
+
+      /* ── Main form panel ──────────────────────────────────── */
+      #panel {
+        grid-row: 2;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--color-surface-base, #f2f2f7);
+      }
+
+      #panel-inner {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 24px 32px;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 20%, transparent) transparent;
+      }
+
+      /* Empty / locked states */
+      #panel-empty, #panel-locked {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        gap: 10px;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 40%, transparent);
+        text-align: center;
+        padding: 32px;
+      }
+      #panel-empty .empty-icon, #panel-locked .lock-icon {
+        font-size: 32px;
+        opacity: 0.25;
+        margin-bottom: 4px;
+      }
+      #panel-empty p, #panel-locked p {
+        font-size: 13px;
+        line-height: 1.6;
+        max-width: 280px;
+      }
+      #panel-locked p { color: var(--color-error, #c0392b); opacity: 0.75; font-weight: 500; }
+
+      /* Form card */
+      #form-card {
+        background: var(--color-surface-elevated, #ffffff);
+        border: 1px solid var(--color-border, #d1d1d6);
+        border-radius: var(--shell-radius);
+        overflow: hidden;
+      }
+
+      #form-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid var(--color-border, #d1d1d6);
+        background: var(--color-surface-panel, #f6f6f6);
+      }
+
+      #form-card-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 10%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        font-weight: 700;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 55%, transparent);
+        flex-shrink: 0;
+      }
+
+      #form-card-meta { flex: 1; min-width: 0; }
+      #form-card-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--color-fg-primary, #1c1c1e);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #form-card-id {
+        font: var(--shell-font-mono);
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 38%, transparent);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Form fields */
+      #patient-form {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 50%, transparent);
+      }
+      label .required {
+        color: var(--color-error, #c0392b);
+        margin-left: 2px;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="tel"],
+      input[type="date"],
+      select {
+        width: 100%;
+        padding: 7px 10px;
+        font: var(--shell-font);
+        border: 1px solid var(--color-border, #d1d1d6);
+        border-radius: 5px;
+        background: var(--color-surface-base, #f2f2f7);
+        color: var(--color-fg-primary, #1c1c1e);
+        appearance: none;
+        -webkit-appearance: none;
+        transition: border-color var(--shell-transition), box-shadow var(--shell-transition);
+        outline: none;
+      }
+      input:focus, select:focus {
+        border-color: color-mix(in srgb, var(--color-success, #1a7f1a) 60%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success, #1a7f1a) 12%, transparent);
+      }
+      input::placeholder { color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 28%, transparent); }
+
+      /* Status select — custom arrow */
+      .select-wrapper {
+        position: relative;
+      }
+      .select-wrapper::after {
+        content: '';
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 5px solid color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 45%, transparent);
+        pointer-events: none;
+      }
+      .select-wrapper select { padding-right: 28px; }
+
+      /* Divider */
+      .form-section-divider {
+        height: 1px;
+        background: var(--color-border, #d1d1d6);
+        margin: 2px 0;
+        opacity: 0.6;
+      }
+
+      /* Form footer actions */
+      #form-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--color-border, #d1d1d6);
+        background: var(--color-surface-panel, #f6f6f6);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 14px;
+        font: var(--shell-font);
+        font-weight: 500;
+        border-radius: 5px;
+        border: 1px solid var(--color-border, #d1d1d6);
+        cursor: pointer;
+        transition: background var(--shell-transition), border-color var(--shell-transition);
+        outline: none;
+      }
+      .btn:focus-visible {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success, #1a7f1a) 20%, transparent);
+      }
+      .btn-ghost {
+        background: transparent;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 60%, transparent);
+        border-color: transparent;
+      }
+      .btn-ghost:hover {
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 7%, transparent);
+        color: var(--color-fg-primary, #1c1c1e);
+      }
+      .btn-primary {
+        background: var(--color-success, #1a7f1a);
+        color: #fff;
+        border-color: transparent;
+        font-weight: 600;
+      }
+      .btn-primary:hover { background: color-mix(in srgb, var(--color-success, #1a7f1a) 85%, #000); }
+      .btn-primary:disabled {
+        opacity: 0.45;
+        cursor: default;
+        pointer-events: none;
+      }
+
+      /* Loading skeleton */
+      .skeleton {
+        height: 14px;
+        border-radius: 4px;
+        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 8%, transparent);
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.45; }
+      }
+
+      /* Spinner */
+      .spinner {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Bridge wait overlay */
+      #bridge-wait {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-base, #f2f2f7);
+        z-index: 100;
+        gap: 10px;
+        font-size: 12px;
+        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 45%, transparent);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Bridge wait overlay (hidden once ready) -->
+    <div id="bridge-wait">
+      <span class="spinner"></span>
+      Connecting…
+    </div>
+
+    <div id="app" style="display:none">
+      <!-- Header bar -->
+      <header id="header">
+        <span id="header-title">Practice — Patient Roster</span>
+        <div id="status-bar" role="status" aria-live="polite"></div>
+      </header>
+
+      <!-- Sidebar roster -->
+      <aside id="sidebar">
+        <div id="sidebar-toolbar">
+          <span id="sidebar-label">Clients</span>
+          <button id="btn-new" type="button">New</button>
+        </div>
+        <div id="roster">
+          <div id="roster-empty" style="display:none">
+            <strong>No clients yet</strong>
+            Add your first client with the New button.
+          </div>
+          <!-- roster items injected here -->
+        </div>
+      </aside>
+
+      <!-- Main panel -->
+      <main id="panel">
+        <div id="panel-inner">
+
+          <!-- Empty state (no selection) -->
+          <div id="panel-empty">
+            <div class="empty-icon">🗂</div>
+            <p>Select a client from the roster or create a new one.</p>
+          </div>
+
+          <!-- Locked state -->
+          <div id="panel-locked" style="display:none">
+            <div class="lock-icon">🔒</div>
+            <p>Workspace is locked — unlock to view patients.</p>
+          </div>
+
+          <!-- Form card (hidden until create/edit mode) -->
+          <div id="form-card" style="display:none">
+            <div id="form-card-header">
+              <div id="form-card-avatar">?</div>
+              <div id="form-card-meta">
+                <div id="form-card-title">New Client</div>
+                <div id="form-card-id" style="display:none"></div>
+              </div>
+            </div>
+
+            <form id="patient-form" novalidate>
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="f-given">Given Name<span class="required">*</span></label>
+                  <input type="text" id="f-given" name="givenName" placeholder="First / given name" autocomplete="off" spellcheck="false" />
+                </div>
+                <div class="field-group">
+                  <label for="f-family">Family Name</label>
+                  <input type="text" id="f-family" name="familyName" placeholder="Last / family name" autocomplete="off" spellcheck="false" />
+                </div>
+              </div>
+
+              <div class="form-section-divider"></div>
+
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="f-phone">Phone</label>
+                  <input type="tel" id="f-phone" name="contactPhone" placeholder="e.g. +1 555 000 1234" autocomplete="off" />
+                </div>
+                <div class="field-group">
+                  <label for="f-email">Email</label>
+                  <input type="email" id="f-email" name="contactEmail" placeholder="client@example.com" autocomplete="off" spellcheck="false" />
+                </div>
+              </div>
+
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="f-dob">Date of Birth</label>
+                  <input type="date" id="f-dob" name="dob" />
+                </div>
+                <div class="field-group">
+                  <label for="f-status">Status</label>
+                  <div class="select-wrapper">
+                    <select id="f-status" name="status">
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            <div id="form-actions">
+              <button type="button" id="btn-cancel" class="btn btn-ghost">Cancel</button>
+              <button type="button" id="btn-save" class="btn btn-primary">
+                <span id="btn-save-label">Save</span>
+              </button>
+            </div>
+          </div><!-- /form-card -->
+
+        </div><!-- /panel-inner -->
+      </main>
+    </div><!-- /app -->
+
+    <script>
+      (function () {
+        'use strict';
+
+        // ── State ──────────────────────────────────────────────
+        var _proxy = null;           // capability proxy, bound once
+        var _activeId = null;        // roster selected id (null = none)
+        var _isCreate = false;       // create mode vs edit mode
+        var _roster = [];            // PatientSummary[]
+        var _statusTimer = null;     // auto-clear timeout
+        var _saving = false;
+
+        // ── DOM refs ───────────────────────────────────────────
+        var elBridgeWait   = document.getElementById('bridge-wait');
+        var elApp          = document.getElementById('app');
+        var elStatusBar    = document.getElementById('status-bar');
+        var elRoster       = document.getElementById('roster');
+        var elRosterEmpty  = document.getElementById('roster-empty');
+        var elPanelEmpty   = document.getElementById('panel-empty');
+        var elPanelLocked  = document.getElementById('panel-locked');
+        var elFormCard     = document.getElementById('form-card');
+        var elCardAvatar   = document.getElementById('form-card-avatar');
+        var elCardTitle    = document.getElementById('form-card-title');
+        var elCardId       = document.getElementById('form-card-id');
+        var elForm         = document.getElementById('patient-form');
+        var elGiven        = document.getElementById('f-given');
+        var elFamily       = document.getElementById('f-family');
+        var elPhone        = document.getElementById('f-phone');
+        var elEmail        = document.getElementById('f-email');
+        var elDob          = document.getElementById('f-dob');
+        var elStatusSel    = document.getElementById('f-status');
+        var elBtnNew       = document.getElementById('btn-new');
+        var elBtnCancel    = document.getElementById('btn-cancel');
+        var elBtnSave      = document.getElementById('btn-save');
+        var elBtnSaveLabel = document.getElementById('btn-save-label');
+
+        // ── Theme application ──────────────────────────────────
+        function applyTheme(theme) {
+          if (!theme || typeof theme !== 'object') return;
+          Object.keys(theme).forEach(function (k) {
+            document.documentElement.style.setProperty(k, theme[k]);
+          });
+        }
+
+        // ── Status bar ─────────────────────────────────────────
+        function showStatus(msg, kind, autoClear) {
+          // kind: 'ok' | 'err' | 'locked'
+          clearTimeout(_statusTimer);
+          elStatusBar.textContent = msg;
+          elStatusBar.className = 'visible ' + (kind || '');
+          if (autoClear !== false) {
+            _statusTimer = setTimeout(function () {
+              elStatusBar.className = '';
+              elStatusBar.textContent = '';
+            }, 3500);
+          }
+        }
+
+        function clearStatus() {
+          clearTimeout(_statusTimer);
+          elStatusBar.className = '';
+          elStatusBar.textContent = '';
+        }
+
+        // ── Locked state detection ─────────────────────────────
+        function isLockedError(err) {
+          return err && (err.code === 'cap.locked' || (err.message && err.message.indexOf('cap.locked') !== -1));
+        }
+
+        // ── Display name ───────────────────────────────────────
+        function displayName(given, family) {
+          var g = (given || '').trim();
+          var f = (family || '').trim();
+          if (f) return f + ', ' + g;
+          return g || '—';
+        }
+
+        function initials(given, family) {
+          var g = (given || '').trim();
+          var f = (family || '').trim();
+          var a = '';
+          if (g) a += g[0].toUpperCase();
+          if (f) a += f[0].toUpperCase();
+          return a || '?';
+        }
+
+        // ── Panel show helpers ─────────────────────────────────
+        function showPanelEmpty() {
+          elPanelEmpty.style.display = '';
+          elPanelLocked.style.display = 'none';
+          elFormCard.style.display = 'none';
+        }
+
+        function showPanelLocked() {
+          elPanelEmpty.style.display = 'none';
+          elPanelLocked.style.display = '';
+          elFormCard.style.display = 'none';
+        }
+
+        function showPanelForm() {
+          elPanelEmpty.style.display = 'none';
+          elPanelLocked.style.display = 'none';
+          elFormCard.style.display = '';
+        }
+
+        // ── Roster rendering ───────────────────────────────────
+        function renderRoster() {
+          // Remove existing items (keep the empty-state div)
+          var items = elRoster.querySelectorAll('.roster-item');
+          items.forEach(function (el) { el.remove(); });
+
+          if (_roster.length === 0) {
+            elRosterEmpty.style.display = '';
+            return;
+          }
+          elRosterEmpty.style.display = 'none';
+
+          _roster.forEach(function (p) {
+            var item = document.createElement('div');
+            item.className = 'roster-item' + (_activeId === p.id ? ' active' : '');
+            item.setAttribute('data-id', p.id);
+            item.setAttribute('role', 'button');
+            item.setAttribute('tabindex', '0');
+
+            var g = p.displayName || '';
+            var avatar = document.createElement('div');
+            avatar.className = 'roster-avatar';
+            avatar.textContent = g ? g[0].toUpperCase() : '?';
+
+            var info = document.createElement('div');
+            info.className = 'roster-info';
+
+            var name = document.createElement('div');
+            name.className = 'roster-name';
+            name.textContent = p.displayName || '(unnamed)';
+
+            var badge = document.createElement('span');
+            badge.className = 'roster-badge ' + (p.status || 'active');
+            badge.textContent = p.status || 'active';
+
+            info.appendChild(name);
+            info.appendChild(badge);
+            item.appendChild(avatar);
+            item.appendChild(info);
+
+            item.addEventListener('click', function () { onRosterClick(p.id); });
+            item.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRosterClick(p.id); }
+            });
+
+            elRoster.appendChild(item);
+          });
+        }
+
+        // ── Cap calls (all wrapped) ────────────────────────────
+
+        function callList() {
+          if (!_proxy) return;
+          _proxy.call('list').then(function (data) {
+            _roster = Array.isArray(data) ? data : [];
+            renderRoster();
+          }).catch(function (err) {
+            if (isLockedError(err)) {
+              showPanelLocked();
+              showStatus('Workspace locked — unlock to view patients.', 'locked', false);
+            } else {
+              showStatus('Failed to load roster: ' + (err && err.message), 'err');
+            }
+          });
+        }
+
+        function onRosterClick(id) {
+          if (_saving) return;
+          _activeId = id;
+          _isCreate = false;
+          renderRoster();
+          clearStatus();
+          // get record
+          _proxy.call('get', id).then(function (rec) {
+            if (!rec) {
+              showStatus('Client not found.', 'err');
+              showPanelEmpty();
+              return;
+            }
+            populateForm(rec);
+            showPanelForm();
+          }).catch(function (err) {
+            if (isLockedError(err)) {
+              showPanelLocked();
+              showStatus('Workspace locked — unlock to view patients.', 'locked', false);
+            } else {
+              showStatus('Failed to load client: ' + (err && err.message), 'err');
+            }
+          });
+        }
+
+        function populateForm(rec) {
+          elGiven.value  = rec.givenName   || '';
+          elFamily.value = rec.familyName  || '';
+          elPhone.value  = rec.contactPhone || '';
+          elEmail.value  = rec.contactEmail || '';
+          elDob.value    = rec.dob         || '';
+          elStatusSel.value = rec.status   || 'active';
+
+          var dn = displayName(rec.givenName, rec.familyName);
+          elCardTitle.textContent = dn;
+          elCardAvatar.textContent = initials(rec.givenName, rec.familyName);
+          elCardId.textContent = rec.id;
+          elCardId.style.display = '';
+          elBtnSaveLabel.textContent = 'Save Changes';
+        }
+
+        function clearForm() {
+          elForm.reset();
+          elStatusSel.value = 'active';
+          elCardTitle.textContent = 'New Client';
+          elCardAvatar.textContent = '+';
+          elCardId.style.display = 'none';
+          elBtnSaveLabel.textContent = 'Create Client';
+        }
+
+        function onNewClick() {
+          if (_saving) return;
+          _activeId = null;
+          _isCreate = true;
+          // Deselect roster
+          elRoster.querySelectorAll('.roster-item').forEach(function (el) {
+            el.classList.remove('active');
+          });
+          clearStatus();
+          clearForm();
+          showPanelForm();
+          elGiven.focus();
+        }
+
+        function onCancelClick() {
+          if (_saving) return;
+          _activeId = null;
+          _isCreate = false;
+          elRoster.querySelectorAll('.roster-item').forEach(function (el) {
+            el.classList.remove('active');
+          });
+          clearStatus();
+          showPanelEmpty();
+        }
+
+        function setSaving(val) {
+          _saving = val;
+          elBtnSave.disabled = val;
+          elBtnSaveLabel.textContent = val
+            ? (_isCreate ? 'Creating…' : 'Saving…')
+            : (_isCreate ? 'Create Client' : 'Save Changes');
+        }
+
+        function onSaveClick() {
+          if (_saving) return;
+          var givenName    = elGiven.value.trim();
+          var familyName   = elFamily.value;          // optional — pass as-is
+          var contactPhone = elPhone.value;
+          var contactEmail = elEmail.value;
+          var dob          = elDob.value;
+          var status       = elStatusSel.value;
+
+          if (!givenName) {
+            showStatus('Given name is required.', 'err');
+            elGiven.focus();
+            return;
+          }
+
+          clearStatus();
+          setSaving(true);
+
+          if (_isCreate) {
+            // build create input (omit truly blank optionals)
+            var input = { givenName: givenName };
+            if (familyName.trim())   input.familyName   = familyName.trim();
+            if (contactPhone.trim()) input.contactPhone = contactPhone.trim();
+            if (contactEmail.trim()) input.contactEmail = contactEmail.trim();
+            if (dob)                 input.dob          = dob;
+            input.status = status;
+
+            _proxy.call('create', input).then(function (rec) {
+              _isCreate = false;
+              _activeId = rec.id;
+              setSaving(false);
+              callList();
+              populateForm(rec);
+              showPanelForm();
+              showStatus('Client created.', 'ok');
+            }).catch(function (err) {
+              setSaving(false);
+              if (isLockedError(err)) {
+                showPanelLocked();
+                showStatus('Workspace locked — unlock to create patients.', 'locked', false);
+              } else {
+                showStatus('Create failed: ' + (err && err.message), 'err');
+              }
+            });
+
+          } else {
+            // edit mode — build patch from form
+            var patch = {
+              givenName:    givenName,
+              familyName:   familyName   || null,
+              contactPhone: contactPhone || null,
+              contactEmail: contactEmail || null,
+              dob:          dob          || null,
+              status:       status,
+            };
+            var id = _activeId;
+
+            // Call setStatus explicitly to exercise that path when status is part of the save
+            var updatePromise = _proxy.call('update', id, patch);
+            updatePromise.then(function (rec) {
+              setSaving(false);
+              _activeId = rec.id;
+              callList();
+              populateForm(rec);
+              showPanelForm();
+              showStatus('Changes saved.', 'ok');
+            }).catch(function (err) {
+              setSaving(false);
+              if (isLockedError(err)) {
+                showPanelLocked();
+                showStatus('Workspace locked — unlock to edit patients.', 'locked', false);
+              } else {
+                showStatus('Save failed: ' + (err && err.message), 'err');
+              }
+            });
+          }
+        }
+
+        // Update card header preview as user types
+        function onFormInput() {
+          if (_isCreate) {
+            var g = elGiven.value.trim();
+            var f = elFamily.value.trim();
+            elCardTitle.textContent = g ? displayName(g, f) : 'New Client';
+            elCardAvatar.textContent = g ? initials(g, f) : '+';
+          }
+        }
+
+        // ── Bridge bootstrap ───────────────────────────────────
+        function awaitBridge() {
+          return new Promise(function (resolve) {
+            if (window.soamView) return resolve(window.soamView);
+            var iv = setInterval(function () {
+              if (window.soamView) { clearInterval(iv); resolve(window.soamView); }
+            }, 25);
+          });
+        }
+
+        // Theme messages from host
+        window.addEventListener('message', function (e) {
+          var d = e.data;
+          if (!d || d.__soamView !== true) return;
+          if (d.kind === 'init' && d.theme)  applyTheme(d.theme);
+          if (d.kind === 'theme' && d.theme) applyTheme(d.theme);
+        });
+
+        awaitBridge().then(function (soamView) {
+          // Reveal UI
+          elBridgeWait.style.display = 'none';
+          elApp.style.display = '';
+
+          soamView.events.onActivate(function () {
+            // Bind capability ONCE on first activate
+            if (_proxy) {
+              callList();
+              return;
+            }
+            soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+              _proxy = proxy;
+              callList();
+            }).catch(function (err) {
+              if (isLockedError(err)) {
+                showPanelLocked();
+                showStatus('Workspace locked — unlock to view patients.', 'locked', false);
+              } else {
+                showStatus('Bridge bind failed: ' + (err && err.message), 'err');
+              }
+            });
+          });
+
+          soamView.events.onDeactivate(function () { /* nothing */ });
+
+          // Wire buttons
+          elBtnNew.addEventListener('click', onNewClick);
+          elBtnCancel.addEventListener('click', onCancelClick);
+          elBtnSave.addEventListener('click', onSaveClick);
+          elGiven.addEventListener('input', onFormInput);
+          elFamily.addEventListener('input', onFormInput);
+
+          // Prevent native form submit
+          elForm.addEventListener('submit', function (e) { e.preventDefault(); onSaveClick(); });
+        });
+
+      })();
+    </script>
+  </body>
+</html>

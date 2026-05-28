@@ -27,16 +27,23 @@ import { registerCapability } from '../capability/registry.js';
 import { localStoreManager } from '../local-store/index.js';
 import { auditService } from '../audit/index.js';
 import { CapErr } from '../../shared/ipc-protocol.js';
-import {
-  deriveDisplayName,
-  type PatientCreateInput,
-  type PatientRecord,
-  type PatientStatus,
-  type PatientSummary,
-  type PatientUpdatePatch,
-} from './record-types.js';
+import type {
+  PatientCreateInput,
+  PatientRecord,
+  PatientStatus,
+  PatientSummary,
+  PatientUpdatePatch,
+} from '@ru-soam/domain';
 import type { LocalStore } from '../local-store/store.js';
 import type DatabaseT from 'better-sqlite3';
+
+/** Derive `displayName` from given/family names. Pure function — no PHI logged. */
+function deriveDisplayName(givenName: string, familyName: string | null): string {
+  if (familyName && familyName.trim().length > 0) {
+    return `${familyName.trim()}, ${givenName.trim()}`;
+  }
+  return givenName.trim();
+}
 
 // ── DB row shape ──────────────────────────────────────────────────────────────
 

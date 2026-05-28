@@ -1,0 +1,16 @@
+{
+  "name": "@ru-soam/domain",
+  "version": "0.1.0",
+  "description": "Shared domain type contracts for ru-soam (types-only, no runtime exports)",
+  "private": true,
+  "license": "private",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "compile": "tsc -b"
+  }
+}

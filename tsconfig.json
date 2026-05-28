@@ -3,6 +3,7 @@
   "references": [
     { "path": "./apps/web" },
     { "path": "./apps/desktop" },
-    { "path": "./packages/editor" }
+    { "path": "./packages/editor" },
+    { "path": "./packages/domain" }
   ]
 }

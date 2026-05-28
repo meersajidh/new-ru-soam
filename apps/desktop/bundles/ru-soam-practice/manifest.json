@@ -1,0 +1,10 @@
+{
+  "id": "ru-soam-practice",
+  "version": "0.1.0",
+  "entry": "index.mjs",
+  "activationEvents": ["lazy"],
+  "capabilities": [],
+  "views": [
+    { "id": "main", "path": "practice.html" }
+  ]
+}

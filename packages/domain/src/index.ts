@@ -1,12 +1,14 @@
 /**
- * Canonical Patient record types — ADR-504 / ADR-505.
+ * @ru-soam/domain — shared Patient record type contracts.
  *
- * Owned by `ru-soam.core-domain`. Imported by Main (capability impl) and
- * by the Renderer / consumer bundles as a **contract only** — importing
- * these types grants no data access.
+ * ADR-504 / ADR-505. Owned by `ru-soam.core-domain`.
  *
- * Schema is deliberately lean (ADR-301 data minimisation). No free-form
- * clinical notes — those belong to Sessions (a later ADR).
+ * TYPES-ONLY. No runtime exports — every export here must be a `type` or
+ * `interface`. This is deliberate: Main bundles via Vite; a runtime value
+ * imported from a workspace TS package risks being externalized/un-transpiled.
+ * `import type` erases fully at compile time, zero runtime footprint.
+ *
+ * Consumers MUST use `import type { … } from '@ru-soam/domain'`.
  */
 
 export type PatientStatus = 'active' | 'inactive' | 'archived';
@@ -56,12 +58,4 @@ export interface PatientUpdatePatch {
   readonly contactPhone?: string | null;
   readonly contactEmail?: string | null;
   readonly dob?: string | null;
-}
-
-/** Derive `displayName` from given/family names. Pure function — no PHI logged. */
-export function deriveDisplayName(givenName: string, familyName: string | null): string {
-  if (familyName && familyName.trim().length > 0) {
-    return `${familyName.trim()}, ${givenName.trim()}`;
-  }
-  return givenName.trim();
 }
