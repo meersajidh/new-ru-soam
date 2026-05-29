@@ -4,29 +4,85 @@
     <meta charset="utf-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'; font-src view:"
     />
     <title>Practice — Clients</title>
     <style>
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-      :root {
-        color-scheme: light dark;
-        --shell-font: 13px/1.5 'SF Pro Text', system-ui, -apple-system, sans-serif;
-        --shell-font-mono: 11px/1.4 'SF Mono', 'Fira Code', ui-monospace, monospace;
-        --shell-transition: 160ms ease;
-        --shell-radius: 5px;
+      /* ── Brand font ──────────────────────────────────── */
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-400.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-500.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-600.woff2') format('woff2');
       }
 
+      /* ── Reset ───────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      /* ── Design tokens (defaults — host overrides via postMessage) ─────── */
+      :root {
+        color-scheme: light dark;
+
+        --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+
+        /* Surface */
+        --color-surface-base:     #161618;
+        --color-surface-panel:    #1c1c1f;
+        --color-surface-elevated: #232326;
+        --color-surface-active:   #2a2d26;
+        /* Foreground */
+        --color-fg-primary:   #f2f2f7;
+        --color-fg-secondary: #aeaeb2;
+        --color-fg-muted:     #636366;
+        /* Borders */
+        --color-border:       #3a3a3c;
+        --color-border-focus: #5ac85a;
+        /* Accent */
+        --color-accent:         #5ac85a;
+        --color-accent-fg:      #1c1c1e;
+        --color-accent-hover:   #6bd46b;
+        --color-accent-pressed: #4ab44a;
+        /* Semantic */
+        --color-success: #5ac85a;
+        --color-warning: #f4a623;
+        --color-error:   #e05252;
+
+        --radius-sm: 4px;
+        --radius-md: 7px;
+        --transition: 130ms ease;
+      }
+
+      /* ── Base ────────────────────────────────────────── */
       html, body {
         height: 100%;
         overflow: hidden;
-        font: var(--shell-font);
-        background: var(--color-surface-panel, #f5f5f7);
-        color: var(--color-fg-primary, #1c1c1e);
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.5;
+        background: var(--color-surface-panel);
+        color: var(--color-fg-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
       }
 
-      /* ── Root layout ─────────────────────────────── */
+      /* ── Root layout ─────────────────────────────────── */
       #root {
         display: flex;
         flex-direction: column;
@@ -34,223 +90,18 @@
         overflow: hidden;
       }
 
-      /* ── Toolbar ──────────────────────────────────── */
-      #toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 9px 10px 8px;
-        border-bottom: 1px solid var(--color-border, #d1d1d6);
-        flex-shrink: 0;
-        background: var(--color-surface-panel, #f5f5f7);
-      }
-
-      #toolbar-label {
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.09em;
-        text-transform: uppercase;
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 44%, transparent);
-        user-select: none;
-      }
-
-      #btn-new {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        padding: 3px 9px 3px 7px;
-        font: var(--shell-font);
-        font-size: 11.5px;
-        font-weight: 600;
-        cursor: pointer;
-        border-radius: var(--shell-radius);
-        border: 1px solid var(--color-border, #d1d1d6);
-        background: var(--color-surface-elevated, #ffffff);
-        color: var(--color-fg-primary, #1c1c1e);
-        transition: background var(--shell-transition), border-color var(--shell-transition), box-shadow var(--shell-transition);
-        line-height: 1;
-      }
-      #btn-new:hover {
-        background: var(--color-surface-active, #e8e8ed);
-      }
-      #btn-new:active {
-        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 12%, transparent);
-      }
-      #btn-new .plus {
-        font-size: 14px;
-        line-height: 1;
-        margin-top: -1px;
-        font-weight: 400;
-        opacity: 0.7;
-      }
-
-      /* ── Status message ───────────────────────────── */
-      #status-msg {
-        font-size: 11px;
-        padding: 6px 10px;
-        border-bottom: 1px solid var(--color-border, #d1d1d6);
-        background: color-mix(in srgb, var(--color-error, #c0392b) 9%, transparent);
-        color: var(--color-error, #c0392b);
-        font-weight: 500;
-        display: none;
-        flex-shrink: 0;
-      }
-      #status-msg.visible { display: block; }
-
-      /* ── Roster scroll area ───────────────────────── */
-      #roster {
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
-        padding: 3px 0 8px;
-        scrollbar-width: thin;
-        scrollbar-color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 18%, transparent) transparent;
-      }
-
-      /* ── Empty state ──────────────────────────────── */
-      #roster-empty {
-        padding: 28px 14px 20px;
-        text-align: center;
-        display: none;
-      }
-      #roster-empty.visible { display: block; }
-      #roster-empty .empty-graphic {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 7%, transparent);
-        margin: 0 auto 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      #roster-empty .empty-graphic svg {
-        width: 18px;
-        height: 18px;
-        opacity: 0.3;
-        stroke: var(--color-fg-primary, #1c1c1e);
-        fill: none;
-        stroke-width: 1.5;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-      #roster-empty p {
-        font-size: 11.5px;
-        line-height: 1.55;
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 42%, transparent);
-        max-width: 180px;
-        margin: 0 auto;
-      }
-      #roster-empty strong {
-        display: block;
-        font-size: 12.5px;
-        font-weight: 600;
-        margin-bottom: 4px;
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 55%, transparent);
-      }
-
-      /* ── Locked state ─────────────────────────────── */
-      #roster-locked {
-        padding: 22px 14px;
-        text-align: center;
-        display: none;
-      }
-      #roster-locked.visible { display: block; }
-      #roster-locked p {
-        font-size: 11.5px;
-        line-height: 1.55;
-        color: var(--color-error, #c0392b);
-        opacity: 0.78;
-        font-weight: 500;
-      }
-
-      /* ── Roster items ─────────────────────────────── */
-      .roster-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
-        cursor: pointer;
-        border-left: 2px solid transparent;
-        transition: background var(--shell-transition), border-left-color var(--shell-transition);
-        outline: none;
-      }
-      .roster-item:hover {
-        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 5%, transparent);
-      }
-      .roster-item:focus-visible {
-        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 6%, transparent);
-        outline: 2px solid color-mix(in srgb, var(--color-success, #1a7f1a) 60%, transparent);
-        outline-offset: -2px;
-      }
-      .roster-item:active {
-        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 9%, transparent);
-      }
-
-      /* ── Avatar ───────────────────────────────────── */
-      .roster-avatar {
-        flex-shrink: 0;
-        width: 26px;
-        height: 26px;
-        border-radius: 50%;
-        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 10%, transparent);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10.5px;
-        font-weight: 700;
-        letter-spacing: 0;
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 62%, transparent);
-      }
-
-      /* ── Item text ────────────────────────────────── */
-      .roster-info { flex: 1; min-width: 0; }
-      .roster-name {
-        font-size: 12px;
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        color: var(--color-fg-primary, #1c1c1e);
-        line-height: 1.3;
-      }
-
-      /* ── Status badge ─────────────────────────────── */
-      .roster-badge {
-        display: inline-block;
-        font-size: 9.5px;
-        padding: 1px 5px;
-        border-radius: 3px;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        text-transform: capitalize;
-        margin-top: 2px;
-      }
-      .roster-badge.active {
-        background: color-mix(in srgb, var(--color-success, #1a7f1a) 13%, transparent);
-        color: var(--color-success, #1a7f1a);
-      }
-      .roster-badge.inactive {
-        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 9%, transparent);
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 52%, transparent);
-      }
-      .roster-badge.archived {
-        background: color-mix(in srgb, var(--color-error, #c0392b) 10%, transparent);
-        color: color-mix(in srgb, var(--color-error, #c0392b) 75%, transparent);
-      }
-
-      /* ── Bridge wait ──────────────────────────────── */
+      /* ── Bridge wait ─────────────────────────────────── */
       #bridge-wait {
         position: fixed;
         inset: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-surface-panel, #f5f5f7);
+        background: var(--color-surface-panel);
         z-index: 100;
         gap: 8px;
-        font-size: 11.5px;
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 40%, transparent);
+        font-size: 11px;
+        color: var(--color-fg-muted);
       }
       .spinner {
         display: inline-block;
@@ -262,6 +113,395 @@
         animation: spin 0.7s linear infinite;
       }
       @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ── Header row — title + "+" icon (replaces shell .sidebar-header) ── */
+      #panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 35px;
+        padding: 0 10px 0 12px;
+        flex-shrink: 0;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      #panel-title {
+        font-family: var(--font-sans);
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--color-fg-muted);
+        user-select: none;
+        line-height: 1;
+      }
+
+      #btn-new {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border-radius: var(--radius-sm);
+        border: none;
+        background: transparent;
+        color: var(--color-fg-secondary);
+        cursor: pointer;
+        transition: background var(--transition), color var(--transition);
+        outline: none;
+        flex-shrink: 0;
+      }
+      #btn-new:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
+      #btn-new:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
+      #btn-new svg {
+        flex-shrink: 0;
+      }
+
+      /* ── Status message ──────────────────────────────── */
+      #status-msg {
+        font-size: 11px;
+        padding: 5px 10px;
+        background: color-mix(in srgb, var(--color-error) 9%, transparent);
+        color: var(--color-error);
+        font-weight: 500;
+        display: none;
+        flex-shrink: 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+      }
+      #status-msg.visible { display: block; }
+
+      /* ── Lens switcher ───────────────────────────────── */
+      #lens-switch {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2px;
+        padding: 0 8px 7px;
+        flex-shrink: 0;
+      }
+
+      .lens-tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 7px 2px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--color-fg-muted);
+        cursor: pointer;
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        transition: background var(--transition), color var(--transition), border-color var(--transition);
+        outline: none;
+        user-select: none;
+      }
+      .lens-tab:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-secondary);
+      }
+      .lens-tab.is-active {
+        background: color-mix(in srgb, var(--color-accent) 13%, transparent);
+        border-color: color-mix(in srgb, var(--color-accent) 42%, transparent);
+        color: var(--color-accent);
+      }
+      .lens-tab:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
+      .lens-tab svg {
+        flex-shrink: 0;
+      }
+
+      /* ── Lens body ───────────────────────────────────── */
+      #lens-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+        padding-bottom: 8px;
+      }
+
+      /* ── Placeholder lens (Agenda/Attention/Intake) ── */
+      .lens-panel { display: none; }
+      .lens-panel.is-active { display: block; }
+
+      .lens-placeholder {
+        padding: 24px 16px;
+        text-align: center;
+        color: var(--color-fg-muted);
+        font-size: 12px;
+        line-height: 1.55;
+        font-style: italic;
+      }
+
+      /* ── Roster controls area ────────────────────────── */
+      #roster-controls {
+        padding: 0 2px 4px;
+      }
+
+      /* Search */
+      .sidebar-search {
+        position: relative;
+        margin: 0 8px 6px;
+      }
+      .search-lead {
+        position: absolute;
+        left: 9px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--color-fg-muted);
+        pointer-events: none;
+        display: inline-flex;
+        align-items: center;
+      }
+      #search-input {
+        width: 100%;
+        padding: 6px 10px 6px 29px;
+        font-family: var(--font-sans);
+        font-size: 12px;
+        background: var(--color-surface-base);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        color: var(--color-fg-primary);
+        outline: none;
+        transition: border-color var(--transition);
+        line-height: 1.4;
+      }
+      #search-input::placeholder {
+        color: var(--color-fg-muted);
+      }
+      #search-input:focus {
+        border-color: var(--color-border-focus);
+      }
+
+      /* Arrange row (group control) */
+      .arrange-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 2px 12px 6px;
+      }
+      .arrange-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10.5px;
+        color: var(--color-fg-muted);
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        user-select: none;
+      }
+      .seg {
+        display: inline-flex;
+        background: var(--color-surface-base);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+      }
+      .seg-btn {
+        background: transparent;
+        border: none;
+        color: var(--color-fg-muted);
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 500;
+        padding: 3px 8px;
+        cursor: pointer;
+        outline: none;
+        transition: background var(--transition), color var(--transition);
+        user-select: none;
+      }
+      .seg-btn:hover {
+        color: var(--color-fg-secondary);
+      }
+      .seg-btn.is-active {
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+      }
+      .seg-btn:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: -2px;
+      }
+
+      /* ── Group header ────────────────────────────────── */
+      .group-header {
+        padding: 9px 14px 3px;
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--color-fg-muted);
+        user-select: none;
+      }
+
+      /* ── Client list ─────────────────────────────────── */
+      .roster-group-list {
+        list-style: none;
+        padding: 0 5px;
+        margin: 0 0 2px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      /* ── Client row ──────────────────────────────────── */
+      .client-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px 7px 9px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        border-left: 2px solid transparent;
+        outline: none;
+        transition: background var(--transition), border-left-color var(--transition);
+        user-select: none;
+      }
+      .client-row:hover {
+        background: var(--color-surface-active);
+      }
+      .client-row:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: -2px;
+      }
+
+      /* Status dot */
+      .status-dot {
+        flex-shrink: 0;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--color-fg-muted);
+      }
+      .status-dot.active   { background: var(--color-success); }
+      .status-dot.inactive { background: var(--color-fg-muted); }
+      .status-dot.archived { background: var(--color-error); }
+
+      /* Row text */
+      .client-row-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .client-row-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-fg-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+      }
+      .client-row-sub {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+        font-family: var(--font-mono);
+      }
+
+      /* Active / selected row */
+      .client-row.is-active {
+        background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+        border-left-color: var(--color-accent);
+      }
+      .client-row.is-active .client-row-name {
+        color: var(--color-fg-primary);
+      }
+      .client-row.is-active:hover {
+        background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+      }
+
+      /* ── Empty state ─────────────────────────────────── */
+      #roster-empty {
+        padding: 28px 16px 20px;
+        text-align: center;
+        display: none;
+      }
+      #roster-empty.visible { display: block; }
+
+      .empty-graphic {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
+        margin: 0 auto 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .empty-graphic svg {
+        width: 18px;
+        height: 18px;
+        opacity: 0.3;
+        stroke: var(--color-fg-primary);
+        fill: none;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      #roster-empty strong {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--color-fg-secondary);
+        margin-bottom: 5px;
+      }
+      #roster-empty p {
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: var(--color-fg-muted);
+        max-width: 180px;
+        margin: 0 auto;
+      }
+
+      /* ── Locked state ────────────────────────────────── */
+      #roster-locked {
+        padding: 16px;
+        text-align: center;
+        display: none;
+      }
+      #roster-locked.visible { display: block; }
+      #roster-locked p {
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: var(--color-error);
+        opacity: 0.8;
+        font-weight: 500;
+      }
+
+      /* ── No-results state ────────────────────────────── */
+      #roster-no-results {
+        padding: 16px 14px;
+        text-align: center;
+        display: none;
+      }
+      #roster-no-results.visible { display: block; }
+      #roster-no-results p {
+        font-size: 11.5px;
+        color: var(--color-fg-muted);
+      }
+
+      /* ── Roster content container ────────────────────── */
+      #roster-content { display: none; }
+      #roster-content.visible { display: block; }
     </style>
   </head>
   <body>
@@ -271,52 +511,186 @@
     </div>
 
     <div id="root" style="display:none">
-      <div id="toolbar">
-        <span id="toolbar-label">Clients</span>
-        <button id="btn-new" type="button" title="New client">
-          <span class="plus">+</span> New
+
+      <!-- Header: title left, "+" icon right — owned by iframe so bundle controls styling -->
+      <div id="panel-header">
+        <span id="panel-title">Practice</span>
+        <button id="btn-new" type="button" title="New client" aria-label="New client">
+          <!-- plus icon -->
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
         </button>
       </div>
 
+      <!-- Status / error banner -->
       <div id="status-msg" role="alert"></div>
 
-      <div id="roster">
-        <div id="roster-empty">
-          <div class="empty-graphic">
-            <!-- person/users icon -->
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
+      <!-- Lens switcher -->
+      <div id="lens-switch" role="tablist" aria-label="Navigation lens">
+
+        <button class="lens-tab is-active" role="tab" aria-selected="true" data-lens="roster" tabindex="0" title="Roster">
+          <!-- users icon -->
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span>Roster</span>
+        </button>
+
+        <button class="lens-tab" role="tab" aria-selected="false" data-lens="agenda" tabindex="-1" title="Agenda">
+          <!-- calendar-clock icon -->
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <circle cx="15" cy="16" r="3"/>
+            <polyline points="15 15 15 16 16 16"/>
+          </svg>
+          <span>Agenda</span>
+        </button>
+
+        <button class="lens-tab" role="tab" aria-selected="false" data-lens="attention" tabindex="-1" title="Attention">
+          <!-- shield-alert icon -->
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>Attention</span>
+        </button>
+
+        <button class="lens-tab" role="tab" aria-selected="false" data-lens="intake" tabindex="-1" title="Intake">
+          <!-- inbox icon -->
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+          </svg>
+          <span>Intake</span>
+        </button>
+
+      </div><!-- #lens-switch -->
+
+      <!-- Lens body -->
+      <div id="lens-body">
+
+        <!-- ROSTER lens -->
+        <div class="lens-panel is-active" id="lens-roster">
+          <div id="roster-controls">
+            <!-- Search -->
+            <div class="sidebar-search">
+              <span class="search-lead" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+              </span>
+              <input id="search-input" type="search" placeholder="Filter clients…" autocomplete="off" spellcheck="false" aria-label="Filter clients" />
+            </div>
+            <!-- Group control -->
+            <div class="arrange-row">
+              <span class="arrange-label">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                  <polyline points="2 17 12 22 22 17"/>
+                  <polyline points="2 12 12 17 22 12"/>
+                </svg>
+                Group
+              </span>
+              <div class="seg" role="group" aria-label="Group by">
+                <button class="seg-btn is-active" data-group="none" type="button">None</button>
+                <button class="seg-btn" data-group="status" type="button">Status</button>
+              </div>
+            </div>
           </div>
-          <strong>No clients yet</strong>
-          <p>Add your first client with the New button above.</p>
+
+          <!-- Locked -->
+          <div id="roster-locked">
+            <p>Workspace locked — unlock to view clients.</p>
+          </div>
+
+          <!-- Empty -->
+          <div id="roster-empty">
+            <div class="empty-graphic">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <strong>No clients yet</strong>
+            <p>Add your first client with the New button above.</p>
+          </div>
+
+          <!-- No-results (filter active) -->
+          <div id="roster-no-results">
+            <p>No clients match the filter.</p>
+          </div>
+
+          <!-- Live list container -->
+          <div id="roster-content"></div>
+        </div><!-- #lens-roster -->
+
+        <!-- AGENDA placeholder -->
+        <div class="lens-panel" id="lens-agenda">
+          <p class="lens-placeholder">Agenda — needs the Schedule Activity.</p>
         </div>
 
-        <div id="roster-locked">
-          <p>🔒 Workspace locked — unlock to view clients.</p>
+        <!-- ATTENTION placeholder -->
+        <div class="lens-panel" id="lens-attention">
+          <p class="lens-placeholder">Attention — needs the lifecycle model.</p>
         </div>
-        <!-- roster items injected here -->
-      </div>
-    </div>
+
+        <!-- INTAKE placeholder -->
+        <div class="lens-panel" id="lens-intake">
+          <p class="lens-placeholder">Intake — needs the intake pipeline model.</p>
+        </div>
+
+      </div><!-- #lens-body -->
+
+    </div><!-- #root -->
 
     <script>
       (function () {
         'use strict';
 
-        var _proxy = null;
-        var _roster = [];
+        /* ── State ───────────────────────────────────────── */
+        var _proxy    = null;
+        var _roster   = [];
+        var _activeId = null;
+        var _filter   = '';
+        var _group    = 'none';
+        var _activeLens = 'roster';
 
-        var elBridgeWait  = document.getElementById('bridge-wait');
-        var elRoot        = document.getElementById('root');
-        var elStatusMsg   = document.getElementById('status-msg');
-        var elRoster      = document.getElementById('roster');
-        var elRosterEmpty = document.getElementById('roster-empty');
-        var elRosterLocked= document.getElementById('roster-locked');
-        var elBtnNew      = document.getElementById('btn-new');
+        /* ── Element refs ────────────────────────────────── */
+        var elBridgeWait   = document.getElementById('bridge-wait');
+        var elRoot         = document.getElementById('root');
+        var elStatusMsg    = document.getElementById('status-msg');
+        var elBtnNew       = document.getElementById('btn-new');
+        var elSearchInput  = document.getElementById('search-input');
+        var elRosterContent= document.getElementById('roster-content');
+        var elRosterEmpty  = document.getElementById('roster-empty');
+        var elRosterLocked = document.getElementById('roster-locked');
+        var elNoResults    = document.getElementById('roster-no-results');
 
+        /* ── Helpers ─────────────────────────────────────── */
+        function computeAge(dob) {
+          if (!dob) return null;
+          try {
+            var birth = new Date(dob);
+            if (isNaN(birth.getTime())) return null;
+            var now  = new Date();
+            var age  = now.getFullYear() - birth.getFullYear();
+            var m    = now.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+            return age >= 0 ? age : null;
+          } catch (e) { return null; }
+        }
+
+        /* ── Status banner ───────────────────────────────── */
         function showStatus(msg) {
           elStatusMsg.textContent = msg;
           elStatusMsg.classList.add('visible');
@@ -325,68 +699,206 @@
           elStatusMsg.classList.remove('visible');
           elStatusMsg.textContent = '';
         }
-
         function isLockedError(err) {
-          return err && (err.code === 'cap.locked' || (err.message && err.message.indexOf('cap.locked') !== -1));
+          return err && (err.code === 'cap.locked' ||
+            (err.message && err.message.indexOf('cap.locked') !== -1));
         }
 
-        function renderRoster() {
-          // Remove previous dynamic items.
-          elRoster.querySelectorAll('.roster-item').forEach(function (el) { el.remove(); });
+        /* ── Lens switcher ───────────────────────────────── */
+        function initLens() {
+          var tabs = document.querySelectorAll('.lens-tab');
+          tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+              switchLens(tab.getAttribute('data-lens'));
+            });
+            tab.addEventListener('keydown', function (e) {
+              var idx = Array.prototype.indexOf.call(tabs, tab);
+              var next = -1;
+              if (e.key === 'ArrowRight') { next = (idx + 1) % tabs.length; }
+              if (e.key === 'ArrowLeft')  { next = (idx - 1 + tabs.length) % tabs.length; }
+              if (e.key === 'Home') { next = 0; }
+              if (e.key === 'End')  { next = tabs.length - 1; }
+              if (next >= 0) {
+                e.preventDefault();
+                tabs[next].focus();
+                switchLens(tabs[next].getAttribute('data-lens'));
+              }
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                switchLens(tab.getAttribute('data-lens'));
+              }
+            });
+          });
+        }
 
+        function switchLens(lensId) {
+          _activeLens = lensId;
+          var tabs   = document.querySelectorAll('.lens-tab');
+          var panels = document.querySelectorAll('.lens-panel');
+          tabs.forEach(function (t) {
+            var active = t.getAttribute('data-lens') === lensId;
+            t.classList.toggle('is-active', active);
+            t.setAttribute('aria-selected', active ? 'true' : 'false');
+            t.setAttribute('tabindex', active ? '0' : '-1');
+          });
+          panels.forEach(function (p) {
+            p.classList.toggle('is-active', p.id === 'lens-' + lensId);
+          });
+        }
+
+        /* ── Group control ───────────────────────────────── */
+        function initGroupControl() {
+          var btns = document.querySelectorAll('.seg-btn');
+          btns.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              _group = btn.getAttribute('data-group');
+              btns.forEach(function (b) {
+                b.classList.toggle('is-active', b.getAttribute('data-group') === _group);
+              });
+              renderRoster();
+            });
+          });
+        }
+
+        /* ── Search ──────────────────────────────────────── */
+        function initSearch() {
+          elSearchInput.addEventListener('input', function () {
+            _filter = elSearchInput.value.trim().toLowerCase();
+            renderRoster();
+          });
+        }
+
+        /* ── Render ──────────────────────────────────────── */
+        function renderRoster() {
           elRosterEmpty.classList.remove('visible');
           elRosterLocked.classList.remove('visible');
+          elNoResults.classList.remove('visible');
+          elRosterContent.classList.remove('visible');
+          elRosterContent.innerHTML = '';
 
           if (_roster.length === 0) {
             elRosterEmpty.classList.add('visible');
             return;
           }
 
-          _roster.forEach(function (p) {
-            var item = document.createElement('div');
-            item.className = 'roster-item';
-            item.setAttribute('data-id', p.id);
-            item.setAttribute('role', 'button');
-            item.setAttribute('tabindex', '0');
-
-            var initials = p.displayName ? p.displayName[0].toUpperCase() : '?';
-
-            var avatar = document.createElement('div');
-            avatar.className = 'roster-avatar';
-            avatar.textContent = initials;
-
-            var info = document.createElement('div');
-            info.className = 'roster-info';
-
-            var name = document.createElement('div');
-            name.className = 'roster-name';
-            name.textContent = p.displayName || '(unnamed)';
-
-            var badge = document.createElement('span');
-            badge.className = 'roster-badge ' + (p.status || 'active');
-            badge.textContent = p.status || 'active';
-
-            info.appendChild(name);
-            info.appendChild(badge);
-            item.appendChild(avatar);
-            item.appendChild(info);
-
-            item.addEventListener('click', function () { openClient(p); });
-            item.addEventListener('keydown', function (e) {
-              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openClient(p); }
-            });
-
-            elRoster.appendChild(item);
+          // Apply filter
+          var filtered = _roster.filter(function (p) {
+            if (!_filter) return true;
+            var name = (p.displayName || '').toLowerCase();
+            return name.indexOf(_filter) !== -1;
           });
+
+          if (filtered.length === 0) {
+            elNoResults.classList.add('visible');
+            return;
+          }
+
+          elRosterContent.classList.add('visible');
+
+          if (_group === 'status') {
+            var ORDER = ['active', 'inactive', 'archived'];
+            var buckets = { active: [], inactive: [], archived: [] };
+            filtered.forEach(function (p) {
+              var s = (p.status || 'active');
+              if (!buckets[s]) buckets[s] = [];
+              buckets[s].push(p);
+            });
+            ORDER.forEach(function (key) {
+              var list = buckets[key];
+              if (!list || list.length === 0) return;
+              var label = key.charAt(0).toUpperCase() + key.slice(1);
+              var hdr = document.createElement('div');
+              hdr.className = 'group-header';
+              hdr.textContent = label + ' · ' + list.length;
+              elRosterContent.appendChild(hdr);
+              elRosterContent.appendChild(buildGroupList(list));
+            });
+          } else {
+            // None group — single "ALL CLIENTS · N" header
+            var hdr = document.createElement('div');
+            hdr.className = 'group-header';
+            hdr.textContent = 'All Clients · ' + filtered.length;
+            elRosterContent.appendChild(hdr);
+            elRosterContent.appendChild(buildGroupList(filtered));
+          }
+        }
+
+        function buildGroupList(patients) {
+          var ul = document.createElement('ul');
+          ul.className = 'roster-group-list';
+          ul.setAttribute('role', 'list');
+
+          patients.forEach(function (p) {
+            ul.appendChild(buildRow(p));
+          });
+          return ul;
+        }
+
+        function buildRow(p) {
+          var status  = p.status || 'active';
+          var age     = computeAge(p.dob);
+          var isActive = p.id === _activeId;
+
+          var li = document.createElement('li');
+          li.className = 'client-row' + (isActive ? ' is-active' : '');
+          li.setAttribute('data-id', p.id);
+          li.setAttribute('role', 'button');
+          li.setAttribute('tabindex', '0');
+          li.setAttribute('aria-label',
+            (p.displayName || 'Client') + ', ' + status + (age !== null ? ', age ' + age : ''));
+          li.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+
+          // Status dot
+          var dot = document.createElement('span');
+          dot.className = 'status-dot ' + status;
+          dot.setAttribute('aria-hidden', 'true');
+          dot.setAttribute('title', status.charAt(0).toUpperCase() + status.slice(1));
+
+          // Main text block
+          var main = document.createElement('div');
+          main.className = 'client-row-main';
+
+          var name = document.createElement('div');
+          name.className = 'client-row-name';
+          name.textContent = p.displayName || '(unnamed)';
+          main.appendChild(name);
+
+          // Sub-line: age only when dob present; no dx/sex
+          if (age !== null) {
+            var sub = document.createElement('div');
+            sub.className = 'client-row-sub';
+            sub.textContent = age + ' y/o';
+            main.appendChild(sub);
+          }
+
+          li.appendChild(dot);
+          li.appendChild(main);
+
+          li.addEventListener('click', function () { openClient(p); });
+          li.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              openClient(p);
+            }
+          });
+          return li;
         }
 
         function openClient(p) {
+          _activeId = p.id;
+          // Update all rows without full re-render for snappy feel
+          document.querySelectorAll('.client-row').forEach(function (el) {
+            var active = el.getAttribute('data-id') === _activeId;
+            el.classList.toggle('is-active', active);
+            el.setAttribute('aria-pressed', active ? 'true' : 'false');
+          });
           window.soamView.openInEditor('form', {
             query: 'id=' + encodeURIComponent(p.id),
             title: p.displayName || 'Client'
           });
         }
 
+        /* ── Load ────────────────────────────────────────── */
         function loadRoster() {
           if (!_proxy) return;
           clearStatus();
@@ -396,7 +908,8 @@
             renderRoster();
           }).catch(function (err) {
             if (isLockedError(err)) {
-              elRoster.querySelectorAll('.roster-item').forEach(function (el) { el.remove(); });
+              elRosterContent.innerHTML = '';
+              elRosterContent.classList.remove('visible');
               elRosterEmpty.classList.remove('visible');
               elRosterLocked.classList.add('visible');
             } else {
@@ -405,6 +918,7 @@
           });
         }
 
+        /* ── Bridge ──────────────────────────────────────── */
         function awaitBridge() {
           return new Promise(function (resolve) {
             if (window.soamView) return resolve(window.soamView);
@@ -419,13 +933,19 @@
           if (!d || d.__soamView !== true) return;
           if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
             var root = document.documentElement;
-            Object.keys(d.theme).forEach(function (k) { root.style.setProperty(k, d.theme[k]); });
+            Object.keys(d.theme).forEach(function (k) {
+              root.style.setProperty(k, d.theme[k]);
+            });
           }
         });
 
         awaitBridge().then(function (soamView) {
           elBridgeWait.style.display = 'none';
           elRoot.style.display = '';
+
+          initLens();
+          initGroupControl();
+          initSearch();
 
           soamView.events.onActivate(function () {
             if (_proxy) {

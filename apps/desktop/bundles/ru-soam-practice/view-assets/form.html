@@ -12,8 +12,8 @@
 
       :root {
         color-scheme: light dark;
-        --shell-font: 13px/1.5 'SF Pro Text', system-ui, -apple-system, sans-serif;
-        --shell-font-mono: 11px/1.4 'SF Mono', 'Fira Code', ui-monospace, monospace;
+        --shell-font: 13px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --shell-font-mono: 11px/1.4 ui-monospace, Consolas, 'Courier New', monospace;
         --shell-transition: 150ms ease;
         --shell-radius: 6px;
       }
@@ -33,7 +33,7 @@
         overflow-x: hidden;
         padding: 24px 28px 40px;
         scrollbar-width: thin;
-        scrollbar-color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 18%, transparent) transparent;
+        scrollbar-color: var(--color-border, #d1d1d6) transparent;
       }
 
       /* ── Bridge wait ─────────────────────────────── */
@@ -47,7 +47,7 @@
         z-index: 100;
         gap: 8px;
         font-size: 12px;
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 42%, transparent);
+        color: var(--color-fg-muted, #8e8e93);
       }
       .spinner {
         display: inline-block;
@@ -84,13 +84,13 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 9%, transparent);
+        background: color-mix(in srgb, var(--color-accent, #34c759) 18%, var(--color-surface-elevated, #fff));
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 16px;
         font-weight: 700;
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 52%, transparent);
+        color: var(--color-accent, #34c759);
       }
 
       #card-meta { flex: 1; min-width: 0; }
@@ -104,7 +104,7 @@
       }
       #card-subtitle {
         font: var(--shell-font-mono);
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 36%, transparent);
+        color: var(--color-fg-muted, #8e8e93);
         margin-top: 1px;
         white-space: nowrap;
         overflow: hidden;
@@ -137,7 +137,7 @@
         font-weight: 600;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 48%, transparent);
+        color: var(--color-fg-secondary, #636366);
         user-select: none;
       }
       label .req {
@@ -163,8 +163,8 @@
         outline: none;
       }
       input:focus, select:focus {
-        border-color: color-mix(in srgb, var(--color-success, #1a7f1a) 55%, transparent);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success, #1a7f1a) 11%, transparent);
+        border-color: var(--color-border-focus, #34c759);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-border-focus, #34c759) 18%, transparent);
       }
       input::placeholder {
         color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 26%, transparent);
@@ -185,7 +185,7 @@
         width: 0; height: 0;
         border-left: 4px solid transparent;
         border-right: 4px solid transparent;
-        border-top: 5px solid color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 42%, transparent);
+        border-top: 5px solid var(--color-fg-muted, #8e8e93);
         pointer-events: none;
       }
       .select-wrap select { padding-right: 28px; }
@@ -239,15 +239,17 @@
         white-space: nowrap;
       }
       .btn:focus-visible {
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success, #1a7f1a) 22%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-border-focus, #34c759) 28%, transparent);
+        outline: none;
       }
       .btn-primary {
-        background: var(--color-success, #1a7f1a);
-        color: #fff;
+        background: var(--color-accent, #34c759);
+        color: var(--color-accent-fg, #fff);
         border-color: transparent;
         font-weight: 600;
       }
-      .btn-primary:hover { background: color-mix(in srgb, var(--color-success, #1a7f1a) 84%, #000); }
+      .btn-primary:hover { background: var(--color-accent-hover, #30b350); }
+      .btn-primary:active { background: var(--color-accent-pressed, #289f45); }
       .btn-primary:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
 
       /* ── Error / not-found states ────────────────── */
@@ -264,7 +266,7 @@
       #state-not-found.visible, #state-locked.visible { display: flex; }
       #state-not-found p, #state-locked p {
         font-size: 13px;
-        color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 48%, transparent);
+        color: var(--color-fg-secondary, #636366);
         max-width: 280px;
         line-height: 1.6;
       }
