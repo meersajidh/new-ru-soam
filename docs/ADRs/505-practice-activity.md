@@ -175,3 +175,127 @@ entitled to (ADR-106/407).
 > Implementation is a later phase with its own brief: the `core-domain` `record.patient`
 > capability + schema + audit/validation wiring, and the `ru-soam.practice` bundle (roster
 > view + form editor). This ADR commits the scope only.
+
+---
+
+## Amendment 1 (2026-05-29) — functional design target + phasing
+
+A functional design conversation for Practice (its own design journal, `ADR-0001…0015`, under
+[`docs/Activities/practice/`](../Activities/practice/), reconciled by
+[`adr-crosswalk.md`](../Activities/practice/adr-crosswalk.md)) has produced the **target shape**
+of the Activity. This amendment promotes the **settled** decisions as the destination the
+original (lean) decision is heading toward. **The committed build scope is unchanged** — slice 1
+remains the lean roster + record-form editor in §4. OPEN design threads are *not* promoted here;
+they are tracked as **O419 / O420 / O421** and stay in the journal until settled.
+
+### A1. Navigation Aspect model (target — journal 0001/0002/0006)
+
+The Practice Primary Side Bar carries **four Navigation Aspects** (ADR-405 view containers within
+the Practice activity), distinguished by *membership/purpose*, not arrangement:
+
+- **Roster** — the canonical client set; sort / group / filter / search are *arrangement*
+  controls on one set (group-by-diagnosis, sort-by-tenure are controls, **not** separate lenses).
+  This is **slice 1**.
+- **Agenda** — time-ordered clients (Recent / Today / Upcoming); a **read/launch projection of
+  Schedule**. Deferred until Schedule exists.
+- **Attention** — system-derived obligations (overdue note, no next appointment, review-due,
+  risk-flagged, payment-pending). Obligation set is OPEN → **O419**.
+- **Intake** — the pre-active pipeline. Stages depend on the lifecycle model → OPEN, **O419**.
+
+Test (journal 0002): *changes the set/intent → its own Aspect; only re-arranges the same set → a
+Roster control.* A client may appear in several Aspects at once.
+
+### A2. Open-client experience (target — journal 0001/0003/0004)
+
+- Selecting a client sets the **active-client context** (the ADR-403/407 `patient.activeId` /
+  `record.active*` keys already exist) **and** opens a **Client Overview** as the default editor
+  tab (ADR-404). Finer artifacts (a note, an assessment instance, a document) open as their **own**
+  tabs. Contextual Aspects bind to the **active client**, persisting across artifact tabs.
+- **Determinism:** the same client always yields the same Overview and the same set/placement of
+  Contextual Aspects, regardless of which Navigation Aspect opened it.
+- **Priming, not mutation:** a Navigation Aspect may set the Overview's *initial focus / default
+  action* (open-from-Agenda → today's session prep; open-from-Attention → the overdue item) but
+  never changes content or the aspect set. This generalizes the shell navigation law (ADR-407):
+  an Activity switch updates the Primary Side Bar only; the Work Area navigates only on explicit
+  selection/action.
+
+### A3. Contextual Aspect inventory (target — journal 0007/0010/0011/0014)
+
+Bound to the active client; identical regardless of Navigation Aspect. Two categories:
+
+- **Read-only projections** (owned elsewhere, surfaced read-only; ADR-504 §5 consumption rule):
+  Notes (Sessions), Scores & Trends (Assessments), Appointments (Schedule; minor owner-exposed
+  commands like confirm/no-show where Schedule offers them), Goals & Tasks (Planner), Payment
+  status (Billing). All deferred until the owning Activity exists (506+); cross-Activity
+  projection degraded-state is the O70 residual under O197.
+- **Practice-native** (domain data-authority, Main-resident per ADR-504; *not* Bundle-Host
+  storage): Profile (preferred language, medication-awareness, diagnosis), People/Circle
+  (Nominated Representative, caregiver, family, emergency contact), Consent & Legal (structured
+  facts — AD / informed-consent / capacity / confidentiality-exception, cross-referencing
+  Documents), Documents (per-client PHI files), Risk/Safety (**keystone, OPEN → O419**), Overlays
+  (Practice's own review/pin/flag annotations on projections — journal 0010, ownership granularity
+  → O420).
+
+**Cross-activity rule (journal 0007/0010):** projection = read; cross-activity navigation-launch =
+forbidden; command = a delegated *minor* owner-exposed write; overlay = Practice's own annotation,
+never an owner write. Authoring is never a cross-activity operation. This is consistent with
+ADR-504 §5 (consumers bind capabilities; one writer per record type).
+
+### A4. Adjunct data ownership + residency (clarifies, defers granularity → O420)
+
+The functional design implies Practice-native adjunct record types (profile, circle, lifecycle,
+consent, document, risk, overlay). Per ADR-504, all PHI data-authority is **Main-resident**:
+these become **`record.*` capability members owned by `core-domain`** (or, for genuinely
+Practice-native annotation like overlays, a sibling Main-resident Practice-domain capability) —
+**never Bundle-Host storage**. The Practice bundle consumes them. The exact member split (what
+sits under `record.patient` vs sibling capabilities) and the per-table schema are deferred to
+**O420**, built additively per slice. Derived read models (Overview snapshot, Aspect memberships)
+are computed views, not source-of-truth tables.
+
+### A5. India regulatory grounding (journal 0012/0013)
+
+The MVP launches in India; the governing instruments for a solo practitioner are MHA 2017, DPDP
+2023, and the Telemedicine/Telepsychiatry Guidelines 2020 (*design grounding, not legal advice*).
+Consequences already aligned with committed ADRs: local-first PHI-on-device **is** the compliance
+posture (ADR-301/302); the audit/consent ledger carries statutory weight (ADR-502); DPDP
+data-principal rights (access/correct/erase) must be supportable. MVP **excludes**:
+insurance-claim machinery, ABDM/ABHA, multi-practitioner/clinic registration, client-facing
+portal — consistent with ADR-501 (Individual tenancy). India-specific record objects (NR, AD,
+capacity, informed consent, confidentiality-with-exceptions) converge at the Risk/Safety keystone
+(O419).
+
+### A6. Phasing
+
+Slice 1 = the lean §4 scope (Roster Aspect + Client record form editor + Overview frame with
+projections stubbed). The rich Overview + projection Aspects fill in as each owning Activity ships
+(506+); the Practice-native clinical aspects (Risk, Consent & Legal detail, lifecycle/Intake)
+land as O419 design closes and O420 data model is cut, additively.
+
+## Amendment 2 (2026-05-29) — slice-1 roster UI shipped
+
+The roster view (Bundle-Host iframe, `bundles/ru-soam-practice/view-assets/roster.html`) was
+built and CDP-verified. Decisions made during the build, recorded here:
+
+- **Navigation Aspect rendering = segmented tabs** (Roster/Agenda/Attention/Intake), per the
+  prototype. (An earlier iteration used collapsible tree sections; superseded by the tab layout
+  on the user's call — a UI-rendering choice, mechanism unchanged.) Only **Roster** is live;
+  the other three are "coming soon" placeholders (no mock data) until their owning
+  Activities/models exist.
+- **Roster search + grouping pulled forward from O197 (partial):** a live "Filter clients" search
+  (matches `displayName`) and a **Group: None / Status** control shipped in slice 1. Grouping by
+  **Diagnosis / Language is deferred** — those fields are not in the lean schema (they belong to
+  the `patient_profile` adjunct, **O420**); they were **not** stubbed with fake data. Sort / bulk /
+  merge / import-export remain O197.
+- **Brand UI font (Inter Tight)** is vendored into the bundle's `view-assets/fonts/` and
+  `@font-face`'d over `view://` (CSP `font-src view:`) — the sandboxed iframe must not reach the
+  renderer's CDN webfonts (ADR-203). Per-bundle vendoring is a known duplication debt; the shared
+  `view://_platform_/fonts/` refactor + the renderer's offline-CDN debt are tracked as **O422**.
+- Row content stays lean: status **dot** (active/inactive/archived) + `displayName` + optional age
+  derived from `dob`. No diagnosis/sex (not in schema).
+- **View owns its header.** To match the prototype's single-row "Practice  +" header, the shell's
+  `PrimarySideBar` no longer draws the view-container title (`.sidebar-header` removed for iframe
+  containers); the iframe renders its own header (title + a "+" icon action wired to new-client).
+  Rationale: one iframe = the container's entire UI, so the view owning its title bar (font,
+  actions) is the honest fit for this model. Trade-off: future bundle views draw their own header.
+  A generic shell-drawn, manifest-declared **view-title-action** contribution (VS Code-style) is the
+  longer-term alternative if shell-owned titles are wanted later — not built now.

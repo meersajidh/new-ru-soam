@@ -164,3 +164,7 @@ third-party-trust process (ADR-410). The user-facing roster UI remains the separ
 - **O197** — per-surface MVP feature scoping + the per-bundle ADR series, including
   which projected Aspects each Activity warrants. Done per surface ahead of building it.
 - **O72** — resolved by this document (catalogue location, vocabulary, lifecycle).
+- **O421** — **Billing** is a *candidate* owning domain raised by the Practice functional-design
+  journal (self-pay payments/receipts; Practice projects payment status read-only). **Not** in the
+  catalogue above until it passes the ADR-405 promotion test (Activity-Bar slot vs other
+  placement) and gets a bundle ADR. Tracked, not committed.
