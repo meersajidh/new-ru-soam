@@ -1,6 +1,18 @@
 import type { Part } from './part';
 import type { SlotId } from './slots';
 
+export const LAYOUT_SIZE_DEFAULTS = {
+  primarySideBarWidth: 240,
+  auxSideBarWidth: 240,
+  panelHeight: 200,
+} as const;
+
+export interface LayoutSizes {
+  primarySideBarWidth: number;
+  auxSideBarWidth: number;
+  panelHeight: number;
+}
+
 export interface ILayoutService {
   registerPart(part: Part): void;
   disposePart(id: string): void;
@@ -11,6 +23,11 @@ export interface ILayoutService {
   restoreVisibility(snapshot: Partial<Record<SlotId, boolean>>): void;
   onDidChangeLayout(listener: () => void): () => void;
   onDidChangePartVisibility(listener: (slotId: SlotId, visible: boolean) => void): () => void;
+  // Size API
+  getSizes(): LayoutSizes;
+  setSize(key: keyof LayoutSizes, value: number): void;
+  restoreSizes(sizes: Partial<LayoutSizes>): void;
+  onDidChangeSizes(listener: (sizes: LayoutSizes) => void): () => void;
 }
 
 export class LayoutService implements ILayoutService {
@@ -18,6 +35,8 @@ export class LayoutService implements ILayoutService {
   private readonly _visibility = new Map<SlotId, boolean>();
   private readonly _layoutListeners = new Set<() => void>();
   private readonly _visibilityListeners = new Set<(slotId: SlotId, visible: boolean) => void>();
+  private readonly _sizeListeners = new Set<(sizes: LayoutSizes) => void>();
+  private _sizes: LayoutSizes = { ...LAYOUT_SIZE_DEFAULTS };
 
   registerPart(part: Part): void {
     this._parts.set(part.id, part);
@@ -70,11 +89,43 @@ export class LayoutService implements ILayoutService {
     return () => this._visibilityListeners.delete(listener);
   }
 
+  getSizes(): LayoutSizes {
+    return { ...this._sizes };
+  }
+
+  setSize(key: keyof LayoutSizes, value: number): void {
+    if (this._sizes[key] === value) return;
+    this._sizes = { ...this._sizes, [key]: value };
+    this._emitSizes();
+  }
+
+  restoreSizes(sizes: Partial<LayoutSizes>): void {
+    let changed = false;
+    for (const k of Object.keys(sizes) as Array<keyof LayoutSizes>) {
+      const v = sizes[k];
+      if (v !== undefined && this._sizes[k] !== v) {
+        this._sizes = { ...this._sizes, [k]: v };
+        changed = true;
+      }
+    }
+    if (changed) this._emitSizes();
+  }
+
+  onDidChangeSizes(listener: (sizes: LayoutSizes) => void): () => void {
+    this._sizeListeners.add(listener);
+    return () => this._sizeListeners.delete(listener);
+  }
+
   private _emitLayout(): void {
     for (const l of this._layoutListeners) l();
   }
 
   private _emitVisibility(slotId: SlotId, visible: boolean): void {
     for (const l of this._visibilityListeners) l(slotId, visible);
+  }
+
+  private _emitSizes(): void {
+    const snapshot = this.getSizes();
+    for (const l of this._sizeListeners) l(snapshot);
   }
 }

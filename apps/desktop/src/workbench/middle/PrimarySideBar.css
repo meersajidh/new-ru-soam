@@ -1,8 +1,9 @@
 @reference "../../styles/theme.css";
 
-/* Side Bars */
+/* Side Bars — width driven by inline style from layout-service (resizable) */
 .part-sidebar {
-  flex: 0 0 240px;
+  position: relative;
+  flex: 0 0 auto;
   background: var(--color-surface-panel);
   overflow: hidden;
   display: flex;

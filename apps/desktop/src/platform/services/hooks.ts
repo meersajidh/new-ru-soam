@@ -11,6 +11,7 @@ import {
   RegistryContext,
 } from './ids';
 import type { SlotId } from '../layout/slots';
+import type { LayoutSizes } from '../layout/layout-service';
 import type { ThemeDescriptor } from '../theme/tokens';
 import type { FontSetDescriptor } from '../font/font-service';
 import type { StatusBarEntry } from '../statusbar/statusbar-service';
@@ -50,6 +51,13 @@ export function useLayoutVisible(slotId: SlotId): boolean {
     [layout, slotId],
   );
   return visible;
+}
+
+export function useLayoutSizes(): LayoutSizes {
+  const layout = useService(LayoutServiceId);
+  const [sizes, setSizes] = useState(() => layout.getSizes());
+  useEffect(() => layout.onDidChangeSizes(setSizes), [layout]);
+  return sizes;
 }
 
 export function useTheme(): ThemeDescriptor {

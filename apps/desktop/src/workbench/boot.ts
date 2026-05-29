@@ -5,6 +5,7 @@ import {
   RuEditServiceId, SnippetServiceId, StatusBarServiceId, ThemeServiceId, WorkspaceServiceId,
 } from '../platform/services/ids';
 import { LayoutService } from '../platform/layout/layout-service';
+import type { LayoutSizes } from '../platform/layout/layout-service';
 import { ThemeService } from '../platform/theme/theme-service';
 import { StatusBarService } from '../platform/statusbar/statusbar-service';
 import { FontService } from '../platform/font/font-service';
@@ -45,6 +46,37 @@ export function boot(): ServiceRegistry {
   layout.setVisibility(SlotId.AuxSideBar, false);
   layout.setVisibility(SlotId.Panel, false);
   registry.register(LayoutServiceId, layout);
+
+  // ── Layout size persistence (prefs capability) ────────────────────────────
+  // Keys must not collide with any existing pref keys.
+  const SIZE_PREF_KEYS: Record<keyof LayoutSizes, string> = {
+    primarySideBarWidth: 'workbench.layout.primarySideBarWidth',
+    auxSideBarWidth: 'workbench.layout.auxSideBarWidth',
+    panelHeight: 'workbench.layout.panelHeight',
+  };
+  // Restore sizes from prefs (fire-and-forget; falls back to defaults on miss/error).
+  window.soam.bindCapability('prefs', '1.0').then((proxy) => {
+    const keys = Object.entries(SIZE_PREF_KEYS) as Array<[keyof LayoutSizes, string]>;
+    Promise.all(
+      keys.map(([sizeKey, prefKey]) =>
+        (proxy.call('get', prefKey) as Promise<{ value: string | null }>)
+          .then((result) => ({ sizeKey, value: result.value }))
+          .catch(() => ({ sizeKey, value: null })),
+      ),
+    ).then((results) => {
+      const restored: Partial<LayoutSizes> = {};
+      for (const { sizeKey, value } of results) {
+        if (value !== null) {
+          const n = Number(value);
+          if (Number.isFinite(n) && n > 0) restored[sizeKey] = n;
+        }
+      }
+      layout.restoreSizes(restored);
+      proxy.dispose();
+    }).catch(() => proxy.dispose());
+  }).catch((err: unknown) => {
+    console.warn('[workbench] could not restore layout sizes from prefs:', err);
+  });
 
   const theme = new ThemeService(document.documentElement, BUILT_IN_THEMES);
   registry.register(ThemeServiceId, theme);

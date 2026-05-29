@@ -1,8 +1,9 @@
 @reference "../../styles/theme.css";
 
-/* Panel */
+/* Panel — height driven by inline style from layout-service (resizable) */
 .part-panel {
-  flex: 0 0 200px;
+  position: relative;
+  flex: 0 0 auto;
   background: var(--color-surface-panel);
   border-top: 1px solid var(--color-border);
   overflow: hidden;
