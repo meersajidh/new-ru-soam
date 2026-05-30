@@ -1,0 +1,41 @@
+/* Spectrum — Spectrum-inspired neutral + vivid accent theme, using app-owned fonts/icons */
+
+.theme-spectrum {
+  --color-surface-base:     #faf8f2;
+  --color-surface-panel:    #f3eee6;
+  --color-surface-elevated: #ffffff;
+  --color-surface-active:   #e6ded1;
+  --color-fg-primary:       #2a2722;
+  --color-fg-secondary:     #665f57;
+  --color-fg-muted:         #887f73;
+  --color-border:           #d8cfc2;
+  --color-border-focus:     #1473e6;
+  --color-accent:           #1473e6;
+  --color-accent-fg:        #ffffff;
+  --color-accent-hover:     #0f66d0;
+  --color-accent-pressed:   #0c57b2;
+  --color-info:             #1473e6;
+  --color-success:          #2d9d78;
+  --color-warning:          #da7b11;
+  --color-error:            #d7373f;
+}
+
+.theme-spectrum.dark {
+  --color-surface-base:     #161412;
+  --color-surface-panel:    #1f1c19;
+  --color-surface-elevated: #2a2622;
+  --color-surface-active:   #35312d;
+  --color-fg-primary:       #f6f3ef;
+  --color-fg-secondary:     #cdc6bc;
+  --color-fg-muted:         #9e968a;
+  --color-border:           #3e3932;
+  --color-border-focus:     #378ef0;
+  --color-accent:           #378ef0;
+  --color-accent-fg:        #161412;
+  --color-accent-hover:     #5aa7ff;
+  --color-accent-pressed:   #0d66d0;
+  --color-info:             #378ef0;
+  --color-success:          #45ad7d;
+  --color-warning:          #d99a2b;
+  --color-error:            #f75c5c;
+}

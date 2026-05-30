@@ -2,9 +2,10 @@
 @import "./styles/fonts/google-fonts.css";
 @import "./styles/tokens.css";
 @import "./styles/themes/iris.css";
+@import "./styles/themes/primer.css";
+@import "./styles/themes/spectrum.css";
 @import "./styles/themes/bamboo.css";
 @import "./styles/themes/stone.css";
-@import "./styles/themes/geist.css";
 @import "./styles/font-sets/system-sans.css";
 @import "./styles/font-sets/ru-display.css";
 @import "./styles/font-sets/ru-editorial.css";

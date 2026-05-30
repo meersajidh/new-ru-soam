@@ -1,4 +1,4 @@
-const VALID_THEMES = new Set(['bamboo', 'iris', 'stone', 'geist']);
+const VALID_THEMES = new Set(['bamboo', 'spectrum', 'primer', 'iris', 'stone']);
 const VALID_FONT_SETS = new Set(['system-sans', 'ru-display', 'ru-editorial']);
 
 function safeGetItem(key: string): string | null {

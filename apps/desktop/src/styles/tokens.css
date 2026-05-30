@@ -4,7 +4,7 @@
    these via class selectors on <html>. The luminance axis (`.dark`) is OS-
    decided on first run via prefers-color-scheme; the `@theme {}` default just
    provides a stable frame for the brief window before applyInitialTheme runs.
-   Authoring space per theme is the theme file's choice — bamboo/stone/geist
+   Authoring space per theme is the theme file's choice — bamboo/stone/primer
    author in oklch for perceptual uniformity; iris authors in hex. */
 
 @theme {

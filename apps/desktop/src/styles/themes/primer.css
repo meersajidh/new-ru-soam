@@ -1,0 +1,41 @@
+/* Primer — GitHub default light/dark palette, vendored from @primer/primitives 11.9.0 */
+
+.theme-primer {
+  --color-surface-base:     #ffffff;
+  --color-surface-panel:    #f6f8fa;
+  --color-surface-elevated: #ffffff;
+  --color-surface-active:   #e6eaef;
+  --color-fg-primary:       #1f2328;
+  --color-fg-secondary:     #59636e;
+  --color-fg-muted:         #818b98;
+  --color-border:           #d1d9e0;
+  --color-border-focus:     #0969da;
+  --color-accent:           #0969da;
+  --color-accent-fg:        #ffffff;
+  --color-accent-hover:     #0550ae;
+  --color-accent-pressed:   #033d8b;
+  --color-info:             #0969da;
+  --color-success:          #1a7f37;
+  --color-warning:          #9a6700;
+  --color-error:            #d1242f;
+}
+
+.theme-primer.dark {
+  --color-surface-base:     #0d1117;
+  --color-surface-panel:    #151b23;
+  --color-surface-elevated: #212830;
+  --color-surface-active:   #2a313c;
+  --color-fg-primary:       #f0f6fc;
+  --color-fg-secondary:     #9198a1;
+  --color-fg-muted:         #656c76;
+  --color-border:           #3d444d;
+  --color-border-focus:     #1f6feb;
+  --color-accent:           #1f6feb;
+  --color-accent-fg:        #ffffff;
+  --color-accent-hover:     #388bfd;
+  --color-accent-pressed:   #1158c7;
+  --color-info:             #4493f8;
+  --color-success:          #3fb950;
+  --color-warning:          #d29922;
+  --color-error:            #ff7b72;
+}

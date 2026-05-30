@@ -211,6 +211,18 @@ export function registerPlatformCommands(
     { category: 'Preferences' },
   );
   commands.register(
+    'workbench.theme.primer',
+    'Color Theme: Primer',
+    () => theme.setTheme('primer'),
+    { category: 'Preferences' },
+  );
+  commands.register(
+    'workbench.theme.spectrum',
+    'Color Theme: Spectrum',
+    () => theme.setTheme('spectrum'),
+    { category: 'Preferences' },
+  );
+  commands.register(
     'workbench.theme.iris',
     'Color Theme: Iris',
     () => theme.setTheme('iris'),
@@ -220,12 +232,6 @@ export function registerPlatformCommands(
     'workbench.theme.stone',
     'Color Theme: Stone',
     () => theme.setTheme('stone'),
-    { category: 'Preferences' },
-  );
-  commands.register(
-    'workbench.theme.geist',
-    'Color Theme: Geist',
-    () => theme.setTheme('geist'),
     { category: 'Preferences' },
   );
   commands.register(
