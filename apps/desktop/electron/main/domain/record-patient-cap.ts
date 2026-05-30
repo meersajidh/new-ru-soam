@@ -29,6 +29,8 @@ import { auditService } from '../audit/index.js';
 import { CapErr } from '../../shared/ipc-protocol.js';
 import type {
   PatientCreateInput,
+  PatientProfile,
+  PatientProfilePatch,
   PatientRecord,
   PatientStatus,
   PatientSummary,
@@ -200,6 +202,26 @@ function dbUpdate(
   db.prepare(`UPDATE patients SET ${sets.join(', ')} WHERE id = ?`).run(...params);
 }
 
+// ── Profile row shape ─────────────────────────────────────────────────────────
+
+interface PatientProfileRow {
+  readonly patient_id: string;
+  readonly preferred_language: string | null;
+  readonly medication_awareness: string | null;
+  readonly diagnosis: string | null;
+  readonly updated_at: number;
+}
+
+function rowToProfile(row: PatientProfileRow): PatientProfile {
+  return {
+    patientId: row.patient_id,
+    preferredLanguage: row.preferred_language,
+    medicationAwareness: row.medication_awareness,
+    diagnosis: row.diagnosis,
+    updatedAt: row.updated_at,
+  };
+}
+
 // ── Method implementations ────────────────────────────────────────────────────
 
 function implCreate(input: PatientCreateInput): PatientRecord {
@@ -356,6 +378,75 @@ function implSetStatus(id: string, status: PatientStatus): PatientRecord {
   return rowToRecord(updated);
 }
 
+function implGetProfile(id: string): PatientProfile | null {
+  const store = requireStore();
+  const db = requireDb(store);
+  const workspaceId = store.workspaceId() ?? 'unknown';
+
+  const row = db
+    .prepare(
+      `SELECT patient_id, preferred_language, medication_awareness, diagnosis, updated_at
+       FROM patient_profile WHERE patient_id = ?`,
+    )
+    .get(id) as PatientProfileRow | undefined;
+
+  auditService.emit({
+    event: 'record.patient.viewed',
+    entityId: workspaceId,
+    recordId: id,
+    recordType: 'patient_profile',
+    principal: 'system',
+  });
+
+  return row ? rowToProfile(row) : null;
+}
+
+function implUpdateProfile(id: string, patch: PatientProfilePatch): PatientProfile {
+  const store = requireStore();
+  const db = requireDb(store);
+  const workspaceId = store.workspaceId() ?? 'unknown';
+
+  // Patient must exist
+  const patient = dbGetById(db, id);
+  if (!patient) throw notFound(`record.patient.updateProfile: patient not found: ${id}`);
+
+  const now = Date.now();
+  db.prepare(
+    `INSERT INTO patient_profile (patient_id, preferred_language, medication_awareness, diagnosis, updated_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(patient_id) DO UPDATE SET
+       preferred_language   = COALESCE(excluded.preferred_language,   preferred_language),
+       medication_awareness = COALESCE(excluded.medication_awareness, medication_awareness),
+       diagnosis            = COALESCE(excluded.diagnosis,            diagnosis),
+       updated_at           = excluded.updated_at`,
+  ).run(
+    id,
+    patch.preferredLanguage ?? null,
+    patch.medicationAwareness ?? null,
+    patch.diagnosis ?? null,
+    now,
+  );
+
+  store.emitTableChange('patient_profile', 'set', [id]);
+
+  auditService.emit({
+    event: 'record.patient.profile.updated',
+    entityId: workspaceId,
+    recordId: id,
+    recordType: 'patient_profile',
+    principal: 'system',
+  });
+
+  const updated = db
+    .prepare(
+      `SELECT patient_id, preferred_language, medication_awareness, diagnosis, updated_at
+       FROM patient_profile WHERE patient_id = ?`,
+    )
+    .get(id) as PatientProfileRow | undefined;
+  if (!updated) throw new Error(`record.patient.updateProfile: row disappeared after write: ${id}`);
+  return rowToProfile(updated);
+}
+
 // ── Registration ──────────────────────────────────────────────────────────────
 
 export function registerRecordPatientCapability(): void {
@@ -399,6 +490,24 @@ export function registerRecordPatientCapability(): void {
             throw validationError('record.patient.setStatus: id must be a string');
           }
           return implSetStatus(id, validateStatus(status));
+        }
+        case 'getProfile': {
+          const id = args[0];
+          if (typeof id !== 'string') {
+            throw validationError('record.patient.getProfile: id must be a string');
+          }
+          return implGetProfile(id);
+        }
+        case 'updateProfile': {
+          const id = args[0];
+          const patch = args[1] as PatientProfilePatch;
+          if (typeof id !== 'string') {
+            throw validationError('record.patient.updateProfile: id must be a string');
+          }
+          if (!patch || typeof patch !== 'object') {
+            throw validationError('record.patient.updateProfile: patch must be an object');
+          }
+          return implUpdateProfile(id, patch);
         }
         default:
           throw methodNotFound(method);

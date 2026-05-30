@@ -11,7 +11,7 @@
  */
 
 import type { ServiceRegistry } from '../platform/services/registry';
-import { ProductConfigServiceId } from '../platform/services/ids';
+import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId } from '../platform/services/ids';
 import { PRODUCT_TAGLINE, DELETE_WARNING_ADDENDUM } from './product';
 
 export function domainBootstrap(registry: ServiceRegistry): void {
@@ -20,4 +20,33 @@ export function domainBootstrap(registry: ServiceRegistry): void {
     tagline: PRODUCT_TAGLINE,
     deleteWarningAddendum: DELETE_WARNING_ADDENDUM,
   });
+
+  // Wire editor active-instance changes → patient.activeId / record.activeId context keys.
+  // Reads entityId from the active EditorInstance (set by EditorService.open({entityId})).
+  // These are domain-reserved keys (ADR-407); only domain code may write them.
+  // The base shell Parts (AuxSideBar, Panel) read them generically via record.activeId.
+  // ADR-106: domain code owns the mapping; base shell stays domain-free.
+  const contextKeys = registry.get(ContextKeyServiceId);
+  const editor = registry.get(EditorServiceId);
+
+  // Seed initial values so context keys exist from boot.
+  contextKeys.set('patient.activeId', '');
+  contextKeys.set('record.activeId', '');
+
+  function syncPatientContext(): void {
+    const gid = editor.getFocusedGroupId();
+    const group = gid ? editor.getGroup(gid) : undefined;
+    const inst = group?.activeTabId ? group.tabs.find((t) => t.id === group.activeTabId) : undefined;
+    // Read entityId directly — no URL parsing needed (stable-resource entity-binding pattern).
+    const patientId = inst?.entityId ?? '';
+    contextKeys.set('patient.activeId', patientId);
+    contextKeys.set('record.activeId', patientId);
+  }
+
+  // Subscribe and sync for the app lifetime.
+  // The disposable intentionally lives for the whole session (no teardown
+  // needed — domainBootstrap is called once at composition root init).
+  editor.onDidChange(syncPatientContext);
+  // Sync once immediately in case editor already has a focused tab.
+  syncPatientContext();
 }

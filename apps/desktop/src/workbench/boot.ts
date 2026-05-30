@@ -47,35 +47,64 @@ export function boot(): ServiceRegistry {
   layout.setVisibility(SlotId.Panel, false);
   registry.register(LayoutServiceId, layout);
 
-  // ── Layout size persistence (prefs capability) ────────────────────────────
+  // ── Layout persistence (sizes + visibility) via prefs capability ─────────
   // Keys must not collide with any existing pref keys.
   const SIZE_PREF_KEYS: Record<keyof LayoutSizes, string> = {
     primarySideBarWidth: 'workbench.layout.primarySideBarWidth',
     auxSideBarWidth: 'workbench.layout.auxSideBarWidth',
     panelHeight: 'workbench.layout.panelHeight',
   };
-  // Restore sizes from prefs (fire-and-forget; falls back to defaults on miss/error).
+  const VISIBILITY_PREF_KEYS: Partial<Record<SlotId, string>> = {
+    [SlotId.AuxSideBar]: 'workbench.layout.auxSideBarVisible',
+    [SlotId.Panel]: 'workbench.layout.panelVisible',
+  };
+  // Bind a single prefs proxy kept alive for the session (not disposed) so the
+  // visibility-change saver can write to it throughout the session lifetime.
   window.soam.bindCapability('prefs', '1.0').then((proxy) => {
-    const keys = Object.entries(SIZE_PREF_KEYS) as Array<[keyof LayoutSizes, string]>;
-    Promise.all(
-      keys.map(([sizeKey, prefKey]) =>
-        (proxy.call('get', prefKey) as Promise<{ value: string | null }>)
-          .then((result) => ({ sizeKey, value: result.value }))
-          .catch(() => ({ sizeKey, value: null })),
-      ),
-    ).then((results) => {
+    // Restore sizes
+    const sizeKeys = Object.entries(SIZE_PREF_KEYS) as Array<[keyof LayoutSizes, string]>;
+    const sizeRestores = sizeKeys.map(([sizeKey, prefKey]) =>
+      (proxy.call('get', prefKey) as Promise<{ value: string | null }>)
+        .then((result) => ({ sizeKey, value: result.value }))
+        .catch(() => ({ sizeKey, value: null })),
+    );
+    // Restore visibility
+    const visSlots = Object.entries(VISIBILITY_PREF_KEYS) as Array<[SlotId, string]>;
+    const visRestores = visSlots.map(([slotId, prefKey]) =>
+      (proxy.call('get', prefKey) as Promise<{ value: string | null }>)
+        .then((result) => ({ slotId, value: result.value }))
+        .catch(() => ({ slotId, value: null })),
+    );
+    Promise.all([Promise.all(sizeRestores), Promise.all(visRestores)]).then(([sizeResults, visResults]) => {
+      // Apply size restores
       const restored: Partial<LayoutSizes> = {};
-      for (const { sizeKey, value } of results) {
+      for (const { sizeKey, value } of sizeResults) {
         if (value !== null) {
           const n = Number(value);
           if (Number.isFinite(n) && n > 0) restored[sizeKey] = n;
         }
       }
       layout.restoreSizes(restored);
-      proxy.dispose();
-    }).catch(() => proxy.dispose());
+      // Apply visibility restores
+      for (const { slotId, value } of visResults) {
+        if (value === 'true') layout.setVisibility(slotId, true);
+        else if (value === 'false') layout.setVisibility(slotId, false);
+        // null/absent → leave boot default (false)
+      }
+      // Register visibility-change saver (live for session, proxy kept open)
+      layout.onDidChangePartVisibility((slotId, visible) => {
+        const prefKey = VISIBILITY_PREF_KEYS[slotId];
+        if (prefKey !== undefined) {
+          proxy.call('set', prefKey, String(visible)).catch((err: unknown) => {
+            console.warn('[workbench] could not persist layout visibility:', err);
+          });
+        }
+      });
+    }).catch((err: unknown) => {
+      console.warn('[workbench] could not restore layout state from prefs:', err);
+    });
   }).catch((err: unknown) => {
-    console.warn('[workbench] could not restore layout sizes from prefs:', err);
+    console.warn('[workbench] could not bind prefs for layout persistence:', err);
   });
 
   const theme = new ThemeService(document.documentElement, BUILT_IN_THEMES);

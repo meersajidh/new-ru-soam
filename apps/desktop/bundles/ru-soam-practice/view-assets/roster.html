@@ -874,17 +874,18 @@
           li.appendChild(dot);
           li.appendChild(main);
 
-          li.addEventListener('click', function () { openClient(p); });
+          li.addEventListener('click', function () { openClient(p, true); });
+          li.addEventListener('dblclick', function () { openClient(p, false); });
           li.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              openClient(p);
+              openClient(p, true);
             }
           });
           return li;
         }
 
-        function openClient(p) {
+        function openClient(p, preview) {
           _activeId = p.id;
           // Update all rows without full re-render for snappy feel
           document.querySelectorAll('.client-row').forEach(function (el) {
@@ -892,9 +893,10 @@
             el.classList.toggle('is-active', active);
             el.setAttribute('aria-pressed', active ? 'true' : 'false');
           });
-          window.soamView.openInEditor('form', {
-            query: 'id=' + encodeURIComponent(p.id),
-            title: p.displayName || 'Client'
+          window.soamView.openInEditor('overview', {
+            entityId: p.id,
+            title: p.displayName || 'Client',
+            preview: preview
           });
         }
 

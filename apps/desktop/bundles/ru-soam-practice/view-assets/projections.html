@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'; font-src view:"
+    />
+    <title>Notes</title>
+    <style>
+      /* ── Brand font ─────────────────────────────────────────────── */
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-400.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-500.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-600.woff2') format('woff2');
+      }
+
+      /* ── Reset ──────────────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      button { font: inherit; color: inherit; cursor: pointer; }
+
+      /* ── Design tokens ──────────────────────────────────────────── */
+      :root {
+        color-scheme: light dark;
+        --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+        --color-surface-base:     #161618;
+        --color-surface-panel:    #1c1c1f;
+        --color-surface-elevated: #232326;
+        --color-surface-active:   #2a2d26;
+        --color-fg-primary:   #f2f2f7;
+        --color-fg-secondary: #aeaeb2;
+        --color-fg-muted:     #636366;
+        --color-border:       #3a3a3c;
+        --color-border-focus: #5ac85a;
+        --color-accent:         #5ac85a;
+        --color-accent-fg:      #1c1c1e;
+        --color-success: #5ac85a;
+        --color-warning: #f4a623;
+        --color-error:   #e05252;
+        --radius-sm: 4px;
+        --radius-md: 7px;
+        --transition: 130ms ease;
+      }
+
+      /* ── Base ───────────────────────────────────────────────────── */
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font-family: var(--font-sans);
+        font-size: 12px;
+        line-height: 1.5;
+        background: var(--color-surface-base);
+        color: var(--color-fg-primary);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* ── Bridge wait overlay ────────────────────────────────────── */
+      #bridge-wait {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-base);
+        z-index: 100;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--color-fg-muted);
+      }
+      .spinner {
+        display: inline-block;
+        width: 11px; height: 11px;
+        border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ── Status bar ─────────────────────────────────────────────── */
+      #status-bar {
+        font-size: 11px;
+        padding: 5px 14px;
+        background: color-mix(in srgb, var(--color-error) 9%, transparent);
+        color: var(--color-error);
+        font-weight: 500;
+        display: none;
+        flex-shrink: 0;
+      }
+      #status-bar.visible { display: block; }
+      #status-bar.is-locked {
+        background: color-mix(in srgb, var(--color-warning) 9%, transparent);
+        color: var(--color-warning);
+      }
+
+      /* ── Header bar ─────────────────────────────────────────────── */
+      #header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 14px;
+        height: 32px;
+        border-bottom: 1px solid var(--color-border);
+        background: var(--color-surface-panel);
+        flex-shrink: 0;
+      }
+      .header-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-fg-secondary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      #header-client-name {
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--color-fg-muted);
+      }
+      .header-source {
+        font-size: 9px;
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--color-fg-muted);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        padding: 1px 5px;
+      }
+      .header-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10.5px;
+        color: var(--color-accent);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-family: var(--font-sans);
+        padding: 0;
+      }
+      .header-link:hover { text-decoration: underline; }
+
+      /* ── Notes list ─────────────────────────────────────────────── */
+      #notes-scroll {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+      }
+
+      .note-list { list-style: none; }
+      .note-item {
+        border-bottom: 1px solid var(--color-border);
+        padding: 10px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        transition: background var(--transition);
+      }
+      .note-item:hover { background: color-mix(in srgb, var(--color-fg-muted) 5%, transparent); }
+      .note-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 10px;
+        color: var(--color-fg-muted);
+        font-family: var(--font-mono);
+      }
+      .note-kind {
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--color-fg-muted);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        padding: 1px 5px;
+      }
+      .note-summary {
+        font-size: 12px;
+        color: var(--color-fg-secondary);
+        line-height: 1.45;
+      }
+      .note-overlays {
+        display: flex;
+        gap: 5px;
+        margin-top: 3px;
+      }
+      .overlay-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        color: var(--color-fg-muted);
+        background: transparent;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        padding: 2px 7px;
+        cursor: pointer;
+        font-family: var(--font-sans);
+        transition: background var(--transition), color var(--transition);
+      }
+      .overlay-btn:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
+      .overlay-btn.is-on {
+        background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+        color: var(--color-accent);
+        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+      }
+      .overlay-btn.is-flag.is-on {
+        background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+        color: var(--color-warning);
+        border-color: color-mix(in srgb, var(--color-warning) 35%, transparent);
+      }
+
+      .empty-state {
+        padding: 20px 14px;
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bridge-wait">
+      <span class="spinner"></span>
+      Loading…
+    </div>
+
+    <div id="root" style="display:none">
+      <div id="status-bar" role="alert"></div>
+
+      <div id="header-bar">
+        <span class="header-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Notes
+          <span class="header-source">Sessions</span>
+          <span id="header-client-name" aria-live="polite"></span>
+        </span>
+        <button class="header-link" type="button" title="Open Sessions Activity">
+          Sessions
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+        </button>
+      </div>
+
+      <div id="notes-scroll">
+        <ul class="note-list" id="notes-list">
+          <!-- populated by JS -->
+        </ul>
+      </div>
+    </div>
+
+    <script>
+    (function () {
+      'use strict';
+
+      /* ── Mock notes (ported from Aspects.jsx NotesBody + data.jsx) ─ */
+      var MOCK_NOTES = [
+        { when: '28 May 2026', kind: 'Progress note', summary: 'SI passive, safety plan revisited. Sleep improving on sertraline 100 mg. Continue BA homework.', reviewed: false, pinned: true,  flagged: true },
+        { when: '14 May 2026', kind: 'Progress note', summary: 'Sertraline titrated to 100 mg. Tele-consent recorded.', reviewed: true,  pinned: false, flagged: false },
+        { when: '30 Apr 2026', kind: 'Progress note', summary: 'Behavioural activation introduced. Sleep routine discussed.', reviewed: true,  pinned: false, flagged: false },
+        { when: '16 Apr 2026', kind: 'Intake note',   summary: 'Initial assessment & formulation completed. PHQ-9 = 21.', reviewed: true,  pinned: false, flagged: false },
+      ];
+
+      /* ── State ──────────────────────────────────────────────────── */
+      var _clientId   = null;
+      var _proxy      = null;    // record.patient capability proxy
+      var _soamView   = null;
+      var _notes = MOCK_NOTES.map(function (n) { return Object.assign({}, n); });
+
+      /* ── Elements ───────────────────────────────────────────────── */
+      var elBridgeWait    = document.getElementById('bridge-wait');
+      var elRoot          = document.getElementById('root');
+      var elStatusBar     = document.getElementById('status-bar');
+      var elNotesList     = document.getElementById('notes-list');
+      var elClientName    = document.getElementById('header-client-name');
+
+      /* ── Helpers ────────────────────────────────────────────────── */
+      function showError(msg) {
+        elStatusBar.textContent = msg;
+        elStatusBar.className = 'visible';
+      }
+      function showLocked(msg) {
+        elStatusBar.textContent = msg;
+        elStatusBar.className = 'visible is-locked';
+      }
+      function isLockedError(err) {
+        return err && (err.code === 'cap.locked' ||
+          (err.message && err.message.indexOf('cap.locked') !== -1));
+      }
+
+      /* ── Render notes list ──────────────────────────────────────── */
+      function renderNotes() {
+        elNotesList.innerHTML = '';
+        if (_notes.length === 0) {
+          var empty = document.createElement('li');
+          empty.className = 'empty-state';
+          empty.textContent = 'No notes yet.';
+          elNotesList.appendChild(empty);
+          return;
+        }
+        _notes.forEach(function (note, idx) {
+          var li = document.createElement('li');
+          li.className = 'note-item';
+
+          var meta = document.createElement('div');
+          meta.className = 'note-meta';
+          var whenSpan = document.createElement('span');
+          whenSpan.textContent = note.when;
+          var kindSpan = document.createElement('span');
+          kindSpan.className = 'note-kind';
+          kindSpan.textContent = note.kind;
+          meta.appendChild(whenSpan);
+          meta.appendChild(kindSpan);
+          li.appendChild(meta);
+
+          var summary = document.createElement('p');
+          summary.className = 'note-summary';
+          summary.textContent = note.summary;
+          li.appendChild(summary);
+
+          var overlays = document.createElement('div');
+          overlays.className = 'note-overlays';
+
+          function makeOverlayBtn(label, icon, stateKey, extraCls) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'overlay-btn' + (note[stateKey] ? ' is-on' + (extraCls ? ' ' + extraCls : '') : '');
+            btn.setAttribute('title', label);
+            btn.innerHTML = icon + ' ' + label;
+            btn.addEventListener('click', function () {
+              _notes[idx][stateKey] = !_notes[idx][stateKey];
+              renderNotes();
+            });
+            return btn;
+          }
+
+          var checkIcon = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+          var pinIcon   = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z"/></svg>';
+          var flagIcon  = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
+
+          overlays.appendChild(makeOverlayBtn('Reviewed', checkIcon, 'reviewed', ''));
+          overlays.appendChild(makeOverlayBtn('Pin', pinIcon, 'pinned', ''));
+          overlays.appendChild(makeOverlayBtn('Flag', flagIcon, 'flagged', 'is-flag'));
+          li.appendChild(overlays);
+
+          elNotesList.appendChild(li);
+        });
+      }
+
+      /* ── Fetch + display client name ───────────────────────────── */
+      function setClientNameDisplay(rec) {
+        if (!rec || !elClientName) return;
+        var given  = (rec.givenName  || '').trim();
+        var family = (rec.familyName || '').trim();
+        var name   = [given, family].filter(Boolean).join(' ');
+        elClientName.textContent = name ? '· ' + name : '';
+      }
+
+      function fetchAndShowClientName(id) {
+        if (!id || !_proxy) return;
+        _proxy.call('get', id).then(function (rec) {
+          if (rec && _clientId === id) setClientNameDisplay(rec);
+        }).catch(function () {
+          // Graceful: no name shown on failure
+        });
+      }
+
+      function ensureProxyAndFetchName() {
+        if (!_clientId || !_soamView) return;
+        if (_proxy) { fetchAndShowClientName(_clientId); return; }
+        _soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+          _proxy = proxy;
+          fetchAndShowClientName(_clientId);
+        }).catch(function () {
+          // Graceful: cap unavailable, no name shown
+        });
+      }
+
+      /* ── Message handler (theme + context) ─────────────────────── */
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (!d || d.__soamView !== true) return;
+        if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
+          var root = document.documentElement;
+          Object.keys(d.theme).forEach(function (k) {
+            root.style.setProperty(k, d.theme[k]);
+          });
+        }
+        // context message: entityId pushed by BundleViewIframe on client switch.
+        if (d.kind === 'context') {
+          var newId = d.entityId || null;
+          if (!newId) {
+            _clientId = null;
+            if (elClientName) elClientName.textContent = '';
+            return;
+          }
+          if (newId !== _clientId) {
+            _clientId = newId;
+            if (elClientName) elClientName.textContent = '';
+            // Re-render in place (mock data Phase A — no network fetch needed).
+            renderNotes();
+            ensureProxyAndFetchName();
+          }
+        }
+      });
+
+      /* ── Bridge await ───────────────────────────────────────────── */
+      function awaitBridge() {
+        return new Promise(function (resolve) {
+          if (window.soamView) return resolve(window.soamView);
+          var iv = setInterval(function () {
+            if (window.soamView) { clearInterval(iv); resolve(window.soamView); }
+          }, 25);
+        });
+      }
+
+      awaitBridge().then(function (soamView) {
+        elBridgeWait.style.display = 'none';
+        elRoot.style.display = '';
+        _soamView = soamView;
+
+        // Do NOT read id from location.search — id arrives via context/activate message.
+
+        // Phase A: render mock notes on activate (if _clientId set by context handler).
+        // Real notes projection deferred to Phase B (needs Sessions Activity).
+        soamView.events.onActivate(function () {
+          if (_clientId) {
+            renderNotes();
+            ensureProxyAndFetchName();
+          }
+        });
+
+        // No store subscription needed for mock data Phase A.
+        // Phase B: subscribe to 'notes' table changes here.
+      }).catch(function (err) {
+        if (isLockedError(err)) {
+          showLocked('Workspace locked.');
+        } else {
+          showError('Error: ' + (err && err.message));
+        }
+      });
+
+    })();
+    </script>
+  </body>
+</html>

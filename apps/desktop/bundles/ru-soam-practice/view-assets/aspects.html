@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'; font-src view:"
+    />
+    <title>Client Aspects</title>
+    <style>
+      /* ── Brand font ─────────────────────────────────────────────── */
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-400.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-500.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-600.woff2') format('woff2');
+      }
+
+      /* ── Reset ──────────────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      button { font: inherit; color: inherit; cursor: pointer; }
+
+      /* ── Design tokens (overridden via postMessage) ─────────────── */
+      :root {
+        color-scheme: light dark;
+        --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+        --color-surface-base:     #161618;
+        --color-surface-panel:    #1c1c1f;
+        --color-surface-elevated: #232326;
+        --color-surface-active:   #2a2d26;
+        --color-fg-primary:   #f2f2f7;
+        --color-fg-secondary: #aeaeb2;
+        --color-fg-muted:     #636366;
+        --color-border:       #3a3a3c;
+        --color-border-focus: #5ac85a;
+        --color-accent:         #5ac85a;
+        --color-accent-fg:      #1c1c1e;
+        --color-success: #5ac85a;
+        --color-warning: #f4a623;
+        --color-error:   #e05252;
+        --radius-sm: 4px;
+        --radius-md: 7px;
+        --transition: 130ms ease;
+      }
+
+      /* ── Base ───────────────────────────────────────────────────── */
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font-family: var(--font-sans);
+        font-size: 12px;
+        line-height: 1.5;
+        background: var(--color-surface-panel);
+        color: var(--color-fg-primary);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* ── Bridge wait overlay ────────────────────────────────────── */
+      #bridge-wait {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-panel);
+        z-index: 100;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--color-fg-muted);
+      }
+      .spinner {
+        display: inline-block;
+        width: 11px; height: 11px;
+        border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ── Status bar ─────────────────────────────────────────────── */
+      #status-bar {
+        font-size: 11px;
+        padding: 5px 12px;
+        background: color-mix(in srgb, var(--color-error) 9%, transparent);
+        color: var(--color-error);
+        font-weight: 500;
+        display: none;
+        flex-shrink: 0;
+      }
+      #status-bar.visible { display: block; }
+      #status-bar.is-locked {
+        background: color-mix(in srgb, var(--color-warning) 9%, transparent);
+        color: var(--color-warning);
+      }
+
+      /* ── Client identity strip ──────────────────────────────────── */
+      #identity-strip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--color-border);
+        background: var(--color-surface-elevated);
+        flex-shrink: 0;
+      }
+      .id-avatar {
+        flex: 0 0 auto;
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: -0.01em;
+      }
+      .id-text { min-width: 0; }
+      .id-name {
+        font-size: 13px;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .id-sub {
+        font-size: 10px;
+        color: var(--color-fg-muted);
+        font-family: var(--font-mono);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* ── Scroll area ────────────────────────────────────────────── */
+      #aspects-scroll {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+      }
+
+      /* ── Section / aspect ───────────────────────────────────────── */
+      .section {
+        border-bottom: 1px solid var(--color-border);
+      }
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 12px;
+        cursor: pointer;
+        user-select: none;
+        background: transparent;
+        transition: background var(--transition);
+      }
+      .section-header:hover {
+        background: color-mix(in srgb, var(--color-fg-muted) 6%, transparent);
+      }
+      .section-caret {
+        flex: 0 0 auto;
+        transition: transform 120ms ease;
+        color: var(--color-fg-muted);
+      }
+      .section-caret.is-open { transform: rotate(90deg); }
+      .section-title {
+        flex: 1 1 auto;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+      }
+      .section-source {
+        font-size: 9px;
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--color-fg-muted);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        padding: 1px 5px;
+        flex-shrink: 0;
+      }
+      .section-body {
+        padding: 10px 12px 14px;
+        display: none;
+      }
+      .section-body.is-open { display: block; }
+
+      /* ── Risk section ───────────────────────────────────────────── */
+      .risk-alert-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface-elevated));
+        border-bottom: 1px solid color-mix(in srgb, var(--color-error) 30%, var(--color-border));
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--color-error);
+        flex-shrink: 0;
+      }
+      .risk-facts { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+      .risk-fact {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--color-fg-secondary);
+      }
+      .risk-items { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+      .risk-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        font-size: 11px;
+        color: var(--color-fg-secondary);
+      }
+      .risk-dot {
+        flex: 0 0 auto;
+        width: 5px; height: 5px;
+        border-radius: 50%;
+        background: var(--color-error);
+        margin-top: 5px;
+      }
+      .risk-when {
+        font-size: 9.5px;
+        font-family: var(--font-mono);
+        color: var(--color-fg-muted);
+        margin-left: 3px;
+        white-space: nowrap;
+      }
+      .risk-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+      .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: transparent;
+        border: 1px solid var(--color-border);
+        color: var(--color-fg-secondary);
+        border-radius: var(--radius-sm);
+        font-size: 10.5px;
+        font-weight: 500;
+        padding: 4px 9px;
+        cursor: pointer;
+        font-family: var(--font-sans);
+        transition: background var(--transition), color var(--transition);
+      }
+      .action-btn:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+        border-color: var(--color-fg-muted);
+      }
+
+      /* ── Profile section ────────────────────────────────────────── */
+      .kv { display: flex; flex-direction: column; gap: 8px; }
+      .kv-row { display: flex; align-items: baseline; gap: 8px; font-size: 11px; }
+      .kv-label { color: var(--color-fg-muted); flex: 0 0 90px; font-size: 10.5px; }
+      .kv-value { color: var(--color-fg-secondary); flex: 1 1 auto; }
+      .diag-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+      .diag-row {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--color-fg-secondary);
+      }
+      .diag-code {
+        font-family: var(--font-mono);
+        font-size: 9px;
+        color: var(--color-fg-muted);
+      }
+      .diag-primary { color: var(--color-fg-primary); font-weight: 500; }
+      .med-list { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+      .med-row { display: flex; flex-direction: column; gap: 1px; }
+      .med-name { font-size: 11px; color: var(--color-fg-secondary); }
+      .med-meta { font-size: 10px; color: var(--color-fg-muted); }
+      .note-subtle { font-size: 10px; color: var(--color-fg-muted); margin-top: 6px; }
+    </style>
+  </head>
+  <body>
+    <!-- Bridge wait overlay -->
+    <div id="bridge-wait">
+      <span class="spinner"></span>
+      Loading…
+    </div>
+
+    <div id="root" style="display:none">
+      <div id="status-bar" role="alert"></div>
+
+      <!-- Client identity strip -->
+      <div id="identity-strip" style="display:none">
+        <div class="id-avatar" id="id-avatar">?</div>
+        <div class="id-text">
+          <div class="id-name" id="id-name">—</div>
+          <div class="id-sub" id="id-sub"></div>
+        </div>
+      </div>
+
+      <!-- Sections -->
+      <div id="aspects-scroll">
+        <!-- Risk / Safety (always shown first) -->
+        <div id="risk-alert-bar" class="risk-alert-bar" style="display:none">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Risk / Safety — active concern
+        </div>
+
+        <section class="section" id="section-risk">
+          <header class="section-header" id="sh-risk" tabindex="0" role="button" aria-expanded="true">
+            <svg class="section-caret is-open" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span class="section-title">Risk / Safety</span>
+            <span class="section-source">PRACTICE</span>
+          </header>
+          <div class="section-body is-open" id="sb-risk">
+            <div class="risk-facts" id="risk-facts">
+              <div class="risk-fact">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                Capacity intact
+              </div>
+              <div class="risk-fact">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                NR engaged — R. Deshpande
+              </div>
+              <div class="risk-fact">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
+                MHA §23 exception not currently invoked
+              </div>
+            </div>
+            <ul class="risk-items" id="risk-items">
+              <li class="risk-item"><span class="risk-dot"></span><span>Passive SI, no plan or intent</span><span class="risk-when">Session 28 May</span></li>
+              <li class="risk-item"><span class="risk-dot"></span><span>Safety plan agreed &amp; shared with NR</span><span class="risk-when">28 May</span></li>
+              <li class="risk-item"><span class="risk-dot"></span><span>Means restriction discussed</span><span class="risk-when">28 May</span></li>
+            </ul>
+            <div class="risk-actions">
+              <button class="action-btn" type="button">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Safety plan
+              </button>
+              <button class="action-btn" type="button">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="12 22 12 12"/><path d="M17 7H7"/><path d="M7 12h10"/></svg>
+                Log §23 disclosure
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Profile (real data when available, mock otherwise) -->
+        <section class="section" id="section-profile">
+          <header class="section-header" id="sh-profile" tabindex="0" role="button" aria-expanded="true">
+            <svg class="section-caret is-open" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+            <span class="section-title">Profile</span>
+            <span class="section-source">PRACTICE</span>
+          </header>
+          <div class="section-body is-open" id="sb-profile">
+            <div class="kv" id="profile-kv">
+              <!-- populated by JS -->
+            </div>
+          </div>
+        </section>
+      </div><!-- /aspects-scroll -->
+    </div><!-- /root -->
+
+    <script>
+    (function () {
+      'use strict';
+
+      /* ── Mock fallbacks ─────────────────────────────────────────── */
+      var MOCK = {
+        diagnosis: [
+          { label: 'Recurrent depressive disorder, severe', code: 'F33.2', primary: true },
+          { label: 'Panic disorder', code: 'F41.0', primary: false },
+        ],
+        language: 'Marathi',
+        meds: [
+          { name: 'Sertraline 100 mg OD', meta: 'External prescriber · Dr. A. Kulkarni (Psychiatrist)' },
+          { name: 'Clonazepam 0.25 mg PRN', meta: 'External prescriber · Dr. A. Kulkarni' },
+        ],
+      };
+
+      /* ── State ──────────────────────────────────────────────────── */
+      var _proxy    = null;
+      var _clientId = null;
+      var _record   = null;
+      var _profile  = null;
+
+      /* ── Elements ───────────────────────────────────────────────── */
+      var elBridgeWait    = document.getElementById('bridge-wait');
+      var elRoot          = document.getElementById('root');
+      var elStatusBar     = document.getElementById('status-bar');
+      var elIdentityStrip = document.getElementById('identity-strip');
+      var elIdAvatar      = document.getElementById('id-avatar');
+      var elIdName        = document.getElementById('id-name');
+      var elIdSub         = document.getElementById('id-sub');
+      var elRiskAlertBar  = document.getElementById('risk-alert-bar');
+      var elProfileKv     = document.getElementById('profile-kv');
+
+      /* ── Helpers ────────────────────────────────────────────────── */
+      function showError(msg) {
+        elStatusBar.textContent = msg;
+        elStatusBar.className = 'visible';
+      }
+      function showLocked(msg) {
+        elStatusBar.textContent = msg;
+        elStatusBar.className = 'visible is-locked';
+      }
+      function isLockedError(err) {
+        return err && (err.code === 'cap.locked' ||
+          (err.message && err.message.indexOf('cap.locked') !== -1));
+      }
+      function computeAge(dob) {
+        if (!dob) return null;
+        try {
+          var birth = new Date(dob);
+          if (isNaN(birth.getTime())) return null;
+          var now = new Date();
+          var age = now.getFullYear() - birth.getFullYear();
+          var m = now.getMonth() - birth.getMonth();
+          if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+          return age >= 0 ? age : null;
+        } catch (e) { return null; }
+      }
+      function initials(rec) {
+        var g = (rec.givenName || '').trim();
+        var f = (rec.familyName || '').trim();
+        var a = '';
+        if (g) a += g[0].toUpperCase();
+        if (f) a += f[0].toUpperCase();
+        return a || '?';
+      }
+      function el(tag, cls) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        return e;
+      }
+      function txt(tag, cls, content) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        e.textContent = content;
+        return e;
+      }
+
+      /* ── Section toggle ─────────────────────────────────────────── */
+      function bindToggle(headerId, bodyId) {
+        var header = document.getElementById(headerId);
+        var body   = document.getElementById(bodyId);
+        if (!header || !body) return;
+        function toggle() {
+          var open = body.classList.contains('is-open');
+          body.classList.toggle('is-open', !open);
+          var caret = header.querySelector('.section-caret');
+          if (caret) caret.classList.toggle('is-open', !open);
+          header.setAttribute('aria-expanded', String(!open));
+        }
+        header.addEventListener('click', toggle);
+        header.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+        });
+      }
+
+      /* ── Identity strip render ──────────────────────────────────── */
+      function renderIdentity() {
+        var rec = _record;
+        elIdAvatar.textContent = initials(rec);
+        elIdName.textContent = rec.displayName || ((rec.givenName || '') + ' ' + (rec.familyName || '')).trim();
+        var age = computeAge(rec.dob);
+        elIdSub.textContent = age !== null ? 'age ' + age : rec.id;
+        elIdentityStrip.style.display = '';
+      }
+
+      /* ── Profile section render ─────────────────────────────────── */
+      function renderProfile() {
+        var profile = _profile;
+        var frag = document.createDocumentFragment();
+
+        // Language
+        var lang = (profile && profile.preferredLanguage) ? profile.preferredLanguage : MOCK.language;
+        var langRow = el('div', 'kv-row');
+        langRow.appendChild(txt('span', 'kv-label', 'Language'));
+        langRow.appendChild(txt('span', 'kv-value', lang + ' (preferred)'));
+        frag.appendChild(langRow);
+
+        // Diagnosis
+        var diagLabel = txt('span', 'kv-label', 'Diagnosis');
+        var diagRow = el('div', 'kv-row');
+        diagRow.appendChild(diagLabel);
+        var diagList = el('div', 'diag-list');
+        var diagSrc = (profile && profile.diagnosis)
+          ? [{ label: profile.diagnosis, code: '', primary: true }]
+          : MOCK.diagnosis;
+        diagSrc.forEach(function (d) {
+          var row = el('div', 'diag-row' + (d.primary ? ' diag-primary' : ''));
+          row.appendChild(txt('span', null, d.label));
+          if (d.code) row.appendChild(txt('span', 'diag-code', d.code));
+          diagList.appendChild(row);
+        });
+        diagRow.appendChild(diagList);
+        frag.appendChild(diagRow);
+
+        // Medication awareness
+        var medsLabel = txt('span', 'kv-label', 'Medications');
+        var medsRow = el('div', 'kv-row');
+        medsRow.appendChild(medsLabel);
+        var medsSrc;
+        if (profile && profile.medicationAwareness) {
+          medsSrc = [{ name: profile.medicationAwareness, meta: '' }];
+        } else {
+          medsSrc = MOCK.meds;
+        }
+        var medList = el('div', 'med-list');
+        medsSrc.forEach(function (m) {
+          var row = el('div', 'med-row');
+          row.appendChild(txt('span', 'med-name', m.name));
+          if (m.meta) row.appendChild(txt('span', 'med-meta', m.meta));
+          medList.appendChild(row);
+        });
+        medsRow.appendChild(medList);
+        frag.appendChild(medsRow);
+
+        var note = txt('p', 'note-subtle', 'Medication awareness only — not a prescribing workflow.');
+        frag.appendChild(note);
+
+        elProfileKv.innerHTML = '';
+        elProfileKv.appendChild(frag);
+      }
+
+      /* ── Alert bar ──────────────────────────────────────────────── */
+      function renderRiskAlert() {
+        // Phase A: always show the mock risk alert (real risk schema deferred).
+        elRiskAlertBar.style.display = '';
+      }
+
+      /* ── Full render ────────────────────────────────────────────── */
+      function renderAll() {
+        renderIdentity();
+        renderRiskAlert();
+        renderProfile();
+      }
+
+      /* ── Load data ──────────────────────────────────────────────── */
+      function loadAndRender() {
+        if (!_proxy || !_clientId) return;
+        Promise.all([
+          _proxy.call('get', _clientId),
+          _proxy.call('getProfile', _clientId),
+        ]).then(function (results) {
+          var rec     = results[0];
+          var profile = results[1];
+          if (!rec) { showError('Client not found: ' + _clientId); return; }
+          _record  = rec;
+          _profile = profile;
+          renderAll();
+        }).catch(function (err) {
+          if (isLockedError(err)) {
+            showLocked('Workspace locked — unlock to view client.');
+          } else {
+            showError('Failed to load: ' + (err && err.message));
+          }
+        });
+      }
+
+      // Shared bridge ref for context handler.
+      var _soamView = null;
+
+      function ensureProxyAndRender() {
+        if (!_clientId || _clientId === 'new') return;
+        if (_proxy) { loadAndRender(); return; }
+        if (!_soamView) return;
+        _soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+          _proxy = proxy;
+          loadAndRender();
+        }).catch(function (err) {
+          if (isLockedError(err)) {
+            showLocked('Workspace locked.');
+          } else {
+            showError('Bridge error: ' + (err && err.message));
+          }
+        });
+      }
+
+      /* ── Message handler (theme + context) ─────────────────────── */
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (!d || d.__soamView !== true) return;
+        if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
+          var root = document.documentElement;
+          Object.keys(d.theme).forEach(function (k) {
+            root.style.setProperty(k, d.theme[k]);
+          });
+        }
+        // context message: entityId pushed by BundleViewIframe on client switch.
+        if (d.kind === 'context') {
+          var newId = d.entityId || null;
+          if (!newId) { _clientId = null; return; }
+          if (newId !== _clientId) {
+            _clientId = newId;
+            ensureProxyAndRender();
+          }
+        }
+      });
+
+      /* ── Bridge await ───────────────────────────────────────────── */
+      function awaitBridge() {
+        return new Promise(function (resolve) {
+          if (window.soamView) return resolve(window.soamView);
+          var iv = setInterval(function () {
+            if (window.soamView) { clearInterval(iv); resolve(window.soamView); }
+          }, 25);
+        });
+      }
+
+      awaitBridge().then(function (soamView) {
+        elBridgeWait.style.display = 'none';
+        elRoot.style.display = '';
+        _soamView = soamView;
+
+        bindToggle('sh-risk',    'sb-risk');
+        bindToggle('sh-profile', 'sb-profile');
+
+        // Do NOT read id from location.search — id arrives via context/activate message.
+
+        soamView.events.onActivate(function () {
+          // If _clientId already set by context handler, ensure proxy + render.
+          ensureProxyAndRender();
+        });
+
+        soamView.events.onStoreChange(function (payload) {
+          if (payload && (payload.table === 'patients' || payload.table === 'patient_profile')) {
+            loadAndRender();
+          }
+        });
+      });
+
+    })();
+    </script>
+  </body>
+</html>

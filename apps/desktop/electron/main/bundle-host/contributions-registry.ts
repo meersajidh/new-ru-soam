@@ -32,11 +32,24 @@ export interface ViewContainerSnapshot {
   readonly title: string;
   readonly viewUrl: string | undefined;
   readonly bundleId: string;
+  readonly location: 'primary' | 'auxiliary';
+  readonly when?: string;
+}
+
+export interface PanelViewSnapshot {
+  readonly id: string;
+  readonly title: string;
+  readonly icon?: string;
+  readonly viewUrl: string | undefined;
+  readonly bundleId: string;
+  readonly when?: string;
+  readonly priority: number;
 }
 
 export interface ContributionsSnapshot {
   readonly activityBarItems: ReadonlyArray<ActivityBarItemSnapshot>;
   readonly viewContainers: ReadonlyArray<ViewContainerSnapshot>;
+  readonly panelViews: ReadonlyArray<PanelViewSnapshot>;
 }
 
 /**
@@ -55,6 +68,7 @@ export function registerBundleContributions(bundleId: string, contributes: Bundl
 export function getContributionsSnapshot(): ContributionsSnapshot {
   const activityBarItems: ActivityBarItemSnapshot[] = [];
   const viewContainers: ViewContainerSnapshot[] = [];
+  const panelViews: PanelViewSnapshot[] = [];
 
   for (const entry of registry) {
     const { bundleId, contributes } = entry;
@@ -75,13 +89,25 @@ export function getContributionsSnapshot(): ContributionsSnapshot {
       viewContainers.push({
         id: container.id,
         title: container.title,
-        // Lazy resolution — viewUrlFor may return undefined if view-assets not yet
-        // registered, which the renderer handles gracefully.
         viewUrl: viewUrlFor(bundleId, container.view),
         bundleId,
+        location: container.location,
+        when: container.when,
+      });
+    }
+
+    for (const pv of contributes['panel.views']) {
+      panelViews.push({
+        id: pv.id,
+        title: pv.title,
+        icon: pv.icon,
+        viewUrl: viewUrlFor(bundleId, pv.view),
+        bundleId,
+        when: pv.when,
+        priority: pv.priority,
       });
     }
   }
 
-  return { activityBarItems, viewContainers };
+  return { activityBarItems, viewContainers, panelViews };
 }

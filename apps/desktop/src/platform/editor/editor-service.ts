@@ -7,6 +7,8 @@ export interface EditorInstance {
   resource: string;
   title: string;
   isDirty: boolean;
+  entityId?: string | null;
+  isPreview?: boolean;
 }
 
 export interface EditorGroup {
@@ -16,7 +18,7 @@ export interface EditorGroup {
 }
 
 export interface IEditorService {
-  open(resource: string, options?: { groupId?: string; title?: string }): string;
+  open(resource: string, options?: { groupId?: string; title?: string; entityId?: string | null; preview?: boolean }): string;
   close(instanceId: string): void;
   splitGroup(groupId: string, direction: 'horizontal' | 'vertical'): string;
   moveTab(instanceId: string, targetGroupId: string): void;
@@ -44,22 +46,62 @@ export class EditorService implements IEditorService {
     this._focusedGroupId = id;
   }
 
-  open(resource: string, options?: { groupId?: string; title?: string }): string {
+  open(resource: string, options?: { groupId?: string; title?: string; entityId?: string | null; preview?: boolean }): string {
     const targetId = options?.groupId ?? this._focusedGroupId ?? this._firstGroupId();
     const group = this._groups.get(targetId);
     if (!group) throw new Error(`Group ${targetId} not found`);
 
-    const existing = group.tabs.find(t => t.resource === resource);
+    // Tab identity = resource AND entityId (undefined/null treated as equal).
+    const incomingEntityId = options?.entityId;
+    const normalizedIncoming = incomingEntityId ?? null;
+    const existing = group.tabs.find(
+      t => t.resource === resource && (t.entityId ?? null) === normalizedIncoming,
+    );
+
     if (existing) {
-      this._groups.set(targetId, { ...group, activeTabId: existing.id });
+      // Update title + entityId in place; if preview:false, pin it.
+      const updated: EditorInstance = {
+        ...existing,
+        ...(options?.title != null ? { title: options.title } : {}),
+        ...(options?.entityId !== undefined ? { entityId: options.entityId } : {}),
+        ...(options?.preview === false ? { isPreview: false } : {}),
+      };
+      const newTabs = group.tabs.map(t => (t.id === existing.id ? updated : t));
+      this._groups.set(targetId, { ...group, tabs: newTabs, activeTabId: existing.id });
       this._focusedGroupId = targetId;
       this._emit();
       return existing.id;
     }
 
+    if (options?.preview === true) {
+      // Find the group's current preview tab — replace in place (same id, swap content).
+      const previewTab = group.tabs.find(t => t.isPreview === true);
+      if (previewTab) {
+        const replaced: EditorInstance = {
+          ...previewTab,
+          resource,
+          title: options?.title ?? this._titleFromResource(resource),
+          entityId: incomingEntityId,
+          isPreview: true,
+        };
+        const newTabs = group.tabs.map(t => (t.id === previewTab.id ? replaced : t));
+        this._groups.set(targetId, { ...group, tabs: newTabs, activeTabId: previewTab.id });
+        this._focusedGroupId = targetId;
+        this._emit();
+        return previewTab.id;
+      }
+    }
+
+    // New tab.
     const id = `instance-${++this._instanceCounter}`;
     const title = options?.title ?? this._titleFromResource(resource);
-    this._groups.set(targetId, { ...group, tabs: [...group.tabs, { id, resource, title, isDirty: false }], activeTabId: id });
+    const entityId = incomingEntityId;
+    const isPreview = options?.preview;
+    this._groups.set(targetId, {
+      ...group,
+      tabs: [...group.tabs, { id, resource, title, isDirty: false, entityId, isPreview }],
+      activeTabId: id,
+    });
     this._focusedGroupId = targetId;
     this._emit();
     return id;

@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'; font-src view:"
+    />
+    <title>Client Overview</title>
+    <style>
+      /* ── Brand font ─────────────────────────────────────────────── */
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-400.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-500.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter Tight';
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+        src: url('view://ru-soam-practice/fonts/inter-tight-600.woff2') format('woff2');
+      }
+
+      /* ── Reset ──────────────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      button { font: inherit; color: inherit; cursor: pointer; }
+
+      /* ── Design tokens (defaults — host overrides via postMessage) ─ */
+      :root {
+        color-scheme: light dark;
+
+        --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+
+        /* Surface */
+        --color-surface-base:     #161618;
+        --color-surface-panel:    #1c1c1f;
+        --color-surface-elevated: #232326;
+        --color-surface-active:   #2a2d26;
+        /* Foreground */
+        --color-fg-primary:   #f2f2f7;
+        --color-fg-secondary: #aeaeb2;
+        --color-fg-muted:     #636366;
+        /* Borders */
+        --color-border:       #3a3a3c;
+        --color-border-focus: #5ac85a;
+        /* Accent */
+        --color-accent:         #5ac85a;
+        --color-accent-fg:      #1c1c1e;
+        --color-accent-hover:   #6bd46b;
+        --color-accent-pressed: #4ab44a;
+        /* Semantic */
+        --color-success: #5ac85a;
+        --color-warning: #f4a623;
+        --color-error:   #e05252;
+        --color-info:    #5ac0de;
+
+        --radius-sm: 4px;
+        --radius-md: 7px;
+        --transition: 130ms ease;
+      }
+
+      /* ── Base ───────────────────────────────────────────────────── */
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.5;
+        background: var(--color-surface-base);
+        color: var(--color-fg-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+
+      /* ── Layout ─────────────────────────────────────────────────── */
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* ── Bridge wait overlay ────────────────────────────────────── */
+      #bridge-wait {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-base);
+        z-index: 100;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--color-fg-muted);
+      }
+      .spinner {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ── Status / error bar ─────────────────────────────────────── */
+      #status-bar {
+        font-size: 11px;
+        padding: 6px 16px;
+        background: color-mix(in srgb, var(--color-error) 9%, transparent);
+        color: var(--color-error);
+        font-weight: 500;
+        display: none;
+        flex-shrink: 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+      }
+      #status-bar.visible { display: block; }
+      #status-bar.is-locked {
+        background: color-mix(in srgb, var(--color-warning) 9%, transparent);
+        color: var(--color-warning);
+        border-color: color-mix(in srgb, var(--color-warning) 25%, transparent);
+      }
+
+      /* ── Density switcher (compact icon dropdown) ──────────────── */
+      #density-btn {
+        position: fixed;
+        top: 8px;
+        right: 14px;
+        z-index: 200;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: var(--radius-sm);
+        color: var(--color-fg-muted);
+        cursor: pointer;
+        padding: 0;
+        transition: background var(--transition), color var(--transition), border-color var(--transition);
+      }
+      #density-btn:hover,
+      #density-btn.is-open {
+        background: var(--color-surface-elevated);
+        border-color: var(--color-border);
+        color: var(--color-fg-secondary);
+      }
+      #density-menu {
+        position: fixed;
+        top: 40px;
+        right: 14px;
+        z-index: 201;
+        min-width: 130px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+        padding: 4px 0;
+        display: none;
+      }
+      #density-menu.is-open { display: block; }
+      .density-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 5px 10px;
+        background: transparent;
+        border: none;
+        font-family: var(--font-sans);
+        font-size: 11.5px;
+        color: var(--color-fg-secondary);
+        cursor: pointer;
+        text-align: left;
+        transition: background var(--transition), color var(--transition);
+      }
+      .density-item:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
+      .density-item.is-active {
+        color: var(--color-accent);
+      }
+      .density-item-check {
+        flex: 0 0 12px;
+        width: 12px;
+        height: 12px;
+        color: var(--color-accent);
+      }
+      .density-item-check--empty {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+      }
+
+      /* ── Scroll area ────────────────────────────────────────────── */
+      #ov-scroll {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 24px 28px 56px;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+        position: relative;
+      }
+      .ov-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      /* ── Risk banner ────────────────────────────────────────────── */
+      .risk-banner {
+        border: 1px solid color-mix(in srgb, var(--color-error) 50%, var(--color-border));
+        border-radius: var(--radius-md);
+        background: color-mix(in srgb, var(--color-error) 9%, var(--color-surface-elevated));
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+      .risk-banner-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        flex-wrap: wrap;
+      }
+      .risk-banner-ico {
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-error) 18%, transparent);
+        color: var(--color-error);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .risk-banner-text { flex: 1 1 220px; min-width: 0; }
+      .risk-banner-headline {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+      }
+      .risk-banner-meta {
+        display: block;
+        font-size: 11px;
+        color: var(--color-fg-secondary);
+        margin-top: 2px;
+      }
+      .risk-banner-cmds { display: flex; gap: 8px; flex: 0 0 auto; }
+      .risk-banner-detail {
+        padding: 14px 16px 16px;
+        border-top: 1px solid color-mix(in srgb, var(--color-error) 25%, var(--color-border));
+      }
+      .risk-items { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+      .risk-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--color-fg-secondary);
+      }
+      .risk-item-dot {
+        flex: 0 0 auto;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--color-error);
+        margin-top: 5px;
+      }
+      .risk-item-when {
+        font-size: 10px;
+        font-family: var(--font-mono);
+        color: var(--color-fg-muted);
+        margin-left: 4px;
+        white-space: nowrap;
+      }
+
+      /* ── cmd-btn ────────────────────────────────────────────────── */
+      .cmd-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--color-accent);
+        border: 1px solid transparent;
+        color: var(--color-accent-fg);
+        border-radius: var(--radius-sm);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 10px;
+        cursor: pointer;
+        font-family: var(--font-sans);
+        transition: background var(--transition);
+      }
+      .cmd-btn:hover { background: var(--color-accent-hover); }
+      .cmd-btn.ghost {
+        background: transparent;
+        border-color: var(--color-border);
+        color: var(--color-fg-secondary);
+      }
+      .cmd-btn.ghost:hover {
+        background: var(--color-surface-active);
+        border-color: var(--color-fg-muted);
+        color: var(--color-fg-primary);
+      }
+
+      /* ── aspect-caret ───────────────────────────────────────────── */
+      .aspect-caret { transition: transform .12s; }
+      .aspect-caret.is-open { transform: rotate(90deg); }
+
+      /* ── Header ─────────────────────────────────────────────────── */
+      .ov-header {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+      }
+      .ov-avatar {
+        flex: 0 0 auto;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+        font-size: 22px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: -0.02em;
+      }
+      .ov-id { flex: 1 1 240px; min-width: 0; }
+      .ov-name {
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0;
+        line-height: 1.12;
+        letter-spacing: -0.01em;
+        overflow-wrap: break-word;
+      }
+      .ov-id-sub {
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        margin: 4px 0 10px;
+        font-family: var(--font-mono);
+      }
+      .ov-problems { display: flex; flex-wrap: wrap; gap: 6px; }
+      .ov-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--color-fg-secondary);
+        background: var(--color-surface-active);
+        border-radius: 999px;
+        padding: 3px 10px;
+      }
+      .ov-chip.is-primary {
+        background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+        color: var(--color-fg-primary);
+      }
+      .ov-chip-code {
+        font-family: var(--font-mono);
+        font-size: 9px;
+        color: var(--color-fg-muted);
+      }
+      .ov-badges {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-end;
+        flex: 0 0 auto;
+      }
+      .ov-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border);
+        white-space: nowrap;
+      }
+      .ov-badge.ok {
+        color: var(--color-success);
+        border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
+        background: color-mix(in srgb, var(--color-success) 9%, transparent);
+      }
+
+      /* ── Cards ──────────────────────────────────────────────────── */
+      .ov-grid { display: grid; gap: 16px; }
+      .ov-grid.dense { grid-template-columns: repeat(auto-fill, minmax(278px, 1fr)); }
+      .ov-grid.focused { grid-template-columns: 1fr 1fr; }
+      .ov-grid.focused .ov-more { grid-column: 1 / -1; }
+
+      .ov-card {
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+      }
+      .ov-card-head {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 12px;
+        color: var(--color-fg-secondary);
+      }
+      .ov-card-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+        flex: 1 1 auto;
+      }
+      .ov-card-source {
+        font-size: 9px;
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--color-fg-muted);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        padding: 1px 5px;
+      }
+      .ov-card-body { flex: 1 1 auto; }
+      .ov-card-foot {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid var(--color-border);
+      }
+
+      .link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: transparent;
+        border: none;
+        color: var(--color-accent);
+        font-size: 11px;
+        cursor: pointer;
+        font-family: var(--font-sans);
+        padding: 0;
+      }
+      .link-btn:hover { text-decoration: underline; }
+
+      /* Next session card */
+      .next-appt { display: flex; align-items: center; gap: 12px; color: var(--color-accent); }
+      .next-when { font-size: 16px; font-weight: 600; color: var(--color-fg-primary); }
+      .next-label { font-size: 11px; color: var(--color-fg-muted); }
+
+      /* Last note card */
+      .last-note-meta { font-size: 10px; font-family: var(--font-mono); color: var(--color-fg-muted); margin-bottom: 6px; }
+      .last-note-summary { margin: 0; font-size: 13px; color: var(--color-fg-secondary); line-height: 1.5; }
+
+      /* Scores */
+      .scores { display: flex; gap: 22px; flex-wrap: wrap; }
+      .score-block { display: flex; flex-direction: column; gap: 5px; }
+      .score-head { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; }
+      .score-name { font-size: 11px; font-family: var(--font-mono); color: var(--color-fg-secondary); }
+      .score-latest { font-size: 18px; font-weight: 600; color: var(--color-fg-primary); display: inline-flex; align-items: center; gap: 4px; }
+      .spark { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+      .spark-bar { width: 9px; background: var(--color-accent); border-radius: 2px 2px 0 0; opacity: 0.6; }
+      .spark-bar:last-child { opacity: 1; }
+      .score-band { font-size: 10px; color: var(--color-fg-muted); }
+
+      /* Goals */
+      .goal-row { padding: 8px 0; border-bottom: 1px dashed var(--color-border); }
+      .goal-row:last-child { border-bottom: none; }
+      .goal-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+      .goal-label { font-size: 12px; color: var(--color-fg-secondary); line-height: 1.35; }
+      .goal-status { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 999px; white-space: nowrap; flex: 0 0 auto; }
+      .goal-status.st-ontrack { color: var(--color-success); background: color-mix(in srgb, var(--color-success) 14%, transparent); }
+      .goal-status.st-slipping { color: var(--color-warning); background: color-mix(in srgb, var(--color-warning) 14%, transparent); }
+      .goal-status.st-notstarted { color: var(--color-fg-muted); background: var(--color-surface-active); }
+      .goal-track { height: 5px; background: var(--color-surface-active); border-radius: 3px; overflow: hidden; }
+      .goal-fill { display: block; height: 100%; background: var(--color-accent); border-radius: 3px; }
+
+      /* Payment */
+      .payment { display: flex; flex-direction: column; gap: 4px; }
+      .payment-amt { display: flex; align-items: center; gap: 10px; }
+      .payment-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; }
+      .payment-status.pending { color: var(--color-warning); }
+      .payment-figure { font-size: 18px; font-weight: 600; color: var(--color-fg-primary); }
+
+      /* Circle mini */
+      .circle-mini { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+      .circle-mini li { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; color: var(--color-fg-secondary); }
+      .circle-mini svg { color: var(--color-fg-muted); flex: 0 0 auto; margin-top: 1px; }
+      .circle-mini b { color: var(--color-fg-primary); font-weight: 600; }
+      .aspect-meta { font-size: 11px; color: var(--color-fg-muted); }
+
+      /* Focused density glance row */
+      .ov-more {
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+      }
+      .ov-more-head { font-size: 12px; font-weight: 600; color: var(--color-fg-primary); }
+      .ov-more-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 12px; }
+      .mini-stat { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--color-surface-active); }
+      .mini-stat-label { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: var(--color-fg-muted); }
+      .mini-stat-value { font-size: 20px; font-weight: 600; color: var(--color-fg-primary); }
+      .mini-stat-sub { font-size: 10px; }
+      .mini-stat-sub.ok { color: var(--color-success); }
+      .mini-stat-sub.warn { color: var(--color-warning); }
+
+      /* Timeline density */
+      .ov-timeline-wrap { display: flex; gap: 28px; align-items: flex-start; }
+      .ov-timeline { list-style: none; flex: 1 1 auto; position: relative; }
+      .ov-timeline::before {
+        content: '';
+        position: absolute;
+        left: 76px; top: 6px; bottom: 6px;
+        width: 1px;
+        background: var(--color-border);
+      }
+      .tl-event {
+        display: grid;
+        grid-template-columns: 56px 28px 1fr;
+        align-items: start;
+        gap: 0 12px;
+        padding-bottom: 18px;
+      }
+      .tl-when { font-size: 11px; font-family: var(--font-mono); color: var(--color-fg-muted); text-align: right; padding-top: 6px; }
+      .tl-dot {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        z-index: 1;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        color: var(--color-fg-muted);
+      }
+      .tl-dot.tone-error {
+        color: var(--color-error);
+        border-color: color-mix(in srgb, var(--color-error) 50%, transparent);
+        background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface-elevated));
+      }
+      .tl-dot.tone-accent {
+        color: var(--color-accent);
+        border-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
+        background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface-elevated));
+      }
+      .tl-card {
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 11px 14px;
+      }
+      .tl-title { font-size: 13px; font-weight: 600; color: var(--color-fg-primary); margin-bottom: 3px; }
+      .tl-body { font-size: 12px; color: var(--color-fg-secondary); line-height: 1.45; }
+
+      .tl-facts {
+        flex: 0 0 220px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        position: sticky;
+        top: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .tl-facts-head { font-size: 11px; font-weight: 600; color: var(--color-fg-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+      .tl-fact { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--color-fg-secondary); }
+      .tl-fact svg { color: var(--color-fg-muted); flex: 0 0 auto; }
+    </style>
+  </head>
+  <body>
+    <!-- Bridge wait overlay -->
+    <div id="bridge-wait">
+      <span class="spinner"></span>
+      Loading…
+    </div>
+
+    <div id="root" style="display:none">
+      <!-- Error / locked status bar -->
+      <div id="status-bar" role="alert"></div>
+
+      <!-- Density switcher: compact icon button pinned top-right -->
+      <button id="density-btn" type="button" aria-label="Change overview density" aria-haspopup="true" aria-expanded="false">
+        <!-- sliders-horizontal icon -->
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>
+      </button>
+      <div id="density-menu" role="menu" aria-label="Overview density">
+        <button class="density-item is-active" data-density="dense" type="button" role="menuitem">
+          <span class="density-item-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span>
+          Dense
+        </button>
+        <button class="density-item" data-density="focused" type="button" role="menuitem">
+          <span class="density-item-check--empty"></span>
+          Focused
+        </button>
+        <button class="density-item" data-density="timeline" type="button" role="menuitem">
+          <span class="density-item-check--empty"></span>
+          Timeline
+        </button>
+      </div>
+
+      <!-- Scrollable content area -->
+      <div id="ov-scroll">
+        <div class="ov-inner" id="ov-body">
+          <!-- populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <script>
+    (function () {
+      'use strict';
+
+      /* ── SVG icon catalogue ─────────────────────────────────────── */
+      var ICONS = {
+        'shield-alert':   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+        'shield':         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+        'chevron-right':  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>',
+        'circle-user':    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>',
+        'calendar-clock': '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="15" cy="16" r="3"/><polyline points="15 15 15 16 16 16"/></svg>',
+        'file-text':      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
+        'activity':       '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+        'list-checks':    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>',
+        'indian-rupee':   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12M6 8h12M6 13l8.5 8L6 13"/><path d="M6 8c0 2.76 2.24 5 5 5h1"/></svg>',
+        'users':          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        'video':          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>',
+        'map-pin':        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+        'arrow-up-right': '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>',
+        'scroll-text':    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"/><path d="M19 3H8.5a2.5 2.5 0 0 0 0 5H12"/></svg>',
+        'circle-check':   '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+        'pill':           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7.071-7.07l7 7a5 5 0 0 1-7.07 7.07z"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg>',
+        'languages':      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>',
+        'user-round':     '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>',
+        'phone':          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21 16z"/></svg>',
+        'target':         '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+      };
+
+      function icon(name, size) {
+        var raw = ICONS[name] || '<svg width="' + (size||13) + '" height="' + (size||13) + '" viewBox="0 0 24 24" aria-hidden="true"></svg>';
+        // Replace default width/height attrs to honour the size parameter
+        if (size && size !== 13) {
+          raw = raw.replace(/width="\d+"/, 'width="' + size + '"').replace(/height="\d+"/, 'height="' + size + '"');
+        }
+        return raw;
+      }
+
+      /* ── Mock data (ported from data.jsx ACTIVE block) ──────────── */
+      var MOCK = {
+        risk: {
+          headline: 'Suicidal ideation noted — safety plan active',
+          noted: '28 May 2026',
+          capacity: 'Capacity intact',
+          s23: 'MHA §23 exception not currently invoked',
+          items: [
+            { label: 'Passive SI, no plan or intent', when: 'Session 28 May' },
+            { label: 'Safety plan agreed & shared with NR', when: '28 May' },
+            { label: 'Means restriction discussed', when: '28 May' },
+          ],
+        },
+        nextAppt: { when: 'Thu 04 Jun · 11:00', modality: 'video', label: 'Tele-session (video)' },
+        lastNote: {
+          when: '28 May 2026', author: 'you',
+          summary: 'Sleep improving on sertraline 100 mg. Mood reactive. SI passive, no intent — safety plan revisited and shared with NR. Continue BA homework.'
+        },
+        goals: [
+          { label: 'Behavioural activation — 3 valued activities / week', progress: 0.6, status: 'On track' },
+          { label: 'Sleep restoration — consistent wake time', progress: 0.4, status: 'Slipping' },
+          { label: 'Graded return to work', progress: 0.2, status: 'Not started' },
+        ],
+        scores: [
+          { instrument: 'PHQ-9', series: [21, 18, 14, 11], latest: 11, band: 'Moderate', dir: 'down', good: true },
+          { instrument: 'GAD-7', series: [16, 13, 11, 11], latest: 11, band: 'Moderate', dir: 'flat', good: true },
+        ],
+        payment: { status: 'pending', amount: '₹1,500', detail: '28 May session · self-pay' },
+        circle: [
+          { role: 'Nominated Representative', name: 'Rohan Deshpande', rel: 'Spouse', meta: 'MHA §14 · primary contact', iconName: 'shield' },
+          { role: 'Caregiver', name: 'Sushila Deshpande', rel: 'Mother-in-law', meta: 'Lives with client', iconName: 'user-round' },
+        ],
+        meds: [
+          { name: 'Sertraline 100 mg OD', meta: 'External prescriber · Dr. A. Kulkarni (Psychiatrist)' },
+          { name: 'Clonazepam 0.25 mg PRN', meta: 'External prescriber · Dr. A. Kulkarni' },
+        ],
+        // Profile fallbacks (used when real profile has null fields)
+        fallbackDiagnosis: [
+          { label: 'Recurrent depressive disorder, severe', code: 'F33.2', primary: true },
+          { label: 'Panic disorder', code: 'F41.0', primary: false },
+        ],
+        fallbackLanguage: 'Marathi',
+        fallbackMeds: 'Sertraline 100 mg · Clonazepam PRN',
+        // Timeline events
+        timeline: [
+          { when: 'Thu 04 Jun', iconName: 'calendar-clock', tone: 'accent', title: 'Upcoming — Tele-session 11:00', body: 'Session prep ready.' },
+          { when: '28 May', iconName: 'shield-alert', tone: 'error', title: 'Risk — passive SI noted', body: 'Safety plan revisited & shared with NR. Capacity intact.' },
+          { when: '28 May', iconName: 'file-text', tone: '', title: 'Progress note', body: 'Sleep improving on sertraline 100 mg. Continue BA homework.' },
+          { when: '24 May', iconName: 'activity', tone: '', title: 'PHQ-9 recorded — 11', body: 'Down from 14. Moderate band.' },
+          { when: '14 May', iconName: 'file-text', tone: '', title: 'Progress note', body: 'Sertraline titrated to 100 mg. Tele-consent recorded.' },
+          { when: '12 Jan', iconName: 'scroll-text', tone: '', title: 'Advance Directive filed', body: 'Names treatment preferences. NR: R. Deshpande.' },
+        ],
+      };
+
+      /* ── State ──────────────────────────────────────────────────── */
+      var _proxy    = null;
+      var _clientId = null;
+      var _record   = null;  // PatientRecord (real)
+      var _profile  = null;  // PatientProfile | null (real)
+      var _density  = 'dense';
+      var _riskOpen = false;
+
+      /* ── Elements ───────────────────────────────────────────────── */
+      var elBridgeWait = document.getElementById('bridge-wait');
+      var elRoot       = document.getElementById('root');
+      var elStatusBar  = document.getElementById('status-bar');
+      var elOvBody     = document.getElementById('ov-body');
+
+      /* ── Helpers ────────────────────────────────────────────────── */
+      function showError(msg) {
+        elStatusBar.textContent = msg;
+        elStatusBar.className = 'visible';
+      }
+      function showLocked(msg) {
+        elStatusBar.textContent = msg;
+        elStatusBar.className = 'visible is-locked';
+      }
+      function isLockedError(err) {
+        return err && (err.code === 'cap.locked' ||
+          (err.message && err.message.indexOf('cap.locked') !== -1));
+      }
+
+      function computeAge(dob) {
+        if (!dob) return null;
+        try {
+          var birth = new Date(dob);
+          if (isNaN(birth.getTime())) return null;
+          var now = new Date();
+          var age = now.getFullYear() - birth.getFullYear();
+          var m = now.getMonth() - birth.getMonth();
+          if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+          return age >= 0 ? age : null;
+        } catch (e) { return null; }
+      }
+
+      function initials(rec) {
+        var g = (rec.givenName || '').trim();
+        var f = (rec.familyName || '').trim();
+        var a = '';
+        if (g) a += g[0].toUpperCase();
+        if (f) a += f[0].toUpperCase();
+        return a || '?';
+      }
+
+      function el(tag, cls, html) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (html) e.innerHTML = html;
+        return e;
+      }
+      function txt(tag, cls, content) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        e.textContent = content;
+        return e;
+      }
+
+      /* ── Risk banner ────────────────────────────────────────────── */
+      function buildRiskBanner() {
+        var r = MOCK.risk;
+        var wrap = el('div', 'risk-banner');
+
+        var bar = el('div', 'risk-banner-bar');
+        var ico = el('div', 'risk-banner-ico');
+        ico.innerHTML = icon('shield-alert', 16);
+        bar.appendChild(ico);
+
+        var textDiv = el('div', 'risk-banner-text');
+        var headline = txt('span', 'risk-banner-headline', r.headline);
+        var meta = txt('span', 'risk-banner-meta',
+          'Noted ' + r.noted + ' · ' + r.capacity + ' · ' + r.s23);
+        textDiv.appendChild(headline);
+        textDiv.appendChild(meta);
+        bar.appendChild(textDiv);
+
+        var cmds = el('div', 'risk-banner-cmds');
+
+        var safetyBtn = el('button', 'cmd-btn ghost');
+        safetyBtn.innerHTML = icon('shield', 12) + ' Safety plan';
+        safetyBtn.type = 'button';
+        cmds.appendChild(safetyBtn);
+
+        var detailBtn = el('button', 'cmd-btn ghost');
+        detailBtn.innerHTML = icon('chevron-right', 12) + ' <span class="aspect-caret" id="risk-caret"></span><span id="risk-detail-label">Details</span>';
+        detailBtn.type = 'button';
+        cmds.appendChild(detailBtn);
+
+        bar.appendChild(cmds);
+        wrap.appendChild(bar);
+
+        // Detail panel
+        var detail = el('div', 'risk-banner-detail');
+        detail.style.display = 'none';
+        var itemsList = el('ul', 'risk-items');
+        r.items.forEach(function (item) {
+          var li = el('li', 'risk-item');
+          var dot = el('span', 'risk-item-dot');
+          var labelSpan = el('span', null, null);
+          labelSpan.textContent = item.label;
+          var whenSpan = el('span', 'risk-item-when', item.when);
+          li.appendChild(dot);
+          li.appendChild(labelSpan);
+          li.appendChild(whenSpan);
+          itemsList.appendChild(li);
+        });
+        detail.appendChild(itemsList);
+        wrap.appendChild(detail);
+
+        // Toggle
+        detailBtn.addEventListener('click', function () {
+          _riskOpen = !_riskOpen;
+          detail.style.display = _riskOpen ? '' : 'none';
+          var caret = document.getElementById('risk-caret');
+          var label = document.getElementById('risk-detail-label');
+          if (caret) caret.className = 'aspect-caret' + (_riskOpen ? ' is-open' : '');
+          if (label) label.textContent = _riskOpen ? 'Less' : 'Details';
+        });
+        bar.addEventListener('click', function (e) {
+          if (e.target === detailBtn || detailBtn.contains(e.target)) return;
+          if (e.target === safetyBtn || safetyBtn.contains(e.target)) return;
+          _riskOpen = !_riskOpen;
+          detail.style.display = _riskOpen ? '' : 'none';
+          var caret = document.getElementById('risk-caret');
+          var label = document.getElementById('risk-detail-label');
+          if (caret) caret.className = 'aspect-caret' + (_riskOpen ? ' is-open' : '');
+          if (label) label.textContent = _riskOpen ? 'Less' : 'Details';
+        });
+        bar.style.cursor = 'pointer';
+
+        return wrap;
+      }
+
+      /* ── Overview header ────────────────────────────────────────── */
+      function buildHeader() {
+        var rec = _record;
+        var profile = _profile;
+        var age = computeAge(rec.dob);
+
+        // Identity sub-line — age from real dob, rest from mock or profile
+        var lang = (profile && profile.preferredLanguage) ? profile.preferredLanguage : MOCK.fallbackLanguage;
+        var identityParts = [];
+        if (age !== null) identityParts.push(age + ' · Pune · ' + lang + ' (preferred)');
+        else identityParts.push('Pune · ' + lang + ' (preferred)');
+        var identityLine = identityParts.join(' ');
+
+        // Diagnosis chips — real profile.diagnosis string parsed, else mock
+        var diagChips;
+        if (profile && profile.diagnosis) {
+          // Simple string — render as single chip
+          diagChips = [{ label: profile.diagnosis, code: '', primary: true }];
+        } else {
+          diagChips = MOCK.fallbackDiagnosis;
+        }
+
+        var header = el('header', 'ov-header');
+
+        var avatar = el('div', 'ov-avatar');
+        avatar.textContent = initials(rec);
+
+        var idDiv = el('div', 'ov-id');
+        var nameH1 = el('h1', 'ov-name');
+        nameH1.textContent = rec.displayName;
+        var subDiv = txt('div', 'ov-id-sub', identityLine);
+        var problemsDiv = el('div', 'ov-problems');
+        diagChips.forEach(function (chip) {
+          var chipEl = el('span', 'ov-chip' + (chip.primary ? ' is-primary' : ''));
+          chipEl.textContent = chip.label;
+          if (chip.code) {
+            var codeEl = txt('span', 'ov-chip-code', ' ' + chip.code);
+            chipEl.appendChild(codeEl);
+          }
+          problemsDiv.appendChild(chipEl);
+        });
+        idDiv.appendChild(nameH1);
+        idDiv.appendChild(subDiv);
+        idDiv.appendChild(problemsDiv);
+
+        var badges = el('div', 'ov-badges');
+        var badgeData = [
+          { icon: 'scroll-text', text: 'AD active' },
+          { icon: 'circle-check', text: 'Capacity intact' },
+          { icon: 'video', text: 'Tele-consent' },
+        ];
+        badgeData.forEach(function (b) {
+          var badge = el('span', 'ov-badge ok');
+          badge.innerHTML = icon(b.icon, 12) + ' ' + b.text;
+          badges.appendChild(badge);
+        });
+
+        header.appendChild(avatar);
+        header.appendChild(idDiv);
+        header.appendChild(badges);
+        return header;
+      }
+
+      /* ── Card builder helper ────────────────────────────────────── */
+      function buildCard(iconName, title, source, children, footHtml) {
+        var card = el('section', 'ov-card');
+        var head = el('header', 'ov-card-head');
+        head.innerHTML = icon(iconName, 13);
+        head.appendChild(txt('span', 'ov-card-title', title));
+        if (source) {
+          head.appendChild(txt('span', 'ov-card-source', source));
+        }
+        card.appendChild(head);
+        var body = el('div', 'ov-card-body');
+        if (typeof children === 'string') {
+          body.innerHTML = children;
+        } else if (children && children.nodeType) {
+          body.appendChild(children);
+        }
+        card.appendChild(body);
+        if (footHtml) {
+          var foot = el('footer', 'ov-card-foot');
+          foot.innerHTML = footHtml;
+          card.appendChild(foot);
+        }
+        return card;
+      }
+
+      /* ── Dense grid ─────────────────────────────────────────────── */
+      function buildDenseGrid() {
+        var grid = el('div', 'ov-grid dense');
+
+        // Next session
+        var a = MOCK.nextAppt;
+        var apptBody = el('div', 'next-appt');
+        apptBody.innerHTML = icon(a.modality === 'video' ? 'video' : 'map-pin', 18);
+        var apptText = el('div');
+        apptText.appendChild(txt('div', 'next-when', a.when));
+        apptText.appendChild(txt('div', 'next-label', a.label));
+        apptBody.appendChild(apptText);
+        grid.appendChild(buildCard(
+          'calendar-clock', 'Next session', 'Schedule',
+          apptBody,
+          '<button class="link-btn" type="button">Open session prep ' + icon('arrow-up-right', 12) + '</button>'
+        ));
+
+        // Last note
+        var n = MOCK.lastNote;
+        var noteBody = el('div');
+        noteBody.appendChild(txt('div', 'last-note-meta', n.when + ' · by ' + n.author));
+        var noteSummary = txt('p', 'last-note-summary', n.summary);
+        noteBody.appendChild(noteSummary);
+        grid.appendChild(buildCard(
+          'file-text', 'Most recent note', 'Sessions',
+          noteBody,
+          '<button class="link-btn" type="button">Read full note ' + icon('arrow-up-right', 12) + '</button>'
+        ));
+
+        // Scores
+        var scoresBody = buildScoresBody();
+        grid.appendChild(buildCard('activity', 'Assessment trend', 'Assessments', scoresBody, null));
+
+        // Goals
+        var goalsBody = buildGoalsBody();
+        grid.appendChild(buildCard('list-checks', 'Treatment goals', 'Planner', goalsBody, null));
+
+        // Payment
+        var payBody = buildPaymentBody();
+        grid.appendChild(buildCard('indian-rupee', 'Payment', 'Billing', payBody, null));
+
+        // Circle
+        var circleBody = buildCircleMini();
+        grid.appendChild(buildCard('users', 'People / Circle', 'Practice', circleBody, null));
+
+        return grid;
+      }
+
+      /* ── Focused grid ───────────────────────────────────────────── */
+      function buildFocusedGrid() {
+        var grid = el('div', 'ov-grid focused');
+
+        // Next session
+        var a = MOCK.nextAppt;
+        var apptBody = el('div', 'next-appt');
+        apptBody.innerHTML = icon(a.modality === 'video' ? 'video' : 'map-pin', 18);
+        var apptText = el('div');
+        apptText.appendChild(txt('div', 'next-when', a.when));
+        apptText.appendChild(txt('div', 'next-label', a.label));
+        apptBody.appendChild(apptText);
+        grid.appendChild(buildCard(
+          'calendar-clock', 'Next session', 'Schedule',
+          apptBody,
+          '<button class="link-btn" type="button">Open session prep ' + icon('arrow-up-right', 12) + '</button>'
+        ));
+
+        // Last note
+        var n = MOCK.lastNote;
+        var noteBody = el('div');
+        noteBody.appendChild(txt('div', 'last-note-meta', n.when + ' · by ' + n.author));
+        noteBody.appendChild(txt('p', 'last-note-summary', n.summary));
+        grid.appendChild(buildCard(
+          'file-text', 'Most recent note', 'Sessions',
+          noteBody,
+          '<button class="link-btn" type="button">Read full note ' + icon('arrow-up-right', 12) + '</button>'
+        ));
+
+        // Glance row
+        var more = el('div', 'ov-more');
+        var moreHead = txt('span', 'ov-more-head', 'At a glance');
+        more.appendChild(moreHead);
+        var moreRow = el('div', 'ov-more-row');
+        var glanceStats = [
+          { iconName: 'activity',   label: 'PHQ-9',   value: '11', sub: '↓ improving', tone: 'ok' },
+          { iconName: 'activity',   label: 'GAD-7',   value: '11', sub: 'moderate',    tone: 'warn' },
+          { iconName: 'list-checks',label: 'Goals',   value: '3',  sub: '1 slipping',  tone: 'warn' },
+          { iconName: 'indian-rupee',label:'Payment', value: '₹1,500', sub: 'pending', tone: 'warn' },
+        ];
+        glanceStats.forEach(function (s) {
+          var stat = el('div', 'mini-stat');
+          var lbl = el('span', 'mini-stat-label');
+          lbl.innerHTML = icon(s.iconName, 12) + ' ' + s.label;
+          stat.appendChild(lbl);
+          stat.appendChild(txt('span', 'mini-stat-value', s.value));
+          stat.appendChild(txt('span', 'mini-stat-sub ' + s.tone, s.sub));
+          moreRow.appendChild(stat);
+        });
+        more.appendChild(moreRow);
+        grid.appendChild(more);
+
+        return grid;
+      }
+
+      /* ── Timeline ───────────────────────────────────────────────── */
+      function buildTimeline() {
+        var wrap = el('div', 'ov-timeline-wrap');
+
+        var list = el('ul', 'ov-timeline');
+        MOCK.timeline.forEach(function (ev) {
+          var li = el('li', 'tl-event');
+          li.appendChild(txt('span', 'tl-when', ev.when));
+
+          var dot = el('span', 'tl-dot' + (ev.tone ? ' tone-' + ev.tone : ''));
+          dot.innerHTML = icon(ev.iconName, 13);
+          li.appendChild(dot);
+
+          var card = el('div', 'tl-card');
+          card.appendChild(txt('div', 'tl-title', ev.title));
+          card.appendChild(txt('p', 'tl-body', ev.body));
+          li.appendChild(card);
+
+          list.appendChild(li);
+        });
+        wrap.appendChild(list);
+
+        // Sticky facts aside
+        var aside = el('aside', 'tl-facts');
+        aside.appendChild(txt('div', 'tl-facts-head', 'Standing facts'));
+
+        var circleWrap = buildCircleMini();
+        aside.appendChild(circleWrap);
+
+        // Meds / language from real profile or mock
+        var profile = _profile;
+        var medText = profile && profile.medicationAwareness
+          ? profile.medicationAwareness
+          : MOCK.fallbackMeds;
+        var langText = profile && profile.preferredLanguage
+          ? profile.preferredLanguage + ' (preferred)'
+          : MOCK.fallbackLanguage + ' (preferred)';
+
+        var medFact = el('div', 'tl-fact');
+        medFact.innerHTML = icon('pill', 12) + ' ' + medText;
+        var langFact = el('div', 'tl-fact');
+        langFact.innerHTML = icon('languages', 12) + ' ' + langText;
+        aside.appendChild(medFact);
+        aside.appendChild(langFact);
+
+        wrap.appendChild(aside);
+        return wrap;
+      }
+
+      /* ── Shared sub-components ──────────────────────────────────── */
+      function buildScoresBody() {
+        var scoresDiv = el('div', 'scores');
+        MOCK.scores.forEach(function (s) {
+          var maxVal = Math.max.apply(null, s.series);
+          var block = el('div', 'score-block');
+          var head = el('div', 'score-head');
+          head.appendChild(txt('span', 'score-name', s.instrument));
+          var latest = el('span', 'score-latest');
+          latest.textContent = String(s.latest);
+          if (s.dir === 'down') latest.innerHTML += ' <small style="font-size:12px;color:var(--color-success)">↓</small>';
+          else if (s.dir === 'up') latest.innerHTML += ' <small style="font-size:12px;color:var(--color-error)">↑</small>';
+          head.appendChild(latest);
+          block.appendChild(head);
+          var spark = el('div', 'spark');
+          s.series.forEach(function (v) {
+            var bar = el('div', 'spark-bar');
+            bar.style.height = Math.round((v / maxVal) * 40) + 'px';
+            spark.appendChild(bar);
+          });
+          block.appendChild(spark);
+          block.appendChild(txt('div', 'score-band', s.band));
+          scoresDiv.appendChild(block);
+        });
+        return scoresDiv;
+      }
+
+      function buildGoalsBody() {
+        var wrap = el('div');
+        MOCK.goals.forEach(function (g) {
+          var row = el('div', 'goal-row');
+          var top = el('div', 'goal-top');
+          top.appendChild(txt('span', 'goal-label', g.label));
+          var statusCls = g.status === 'On track' ? 'st-ontrack' : g.status === 'Slipping' ? 'st-slipping' : 'st-notstarted';
+          top.appendChild(txt('span', 'goal-status ' + statusCls, g.status));
+          row.appendChild(top);
+          var track = el('div', 'goal-track');
+          var fill = el('span', 'goal-fill');
+          fill.style.width = Math.round(g.progress * 100) + '%';
+          track.appendChild(fill);
+          row.appendChild(track);
+          wrap.appendChild(row);
+        });
+        return wrap;
+      }
+
+      function buildPaymentBody() {
+        var p = MOCK.payment;
+        var wrap = el('div', 'payment');
+        var amt = el('div', 'payment-amt');
+        var status = el('span', 'payment-status ' + p.status);
+        status.innerHTML = icon('indian-rupee', 12);
+        status.appendChild(document.createTextNode(' ' + p.status.charAt(0).toUpperCase() + p.status.slice(1)));
+        var figure = txt('span', 'payment-figure', p.amount);
+        amt.appendChild(status);
+        amt.appendChild(figure);
+        wrap.appendChild(amt);
+        wrap.appendChild(txt('div', 'aspect-meta', p.detail));
+        return wrap;
+      }
+
+      function buildCircleMini() {
+        var ul = el('ul', 'circle-mini');
+        MOCK.circle.forEach(function (m) {
+          var li = el('li');
+          li.innerHTML = icon(m.iconName, 13);
+          var textSpan = el('span');
+          var bold = el('b', null, null);
+          bold.textContent = m.role;
+          textSpan.appendChild(bold);
+          textSpan.appendChild(document.createTextNode(' — ' + m.name + ' '));
+          textSpan.appendChild(txt('span', 'aspect-meta', '· ' + m.rel));
+          li.appendChild(textSpan);
+          ul.appendChild(li);
+        });
+        return ul;
+      }
+
+      /* ── Render overview ────────────────────────────────────────── */
+      function renderOverview() {
+        elOvBody.innerHTML = '';
+
+        var inner = document.createDocumentFragment();
+
+        // Risk banner (always shown, treatment='both')
+        inner.appendChild(buildRiskBanner());
+
+        // Header (real identity data)
+        inner.appendChild(buildHeader());
+
+        // Density-specific grid
+        if (_density === 'dense') {
+          inner.appendChild(buildDenseGrid());
+        } else if (_density === 'focused') {
+          inner.appendChild(buildFocusedGrid());
+        } else {
+          inner.appendChild(buildTimeline());
+        }
+
+        elOvBody.appendChild(inner);
+      }
+
+      /* ── Density switcher (compact icon dropdown) ──────────────── */
+      var CHECK_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+
+      function updateDensityMenu() {
+        var items = document.querySelectorAll('.density-item[data-density]');
+        items.forEach(function (item) {
+          var isActive = item.getAttribute('data-density') === _density;
+          item.classList.toggle('is-active', isActive);
+          var checkSpan = item.querySelector('.density-item-check, .density-item-check--empty');
+          if (checkSpan) {
+            if (isActive) {
+              checkSpan.className = 'density-item-check';
+              checkSpan.innerHTML = CHECK_SVG;
+            } else {
+              checkSpan.className = 'density-item-check--empty';
+              checkSpan.innerHTML = '';
+            }
+          }
+        });
+      }
+
+      function initDensitySwitcher() {
+        var toggleBtn = document.getElementById('density-btn');
+        var menu = document.getElementById('density-menu');
+
+        function closeMenu() {
+          menu.classList.remove('is-open');
+          toggleBtn.classList.remove('is-open');
+          toggleBtn.setAttribute('aria-expanded', 'false');
+        }
+
+        toggleBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var isOpen = menu.classList.contains('is-open');
+          if (isOpen) {
+            closeMenu();
+          } else {
+            menu.classList.add('is-open');
+            toggleBtn.classList.add('is-open');
+            toggleBtn.setAttribute('aria-expanded', 'true');
+          }
+        });
+
+        document.addEventListener('click', function () { closeMenu(); });
+
+        var items = document.querySelectorAll('.density-item[data-density]');
+        items.forEach(function (item) {
+          item.addEventListener('click', function (e) {
+            e.stopPropagation();
+            _density = item.getAttribute('data-density');
+            updateDensityMenu();
+            closeMenu();
+            renderOverview();
+          });
+        });
+
+        updateDensityMenu();
+      }
+
+      /* ── Bridge + load ──────────────────────────────────────────── */
+      function parseQuery(search) {
+        var q = (search || '').replace(/^\?/, '');
+        var params = {};
+        q.split('&').forEach(function (pair) {
+          var idx = pair.indexOf('=');
+          if (idx < 0) return;
+          var k = decodeURIComponent(pair.slice(0, idx));
+          var v = decodeURIComponent(pair.slice(idx + 1));
+          params[k] = v;
+        });
+        return params;
+      }
+
+      function awaitBridge() {
+        return new Promise(function (resolve) {
+          if (window.soamView) return resolve(window.soamView);
+          var iv = setInterval(function () {
+            if (window.soamView) { clearInterval(iv); resolve(window.soamView); }
+          }, 25);
+        });
+      }
+
+      function loadAndRender() {
+        if (!_proxy || !_clientId) return;
+
+        Promise.all([
+          _proxy.call('get', _clientId),
+          _proxy.call('getProfile', _clientId),
+        ]).then(function (results) {
+          var rec = results[0];
+          var profile = results[1];
+
+          if (!rec) {
+            showError('Client not found: ' + _clientId);
+            return;
+          }
+          _record = rec;
+          _profile = profile;
+          renderOverview();
+        }).catch(function (err) {
+          if (isLockedError(err)) {
+            showLocked('Workspace locked — unlock to view client.');
+          } else {
+            showError('Failed to load: ' + (err && err.message));
+          }
+        });
+      }
+
+      // Bind proxy once; shared between activate path and context-update path.
+      var _soamView = null;
+
+      function ensureProxyAndRender() {
+        if (!_clientId || _clientId === 'new') return;
+        if (_proxy) { loadAndRender(); return; }
+        if (!_soamView) return;
+        _soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+          _proxy = proxy;
+          loadAndRender();
+        }).catch(function (err) {
+          if (isLockedError(err)) {
+            showLocked('Workspace locked — unlock to view client.');
+          } else {
+            showError('Bridge error: ' + (err && err.message));
+          }
+        });
+      }
+
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (!d || d.__soamView !== true) return;
+        if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
+          var root = document.documentElement;
+          Object.keys(d.theme).forEach(function (k) {
+            root.style.setProperty(k, d.theme[k]);
+          });
+        }
+        // context message: entityId pushed by BundleViewIframe on client switch.
+        if (d.kind === 'context') {
+          var newId = d.entityId || null;
+          if (!newId) {
+            // No active client — show empty state (keep current content; aux/panel unmounts anyway).
+            _clientId = null;
+            return;
+          }
+          if (newId !== _clientId) {
+            _clientId = newId;
+            ensureProxyAndRender();
+          }
+        }
+      });
+
+      awaitBridge().then(function (soamView) {
+        elBridgeWait.style.display = 'none';
+        elRoot.style.display = '';
+        _soamView = soamView;
+
+        initDensitySwitcher();
+
+        // Do NOT read id from location.search — id arrives via context/activate message.
+
+        soamView.events.onActivate(function () {
+          // activate fires on first show; context message also arrives concurrently.
+          // If _clientId already set by context handler, just ensure proxy + render.
+          ensureProxyAndRender();
+        });
+
+        soamView.events.onStoreChange(function (payload) {
+          if (payload && (payload.table === 'patients' || payload.table === 'patient_profile')) {
+            loadAndRender();
+          }
+        });
+      });
+
+    })();
+    </script>
+  </body>
+</html>

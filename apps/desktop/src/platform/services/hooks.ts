@@ -19,7 +19,7 @@ import type { CtxValue } from '../context-key/context-key-service';
 import type { ServiceId } from './service-id';
 import type { EditorGroup, EditorLayoutNode } from '../editor/editor-service';
 import type { Notification } from '../notification/notification-service';
-import type { ActivityBarItem, ViewContainer } from '../contributions/contribution-service';
+import type { ActivityBarItem, ViewContainer, PanelView } from '../contributions/contribution-service';
 
 export function useService<T>(id: ServiceId<T>): T {
   const registry = useContext(RegistryContext);
@@ -38,6 +38,20 @@ export function useContextKey(key: string): CtxValue | undefined {
     [ctxSvc, key],
   );
   return value;
+}
+
+/**
+ * Increments on every context-key change (any key). Use as a `useMemo` dep
+ * when the memo depends on `ctxSvc.evaluate(when)` over arbitrary keys —
+ * the compiler tracks this React-state output, so the memo re-runs correctly.
+ * This is the sanctioned exception to "don't pre-memoize" for `when`-clause
+ * evaluation under React Compiler.
+ */
+export function useContextVersion(): number {
+  const ctxSvc = useService(ContextKeyServiceId);
+  const [v, setV] = useState(0);
+  useEffect(() => ctxSvc.onDidChange(() => setV((n) => n + 1)), [ctxSvc]);
+  return v;
 }
 
 export function useLayoutVisible(slotId: SlotId): boolean {
@@ -186,4 +200,25 @@ export function useActiveViewContainer(): ViewContainer | undefined {
     [svc],
   );
   return container;
+}
+
+export function useAuxViewContainers(): readonly ViewContainer[] {
+  const svc = useService(ContributionServiceId);
+  const [containers, setContainers] = useState<readonly ViewContainer[]>(() => svc.getAuxViewContainers());
+  useEffect(() => svc.onDidChange(() => setContainers(svc.getAuxViewContainers())), [svc]);
+  return containers;
+}
+
+export function usePanelViews(): readonly PanelView[] {
+  const svc = useService(ContributionServiceId);
+  const [views, setViews] = useState<readonly PanelView[]>(() => svc.getPanelViews());
+  useEffect(() => svc.onDidChange(() => setViews(svc.getPanelViews())), [svc]);
+  return views;
+}
+
+export function useActivePanelViewId(): string | null {
+  const svc = useService(ContributionServiceId);
+  const [id, setId] = useState<string | null>(() => svc.getActivePanelViewId());
+  useEffect(() => svc.onDidChange(() => setId(svc.getActivePanelViewId())), [svc]);
+  return id;
 }

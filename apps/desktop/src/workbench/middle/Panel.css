@@ -7,9 +7,75 @@
   background: var(--color-surface-panel);
   border-top: 1px solid var(--color-border);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .panel-empty-state {
   @apply p-4 text-fg-muted text-xs;
   margin: 0;
+}
+
+/* Tab strip (ADR-408) */
+.panel-tab-strip {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  flex-shrink: 0;
+  height: 32px;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.panel-tab-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.panel-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-fg-muted);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 100ms ease, background 100ms ease;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.panel-tab:hover {
+  color: var(--color-fg-secondary);
+  background: color-mix(in srgb, var(--color-fg-muted) 6%, transparent);
+}
+
+.panel-tab.is-active {
+  color: var(--color-fg-primary);
+  background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
+  border-bottom: 2px solid var(--color-accent);
+}
+
+.panel-tab:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+/* Content host */
+.panel-view-host {
+  flex: 1 1 auto;
+  overflow: hidden;
+  position: relative;
+}
+
+.panel-view-host .bundle-view-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
 }

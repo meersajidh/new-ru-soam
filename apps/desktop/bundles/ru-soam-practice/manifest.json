@@ -6,7 +6,10 @@
   "capabilities": [],
   "views": [
     { "id": "roster", "path": "roster.html" },
-    { "id": "form", "path": "form.html" }
+    { "id": "form", "path": "form.html" },
+    { "id": "overview", "path": "overview.html" },
+    { "id": "aspects", "path": "aspects.html" },
+    { "id": "projections", "path": "projections.html" }
   ],
   "contributes": {
     "activityBar.items": [
@@ -23,7 +26,25 @@
       {
         "id": "ru-soam-practice.container",
         "title": "Practice",
-        "view": "roster"
+        "view": "roster",
+        "location": "primary"
+      },
+      {
+        "id": "ru-soam-practice.context",
+        "title": "Client",
+        "view": "aspects",
+        "location": "auxiliary",
+        "when": "patient.activeId"
+      }
+    ],
+    "panel.views": [
+      {
+        "id": "ru-soam-practice.notes",
+        "title": "Notes",
+        "icon": "file-text",
+        "view": "projections",
+        "when": "patient.activeId",
+        "priority": 100
       }
     ]
   }

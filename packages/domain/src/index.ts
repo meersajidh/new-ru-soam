@@ -59,3 +59,22 @@ export interface PatientUpdatePatch {
   readonly contactEmail?: string | null;
   readonly dob?: string | null;
 }
+
+/**
+ * Codex adjunct — patient_profile row (ADR-505).
+ * PHI — treat same as PatientRecord.
+ */
+export interface PatientProfile {
+  readonly patientId: string;
+  readonly preferredLanguage: string | null;
+  readonly medicationAwareness: string | null;
+  readonly diagnosis: string | null;
+  readonly updatedAt: number;
+}
+
+/** Patch for updating a patient profile (all content fields optional). */
+export interface PatientProfilePatch {
+  readonly preferredLanguage?: string | null;
+  readonly medicationAwareness?: string | null;
+  readonly diagnosis?: string | null;
+}

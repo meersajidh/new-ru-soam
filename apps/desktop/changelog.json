@@ -1,6 +1,20 @@
 {
   "versions": [
     {
+      "version": "0.1.5",
+      "date": "2026-05-26",
+      "entries": [
+        {
+          "kind": "Added",
+          "text": "Delete a workspace you own — from the account menu. Deletion is permanent (all records, notes, and session data in that workspace are destroyed and the recovery code stops working), so it asks you to type the workspace name to confirm."
+        },
+        {
+          "kind": "Changed",
+          "text": "Sign-in now uses your real Google account. The development placeholder sign-in has been removed; a correctly configured build is required to sign in."
+        }
+      ]
+    },
+    {
       "version": "0.1.4",
       "date": "2026-05-25",
       "entries": [

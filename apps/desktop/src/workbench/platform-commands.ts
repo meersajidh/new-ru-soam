@@ -292,7 +292,7 @@ export function registerPlatformCommands(
       const source = editor.getGroup(gid);
       const activeTab = source?.tabs.find(t => t.id === source.activeTabId);
       const newGroupId = editor.splitGroup(gid, 'horizontal');
-      if (activeTab) editor.open(activeTab.resource, { groupId: newGroupId, title: activeTab.title });
+      if (activeTab) editor.open(activeTab.resource, { groupId: newGroupId, title: activeTab.title, entityId: activeTab.entityId });
     },
     { category: 'View' },
   );

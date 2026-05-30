@@ -46,16 +46,35 @@ export interface ActivityBarItemManifest {
 /**
  * View container contribution per ADR-405.
  * `view` must match a declared `views[].id` in the same manifest.
+ * `location` defaults to 'primary' when absent (ADR-402).
+ * `when` is an optional when-clause that gates display (ADR-407).
  */
 export interface ViewContainerManifest {
   readonly id: string;
   readonly title: string;
   readonly view: string;
+  readonly location: 'primary' | 'auxiliary';
+  readonly when?: string;
+}
+
+/**
+ * Panel view contribution per ADR-408.
+ * `view` must match a declared `views[].id` in the same manifest.
+ * `when` gates the tab; `priority` controls ordering (higher = leftmost).
+ */
+export interface PanelViewManifest {
+  readonly id: string;
+  readonly title: string;
+  readonly icon?: string;
+  readonly view: string;
+  readonly when?: string;
+  readonly priority: number;
 }
 
 export interface BundleContributions {
   readonly 'activityBar.items': ReadonlyArray<ActivityBarItemManifest>;
   readonly viewContainers: ReadonlyArray<ViewContainerManifest>;
+  readonly 'panel.views': ReadonlyArray<PanelViewManifest>;
 }
 
 export interface BundleManifest {
@@ -161,6 +180,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
   // ── contributes (optional) ──────────────────────────────────────────────────
   const activityBarItems: ActivityBarItemManifest[] = [];
   const viewContainerItems: ViewContainerManifest[] = [];
+  const panelViewItems: PanelViewManifest[] = [];
 
   if (m.contributes !== undefined) {
     if (!m.contributes || typeof m.contributes !== 'object' || Array.isArray(m.contributes)) {
@@ -252,10 +272,71 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
         if (!isString(container.view)) {
           throw new ManifestError(manifestPath, 'viewContainers entry requires `view` as a non-empty string');
         }
+        if (
+          container.location !== undefined &&
+          container.location !== 'primary' &&
+          container.location !== 'auxiliary'
+        ) {
+          throw new ManifestError(
+            manifestPath,
+            `viewContainers location must be "primary" or "auxiliary", got "${String(container.location)}"`,
+          );
+        }
+        if (container.when !== undefined && typeof container.when !== 'string') {
+          throw new ManifestError(manifestPath, 'viewContainers when must be a string if present');
+        }
         viewContainerItems.push({
           id: container.id,
           title: container.title,
           view: container.view,
+          location: container.location === 'auxiliary' ? 'auxiliary' : 'primary',
+          when: typeof container.when === 'string' ? container.when : undefined,
+        });
+      }
+    }
+
+    // Validate panel.views
+    const rawPanelViews = contrib['panel.views'];
+    if (rawPanelViews !== undefined) {
+      if (!Array.isArray(rawPanelViews)) {
+        throw new ManifestError(manifestPath, '`contributes.panel.views` must be an array');
+      }
+      for (const pv of rawPanelViews) {
+        if (!pv || typeof pv !== 'object') {
+          throw new ManifestError(manifestPath, 'panel.views entry must be an object');
+        }
+        const panelView = pv as Record<string, unknown>;
+        if (!isString(panelView.id)) {
+          throw new ManifestError(manifestPath, 'panel.views entry requires `id` as a non-empty string');
+        }
+        if (!CONTRIBUTION_ID_RE.test(panelView.id)) {
+          throw new ManifestError(
+            manifestPath,
+            `panel.views id "${panelView.id}" must match /^[a-z0-9][a-z0-9_.-]*$/i`,
+          );
+        }
+        if (!isString(panelView.title)) {
+          throw new ManifestError(manifestPath, 'panel.views entry requires `title` as a non-empty string');
+        }
+        if (!isString(panelView.view)) {
+          throw new ManifestError(manifestPath, 'panel.views entry requires `view` as a non-empty string');
+        }
+        if (panelView.icon !== undefined && typeof panelView.icon !== 'string') {
+          throw new ManifestError(manifestPath, 'panel.views icon must be a string if present');
+        }
+        if (panelView.when !== undefined && typeof panelView.when !== 'string') {
+          throw new ManifestError(manifestPath, 'panel.views when must be a string if present');
+        }
+        if (panelView.priority !== undefined && typeof panelView.priority !== 'number') {
+          throw new ManifestError(manifestPath, 'panel.views priority must be a number if present');
+        }
+        panelViewItems.push({
+          id: panelView.id,
+          title: panelView.title,
+          icon: typeof panelView.icon === 'string' ? panelView.icon : undefined,
+          view: panelView.view,
+          when: typeof panelView.when === 'string' ? panelView.when : undefined,
+          priority: typeof panelView.priority === 'number' ? panelView.priority : 0,
         });
       }
     }
@@ -279,6 +360,14 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
         );
       }
     }
+    for (const pv of panelViewItems) {
+      if (!viewIds.has(pv.view)) {
+        throw new ManifestError(
+          manifestPath,
+          `panel.views id "${pv.id}" references view "${pv.view}" which is not declared in views[]`,
+        );
+      }
+    }
   }
 
   return {
@@ -291,6 +380,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
     contributes: {
       'activityBar.items': activityBarItems,
       viewContainers: viewContainerItems,
+      'panel.views': panelViewItems,
     },
   };
 }

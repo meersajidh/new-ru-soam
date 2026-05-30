@@ -114,9 +114,14 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     requestClose: function () { send({ __soamView: true, kind: 'request.close' }); },
     requestFocus: function () { send({ __soamView: true, kind: 'request.focus' }); },
     openInEditor: function (viewId, opts) {
-      send({ __soamView: true, kind: 'request.openEditor', viewId: viewId, query: (opts && opts.query) || undefined, title: (opts && opts.title) || undefined });
+      send({ __soamView: true, kind: 'request.openEditor', viewId: viewId, query: (opts && opts.query) || undefined, title: (opts && opts.title) || undefined, entityId: (opts && opts.entityId !== undefined) ? opts.entityId : undefined, preview: (opts && opts.preview !== undefined) ? opts.preview : undefined });
     },
     ready: ready
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (!(e.ctrlKey || e.metaKey || e.altKey)) return;
+    send({ __soamView: true, kind: 'keydown', key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey, shiftKey: e.shiftKey });
   });
 
   send({ __soamView: true, kind: 'view.ready' });

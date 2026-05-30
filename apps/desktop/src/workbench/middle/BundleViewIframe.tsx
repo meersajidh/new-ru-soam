@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useService } from '../../platform/services/hooks';
 import { EditorServiceId, ThemeServiceId } from '../../platform/services/ids';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
@@ -27,6 +27,7 @@ import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 interface Props {
   readonly resource: string;
   readonly instanceId: string;
+  readonly entityId?: string | null;
   readonly onRequestClose?: () => void;
   readonly onRequestFocus?: () => void;
 }
@@ -42,18 +43,28 @@ function isViewMessage(data: unknown): data is ViewMessage {
     && typeof (data as { kind?: unknown }).kind === 'string';
 }
 
-export default function BundleViewIframe({ resource, instanceId, onRequestClose, onRequestFocus }: Props) {
+export default function BundleViewIframe({ resource, instanceId, entityId, onRequestClose, onRequestFocus }: Props) {
   const theme = useService(ThemeServiceId);
   const editor = useService(EditorServiceId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  // Ref so the view.ready handler always sees the latest entityId without re-running main effect.
+  const entityIdRef = useRef<string | null | undefined>(entityId);
+  // Track whether view.ready has been received (to guard the context push effect).
+  const viewReadyRef = useRef(false);
 
+  // Keep entityIdRef current without triggering re-render (safe: layout effect, not render).
+  useLayoutEffect(() => {
+    entityIdRef.current = entityId;
+  });
+
+  // Main bridge effect — does NOT depend on entityId. Changing entityId must not re-handshake.
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
     let disposed = false;
     let activated = false;
-    let viewReady = false;
+    viewReadyRef.current = false;
     const proxyCache = new Map<string, Promise<SoamCapabilityProxy>>();
 
     const post = (msg: unknown) => {
@@ -80,13 +91,16 @@ export default function BundleViewIframe({ resource, instanceId, onRequestClose,
 
       switch (m.kind) {
         case 'view.ready': {
-          viewReady = true;
+          viewReadyRef.current = true;
           clearTimeout(readyTimeout);
           post({ __soamView: true, kind: 'init', theme: theme.getTokenSnapshot() });
           if (!activated) {
             activated = true;
-            post({ __soamView: true, kind: 'activate' });
+            // Include entityId in activate payload so view gets it on first load.
+            post({ __soamView: true, kind: 'activate', entityId: entityIdRef.current ?? null });
           }
+          // Push initial context message with current entityId.
+          post({ __soamView: true, kind: 'context', entityId: entityIdRef.current ?? null });
           break;
         }
         case 'cap.call': {
@@ -116,19 +130,38 @@ export default function BundleViewIframe({ resource, instanceId, onRequestClose,
           const viewId = m.viewId as string;
           const query = m.query as string | undefined;
           const title = m.title as string | undefined;
+          const incomingEntityId = m.entityId as string | null | undefined;
+          const incomingPreview = m.preview as boolean | undefined;
           try {
             const bundleId = new URL(resource).hostname;
             const viewsProxy = await getProxy('platform.views', '1.0');
             const result = await viewsProxy.call('resolve', bundleId, viewId) as { found: boolean; url?: string };
             if (result.found && result.url) {
+              // Entity views: use stable url (no ?id=). Non-entity views keep query append.
               const finalUrl = result.url + (query ? '?' + query : '');
-              editor.open(finalUrl, { title: title ?? viewId });
+              editor.open(finalUrl, {
+                title: title ?? viewId,
+                ...(incomingEntityId !== undefined ? { entityId: incomingEntityId } : {}),
+                ...(incomingPreview !== undefined ? { preview: incomingPreview } : {}),
+              });
             } else {
               console.error('[BundleViewIframe] request.openEditor: view not found', bundleId, viewId);
             }
           } catch (err) {
             console.error('[BundleViewIframe] request.openEditor failed:', err);
           }
+          break;
+        }
+        case 'keydown': {
+          window.dispatchEvent(new KeyboardEvent('keydown', {
+            key: m.key as string,
+            ctrlKey: !!m.ctrlKey,
+            metaKey: !!m.metaKey,
+            altKey: !!m.altKey,
+            shiftKey: !!m.shiftKey,
+            bubbles: true,
+            cancelable: true,
+          }));
           break;
         }
         case 'request.close': {
@@ -160,7 +193,7 @@ export default function BundleViewIframe({ resource, instanceId, onRequestClose,
     });
 
     const readyTimeout = setTimeout(() => {
-      if (!viewReady && !disposed) {
+      if (!viewReadyRef.current && !disposed) {
         console.warn(
           '[BundleViewIframe]',
           resource,
@@ -184,7 +217,19 @@ export default function BundleViewIframe({ resource, instanceId, onRequestClose,
       }
       proxyCache.clear();
     };
-  }, [resource, instanceId, theme, editor, onRequestClose, onRequestFocus]);
+  }, [resource, instanceId, theme, editor, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
+
+  // Separate effect: push context message when entityId changes while mounted.
+  // Does NOT trigger re-handshake — only sends a lightweight context update.
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    if (!viewReadyRef.current) return; // guard: view not ready yet (main effect sends initial)
+    iframe.contentWindow?.postMessage(
+      { __soamView: true, kind: 'context', entityId: entityId ?? null },
+      '*',
+    );
+  }, [entityId]);
 
   return (
     <iframe

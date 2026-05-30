@@ -26,7 +26,9 @@ export type AuditEventKind =
   | 'record.patient.updated'
   | 'record.patient.status.changed'
   | 'record.patient.viewed'
-  | 'record.patient.listed';
+  | 'record.patient.listed'
+  // ADR-505 Amendment 2: patient_profile adjunct
+  | 'record.patient.profile.updated';
 
 /**
  * Arbitrary detail attached to an audit entry.

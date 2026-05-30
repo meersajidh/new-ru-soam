@@ -90,6 +90,21 @@ const MIGRATIONS: ReadonlyArray<Migration> = [
       `);
     },
   },
+  {
+    version: 5,
+    description: 'codex: patient_profile adjunct table (ADR-505)',
+    up(db) {
+      db.exec(`
+        CREATE TABLE patient_profile (
+          patient_id           TEXT PRIMARY KEY REFERENCES patients(id),
+          preferred_language   TEXT,
+          medication_awareness TEXT,
+          diagnosis            TEXT,
+          updated_at           INTEGER NOT NULL
+        );
+      `);
+    },
+  },
 ];
 
 function ensureSchemaVersionTable(db: DatabaseT.Database): void {

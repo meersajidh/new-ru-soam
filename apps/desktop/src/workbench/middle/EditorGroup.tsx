@@ -18,8 +18,6 @@ export default function EditorGroupView({ groupId, isFocused }: Props) {
 
   if (!group) return null;
 
-  const activeInstance = group.tabs.find(t => t.id === group.activeTabId);
-
   return (
     <div
       className={`editor-group${isFocused ? ' editor-group--focused' : ''}`}
@@ -35,7 +33,7 @@ export default function EditorGroupView({ groupId, isFocused }: Props) {
           {group.tabs.map(tab => (
             <div
               key={tab.id}
-              className={`editor-tab${tab.id === group.activeTabId ? ' editor-tab--active' : ''}`}
+              className={`editor-tab${tab.id === group.activeTabId ? ' editor-tab--active' : ''}${tab.isPreview ? ' editor-tab--preview' : ''}`}
               draggable
               onDragStart={e => {
                 e.stopPropagation();
@@ -57,19 +55,39 @@ export default function EditorGroupView({ groupId, isFocused }: Props) {
           ))}
         </div>
       )}
+      {/* Keep-alive: all tabs mounted simultaneously so per-editor state
+          (scroll position, overview density) survives tab switches.
+          Only the active tab's container is visible; others hidden via display:none. */}
       <div className="editor-content">
-        {activeInstance ? renderEditor(activeInstance.resource, activeInstance.id) : <EmptyGroup />}
+        {group.tabs.length === 0
+          ? <EmptyGroup />
+          : group.tabs.map((tab) => (
+              <div
+                key={tab.id}
+                className={`editor-tab-pane${tab.id === group.activeTabId ? '' : ' editor-tab-pane--hidden'}`}
+              >
+                {renderEditor(tab.resource, tab.id, tab.entityId)}
+              </div>
+            ))
+        }
       </div>
     </div>
   );
 }
 
-function renderEditor(resource: string, instanceId: string) {
+function renderEditor(resource: string, instanceId: string, entityId?: string | null) {
   try {
     const url = new URL(resource);
     if (url.protocol === 'placeholder:') return <PlaceholderEditor resource={resource} />;
     if (url.protocol === 'view:') {
-      return <BundleViewIframe key={instanceId} resource={resource} instanceId={instanceId} />;
+      return (
+        <BundleViewIframe
+          key={instanceId}
+          resource={resource}
+          instanceId={instanceId}
+          entityId={entityId}
+        />
+      );
     }
     if (url.protocol === 'ru-edit-scratch:') {
       return <ScratchRuEdit key={instanceId} resource={resource} instanceId={instanceId} />;
