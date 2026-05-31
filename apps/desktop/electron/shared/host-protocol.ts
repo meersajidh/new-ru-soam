@@ -37,6 +37,13 @@ export type MainToHostMessage =
       readonly version: string;
       readonly method: string;
       readonly args: ReadonlyArray<unknown>;
+    }
+  | {
+      readonly kind: 'host.command.invoke';
+      readonly id: number;
+      readonly bundleId: string;
+      readonly commandId: string;
+      readonly args: ReadonlyArray<unknown>;
     };
 
 export type HostToMainMessage =
@@ -51,6 +58,7 @@ export type HostToMainMessage =
       readonly id: number;
       readonly bundleId: string;
       readonly capabilities: ReadonlyArray<CapabilityDescriptor>;
+      readonly commandIds: ReadonlyArray<string>;
     }
   | {
       readonly kind: 'host.activate.failed';

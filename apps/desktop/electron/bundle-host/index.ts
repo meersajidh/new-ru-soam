@@ -143,9 +143,12 @@ type BundleHandler = (
   args: ReadonlyArray<unknown>,
 ) => unknown | Promise<unknown>;
 
+type CommandHandler = (...args: unknown[]) => unknown | Promise<unknown>;
+
 interface ActivatedBundle {
   readonly bundleId: string;
   readonly capabilities: Map<string, BundleHandler>;
+  readonly commands: Map<string, CommandHandler>;
   readonly dispose?: () => void | Promise<void>;
 }
 
@@ -175,7 +178,9 @@ async function activate(
   }
 
   const capabilities = new Map<string, BundleHandler>();
+  const commands = new Map<string, CommandHandler>();
   const declared: CapabilityDescriptor[] = [];
+  const declaredCommandIds: string[] = [];
 
   const ctx = {
     registerCapability(name: string, version: string, handler: BundleHandler): void {
@@ -185,6 +190,13 @@ async function activate(
       }
       capabilities.set(k, handler);
       declared.push({ name, version });
+    },
+    registerCommand(commandId: string, handler: CommandHandler): void {
+      if (commands.has(commandId)) {
+        throw new Error(`Bundle ${bundleId} double-registers command ${commandId}`);
+      }
+      commands.set(commandId, handler);
+      declaredCommandIds.push(commandId);
     },
   };
 
@@ -229,8 +241,8 @@ async function activate(
       ? (result as { dispose: () => void | Promise<void> }).dispose.bind(result)
       : undefined;
 
-  bundles.set(bundleId, { bundleId, capabilities, dispose });
-  send({ kind: 'host.activated', id, bundleId, capabilities: declared });
+  bundles.set(bundleId, { bundleId, capabilities, commands, dispose });
+  send({ kind: 'host.activated', id, bundleId, capabilities: declared, commandIds: declaredCommandIds });
 }
 
 async function deactivate(id: number, bundleId: string): Promise<void> {
@@ -288,6 +300,45 @@ async function invokeCapability(
   }
 }
 
+async function invokeCommand(
+  id: number,
+  bundleId: string,
+  commandId: string,
+  args: ReadonlyArray<unknown>,
+): Promise<void> {
+  const bundle = bundles.get(bundleId);
+  if (!bundle) {
+    send({
+      kind: 'host.cap.error',
+      id,
+      code: 'COMMAND_NOT_FOUND',
+      message: `Bundle inactive: ${bundleId}`,
+    });
+    return;
+  }
+  const handler = bundle.commands.get(commandId);
+  if (!handler) {
+    send({
+      kind: 'host.cap.error',
+      id,
+      code: 'COMMAND_NOT_FOUND',
+      message: `Command not registered by ${bundleId}: ${commandId}`,
+    });
+    return;
+  }
+  try {
+    const data = await handler(...args);
+    send({ kind: 'host.cap.result', id, data });
+  } catch (err) {
+    send({
+      kind: 'host.cap.error',
+      id,
+      code: 'COMMAND_THREW',
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 process.parentPort.on('message', (e) => {
   const msg = e.data;
   switch (msg.kind) {
@@ -312,6 +363,9 @@ process.parentPort.on('message', (e) => {
         msg.method,
         msg.args,
       );
+      return;
+    case 'host.command.invoke':
+      void invokeCommand(msg.id, msg.bundleId, msg.commandId, msg.args);
       return;
   }
 });

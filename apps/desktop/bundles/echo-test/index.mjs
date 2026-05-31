@@ -19,6 +19,8 @@ async function probeImport(specifier) {
 }
 
 export function activate(ctx) {
+  ctx.registerCommand('echo.test.hello', (name) => 'hello from host: ' + (name ?? 'world'));
+
   ctx.registerCapability('echo.ping', '1.0', async (method, args) => {
     switch (method) {
       case 'echo': {

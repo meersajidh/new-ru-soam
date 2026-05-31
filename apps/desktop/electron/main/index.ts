@@ -32,6 +32,7 @@ import { workspaceRegistry } from './workspace/registry';
 import { installLockChannel, createAutoLockHandleRef, rebindAutoLock } from './ipc/lock-channel';
 import { installAppChannel } from './ipc/app-channel';
 import { registerUpdateCapability } from './ipc/update-channel';
+import { registerCommandsCapability } from './capability/commands';
 import { initUpdater } from './updater/index';
 import { registerQuiesceHook } from './updater/db-quiesce';
 import { registerDomainCapabilities } from './domain/bootstrap';
@@ -189,6 +190,7 @@ app.whenReady().then(() => {
   registerAuditCapability();
   registerPlatformAuthCapability();
   registerUpdateCapability();
+  registerCommandsCapability();
 
   // Domain capabilities — ADR-504: Main-resident domain bootstrap.
   // Must come after setLockServiceGetter so PHI gate is armed.

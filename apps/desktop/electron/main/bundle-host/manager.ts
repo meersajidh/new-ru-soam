@@ -43,6 +43,7 @@ let pending = new Map<number, PendingRequest>();
 let nextId = 1;
 let shuttingDown = false;
 let activated = new Map<string, ActivatedBundle>();
+let commandOwners = new Map<string, string>(); // commandId → bundleId
 let onBundlesCrashed: ((bundleIds: ReadonlyArray<string>) => void) | null = null;
 
 // Per-bundle in-memory ring buffer of error-attribution lines. Phase 6.5 stub
@@ -108,6 +109,7 @@ function spawn(): UtilityProcess {
     if (wasCrash && activated.size > 0) {
       const lostIds = [...activated.keys()];
       activated = new Map();
+      commandOwners = new Map();
       onBundlesCrashed?.(lostIds);
     }
   });
@@ -186,6 +188,9 @@ export async function activateBundle(
     throw new Error(`Unexpected reply for host.activate: ${reply.kind}`);
   }
   activated.set(bundleId, { bundleId, capabilities: reply.capabilities });
+  for (const cmdId of reply.commandIds) {
+    commandOwners.set(cmdId, bundleId);
+  }
   return { capabilities: reply.capabilities };
 }
 
@@ -199,6 +204,10 @@ export async function deactivateBundle(bundleId: string): Promise<void> {
     throw new Error(`Unexpected reply for host.deactivate: ${reply.kind}`);
   }
   activated.delete(bundleId);
+  // Remove all command owners registered by this bundle.
+  for (const [cmdId, owner] of commandOwners) {
+    if (owner === bundleId) commandOwners.delete(cmdId);
+  }
 }
 
 export interface InvokeBundleCapabilityError extends Error {
@@ -236,6 +245,45 @@ export async function invokeBundleCapability(
     throw err;
   }
   throw new Error(`Unexpected reply for host.cap.invoke: ${reply.kind}`);
+}
+
+export interface InvokeBundleCommandError extends Error {
+  readonly code: string;
+}
+
+export async function invokeBundleCommand(
+  commandId: string,
+  args: ReadonlyArray<unknown>,
+): Promise<unknown> {
+  const bundleId = commandOwners.get(commandId);
+  if (bundleId === undefined) {
+    const err = new Error(
+      `Command not registered by any active bundle: ${commandId}`,
+    ) as InvokeBundleCommandError;
+    (err as { code: string }).code = 'COMMAND_NOT_REGISTERED';
+    throw err;
+  }
+  const reply = await send<HostToMainMessage>(
+    (id) => ({
+      kind: 'host.command.invoke',
+      id,
+      bundleId,
+      commandId,
+      args,
+    }),
+    bundleId,
+  );
+  if (reply.kind === 'host.cap.result') return reply.data;
+  if (reply.kind === 'host.cap.error') {
+    const err = new Error(reply.message) as InvokeBundleCommandError;
+    (err as { code: string }).code = reply.code;
+    throw err;
+  }
+  throw new Error(`Unexpected reply for host.command.invoke: ${reply.kind}`);
+}
+
+export function hasBundleCommand(commandId: string): boolean {
+  return commandOwners.has(commandId);
 }
 
 export function listActivatedBundleIds(): ReadonlyArray<string> {

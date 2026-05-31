@@ -40,12 +40,14 @@ export interface ICommandService {
     opts?: Omit<CommandContribution, 'id' | 'title'>
   ): () => void;
   execute(id: string, ...args: unknown[]): Promise<unknown>;
+  setRemoteExecutor(fn: (id: string, args: unknown[]) => Promise<unknown>): void;
   getAll(): CommandContribution[];
   getVisible(contextKeys: IContextKeyService): CommandContribution[];
 }
 
 export class CommandService implements ICommandService {
   private readonly _cmds = new Map<string, RegisteredCommand>();
+  private _remoteExecutor: ((id: string, args: unknown[]) => Promise<unknown>) | null = null;
 
   register(
     id: string,
@@ -59,11 +61,20 @@ export class CommandService implements ICommandService {
     return () => this._cmds.delete(id);
   }
 
+  setRemoteExecutor(fn: (id: string, args: unknown[]) => Promise<unknown>): void {
+    this._remoteExecutor = fn;
+  }
+
   async execute(id: string, ...args: unknown[]): Promise<unknown> {
     const cmd = this._cmds.get(id);
-    if (!cmd) throw new CommandError(id, 'Not found');
-    try { return await Promise.resolve(cmd.handler(...args)); }
-    catch (err) { throw new CommandError(id, err instanceof Error ? err.message : String(err)); }
+    if (cmd) {
+      try { return await Promise.resolve(cmd.handler(...args)); }
+      catch (err) { throw new CommandError(id, err instanceof Error ? err.message : String(err)); }
+    }
+    if (this._remoteExecutor !== null) {
+      return this._remoteExecutor(id, args);
+    }
+    throw new CommandError(id, 'Not found');
   }
 
   getAll(): CommandContribution[] {

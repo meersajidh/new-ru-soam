@@ -138,6 +138,16 @@ export function boot(): ServiceRegistry {
   const commands = new CommandService();
   registry.register(CommandServiceId, commands);
 
+  // ADR-406: wire remote executor for bundle-hosted commands.
+  // Fire-and-forget; does not block boot. Tolerates absent capability.
+  window.soam.bindCapability('commands', '1.0').then((proxy) => {
+    commands.setRemoteExecutor((id, args) =>
+      proxy.call('execute', id, ...args) as Promise<unknown>,
+    );
+  }).catch((err: unknown) => {
+    console.warn('[workbench] could not bind commands capability for remote execution:', err);
+  });
+
   const keybindings = new KeybindingService(commands, contextKeys);
   registry.register(KeybindingServiceId, keybindings);
 
