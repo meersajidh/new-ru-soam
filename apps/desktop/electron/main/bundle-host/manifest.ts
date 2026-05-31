@@ -99,12 +99,24 @@ export interface MenuItemManifest {
   readonly title?: string;
 }
 
+/**
+ * Single keybinding contribution per ADR-417.
+ * Chord syntax and namespace enforcement deferred — O427.
+ */
+export interface KeybindingManifest {
+  readonly key: string;
+  readonly command: string;
+  readonly when?: string;
+  readonly args?: ReadonlyArray<unknown>;
+}
+
 export interface BundleContributions {
   readonly 'activityBar.items': ReadonlyArray<ActivityBarItemManifest>;
   readonly viewContainers: ReadonlyArray<ViewContainerManifest>;
   readonly 'panel.views': ReadonlyArray<PanelViewManifest>;
   readonly commands: ReadonlyArray<CommandManifest>;
   readonly menus: ReadonlyArray<MenuItemManifest>;
+  readonly keybindings: ReadonlyArray<KeybindingManifest>;
 }
 
 export interface BundleManifest {
@@ -216,6 +228,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
   const panelViewItems: PanelViewManifest[] = [];
   const commandItems: CommandManifest[] = [];
   const menuItems: MenuItemManifest[] = [];
+  const keybindingItems: KeybindingManifest[] = [];
 
   if (m.contributes !== undefined) {
     if (!m.contributes || typeof m.contributes !== 'object' || Array.isArray(m.contributes)) {
@@ -479,6 +492,45 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
       }
     }
 
+    // Validate keybindings
+    // Chord syntax validation and namespace enforcement deferred — O427.
+    const rawKeybindings = contrib['keybindings'];
+    if (rawKeybindings !== undefined) {
+      if (!Array.isArray(rawKeybindings)) {
+        throw new ManifestError(manifestPath, '`contributes.keybindings` must be an array');
+      }
+      for (const kb of rawKeybindings) {
+        if (!kb || typeof kb !== 'object') {
+          throw new ManifestError(manifestPath, 'keybindings entry must be an object');
+        }
+        const k = kb as Record<string, unknown>;
+        if (!isString(k.key)) {
+          throw new ManifestError(manifestPath, 'keybindings entry requires `key` as a non-empty string');
+        }
+        if (!isString(k.command)) {
+          throw new ManifestError(manifestPath, 'keybindings entry requires `command` as a non-empty string');
+        }
+        if (!CONTRIBUTION_ID_RE.test(k.command)) {
+          throw new ManifestError(
+            manifestPath,
+            `keybindings command "${k.command}" must match /^[a-z0-9][a-z0-9_.-]*$/i`,
+          );
+        }
+        if (k.when !== undefined && typeof k.when !== 'string') {
+          throw new ManifestError(manifestPath, 'keybindings when must be a string if present');
+        }
+        if (k.args !== undefined && !Array.isArray(k.args)) {
+          throw new ManifestError(manifestPath, 'keybindings args must be an array if present');
+        }
+        keybindingItems.push({
+          key: k.key,
+          command: k.command,
+          when: typeof k.when === 'string' ? k.when : undefined,
+          args: Array.isArray(k.args) ? (k.args as ReadonlyArray<unknown>) : undefined,
+        });
+      }
+    }
+
     // Cross-checks
     const containerIds = new Set(viewContainerItems.map((c) => c.id));
     for (const item of activityBarItems) {
@@ -521,6 +573,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
       'panel.views': panelViewItems,
       commands: commandItems,
       menus: menuItems,
+      keybindings: keybindingItems,
     },
   };
 }

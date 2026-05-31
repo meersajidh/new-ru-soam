@@ -66,12 +66,21 @@ export interface MenuItemSnapshot {
   readonly bundleId: string;
 }
 
+export interface KeybindingSnapshot {
+  readonly key: string;
+  readonly command: string;
+  readonly when?: string;
+  readonly args?: ReadonlyArray<unknown>;
+  readonly bundleId: string;
+}
+
 export interface ContributionsSnapshot {
   readonly activityBarItems: ReadonlyArray<ActivityBarItemSnapshot>;
   readonly viewContainers: ReadonlyArray<ViewContainerSnapshot>;
   readonly panelViews: ReadonlyArray<PanelViewSnapshot>;
   readonly commands: ReadonlyArray<CommandSnapshot>;
   readonly menus: ReadonlyArray<MenuItemSnapshot>;
+  readonly keybindings: ReadonlyArray<KeybindingSnapshot>;
 }
 
 /**
@@ -93,6 +102,7 @@ export function getContributionsSnapshot(): ContributionsSnapshot {
   const panelViews: PanelViewSnapshot[] = [];
   const commands: CommandSnapshot[] = [];
   const menus: MenuItemSnapshot[] = [];
+  const keybindings: KeybindingSnapshot[] = [];
 
   for (const entry of registry) {
     const { bundleId, contributes } = entry;
@@ -155,7 +165,17 @@ export function getContributionsSnapshot(): ContributionsSnapshot {
         bundleId,
       });
     }
+
+    for (const kb of contributes.keybindings) {
+      keybindings.push({
+        key: kb.key,
+        command: kb.command,
+        when: kb.when,
+        args: kb.args,
+        bundleId,
+      });
+    }
   }
 
-  return { activityBarItems, viewContainers, panelViews, commands, menus };
+  return { activityBarItems, viewContainers, panelViews, commands, menus, keybindings };
 }

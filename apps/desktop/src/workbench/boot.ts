@@ -257,9 +257,11 @@ export function boot(): ServiceRegistry {
             const snapWithCmds = snap as {
               commands?: Array<{ id: string; title: string; category?: string; icon?: string; when?: string }>;
               menus?: Array<{ menuId: string; command: string; group: string; order?: number; when?: string; toggled?: string; title?: string }>;
+              keybindings?: Array<{ key: string; command: string; when?: string; args?: ReadonlyArray<unknown> }>;
             };
             commands.seedContributedCommands(snapWithCmds.commands ?? []);
             menu.seedContributedMenus(snapWithCmds.menus ?? []);
+            keybindings.seedContributedKeybindings(snapWithCmds.keybindings ?? []);
             p.dispose();
           })
           .catch((err) => {

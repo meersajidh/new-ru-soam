@@ -17,6 +17,9 @@
       "editor/title/context": [
         { "command": "echo-test.hello", "group": "9_test@1" }
       ]
-    }
+    },
+    "keybindings": [
+      { "key": "ctrl+alt+h", "command": "echo-test.hello", "args": ["from keybinding"] }
+    ]
   }
 }

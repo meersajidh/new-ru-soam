@@ -2,6 +2,7 @@ import type { ILayoutService } from '../platform/layout/layout-service';
 import type { ICommandService } from '../platform/command/command-service';
 import type { IContextKeyService } from '../platform/context-key/context-key-service';
 import type { IKeybindingService } from '../platform/keybinding/keybinding-service';
+import { DEFAULT_KEYBINDINGS } from '../platform/keybinding/default-keybindings';
 import type { IThemeService } from '../platform/theme/theme-service';
 import type { IFontService } from '../platform/font/font-service';
 import type { IWorkspaceService } from '../platform/workspace/workspace-service';
@@ -687,13 +688,5 @@ export function registerPlatformCommands(
     { command: 'workbench.editors.closeAll',    group: '1_close', order: 3 },
   ]);
 
-  keybindings.registerKeybinding('ctrl+b',       'workbench.togglePrimarySideBar');
-  keybindings.registerKeybinding('ctrl+j',       'workbench.togglePanel');
-  keybindings.registerKeybinding('ctrl+alt+b',   'workbench.toggleAuxSideBar');
-  keybindings.registerKeybinding('ctrl+shift+p', 'workbench.openCommandPalette');
-  keybindings.registerKeybinding('ctrl+\\',      'editors.splitRight');
-  keybindings.registerKeybinding('ctrl+w',       'editors.closeActive');
-  keybindings.registerKeybinding('ctrl+tab',       'editors.nextTab');
-  keybindings.registerKeybinding('ctrl+shift+tab', 'editors.previousTab');
-  keybindings.registerKeybinding('ctrl+shift+l', 'workbench.workspace.relock');
+  keybindings.seedDefaults(DEFAULT_KEYBINDINGS);
 }
