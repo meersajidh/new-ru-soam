@@ -71,10 +71,24 @@ export interface PanelViewManifest {
   readonly priority: number;
 }
 
+/**
+ * Command metadata contribution per ADR-406.
+ * Surfaces bundle commands in the renderer command palette.
+ * Execution is handled separately via the `commands@1.0` capability.
+ */
+export interface CommandManifest {
+  readonly id: string;
+  readonly title: string;
+  readonly category?: string;
+  readonly icon?: string;
+  readonly when?: string;
+}
+
 export interface BundleContributions {
   readonly 'activityBar.items': ReadonlyArray<ActivityBarItemManifest>;
   readonly viewContainers: ReadonlyArray<ViewContainerManifest>;
   readonly 'panel.views': ReadonlyArray<PanelViewManifest>;
+  readonly commands: ReadonlyArray<CommandManifest>;
 }
 
 export interface BundleManifest {
@@ -181,6 +195,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
   const activityBarItems: ActivityBarItemManifest[] = [];
   const viewContainerItems: ViewContainerManifest[] = [];
   const panelViewItems: PanelViewManifest[] = [];
+  const commandItems: CommandManifest[] = [];
 
   if (m.contributes !== undefined) {
     if (!m.contributes || typeof m.contributes !== 'object' || Array.isArray(m.contributes)) {
@@ -341,6 +356,48 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
       }
     }
 
+    // Validate commands
+    const rawCommands = contrib['commands'];
+    if (rawCommands !== undefined) {
+      if (!Array.isArray(rawCommands)) {
+        throw new ManifestError(manifestPath, '`contributes.commands` must be an array');
+      }
+      for (const cmd of rawCommands) {
+        if (!cmd || typeof cmd !== 'object') {
+          throw new ManifestError(manifestPath, 'commands entry must be an object');
+        }
+        const c = cmd as Record<string, unknown>;
+        if (!isString(c.id)) {
+          throw new ManifestError(manifestPath, 'commands entry requires `id` as a non-empty string');
+        }
+        if (!CONTRIBUTION_ID_RE.test(c.id)) {
+          throw new ManifestError(
+            manifestPath,
+            `commands id "${c.id}" must match /^[a-z0-9][a-z0-9_.-]*$/i`,
+          );
+        }
+        if (!isString(c.title)) {
+          throw new ManifestError(manifestPath, 'commands entry requires `title` as a non-empty string');
+        }
+        if (c.category !== undefined && typeof c.category !== 'string') {
+          throw new ManifestError(manifestPath, 'commands category must be a string if present');
+        }
+        if (c.icon !== undefined && typeof c.icon !== 'string') {
+          throw new ManifestError(manifestPath, 'commands icon must be a string if present');
+        }
+        if (c.when !== undefined && typeof c.when !== 'string') {
+          throw new ManifestError(manifestPath, 'commands when must be a string if present');
+        }
+        commandItems.push({
+          id: c.id,
+          title: c.title,
+          category: typeof c.category === 'string' ? c.category : undefined,
+          icon: typeof c.icon === 'string' ? c.icon : undefined,
+          when: typeof c.when === 'string' ? c.when : undefined,
+        });
+      }
+    }
+
     // Cross-checks
     const containerIds = new Set(viewContainerItems.map((c) => c.id));
     for (const item of activityBarItems) {
@@ -381,6 +438,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
       'activityBar.items': activityBarItems,
       viewContainers: viewContainerItems,
       'panel.views': panelViewItems,
+      commands: commandItems,
     },
   };
 }

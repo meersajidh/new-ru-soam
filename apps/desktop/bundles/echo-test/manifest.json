@@ -8,5 +8,10 @@
   ],
   "views": [
     { "id": "main", "path": "echo-view.html" }
-  ]
+  ],
+  "contributes": {
+    "commands": [
+      { "id": "echo-test.hello", "title": "Echo: Hello from Host" }
+    ]
+  }
 }

@@ -254,6 +254,8 @@ export function boot(): ServiceRegistry {
           .call('list')
           .then((snap) => {
             contributions.seed(snap as Parameters<typeof contributions.seed>[0]);
+            const snapWithCmds = snap as { commands?: Array<{ id: string; title: string; category?: string; icon?: string; when?: string }> };
+            commands.seedContributedCommands(snapWithCmds.commands ?? []);
             p.dispose();
           })
           .catch((err) => {

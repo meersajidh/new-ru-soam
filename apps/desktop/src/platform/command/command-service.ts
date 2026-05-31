@@ -41,12 +41,14 @@ export interface ICommandService {
   ): () => void;
   execute(id: string, ...args: unknown[]): Promise<unknown>;
   setRemoteExecutor(fn: (id: string, args: unknown[]) => Promise<unknown>): void;
+  seedContributedCommands(list: CommandContribution[]): void;
   getAll(): CommandContribution[];
   getVisible(contextKeys: IContextKeyService): CommandContribution[];
 }
 
 export class CommandService implements ICommandService {
   private readonly _cmds = new Map<string, RegisteredCommand>();
+  private readonly _contributed = new Map<string, CommandContribution>();
   private _remoteExecutor: ((id: string, args: unknown[]) => Promise<unknown>) | null = null;
 
   register(
@@ -65,6 +67,13 @@ export class CommandService implements ICommandService {
     this._remoteExecutor = fn;
   }
 
+  seedContributedCommands(list: CommandContribution[]): void {
+    this._contributed.clear();
+    for (const cmd of list) {
+      this._contributed.set(cmd.id, cmd);
+    }
+  }
+
   async execute(id: string, ...args: unknown[]): Promise<unknown> {
     const cmd = this._cmds.get(id);
     if (cmd) {
@@ -78,9 +87,15 @@ export class CommandService implements ICommandService {
   }
 
   getAll(): CommandContribution[] {
-    return [...this._cmds.values()].map(({ id, title, category, when, icon }) =>
-      ({ id, title, ...(category !== undefined && { category }), ...(when !== undefined && { when }), ...(icon !== undefined && { icon }) })
-    );
+    // Merge contributed (metadata-only) with locally-registered. _cmds win on id collision.
+    const merged = new Map<string, CommandContribution>();
+    for (const [id, cmd] of this._contributed) {
+      merged.set(id, { id, title: cmd.title, ...(cmd.category !== undefined && { category: cmd.category }), ...(cmd.when !== undefined && { when: cmd.when }), ...(cmd.icon !== undefined && { icon: cmd.icon }) });
+    }
+    for (const { id, title, category, when, icon } of this._cmds.values()) {
+      merged.set(id, { id, title, ...(category !== undefined && { category }), ...(when !== undefined && { when }), ...(icon !== undefined && { icon }) });
+    }
+    return [...merged.values()];
   }
 
   getVisible(contextKeys: IContextKeyService): CommandContribution[] {

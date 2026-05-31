@@ -46,10 +46,20 @@ export interface PanelViewSnapshot {
   readonly priority: number;
 }
 
+export interface CommandSnapshot {
+  readonly id: string;
+  readonly title: string;
+  readonly category?: string;
+  readonly icon?: string;
+  readonly when?: string;
+  readonly bundleId: string;
+}
+
 export interface ContributionsSnapshot {
   readonly activityBarItems: ReadonlyArray<ActivityBarItemSnapshot>;
   readonly viewContainers: ReadonlyArray<ViewContainerSnapshot>;
   readonly panelViews: ReadonlyArray<PanelViewSnapshot>;
+  readonly commands: ReadonlyArray<CommandSnapshot>;
 }
 
 /**
@@ -69,6 +79,7 @@ export function getContributionsSnapshot(): ContributionsSnapshot {
   const activityBarItems: ActivityBarItemSnapshot[] = [];
   const viewContainers: ViewContainerSnapshot[] = [];
   const panelViews: PanelViewSnapshot[] = [];
+  const commands: CommandSnapshot[] = [];
 
   for (const entry of registry) {
     const { bundleId, contributes } = entry;
@@ -107,7 +118,18 @@ export function getContributionsSnapshot(): ContributionsSnapshot {
         priority: pv.priority,
       });
     }
+
+    for (const cmd of contributes.commands) {
+      commands.push({
+        id: cmd.id,
+        title: cmd.title,
+        category: cmd.category,
+        icon: cmd.icon,
+        when: cmd.when,
+        bundleId,
+      });
+    }
   }
 
-  return { activityBarItems, viewContainers, panelViews };
+  return { activityBarItems, viewContainers, panelViews, commands };
 }
