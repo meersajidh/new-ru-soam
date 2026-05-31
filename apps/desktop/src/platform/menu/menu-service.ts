@@ -48,6 +48,17 @@ export interface IDisposable {
   dispose(): void;
 }
 
+/** Flat item shape returned from the contributions snapshot; `menuId` groups items on seed. */
+export interface SeededMenuItem {
+  readonly menuId: string;
+  readonly command: string;
+  readonly group: string;
+  readonly order?: number;
+  readonly when?: string;
+  readonly toggled?: string;
+  readonly title?: string;
+}
+
 export interface IMenuService {
   register(menuId: string, items: MenuItemContribution[]): IDisposable;
   getMenuItems(menuId: string, ctx?: MenuActionContext): ResolvedMenuItem[];
@@ -60,6 +71,8 @@ export interface IMenuService {
   onDidChangeOpenMenu(listener: (state: OpenMenuState | null) => void): () => void;
   closeOpenMenu(): void;
   executeItem(item: ResolvedMenuItem, args?: unknown[]): Promise<void>;
+  /** Replace all previously seeded bundle menu items with a fresh set. Idempotent. */
+  seedContributedMenus(items: ReadonlyArray<SeededMenuItem>): void;
 }
 
 // ── Implementation ────────────────────────────────────────────────────────────
@@ -81,6 +94,7 @@ export class MenuService implements IMenuService {
   private _regCounter = 0;
   private _openMenu: OpenMenuState | null = null;
   private readonly _listeners = new Set<(state: OpenMenuState | null) => void>();
+  private _seededDisposables: IDisposable[] = [];
 
   constructor(commands: ICommandService, contextKeys: IContextKeyService) {
     this._commands = commands;
@@ -229,6 +243,30 @@ export class MenuService implements IMenuService {
   async executeItem(item: ResolvedMenuItem, args?: unknown[]): Promise<void> {
     this.closeOpenMenu();
     await this._commands.execute(item.command, ...(args ?? []));
+  }
+
+  seedContributedMenus(items: ReadonlyArray<SeededMenuItem>): void {
+    // Dispose prior seeded registrations before re-registering (idempotent reseed).
+    for (const d of this._seededDisposables) d.dispose();
+    this._seededDisposables = [];
+
+    // Regroup flat items by menuId, then register each slot.
+    const grouped = new Map<string, MenuItemContribution[]>();
+    for (const item of items) {
+      let slot = grouped.get(item.menuId);
+      if (!slot) { slot = []; grouped.set(item.menuId, slot); }
+      slot.push({
+        command: item.command,
+        group: item.group,
+        order: item.order,
+        when: item.when,
+        toggled: item.toggled,
+        title: item.title,
+      });
+    }
+    for (const [menuId, contributions] of grouped) {
+      this._seededDisposables.push(this.register(menuId, contributions));
+    }
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────

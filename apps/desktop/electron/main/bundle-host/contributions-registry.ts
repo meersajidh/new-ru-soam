@@ -55,11 +55,23 @@ export interface CommandSnapshot {
   readonly bundleId: string;
 }
 
+export interface MenuItemSnapshot {
+  readonly menuId: string;
+  readonly command: string;
+  readonly group: string;
+  readonly order?: number;
+  readonly when?: string;
+  readonly toggled?: string;
+  readonly title?: string;
+  readonly bundleId: string;
+}
+
 export interface ContributionsSnapshot {
   readonly activityBarItems: ReadonlyArray<ActivityBarItemSnapshot>;
   readonly viewContainers: ReadonlyArray<ViewContainerSnapshot>;
   readonly panelViews: ReadonlyArray<PanelViewSnapshot>;
   readonly commands: ReadonlyArray<CommandSnapshot>;
+  readonly menus: ReadonlyArray<MenuItemSnapshot>;
 }
 
 /**
@@ -80,6 +92,7 @@ export function getContributionsSnapshot(): ContributionsSnapshot {
   const viewContainers: ViewContainerSnapshot[] = [];
   const panelViews: PanelViewSnapshot[] = [];
   const commands: CommandSnapshot[] = [];
+  const menus: MenuItemSnapshot[] = [];
 
   for (const entry of registry) {
     const { bundleId, contributes } = entry;
@@ -129,7 +142,20 @@ export function getContributionsSnapshot(): ContributionsSnapshot {
         bundleId,
       });
     }
+
+    for (const mi of contributes.menus) {
+      menus.push({
+        menuId: mi.menuId,
+        command: mi.command,
+        group: mi.group,
+        order: mi.order,
+        when: mi.when,
+        toggled: mi.toggled,
+        title: mi.title,
+        bundleId,
+      });
+    }
   }
 
-  return { activityBarItems, viewContainers, panelViews, commands };
+  return { activityBarItems, viewContainers, panelViews, commands, menus };
 }

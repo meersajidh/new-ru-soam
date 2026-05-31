@@ -12,6 +12,11 @@
   "contributes": {
     "commands": [
       { "id": "echo-test.hello", "title": "Echo: Hello from Host" }
-    ]
+    ],
+    "menus": {
+      "editor/title/context": [
+        { "command": "echo-test.hello", "group": "9_test@1" }
+      ]
+    }
   }
 }

@@ -84,11 +84,27 @@ export interface CommandManifest {
   readonly when?: string;
 }
 
+/**
+ * Single menu item contribution per ADR-417.
+ * Author writes `{ "editor/title/context": [{ "command": "...", "group": "1_close@1" }] }`;
+ * the validator flattens it, stamping each item with its `menuId` key.
+ */
+export interface MenuItemManifest {
+  readonly menuId: string;
+  readonly command: string;
+  readonly group: string;
+  readonly order?: number;
+  readonly when?: string;
+  readonly toggled?: string;
+  readonly title?: string;
+}
+
 export interface BundleContributions {
   readonly 'activityBar.items': ReadonlyArray<ActivityBarItemManifest>;
   readonly viewContainers: ReadonlyArray<ViewContainerManifest>;
   readonly 'panel.views': ReadonlyArray<PanelViewManifest>;
   readonly commands: ReadonlyArray<CommandManifest>;
+  readonly menus: ReadonlyArray<MenuItemManifest>;
 }
 
 export interface BundleManifest {
@@ -112,6 +128,9 @@ const KNOWN_EVENTS: ReadonlySet<ActivationEvent> = new Set(['eager', 'lazy', 'on
 
 // Contribution ids allow dots for namespaced identifiers like "ru-soam-practice.activity".
 const CONTRIBUTION_ID_RE = /^[a-z0-9][a-z0-9_.-]*$/i;
+
+// Menu-id slot keys allow `/` for paths like "editor/title/context".
+const MENU_ID_RE = /^[a-z0-9][a-z0-9_./-]*$/i;
 
 export class ManifestError extends Error {
   constructor(manifestPath: string, message: string) {
@@ -196,6 +215,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
   const viewContainerItems: ViewContainerManifest[] = [];
   const panelViewItems: PanelViewManifest[] = [];
   const commandItems: CommandManifest[] = [];
+  const menuItems: MenuItemManifest[] = [];
 
   if (m.contributes !== undefined) {
     if (!m.contributes || typeof m.contributes !== 'object' || Array.isArray(m.contributes)) {
@@ -398,6 +418,67 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
       }
     }
 
+    // Validate menus
+    // Namespace / reserved-slot enforcement deferred — O427.
+    const rawMenus = contrib['menus'];
+    if (rawMenus !== undefined) {
+      if (!rawMenus || typeof rawMenus !== 'object' || Array.isArray(rawMenus)) {
+        throw new ManifestError(manifestPath, '`contributes.menus` must be a non-null object (not an array)');
+      }
+      const menusObj = rawMenus as Record<string, unknown>;
+      for (const menuId of Object.keys(menusObj)) {
+        if (!MENU_ID_RE.test(menuId)) {
+          throw new ManifestError(
+            manifestPath,
+            `menus key "${menuId}" must match /^[a-z0-9][a-z0-9_./-]*$/i`,
+          );
+        }
+        const itemsArr = menusObj[menuId];
+        if (!Array.isArray(itemsArr)) {
+          throw new ManifestError(manifestPath, `menus["${menuId}"] must be an array`);
+        }
+        for (const item of itemsArr) {
+          if (!item || typeof item !== 'object') {
+            throw new ManifestError(manifestPath, `menus["${menuId}"] item must be an object`);
+          }
+          const mi = item as Record<string, unknown>;
+          if (!isString(mi.command)) {
+            throw new ManifestError(manifestPath, `menus["${menuId}"] item requires \`command\` as a non-empty string`);
+          }
+          if (!CONTRIBUTION_ID_RE.test(mi.command)) {
+            throw new ManifestError(
+              manifestPath,
+              `menus["${menuId}"] command "${mi.command}" must match /^[a-z0-9][a-z0-9_.-]*$/i`,
+            );
+          }
+          if (!isString(mi.group)) {
+            throw new ManifestError(manifestPath, `menus["${menuId}"] item requires \`group\` as a non-empty string`);
+          }
+          if (mi.order !== undefined && typeof mi.order !== 'number') {
+            throw new ManifestError(manifestPath, `menus["${menuId}"] item \`order\` must be a number if present`);
+          }
+          if (mi.when !== undefined && typeof mi.when !== 'string') {
+            throw new ManifestError(manifestPath, `menus["${menuId}"] item \`when\` must be a string if present`);
+          }
+          if (mi.toggled !== undefined && typeof mi.toggled !== 'string') {
+            throw new ManifestError(manifestPath, `menus["${menuId}"] item \`toggled\` must be a string if present`);
+          }
+          if (mi.title !== undefined && typeof mi.title !== 'string') {
+            throw new ManifestError(manifestPath, `menus["${menuId}"] item \`title\` must be a string if present`);
+          }
+          menuItems.push({
+            menuId,
+            command: mi.command,
+            group: mi.group,
+            order: typeof mi.order === 'number' ? mi.order : undefined,
+            when: typeof mi.when === 'string' ? mi.when : undefined,
+            toggled: typeof mi.toggled === 'string' ? mi.toggled : undefined,
+            title: typeof mi.title === 'string' ? mi.title : undefined,
+          });
+        }
+      }
+    }
+
     // Cross-checks
     const containerIds = new Set(viewContainerItems.map((c) => c.id));
     for (const item of activityBarItems) {
@@ -439,6 +520,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
       viewContainers: viewContainerItems,
       'panel.views': panelViewItems,
       commands: commandItems,
+      menus: menuItems,
     },
   };
 }
