@@ -116,6 +116,9 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     openInEditor: function (viewId, opts) {
       send({ __soamView: true, kind: 'request.openEditor', viewId: viewId, query: (opts && opts.query) || undefined, title: (opts && opts.title) || undefined, entityId: (opts && opts.entityId !== undefined) ? opts.entityId : undefined, preview: (opts && opts.preview !== undefined) ? opts.preview : undefined });
     },
+    requestContextMenu: function (menuId, x, y, context) {
+      send({ __soamView: true, kind: 'request.contextMenu', menuId: menuId, x: x, y: y, context: context });
+    },
     ready: ready
   });
 

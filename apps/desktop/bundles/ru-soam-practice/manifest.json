@@ -46,6 +46,11 @@
         "when": "patient.activeId",
         "priority": 100
       }
-    ]
+    ],
+    "menus": {
+      "ru-soam-practice/roster/context": [
+        { "command": "ru-soam-practice.roster.reveal", "group": "1_client@1" }
+      ]
+    }
   }
 }

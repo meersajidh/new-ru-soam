@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useService } from '../../platform/services/hooks';
-import { EditorServiceId, ThemeServiceId } from '../../platform/services/ids';
+import { EditorServiceId, MenuServiceId, ThemeServiceId } from '../../platform/services/ids';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 
 /**
@@ -46,6 +46,7 @@ function isViewMessage(data: unknown): data is ViewMessage {
 export default function BundleViewIframe({ resource, instanceId, entityId, onRequestClose, onRequestFocus }: Props) {
   const theme = useService(ThemeServiceId);
   const editor = useService(EditorServiceId);
+  const menu = useService(MenuServiceId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   // Ref so the view.ready handler always sees the latest entityId without re-running main effect.
   const entityIdRef = useRef<string | null | undefined>(entityId);
@@ -180,6 +181,22 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
           }
           break;
         }
+        case 'request.contextMenu': {
+          const menuId = m.menuId as string;
+          const vx = m.x as number;
+          const vy = m.y as number;
+          const context = m.context;
+          const bundleId = new URL(resource).hostname;
+          if (!menuId.startsWith(bundleId + '/')) {
+            console.warn('[BundleViewIframe] rejected out-of-scope contextMenu menuId:', menuId);
+            break;
+          }
+          const rect = iframe.getBoundingClientRect();
+          const x = rect.left + vx;
+          const y = rect.top + vy;
+          menu.showContextMenu({ menuId, anchor: { x, y }, ctx: { args: [context] } });
+          break;
+        }
       }
     };
 
@@ -217,7 +234,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
       }
       proxyCache.clear();
     };
-  }, [resource, instanceId, theme, editor, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
+  }, [resource, instanceId, theme, editor, menu, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
 
   // Separate effect: push context message when entityId changes while mounted.
   // Does NOT trigger re-handshake — only sends a lightweight context update.

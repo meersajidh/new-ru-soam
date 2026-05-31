@@ -949,6 +949,21 @@
           initGroupControl();
           initSearch();
 
+          elRosterContent.addEventListener('contextmenu', function (e) {
+            var row = e.target && e.target.closest && e.target.closest('.client-row');
+            if (!row) return;
+            e.preventDefault();
+            var clientId = row.getAttribute('data-id');
+            if (window.soamView && window.soamView.requestContextMenu) {
+              window.soamView.requestContextMenu(
+                'ru-soam-practice/roster/context',
+                e.clientX,
+                e.clientY,
+                { clientId: clientId }
+              );
+            }
+          });
+
           soamView.events.onActivate(function () {
             if (_proxy) {
               loadRoster();

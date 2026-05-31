@@ -11,7 +11,7 @@
  */
 
 import type { ServiceRegistry } from '../platform/services/registry';
-import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId } from '../platform/services/ids';
+import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId, CommandServiceId } from '../platform/services/ids';
 import { PRODUCT_TAGLINE, DELETE_WARNING_ADDENDUM } from './product';
 
 export function domainBootstrap(registry: ServiceRegistry): void {
@@ -26,6 +26,14 @@ export function domainBootstrap(registry: ServiceRegistry): void {
   // These are domain-reserved keys (ADR-407); only domain code may write them.
   // The base shell Parts (AuxSideBar, Panel) read them generically via record.activeId.
   // ADR-106: domain code owns the mapping; base shell stays domain-free.
+  const commands = registry.get(CommandServiceId);
+  commands.register(
+    'ru-soam-practice.roster.reveal',
+    'Reveal Client',
+    (clientId: unknown) => { console.log('[practice] roster context action: reveal', clientId); },
+    { category: 'Practice' },
+  );
+
   const contextKeys = registry.get(ContextKeyServiceId);
   const editor = registry.get(EditorServiceId);
 
