@@ -13,6 +13,7 @@ import type { ISnippetService } from '../snippet/snippet-service';
 import type { INotificationService } from '../notification/notification-service';
 import type { IProductConfigService } from '../product-config/product-config-service';
 import type { IContributionService } from '../contributions/contribution-service';
+import type { IMenuService } from '../menu/menu-service';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -53,5 +54,8 @@ export const ProductConfigServiceId = serviceId<IProductConfigService>('workbenc
 
 // Stage 2: contribution host (activity bar items + view containers)
 export const ContributionServiceId = serviceId<IContributionService>('workbench.contributions');
+
+// ADR-417: menu + context-menu primitive
+export const MenuServiceId = serviceId<IMenuService>('workbench.menu');
 
 export const RegistryContext = createContext<ServiceRegistry | null>(null);

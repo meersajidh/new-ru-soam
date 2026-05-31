@@ -8,6 +8,7 @@ import type { IWorkspaceService } from '../platform/workspace/workspace-service'
 import type { IEditorService } from '../platform/editor/editor-service';
 import type { ISnippetService } from '../platform/snippet/snippet-service';
 import type { INotificationService } from '../platform/notification/notification-service';
+import type { IMenuService } from '../platform/menu/menu-service';
 import { SlotId } from '../platform/layout/slots';
 
 export function registerPlatformCommands(
@@ -21,6 +22,7 @@ export function registerPlatformCommands(
   editor: IEditorService,
   snippets: ISnippetService,
   notificationSvc: INotificationService,
+  menu: IMenuService,
 ): void {
   commands.register(
     'workbench.togglePrimarySideBar',
@@ -630,6 +632,60 @@ export function registerPlatformCommands(
     },
     { category: 'Workspace' },
   );
+
+  // ── ADR-417: Editor tab context-menu commands ─────────────────────────────
+  //
+  // Args array convention (editor/title/context menu):
+  //   args[0] = instanceId  (the tab being right-clicked)
+  //   args[1] = groupId     (the group containing the tab)
+  //
+  // All three handlers receive [instanceId, groupId]; each reads what it needs.
+
+  commands.register(
+    'workbench.editors.close',
+    'Close',
+    (instanceId: unknown) => {
+      if (typeof instanceId === 'string') editor.close(instanceId);
+    },
+    { category: 'View' },
+  );
+
+  commands.register(
+    'workbench.editors.closeOthers',
+    'Close Others',
+    (instanceId: unknown, groupId: unknown) => {
+      if (typeof groupId !== 'string' || typeof instanceId !== 'string') return;
+      const group = editor.getGroup(groupId);
+      if (!group) return;
+      // Close every tab in the group whose id !== instanceId (the kept tab)
+      for (const tab of group.tabs) {
+        if (tab.id !== instanceId) editor.close(tab.id);
+      }
+    },
+    { category: 'View' },
+  );
+
+  commands.register(
+    'workbench.editors.closeAll',
+    'Close All',
+    (_instanceId: unknown, groupId: unknown) => {
+      if (typeof groupId !== 'string') return;
+      const group = editor.getGroup(groupId);
+      if (!group) return;
+      // Snapshot tab ids before iterating (close mutates the group)
+      for (const tab of [...group.tabs]) {
+        editor.close(tab.id);
+      }
+    },
+    { category: 'View' },
+  );
+
+  // Register menu items for editor/title/context slot (O112)
+  menu.register('editor/title/context', [
+    { command: 'workbench.editors.close',       group: '1_close', order: 1 },
+    { command: 'workbench.editors.closeOthers', group: '1_close', order: 2 },
+    { command: 'workbench.editors.closeAll',    group: '1_close', order: 3 },
+  ]);
 
   keybindings.registerKeybinding('ctrl+b',       'workbench.togglePrimarySideBar');
   keybindings.registerKeybinding('ctrl+j',       'workbench.togglePanel');

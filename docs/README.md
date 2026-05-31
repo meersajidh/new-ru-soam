@@ -113,6 +113,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-414](ADRs/414-ru-edit-platform-editor-primitive.md) — RuEdit: platform editor primitive. _(Accepted)_
 - [ADR-415](ADRs/415-react-prosemirror-integration-boundary.md) — React / ProseMirror integration boundary. _(Accepted)_
 - [ADR-416](ADRs/416-snippet-engine.md) — Snippet engine. _(Accepted)_
+- [ADR-417](ADRs/417-menu-and-keybinding-contributions.md) — Menu + keybinding contributions, context-menu primitive, renderer↔view action channel. _(Accepted)_
 
 #### Domain (500–599)
 

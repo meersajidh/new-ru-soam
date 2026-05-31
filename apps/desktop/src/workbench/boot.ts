@@ -26,6 +26,8 @@ import { registerPlatformCommands } from './platform-commands';
 import { mountHeartbeat } from './heartbeat';
 import { installUpdateAlerts } from '../platform/update/update-alerts';
 import { ProductConfigService } from '../platform/product-config/product-config-service';
+import { MenuService } from '../platform/menu/menu-service';
+import { MenuServiceId } from '../platform/services/ids';
 
 const SLOT_TO_CTX_KEY: Partial<Record<SlotId, string>> = {
   [SlotId.PrimarySideBar]: 'sideBar.visible',
@@ -207,6 +209,10 @@ export function boot(): ServiceRegistry {
   const contributions = new ContributionService();
   registry.register(ContributionServiceId, contributions);
 
+  // ── ADR-417: MenuService ──────────────────────────────────────────────────
+  const menu = new MenuService(commands, contextKeys);
+  registry.register(MenuServiceId, menu);
+
   // ── Phase 9: NotificationService ──────────────────────────────────────────
   const notifications = new NotificationService();
   registry.register(NotificationServiceId, notifications);
@@ -223,7 +229,7 @@ export function boot(): ServiceRegistry {
   // Disposable returned but not tracked — lives for the session (no teardown needed).
   installUpdateAlerts(notifications, statusBar);
 
-  registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, font, workspace, editor, snippet, notifications);
+  registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, font, workspace, editor, snippet, notifications, menu);
 
   // Open mock workspace — real identity comes in Phase 8+
   workspace.open('entity-mock-001', 'individual');

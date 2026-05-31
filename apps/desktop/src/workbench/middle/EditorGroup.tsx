@@ -1,6 +1,6 @@
 import './EditorGroup.css';
 import { useEditorGroup, useService } from '../../platform/services/hooks';
-import { EditorServiceId } from '../../platform/services/ids';
+import { EditorServiceId, MenuServiceId } from '../../platform/services/ids';
 import PlaceholderEditor from './PlaceholderEditor';
 import BundleViewIframe from './BundleViewIframe';
 import ScratchRuEdit from './ScratchRuEdit';
@@ -14,6 +14,7 @@ const DRAG_KEY = 'application/editor-instance';
 
 export default function EditorGroupView({ groupId, isFocused }: Props) {
   const editor = useService(EditorServiceId);
+  const menu = useService(MenuServiceId);
   const group = useEditorGroup(groupId);
 
   if (!group) return null;
@@ -41,6 +42,19 @@ export default function EditorGroupView({ groupId, isFocused }: Props) {
                 e.dataTransfer.effectAllowed = 'move';
               }}
               onClick={e => { e.stopPropagation(); editor.setActiveTab(groupId, tab.id); }}
+              onContextMenu={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                // args: [instanceId, groupId] — close reads [0], closeOthers/closeAll read [0,1]
+                menu.showContextMenu({
+                  menuId: 'editor/title/context',
+                  anchor: { x: e.clientX, y: e.clientY },
+                  ctx: {
+                    args: [tab.id, groupId],
+                    contextOverrides: { 'editor.tabId': tab.id },
+                  },
+                });
+              }}
             >
               <span className="editor-tab-title">{tab.title}</span>
               <button

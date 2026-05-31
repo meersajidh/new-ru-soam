@@ -9,7 +9,15 @@ export interface IContextKeyService {
   delete(key: string): void;
   snapshot(): Record<string, CtxValue>;
   onDidChange(listener: (changedKeys: ReadonlySet<string>) => void): () => void;
-  evaluate(expr: string): boolean;
+  /**
+   * Evaluate a when-clause expression.
+   * Optional `overrides` are merged over the global context snapshot for this
+   * single evaluation only — the global state is never mutated.
+   */
+  evaluate(
+    expr: string,
+    overrides?: ReadonlyMap<string, CtxValue> | Record<string, CtxValue>,
+  ): boolean;
 }
 
 export class ContextKeyService implements IContextKeyService {
@@ -41,13 +49,24 @@ export class ContextKeyService implements IContextKeyService {
     return () => this._listeners.delete(listener);
   }
 
-  evaluate(expr: string): boolean {
+  evaluate(
+    expr: string,
+    overrides?: ReadonlyMap<string, CtxValue> | Record<string, CtxValue>,
+  ): boolean {
     let ast = this._exprCache.get(expr);
     if (!ast) {
       ast = parseWhenClause(expr);
       this._exprCache.set(expr, ast);
     }
-    return evaluateWhenClause(ast, this._ctx);
+    if (overrides === undefined) return evaluateWhenClause(ast, this._ctx);
+    // Merge overrides over the internal ctx for this evaluation only.
+    const merged = new Map<string, CtxValue>(this._ctx);
+    if (overrides instanceof Map) {
+      for (const [k, v] of overrides) merged.set(k, v);
+    } else {
+      for (const [k, v] of Object.entries(overrides)) merged.set(k, v);
+    }
+    return evaluateWhenClause(ast, merged);
   }
 
   private _queue(key: string): void {
