@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useService } from '../../platform/services/hooks';
-import { EditorServiceId, MenuServiceId, ThemeServiceId } from '../../platform/services/ids';
+import { EditorServiceId, FontServiceId, MenuServiceId, ThemeServiceId } from '../../platform/services/ids';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 
 /**
@@ -45,6 +45,7 @@ function isViewMessage(data: unknown): data is ViewMessage {
 
 export default function BundleViewIframe({ resource, instanceId, entityId, onRequestClose, onRequestFocus }: Props) {
   const theme = useService(ThemeServiceId);
+  const font = useService(FontServiceId);
   const editor = useService(EditorServiceId);
   const menu = useService(MenuServiceId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -82,7 +83,11 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
       return p;
     };
 
-    const pushTheme = () => post({ __soamView: true, kind: 'theme', theme: theme.getTokenSnapshot() });
+    // Appearance snapshot = theme colours + active font-set vars, merged onto
+    // the one bridge channel (the bridge applies any CSS var generically). Font
+    // sets ride the same path as theme/dark-mode — they are just more CSS vars.
+    const appearance = () => ({ ...theme.getTokenSnapshot(), ...font.getFontSnapshot() });
+    const pushTheme = () => post({ __soamView: true, kind: 'theme', theme: appearance() });
 
     const onMessage = async (e: MessageEvent) => {
       if (disposed) return;
@@ -94,7 +99,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
         case 'view.ready': {
           viewReadyRef.current = true;
           clearTimeout(readyTimeout);
-          post({ __soamView: true, kind: 'init', theme: theme.getTokenSnapshot() });
+          post({ __soamView: true, kind: 'init', theme: appearance() });
           if (!activated) {
             activated = true;
             // Include entityId in activate payload so view gets it on first load.
@@ -220,6 +225,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
     }, 2000);
     const offTheme = theme.onThemeChange(() => requestAnimationFrame(pushTheme));
     const offDark = theme.onDarkModeChange(() => requestAnimationFrame(pushTheme));
+    const offFont = font.onFontSetChange(() => requestAnimationFrame(pushTheme));
 
     return () => {
       disposed = true;
@@ -229,12 +235,13 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
       offStoreEvents();
       offTheme();
       offDark();
+      offFont();
       for (const p of proxyCache.values()) {
         p.then((proxy) => proxy.dispose()).catch(() => undefined);
       }
       proxyCache.clear();
     };
-  }, [resource, instanceId, theme, editor, menu, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
+  }, [resource, instanceId, theme, font, editor, menu, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
 
   // Separate effect: push context message when entityId changes while mounted.
   // Does NOT trigger re-handshake — only sends a lightweight context update.

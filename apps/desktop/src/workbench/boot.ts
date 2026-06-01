@@ -311,9 +311,10 @@ export function boot(): ServiceRegistry {
   // ── Dark-mode toggle StatusBar entry ─────────────────────────────────────
   function syncDarkModeEntry(dark: boolean): void {
     statusBar.update('workbench.theme.darkMode', {
-      // Glyph reflects the CURRENT mode (filled = dark), matching the Settings
-      // Light/Dark buttons; tooltip stays action-oriented (what a click does).
-      icon: dark ? 'moon' : 'sun',
+      // Always the filled `theme-dark` mark (matches the Settings Dark button):
+      // in light it reads as the switch-to-dark affordance, in dark as the
+      // current mode. State lives in the tooltip, not the glyph fill.
+      icon: 'moon',
       tooltip: dark ? 'Switch to light mode' : 'Switch to dark mode',
     });
   }

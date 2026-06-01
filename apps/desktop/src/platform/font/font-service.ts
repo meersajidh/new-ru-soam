@@ -4,10 +4,24 @@ export interface FontSetDescriptor {
   readonly source: 'built-in' | 'bundle';
 }
 
+// CSS custom properties an active font-set maps. Read into a snapshot and
+// pushed to bundle views over the existing bridge appearance channel — the
+// font-set parallel of ThemeService.TOKEN_NAMES (colors). Views adopt the
+// active set's families exactly as they adopt theme colours.
+export const FONT_VAR_NAMES = [
+  '--font-sans',
+  '--font-mono',
+  '--font-display',
+  '--font-display-weight',
+  '--font-display-letter-spacing',
+] as const;
+
 export interface IFontService {
   setFontSet(id: string): void;
   getActive(): FontSetDescriptor;
   list(): FontSetDescriptor[];
+  /** Active font-set's CSS vars (FONT_VAR_NAMES), for the bridge appearance snapshot. */
+  getFontSnapshot(): Record<string, string>;
   onFontSetChange(listener: (fs: FontSetDescriptor) => void): () => void;
 }
 
@@ -44,6 +58,15 @@ export class FontService implements IFontService {
 
   list(): FontSetDescriptor[] {
     return Array.from(this._registry.values());
+  }
+
+  getFontSnapshot(): Record<string, string> {
+    const computed = getComputedStyle(this._root);
+    const snap: Record<string, string> = {};
+    for (const name of FONT_VAR_NAMES) {
+      snap[name] = computed.getPropertyValue(name).trim();
+    }
+    return snap;
   }
 
   onFontSetChange(listener: (fs: FontSetDescriptor) => void): () => void {
