@@ -186,3 +186,48 @@ This is the property that makes themes safe: even a hostile theme bundle author 
 - **O108** — Icon rendering mechanism: inline SVG vs sprite vs font. Affects bundle-author asset format and bundle size.
 - **O109** — Accessibility-theme contrast budget. WCAG AA minimum is starting point; per-surface tuning.
 - **O110** — Theme + iframe propagation cost. When many iframes are active and the user switches themes, theme push to all iframes happens in parallel; verify no perceptible flicker.
+
+---
+
+## Amendment 1 — Built-in icon set = VS Code Codicons; O108 resolved (icon font for the shell, inline SVG for iframes); `$(…)` registry seam committed
+
+**Date:** 2026-06-01
+**Status:** Accepted
+**Amends:** the *Icons* + *Reserved icon prefixes* sections above; **resolves O108**.
+
+### Why
+
+The base ADR committed the icon **contribution model** (`$(…)` token ids, platform-owned namespaces, bundle-contributed SVGs, switchable icon themes) but deliberately deferred the **rendering mechanism** (O108) and never named the platform's built-in set. As built, the shell drifted from the design: icons are consumed two ways, neither matching the `$(…)` registry —
+
+1. **Direct component imports** — ~16 renderer files `import { PanelLeft, Check, … } from 'lucide-react'` and render `<PanelLeft/>` inline.
+2. **String→component map** — `ActivityBar.tsx`'s `ICON_MAP` resolves *manifest-contributed* icon names (`icon: "users"`, `"file-text"`) to lucide components. These lucide names are a de-facto contribution contract (first-party `ru-soam-practice` manifest references them).
+
+The product direction is to adopt the **VS Code Codicon set** (`https://microsoft.github.io/vscode-codicons/`) everywhere, for visual parity with the VS Code-style shell. That decision forces O108 and the registry seam at the same time.
+
+### Decision
+
+1. **Built-in icon set = Codicons.** The platform's shipped icon set is `@vscode/codicons` (the same set VS Code uses). It replaces `lucide-react` as the shell's icon source. `lucide-react` is removed once migration completes.
+
+2. **O108 resolved — split by surface:**
+   - **Workbench shell (renderer/React):** Codicons render as an **icon font** (`codicon.ttf` + the generated CSS), bundled as a **local asset** (no CDN — ADR-203). A single `<Icon name="…" />` React component wraps the `<i class="codicon codicon-…">` mechanism; call sites never touch class names or the font directly.
+   - **Bundle iframes (sandboxed `view://` HTML, ADR-411):** Codicons render as **inline SVG** (from the codicon SVG sources), *not* the font. This sidesteps the documented "sandboxed iframe fonts need `font-src view:` in the page's own `<meta>` CSP + font served over `view://`" gotcha for the icon set specifically, and keeps each iframe self-contained. (If a future surface needs the font in-iframe, hosting it over `view://` with the `font-src` meta fix is the fallback — but inline SVG is the committed default.)
+   - Bundle-**contributed** icons (`contributes.icons`, `$(<bundleId>-*)`) remain **SVG** per the base ADR — unchanged.
+
+3. **`$(…)` registry seam is the only icon API.** All direct `lucide-react` imports and the ad-hoc `ICON_MAP` are replaced by one platform icon module that resolves a stable id → codicon. The id vocabulary is the codicon name namespaced per the base ADR's reserved prefixes:
+   - `$(workbench-*)` shell icons map to specific codicons (e.g. `$(workbench-panel-left)` → `layout-sidebar-left`).
+   - Manifest `icon` fields switch from lucide names to **codicon ids** — a contribution-contract change. First-party bundles (`ru-soam-practice`: `users`→`organization`/`account`, `file-text`→`note`, etc.) are migrated in lockstep; this is a breaking change for any external bundle, acceptable pre-1.0.
+   - Collision-rejection on reserved prefixes at manifest registration stays as the base ADR specifies (still pending real enforcement — O427/O86).
+
+4. **Icon themes (base ADR) unaffected.** A bundle can still ship a full icon theme overriding the built-in codicon mapping; the seam resolves through the active icon theme first, then the built-in codicon default.
+
+### Consequences
+
+- **Positive:** Visual parity with VS Code; one icon API (`<Icon>`); the `$(…)` model ADR-413 always intended finally exists; zero CDN/attack surface (local font + inline SVG); iframes stay self-contained.
+- **Negative:** Cross-cutting migration touching every icon call site + the manifest vocab + iframe views. Codicon names ≠ lucide names → a manual mapping table is required (one-time). The font (~`codicon.ttf`) adds a small fixed asset.
+- **Neutral:** Two render paths (font in shell, inline SVG in iframes) — justified by the iframe CSP boundary; both resolve from the same id table.
+
+### Migration (phased — Open Items)
+
+- **O434** — Icon-registry seam: add the platform `<Icon name>` component + id→codicon table; wire the codicon font (local `@font-face`) into the shell; migrate the ~16 direct `lucide-react` call sites + `ActivityBar.ICON_MAP` onto it; keep lucide as a temporary fallback until call sites are clear, then remove the dep.
+- **O435** — Contributed-icon vocab migration: switch first-party manifest `icon` fields (lucide names → codicon ids) + the iframe views (`roster.html` etc.) to inline-SVG codicons; document the reserved-prefix → codicon mapping. Couples with O427/O86 (prefix-collision lint).
+- **O108** — **Resolved by this amendment** (font for shell, inline SVG for iframes).

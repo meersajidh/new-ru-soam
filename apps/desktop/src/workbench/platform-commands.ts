@@ -688,5 +688,12 @@ export function registerPlatformCommands(
     { command: 'workbench.editors.closeAll',    group: '1_close', order: 3 },
   ]);
 
+  // Register menu items for workbench/title/context slot (O423 — toggle/checked items)
+  menu.register('workbench/title/context', [
+    { command: 'workbench.togglePrimarySideBar', group: '1_layout', order: 1, toggled: 'sideBar.visible',    title: 'Primary Side Bar' },
+    { command: 'workbench.togglePanel',          group: '1_layout', order: 2, toggled: 'panel.visible',      title: 'Panel' },
+    { command: 'workbench.toggleAuxSideBar',     group: '1_layout', order: 3, toggled: 'auxSideBar.visible', title: 'Secondary Side Bar' },
+  ]);
+
   keybindings.seedDefaults(DEFAULT_KEYBINDINGS);
 }

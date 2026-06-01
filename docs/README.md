@@ -109,7 +109,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-410](ADRs/410-bundle-host-process-model.md) — Bundle host process model (separate Node process). _(Accepted)_
 - [ADR-411](ADRs/411-view-hosting-for-bundles.md) — View / webview hosting for bundles (sandboxed iframe + `view://` protocol + bridge). _(Accepted)_
 - [ADR-412](ADRs/412-services-in-renderer.md) — DI / services in renderer (TanStack Query + service registry). _(Accepted)_
-- [ADR-413](ADRs/413-theming-and-icons.md) — Theming / icons. _(Accepted)_
+- [ADR-413](ADRs/413-theming-and-icons.md) — Theming / icons. _(Accepted; Am1 2026-06-01: built-in set = Codicons, O108 resolved)_
 - [ADR-414](ADRs/414-ru-edit-platform-editor-primitive.md) — RuEdit: platform editor primitive. _(Accepted)_
 - [ADR-415](ADRs/415-react-prosemirror-integration-boundary.md) — React / ProseMirror integration boundary. _(Accepted)_
 - [ADR-416](ADRs/416-snippet-engine.md) — Snippet engine. _(Accepted)_

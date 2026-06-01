@@ -87,6 +87,11 @@
   @apply text-fg-primary;
 }
 
+.tb-icon-btn.is-active {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+}
+
 .tb-icon-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;

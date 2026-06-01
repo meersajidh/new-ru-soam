@@ -13,8 +13,9 @@ import {
   X,
 } from 'lucide-react';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
-import { useService } from '../../platform/services/hooks';
-import { CommandServiceId, ContextKeyServiceId } from '../../platform/services/ids';
+import { useService, useLayoutVisible } from '../../platform/services/hooks';
+import { CommandServiceId, ContextKeyServiceId, MenuServiceId } from '../../platform/services/ids';
+import { SlotId } from '../../platform/layout/slots';
 import BridgeMark from './BridgeMark';
 import type { WorkbenchMode } from '../hooks/useWorkbenchMode';
 
@@ -67,7 +68,12 @@ export default function TitleBar({
 
   const commands = useService(CommandServiceId);
   const contextKeys = useService(ContextKeyServiceId);
+  const menu = useService(MenuServiceId);
   const cfg = TITLEBAR_SECTIONS[variant];
+
+  const primarySideBarVisible = useLayoutVisible(SlotId.PrimarySideBar);
+  const panelVisible = useLayoutVisible(SlotId.Panel);
+  const auxSideBarVisible = useLayoutVisible(SlotId.AuxSideBar);
 
   useEffect(() => {
     void window.soam.bindCapability('platform.window', '1.0').then(async (p) => {
@@ -81,7 +87,13 @@ export default function TitleBar({
   }, []);
 
   return (
-    <div className="part-titlebar">
+    <div
+      className="part-titlebar"
+      onContextMenu={(e) => {
+        e.preventDefault();
+        menu.showContextMenu({ menuId: 'workbench/title/context', anchor: { x: e.clientX, y: e.clientY } });
+      }}
+    >
       {/* App icon — cane suspension bridge */}
       <div className="tb-app" title="Ru-Soam">
         <BridgeMark size={32} />
@@ -145,25 +157,28 @@ export default function TitleBar({
         {cfg.panelToggles && (
           <>
             <button
-              className="tb-icon-btn"
+              className={`tb-icon-btn${primarySideBarVisible ? ' is-active' : ''}`}
               title="Toggle Primary Side Bar"
               aria-label="Toggle Primary Side Bar"
+              aria-pressed={primarySideBarVisible}
               onClick={() => void commands.execute('workbench.togglePrimarySideBar')}
             >
               <PanelLeft size={14} />
             </button>
             <button
-              className="tb-icon-btn"
+              className={`tb-icon-btn${panelVisible ? ' is-active' : ''}`}
               title="Toggle Panel"
               aria-label="Toggle Panel"
+              aria-pressed={panelVisible}
               onClick={() => void commands.execute('workbench.togglePanel')}
             >
               <PanelBottom size={14} />
             </button>
             <button
-              className="tb-icon-btn"
+              className={`tb-icon-btn${auxSideBarVisible ? ' is-active' : ''}`}
               title="Toggle Auxiliary Side Bar"
               aria-label="Toggle Auxiliary Side Bar"
+              aria-pressed={auxSideBarVisible}
               onClick={() => void commands.execute('workbench.toggleAuxSideBar')}
             >
               <PanelRight size={14} />
