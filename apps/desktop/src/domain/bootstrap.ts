@@ -21,19 +21,50 @@ export function domainBootstrap(registry: ServiceRegistry): void {
     deleteWarningAddendum: DELETE_WARNING_ADDENDUM,
   });
 
+  // Shared helper — mutates patient status via the Main-resident record.patient cap.
+  // ctx is the menu context forwarded from the roster iframe (untrusted shape).
+  // PHI never enters Bundle Host (ADR-410/504); cap call goes through window.soam only.
+  async function setPatientStatus(ctx: unknown, status: 'active' | 'inactive' | 'archived'): Promise<void> {
+    const clientId = (ctx as Record<string, unknown>)?.clientId;
+    if (typeof clientId !== 'string' || clientId.length === 0) {
+      console.warn('[practice] setStatus: missing or invalid clientId in ctx', ctx);
+      return;
+    }
+    const proxy = await window.soam.bindCapability('record.patient', '1.0');
+    try {
+      await proxy.call('setStatus', clientId, status);
+    } catch (err) {
+      console.error('[practice] setStatus failed:', err);
+    } finally {
+      proxy.dispose();
+    }
+  }
+
+  const commands = registry.get(CommandServiceId);
+  commands.register(
+    'ru-soam-practice.roster.setActive',
+    'Set Active',
+    (ctx: unknown) => setPatientStatus(ctx, 'active'),
+    { category: 'Practice' },
+  );
+  commands.register(
+    'ru-soam-practice.roster.setInactive',
+    'Set Inactive',
+    (ctx: unknown) => setPatientStatus(ctx, 'inactive'),
+    { category: 'Practice' },
+  );
+  commands.register(
+    'ru-soam-practice.roster.archive',
+    'Archive Client',
+    (ctx: unknown) => setPatientStatus(ctx, 'archived'),
+    { category: 'Practice' },
+  );
+
   // Wire editor active-instance changes → patient.activeId / record.activeId context keys.
   // Reads entityId from the active EditorInstance (set by EditorService.open({entityId})).
   // These are domain-reserved keys (ADR-407); only domain code may write them.
   // The base shell Parts (AuxSideBar, Panel) read them generically via record.activeId.
   // ADR-106: domain code owns the mapping; base shell stays domain-free.
-  const commands = registry.get(CommandServiceId);
-  commands.register(
-    'ru-soam-practice.roster.reveal',
-    'Reveal Client',
-    (clientId: unknown) => { console.log('[practice] roster context action: reveal', clientId); },
-    { category: 'Practice' },
-  );
-
   const contextKeys = registry.get(ContextKeyServiceId);
   const editor = registry.get(EditorServiceId);
 
