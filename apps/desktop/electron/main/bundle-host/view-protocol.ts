@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { net, protocol } from 'electron';
 import type { DiscoveredBundle } from './manifest';
 import { VIEW_BRIDGE_SOURCE } from './view-bridge';
+import { VIEW_CODICONS_SOURCE } from './view-codicons';
 
 /**
  * `view://` protocol handler per ADR-411 (Phase 7 trimmed scope).
@@ -13,6 +14,8 @@ import { VIEW_BRIDGE_SOURCE } from './view-bridge';
  * Two responder branches:
  *   - `view://_platform_/bridge.js` — fixed bridge script (auto-injected into
  *     every HTML response). Reserved bundleId, never collides with a real one.
+ *   - `view://_platform_/codicons.js` — platform-owned inline-SVG codicon
+ *     helper (auto-injected after bridge.js into every HTML response).
  *   - `view://<bundleId>/...` — files under the bundle's `view-assets/` dir.
  *     HTML responses get the bridge `<script>` tag and a strict CSP injected.
  *     Other extensions are served as-is via `net.fetch`.
@@ -79,14 +82,25 @@ export function viewUrlFor(bundleId: string, viewId: string): string | undefined
   return `view://${bundleId}/${relPath}`;
 }
 
+// Bridge + codicons are injected INLINE (not `<script src="view://_platform_/…">`).
+// A sandboxed iframe without `allow-same-origin` has an opaque origin; a
+// cross-origin subresource fetch to `view://_platform_/…` is intermittently
+// blocked by Blink's canDisplay check ("Unsafe attempt to load URL … Domains,
+// protocols and ports must match"). When codicons.js fails to load, every view
+// that calls `window.codicon(…)` at module top-level throws and renders blank.
+// Inlining (allowed by VIEW_CSP `script-src 'unsafe-inline'`) removes the fetch
+// entirely → deterministic, always available before the page's own body script.
+// Both sources are verified free of any `</script` sequence (would break out of
+// the inline tag), so no escaping is required.
 function injectBridgeAndCsp(html: string): string {
-  const bridgeTag = '<script src="view://_platform_/bridge.js"></script>';
+  const bridgeTag = `<script>${VIEW_BRIDGE_SOURCE}</script>`;
+  const codiconsTag = `<script>${VIEW_CODICONS_SOURCE}</script>`;
   const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${VIEW_CSP}">`;
   const headOpen = /<head\b[^>]*>/i;
   if (headOpen.test(html)) {
-    return html.replace(headOpen, (m) => `${m}\n${cspMeta}\n${bridgeTag}`);
+    return html.replace(headOpen, (m) => `${m}\n${cspMeta}\n${bridgeTag}\n${codiconsTag}`);
   }
-  return `${cspMeta}\n${bridgeTag}\n${html}`;
+  return `${cspMeta}\n${bridgeTag}\n${codiconsTag}\n${html}`;
 }
 
 function withinRoot(root: string, target: string): boolean {
@@ -110,6 +124,15 @@ export function registerViewProtocol(): void {
     if (bundleId === RESERVED_PLATFORM_HOST) {
       if (subPath === 'bridge.js') {
         return new Response(VIEW_BRIDGE_SOURCE, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/javascript; charset=utf-8',
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+          },
+        });
+      }
+      if (subPath === 'codicons.js') {
+        return new Response(VIEW_CODICONS_SOURCE, {
           status: 200,
           headers: {
             'Content-Type': 'application/javascript; charset=utf-8',

@@ -131,6 +131,28 @@ async function call(req: Omit<CapabilityCallRequest, 'id'>): Promise<unknown> {
   throw err;
 }
 
+// ── Platform-event multiplexer ──────────────────────────────────────────────────
+//
+// All `*.onChange` / `events.on` subscribers fan out from a SINGLE
+// `ipcRenderer.on(SOAM_EVENT_CHANNEL)` listener. N subscribers add N JS
+// callbacks to the Set but only ever one ipcRenderer listener — this avoids the
+// EventEmitter max-listeners warning (each raw `ipcRenderer.on` counted against
+// the 10-listener default) and keeps teardown exact (Set delete).
+
+const eventSubscribers = new Set<(payload: PlatformEvent) => void>();
+
+ipcRenderer.on(SOAM_EVENT_CHANNEL, (_e: unknown, payload: PlatformEvent) => {
+  // Iterate a snapshot so a listener that unsubscribes during dispatch is safe.
+  for (const sub of [...eventSubscribers]) sub(payload);
+});
+
+function subscribePlatformEvent(listener: (payload: PlatformEvent) => void): () => void {
+  eventSubscribers.add(listener);
+  return () => {
+    eventSubscribers.delete(listener);
+  };
+}
+
 // ── Lock bridge helpers ────────────────────────────────────────────────────────
 
 const lock: SoamLock = {
@@ -163,13 +185,11 @@ const lock: SoamLock = {
     await ipcRenderer.invoke('soam:lock:heartbeat');
   },
   onChange(listener) {
-    const handler = (_e: unknown, payload: PlatformEvent) => {
+    return subscribePlatformEvent((payload) => {
       if (payload.name === 'lock.changed') {
         listener(payload.payload as LockState);
       }
-    };
-    ipcRenderer.on(SOAM_EVENT_CHANNEL, handler);
-    return () => ipcRenderer.removeListener(SOAM_EVENT_CHANNEL, handler);
+    });
   },
 };
 
@@ -214,13 +234,11 @@ const workspace: SoamWorkspace = {
     return ipcRenderer.invoke('soam:workspace:delete', args) as Promise<DeleteWorkspaceResult>;
   },
   onChange(listener) {
-    const handler = (_e: unknown, payload: PlatformEvent) => {
+    return subscribePlatformEvent((payload) => {
       if (payload.name === 'workspace.changed') {
         listener(payload.payload as WorkspaceChangedEvent);
       }
-    };
-    ipcRenderer.on(SOAM_EVENT_CHANNEL, handler);
-    return () => ipcRenderer.removeListener(SOAM_EVENT_CHANNEL, handler);
+    });
   },
 };
 
@@ -243,13 +261,11 @@ const update: SoamUpdate = {
     return call({ capability: 'platform.update', version: '1.0', method: 'getCopyInstallCommand', args: [] }) as Promise<string | null>;
   },
   onChange(listener) {
-    const handler = (_e: unknown, payload: PlatformEvent) => {
+    return subscribePlatformEvent((payload) => {
       if (payload.name === 'platform.update.state-changed') {
         listener(payload.payload as UpdateStateChangedPayload);
       }
-    };
-    ipcRenderer.on(SOAM_EVENT_CHANNEL, handler);
-    return () => ipcRenderer.removeListener(SOAM_EVENT_CHANNEL, handler);
+    });
   },
 };
 
@@ -283,9 +299,7 @@ export const soam: Soam = {
   },
   events: {
     on(listener) {
-      const handler = (_e: unknown, payload: PlatformEvent) => listener(payload);
-      ipcRenderer.on(SOAM_EVENT_CHANNEL, handler);
-      return () => ipcRenderer.removeListener(SOAM_EVENT_CHANNEL, handler);
+      return subscribePlatformEvent(listener);
     },
   },
   lock,

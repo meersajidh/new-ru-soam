@@ -21,6 +21,11 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
   var activateHandlers = new Set();
   var deactivateHandlers = new Set();
   var storeChangeHandlers = new Set();
+  // Track activation state so an onActivate handler registered AFTER the
+  // 'activate' message arrives still fires (the relay sends activate as soon as
+  // the iframe posts view.ready; a view whose script registers its handler
+  // later — e.g. delayed by another head script — would otherwise miss it).
+  var isActive = false;
   var themeSnapshot = {};
   var resolvedReady;
   var ready = new Promise(function (r) { resolvedReady = r; });
@@ -49,9 +54,11 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
         resolvedReady();
         break;
       case 'activate':
+        isActive = true;
         activateHandlers.forEach(function (h) { try { h(); } catch (err) { console.error(err); } });
         break;
       case 'deactivate':
+        isActive = false;
         deactivateHandlers.forEach(function (h) { try { h(); } catch (err) { console.error(err); } });
         break;
       case 'theme':
@@ -99,6 +106,8 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     events: Object.freeze({
       onActivate: function (h) {
         activateHandlers.add(h);
+        // Replay if already active (handler registered after the activate message).
+        if (isActive) { try { h(); } catch (err) { console.error(err); } }
         return { dispose: function () { activateHandlers.delete(h); } };
       },
       onDeactivate: function (h) {
