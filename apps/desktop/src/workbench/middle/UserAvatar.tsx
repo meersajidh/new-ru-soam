@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { HelpCircle, KeyRound, Lock, LogOut } from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import { useContextKey } from '../../platform/services/hooks';
 import { usePopover } from '../../platform/popover/use-popover';
 import Popover from '../../platform/popover/Popover';
@@ -116,7 +116,7 @@ export default function UserAvatar() {
           <div className="user-avatar-menu-group">
             <button className="user-avatar-menu-item" role="menuitem" onClick={handleRelock}>
               <span className="user-avatar-menu-item-icon">
-                <Lock size={14} />
+                <Icon name="lock" size={14} />
               </span>
               <span className="user-avatar-menu-item-label">Lock account</span>
             </button>
@@ -126,7 +126,7 @@ export default function UserAvatar() {
               onClick={handleChangePassphrase}
             >
               <span className="user-avatar-menu-item-icon">
-                <KeyRound size={14} />
+                <Icon name="key" size={14} />
               </span>
               <span className="user-avatar-menu-item-label">Change passphrase</span>
             </button>
@@ -137,7 +137,7 @@ export default function UserAvatar() {
           <div className="user-avatar-menu-group">
             <button className="user-avatar-menu-item" role="menuitem" onClick={handleHelp}>
               <span className="user-avatar-menu-item-icon">
-                <HelpCircle size={14} />
+                <Icon name="help" size={14} />
               </span>
               <span className="user-avatar-menu-item-label">Help / documentation</span>
             </button>
@@ -151,7 +151,7 @@ export default function UserAvatar() {
             onClick={handleSignOut}
           >
             <span className="user-avatar-menu-item-icon">
-              <LogOut size={14} />
+              <Icon name="sign-out" size={14} />
             </span>
             <span className="user-avatar-menu-item-label">Sign out</span>
           </button>

@@ -29,17 +29,7 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import {
-  ShieldAlert,
-  Copy,
-  Download,
-  HelpCircle,
-  Check,
-  ShieldCheck,
-  Lock,
-  ArrowRight,
-  ArrowLeft,
-} from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import { ProgressRail } from './-keys-components';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
@@ -319,7 +309,7 @@ function SetupKeysContent() {
         </FormField>
         <div className="setup-actions">
           <Button variant="ghost" onClick={() => setState((s) => ({ ...s, step: 1 }))}>
-            <ArrowLeft size={14} /> Back
+            <Icon name="arrow-left" size={14} /> Back
           </Button>
           {addNew && (
             <Button
@@ -334,7 +324,7 @@ function SetupKeysContent() {
             onClick={() => setState((s) => ({ ...s, step: 3 }))}
             disabled={!nicknameValid}
           >
-            Next step <ArrowRight size={14} />
+            Next step <Icon name="arrow-right" size={14} />
           </Button>
         </div>
       </div>
@@ -400,7 +390,7 @@ function SetupKeysContent() {
             onClick={() => setState((s) => ({ ...s, step: 2 }))}
             disabled={step3Loading}
           >
-            <ArrowLeft size={14} /> Back
+            <Icon name="arrow-left" size={14} /> Back
           </Button>
           {addNew && (
             <Button
@@ -420,7 +410,7 @@ function SetupKeysContent() {
               'Working…'
             ) : (
               <>
-                Next step <ArrowRight size={14} />
+                Next step <Icon name="arrow-right" size={14} />
               </>
             )}
           </Button>
@@ -437,7 +427,7 @@ function SetupKeysContent() {
         <div className="recovery" role="group" aria-labelledby="rec-warn">
           <div className="recovery-banner">
             <span className="ico">
-              <ShieldAlert size={16} />
+              <Icon name="shield" size={16} />
             </span>
             <div>
               <span id="rec-warn" className="recovery-banner-title">
@@ -464,10 +454,10 @@ function SetupKeysContent() {
             </span>
             <div className="recovery-actions">
               <button className="recovery-btn" onClick={handleCopyRecovery}>
-                <Copy size={13} /> Copy
+                <Icon name="copy" size={13} /> Copy
               </button>
               <button className="recovery-btn" onClick={handleDownloadRecovery}>
-                <Download size={13} /> Download .txt
+                <Icon name="cloud-download" size={13} /> Download .txt
               </button>
             </div>
           </div>
@@ -489,7 +479,7 @@ function SetupKeysContent() {
             onClick={() => setState((s) => ({ ...s, step: 5 }))}
             disabled={!acknowledged}
           >
-            Continue <ArrowRight size={14} />
+            Continue <Icon name="arrow-right" size={14} />
           </Button>
         </div>
       </div>
@@ -500,7 +490,7 @@ function SetupKeysContent() {
     return (
       <div className="setup-step">
         <div className="setup-finish-mark">
-          <Check size={42} strokeWidth={2.5} />
+          <Icon name="check" size={42} />
         </div>
         <h1 className="setup-finish-title">Setup complete</h1>
         <p className="setup-finish-desc">
@@ -523,7 +513,7 @@ function SetupKeysContent() {
               'Finishing…'
             ) : (
               <>
-                Open account <ArrowRight size={14} />
+                Open account <Icon name="arrow-right" size={14} />
               </>
             )}
           </Button>
@@ -538,7 +528,7 @@ function SetupKeysContent() {
         <>
           <Wordmark />
           <button className="setup-help-btn" aria-label="Help">
-            <HelpCircle size={18} />
+            <Icon name="help" size={18} />
           </button>
         </>
       }
@@ -558,7 +548,7 @@ function SetupKeysContent() {
           <div className="setup-trust">
             <div className="setup-trust-badge">
               <span className="ico">
-                <ShieldCheck size={18} />
+                <Icon name="shield-check" size={18} />
               </span>
               <span>
                 <strong>End-to-end encrypted.</strong> Your notes never leave this device
@@ -567,7 +557,7 @@ function SetupKeysContent() {
             </div>
             <div className="setup-trust-badge">
               <span className="ico">
-                <Lock size={18} />
+                <Icon name="lock" size={18} />
               </span>
               <span>
                 <strong>Zero-knowledge.</strong> Only your passphrase can unlock your account.

@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { KeyRound, ArrowRight, CornerDownLeft } from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import { zxcvbn } from '@zxcvbn-ts/core';
 import { useContextKey, useService } from '../../platform/services/hooks';
 import { ProductConfigServiceId } from '../../platform/services/ids';
@@ -334,7 +334,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
           <h2 className="login-modal-title">
             {isResetMode && (
               <span className="login-modal-title__icon" aria-hidden="true">
-                <KeyRound size={20} />
+                <Icon name="key" size={20} />
               </span>
             )}
             {cardTitle}
@@ -405,7 +405,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
                 'Signing in…'
               ) : (
                 <>
-                  Sign in <ArrowRight size={16} aria-hidden="true" />
+                  Sign in <Icon name="arrow-right" size={16} />
                 </>
               )}
             </Button>
@@ -485,7 +485,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
                 'Unlocking…'
               ) : (
                 <>
-                  Sign in <ArrowRight size={16} aria-hidden="true" />
+                  Sign in <Icon name="arrow-right" size={16} />
                 </>
               )}
             </Button>
@@ -616,7 +616,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
             <span className="login-modal-trust__bullet" aria-hidden="true">●</span>
             Local-first · Encrypted
           </span>
-          <CornerDownLeft size={13} aria-hidden="true" className="login-modal-trust__glyph" />
+          <Icon name="newline" size={13} className="login-modal-trust__glyph" />
         </div>
       </div>
     </div>

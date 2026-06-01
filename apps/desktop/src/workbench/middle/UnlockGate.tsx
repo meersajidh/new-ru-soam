@@ -13,7 +13,7 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import { Lock, KeyRound } from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import { useContextKey } from '../../platform/services/hooks';
 import type { UnlockResult, RecoveryUnlockResult } from '../../../electron/shared/lock-protocol';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
@@ -171,12 +171,12 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
           <h2 className="unlock-gate-title">
             {forceResetMode ? (
               <>
-                <KeyRound size={20} />
+                <Icon name="key" size={20} />
                 Set a new passphrase
               </>
             ) : (
               <>
-                <Lock size={20} />
+                <Icon name="lock" size={20} />
                 Account locked
               </>
             )}

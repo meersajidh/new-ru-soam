@@ -16,7 +16,7 @@
       {
         "id": "ru-soam-practice.activity",
         "label": "Practice",
-        "icon": "users",
+        "icon": "files",
         "viewContainer": "ru-soam-practice.container",
         "group": "top",
         "when": "workspace.activeId"

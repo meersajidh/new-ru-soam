@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { X } from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import { useService, useNotifications } from '../../platform/services/hooks';
 import { NotificationServiceId } from '../../platform/services/ids';
 import { SeverityIcon } from './NotificationItem';
@@ -67,7 +67,7 @@ function ToastItem({ notification }: { notification: Notification }) {
         onClick={(e) => { e.stopPropagation(); handleDismiss(); }}
         aria-label="Dismiss"
       >
-        <X size={12} strokeWidth={2} />
+        <Icon name="close" size={12} />
       </button>
     </div>
   );

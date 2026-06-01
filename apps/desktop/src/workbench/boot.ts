@@ -28,6 +28,8 @@ import { installUpdateAlerts } from '../platform/update/update-alerts';
 import { ProductConfigService } from '../platform/product-config/product-config-service';
 import { MenuService } from '../platform/menu/menu-service';
 import { MenuServiceId } from '../platform/services/ids';
+import { ActivityBarDensityService, readPersistedDensity } from '../platform/activity-bar/density-service';
+import { ActivityBarDensityServiceId } from '../platform/services/ids';
 
 const SLOT_TO_CTX_KEY: Partial<Record<SlotId, string>> = {
   [SlotId.PrimarySideBar]: 'sideBar.visible',
@@ -114,6 +116,11 @@ export function boot(): ServiceRegistry {
 
   const font = new FontService(document.documentElement, BUILT_IN_FONT_SETS);
   registry.register(FontServiceId, font);
+
+  // Activity bar density — read localStorage, default 'default', class set in constructor.
+  const initialDensity = readPersistedDensity() ?? 'default';
+  const activityBarDensity = new ActivityBarDensityService(document.documentElement, initialDensity);
+  registry.register(ActivityBarDensityServiceId, activityBarDensity);
 
   const statusBar = new StatusBarService();
   for (const entry of ANCHORED_ENTRIES) statusBar.register(entry);
@@ -304,7 +311,9 @@ export function boot(): ServiceRegistry {
   // ── Dark-mode toggle StatusBar entry ─────────────────────────────────────
   function syncDarkModeEntry(dark: boolean): void {
     statusBar.update('workbench.theme.darkMode', {
-      icon: dark ? 'sun' : 'moon',
+      // Glyph reflects the CURRENT mode (filled = dark), matching the Settings
+      // Light/Dark buttons; tooltip stays action-oriented (what a click does).
+      icon: dark ? 'moon' : 'sun',
       tooltip: dark ? 'Switch to light mode' : 'Switch to dark mode',
     });
   }

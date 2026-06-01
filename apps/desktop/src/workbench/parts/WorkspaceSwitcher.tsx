@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Briefcase, Check, ChevronUp } from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import type { StatusBarEntry } from '../../platform/statusbar/statusbar-service';
 import type { WorkspaceMeta } from '../../../electron/shared/lock-protocol';
 import { usePopover } from '../../platform/popover/use-popover';
@@ -162,7 +162,7 @@ export default function WorkspaceSwitcher({ entry }: WorkspaceSwitcherProps) {
   if (workspaces.length <= 1) {
     return (
       <span className={entryClassName} title={entry.tooltip}>
-        <Briefcase size={entry.iconSize ?? 13} aria-hidden="true" />
+        <Icon name="briefcase" size={entry.iconSize ?? 13} />
         {entry.text && <span>{entry.text}</span>}
       </span>
     );
@@ -187,13 +187,9 @@ export default function WorkspaceSwitcher({ entry }: WorkspaceSwitcherProps) {
         aria-expanded={popover.isOpen}
         disabled={switching}
       >
-        <Briefcase size={entry.iconSize ?? 13} aria-hidden="true" />
+        <Icon name="briefcase" size={entry.iconSize ?? 13} />
         {entry.text && <span>{entry.text}</span>}
-        <ChevronUp
-          size={10}
-          className="workspace-switcher__chevron"
-          aria-hidden="true"
-        />
+        <Icon name="chevron-up" size={10} className="workspace-switcher__chevron" />
       </button>
 
       <Popover
@@ -232,7 +228,7 @@ export default function WorkspaceSwitcher({ entry }: WorkspaceSwitcherProps) {
                 onClick={() => void selectWorkspace(ws.workspaceId)}
               >
                 <span className="workspace-switcher__option-check" aria-hidden="true">
-                  {isCurrent && <Check size={11} strokeWidth={2.5} />}
+                  {isCurrent && <Icon name="check" size={11} />}
                 </span>
                 <span className="workspace-switcher__option-label">{ws.nickname}</span>
               </li>

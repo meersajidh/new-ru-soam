@@ -6,6 +6,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  padding: 10px 0;
   -webkit-app-region: no-drag;
 }
 
@@ -230,8 +231,7 @@
   @apply text-error text-sm rounded-lg px-2.5 py-1.5;
   cursor: pointer;
   text-align: left;
-  transition:
-    background 0.12s;
+  transition: background 0.12s;
 }
 
 .settings-danger-btn:hover {

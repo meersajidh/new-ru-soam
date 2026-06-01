@@ -9,7 +9,7 @@
   flex-direction: column;
   align-items: stretch;
   justify-content: space-between;
-  padding: 8px 0 10px;
+  padding: 0 0 10px;
   overflow: visible;
 }
 
@@ -44,7 +44,9 @@
   background: transparent;
   color: var(--color-fg-muted);
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
   outline: none;
   flex-shrink: 0;
 }
@@ -59,25 +61,57 @@
   color: var(--color-fg-secondary);
 }
 
+/* Active item: neutral light/dark fill (NOT accent-filled), full-strength icon —
+   the accent reads only on the prominent left-edge bar (VS Code activity-bar style). */
 .activitybar-item--active {
-  color: var(--color-accent);
-  background: var(--color-tint-accent-subtle);
+  color: var(--color-fg-primary);
+  /* background: var(--color-surface-active); */
 }
 
 .activitybar-item--active:hover {
-  background: var(--color-tint-accent-soft);
-  color: var(--color-accent-hover);
+  background: var(--color-surface-active);
+  color: var(--color-fg-primary);
 }
 
-/* Active indicator — left-edge pip */
+/* Active indicator — full-height accent bar flush to the activity-bar's left
+   edge (VS Code style). Height tracks the item, so it scales with density. */
 .activitybar-item--active::before {
   content: '';
   position: absolute;
   left: -6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 18px;
-  border-radius: 0 2px 2px 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 0 1px 1px 0;
   background: var(--color-accent);
+}
+
+/* ── Density overrides ────────────────────────────────────────────────────── */
+
+/* Compact: 30px items, tighter gaps */
+.actbar-density-compact .activitybar-item {
+  width: 30px;
+  height: 30px;
+}
+
+.actbar-density-compact .activitybar-top {
+  gap: 1px;
+}
+
+.actbar-density-compact .activitybar-bottom {
+  gap: 4px;
+}
+
+/* Large: 44px items, wider gaps */
+.actbar-density-large .activitybar-item {
+  width: 44px;
+  height: 44px;
+}
+
+.actbar-density-large .activitybar-top {
+  gap: 4px;
+}
+
+.actbar-density-large .activitybar-bottom {
+  gap: 8px;
 }

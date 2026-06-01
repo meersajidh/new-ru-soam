@@ -6,7 +6,7 @@
  */
 
 import './-keys-components.css';
-import { Check } from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import { STEPS, STEP_HEADLINES } from './-keys-constants';
 
 export { STEPS, STEP_HEADLINES };
@@ -42,7 +42,7 @@ export function ProgressRail({ step }: { step: number }) {
             >
               <div className="step-node">
                 {n < step ? (
-                  <Check size={13} strokeWidth={3} />
+                  <Icon name="check" size={13} />
                 ) : (
                   String(n).padStart(2, '0')
                 )}

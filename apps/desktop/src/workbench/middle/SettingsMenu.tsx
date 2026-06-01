@@ -9,11 +9,16 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Moon, Settings, Sun, Trash2 } from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import { useContextKey, useService } from '../../platform/services/hooks';
-import { FontServiceId, ThemeServiceId } from '../../platform/services/ids';
+import {
+  ActivityBarDensityServiceId,
+  FontServiceId,
+  ThemeServiceId,
+} from '../../platform/services/ids';
 import type { FontSetDescriptor } from '../../platform/font/font-service';
 import type { ThemeDescriptor } from '../../platform/theme/tokens';
+import type { Density } from '../../platform/activity-bar/density-service';
 import { usePopover } from '../../platform/popover/use-popover';
 import Popover from '../../platform/popover/Popover';
 import DeleteWorkspaceDialog from './DeleteWorkspaceDialog';
@@ -26,6 +31,7 @@ export default function SettingsMenu() {
 
   const themeSvc = useService(ThemeServiceId);
   const fontSvc = useService(FontServiceId);
+  const densitySvc = useService(ActivityBarDensityServiceId);
 
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
 
@@ -35,6 +41,7 @@ export default function SettingsMenu() {
   const [dark, setDark] = useState<boolean>(() => themeSvc.isDark());
   const [fontSets, setFontSets] = useState<FontSetDescriptor[]>(() => fontSvc.list());
   const [activeFont, setActiveFont] = useState<FontSetDescriptor>(() => fontSvc.getActive());
+  const [density, setDensity] = useState<Density>(() => densitySvc.getDensity());
 
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -45,7 +52,7 @@ export default function SettingsMenu() {
     estimatedHeight: 360,
   });
 
-  // Subscribe to theme/dark/font changes.
+  // Subscribe to theme/dark/font/density changes.
   useEffect(() => {
     const offTheme = themeSvc.onThemeChange((t) => {
       setActiveTheme(t);
@@ -56,12 +63,14 @@ export default function SettingsMenu() {
       setActiveFont(fs);
       setFontSets(fontSvc.list());
     });
+    const offDensity = densitySvc.onDidChangeDensity(setDensity);
     return () => {
       offTheme();
       offDark();
       offFont();
+      offDensity();
     };
-  }, [themeSvc, fontSvc]);
+  }, [themeSvc, fontSvc, densitySvc]);
 
   if (kekLocked || !setupComplete) return null;
 
@@ -76,7 +85,7 @@ export default function SettingsMenu() {
           aria-expanded={popover.isOpen}
           title="Settings"
         >
-          <Settings size={16} strokeWidth={1.8} />
+          <Icon name="settings" size={20} />
         </button>
 
         <Popover
@@ -106,7 +115,7 @@ export default function SettingsMenu() {
                 role="menuitem"
                 aria-pressed={!dark}
               >
-                <Sun size={13} strokeWidth={1.8} />
+                <Icon name="theme-light" size={13} />
                 Light
               </button>
               <button
@@ -116,7 +125,7 @@ export default function SettingsMenu() {
                 role="menuitem"
                 aria-pressed={dark}
               >
-                <Moon size={13} strokeWidth={1.8} />
+                <Icon name="theme-dark" size={13} />
                 Dark
               </button>
             </div>
@@ -156,15 +165,30 @@ export default function SettingsMenu() {
                 </button>
               ))}
             </div>
+
+            {/* Activity bar density */}
+            <div className="settings-subsection-label">Activity Bar</div>
+            <div className="settings-mode-row">
+              {(['compact', 'default', 'large'] as const).map((d) => (
+                <button
+                  key={d}
+                  className="settings-mode-btn"
+                  data-active={density === d || undefined}
+                  onClick={() => densitySvc.setDensity(d)}
+                  role="menuitemradio"
+                  aria-checked={density === d}
+                >
+                  {d.charAt(0).toUpperCase() + d.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="settings-popover-divider" aria-hidden="true" />
 
           {/* ── Danger Zone ─────────────────────────────────────────────── */}
           <div className="settings-section">
-            <div className="settings-section-label settings-section-label--danger">
-              Danger Zone
-            </div>
+            <div className="settings-section-label settings-section-label--danger">Danger Zone</div>
             <button
               className="settings-danger-btn"
               role="menuitem"
@@ -174,7 +198,7 @@ export default function SettingsMenu() {
               }}
             >
               <span className="settings-danger-icon">
-                <Trash2 size={13} strokeWidth={1.8} />
+                <Icon name="trash" size={13} />
               </span>
               Delete account…
             </button>
@@ -183,10 +207,7 @@ export default function SettingsMenu() {
       </div>
 
       {showDeleteAccount && (
-        <DeleteWorkspaceDialog
-          nickname={nickname}
-          onClose={() => setShowDeleteAccount(false)}
-        />
+        <DeleteWorkspaceDialog nickname={nickname} onClose={() => setShowDeleteAccount(false)} />
       )}
     </>
   );

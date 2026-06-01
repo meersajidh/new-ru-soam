@@ -2,7 +2,7 @@
 
 import './PasswordInput.css';
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Icon } from '../icons/Icon';
 import { TextInput } from '../ui/TextInput';
 
 interface PasswordInputProps {
@@ -50,7 +50,7 @@ export default function PasswordInput({
         aria-label={show ? 'Hide passphrase' : 'Show passphrase'}
         aria-pressed={show}
       >
-        {show ? <EyeOff size={16} /> : <Eye size={16} />}
+        {show ? <Icon name="eye-off" size={16} /> : <Icon name="eye" size={16} />}
       </button>
     </div>
   );

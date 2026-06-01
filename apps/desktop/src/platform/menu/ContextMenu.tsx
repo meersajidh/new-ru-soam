@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check } from 'lucide-react';
+import { Icon } from '../icons/Icon';
 import type { ResolvedMenuItem } from './menu-service';
 import { usePopover } from '../popover/use-popover';
 import './ContextMenu.css';
@@ -121,7 +121,7 @@ export default function ContextMenu({ items, x, y, onSelect, onDismiss }: Props)
             onMouseLeave={() => setActiveIdx(-1)}
           >
             <span className="context-menu__check" aria-hidden="true">
-              {item.checked && <Check size={12} strokeWidth={2.5} />}
+              {item.checked && <Icon name="check" size={12} />}
             </span>
             <span className="context-menu__label">{item.title}</span>
           </button>

@@ -1,17 +1,6 @@
 import './TitleBar.css';
 import { useState, useEffect, useRef } from 'react';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Search,
-  ChevronDown,
-  PanelLeft,
-  PanelBottom,
-  PanelRight,
-  Minus,
-  Square,
-  X,
-} from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 import { useService, useLayoutVisible } from '../../platform/services/hooks';
 import { CommandServiceId, ContextKeyServiceId, MenuServiceId } from '../../platform/services/ids';
@@ -122,10 +111,10 @@ export default function TitleBar({
       {cfg.nav && (
         <div className="tb-nav">
           <button className="tb-icon-btn" aria-label="Go back" title="Back">
-            <ArrowLeft size={14} />
+            <Icon name="arrow-left" size={14} />
           </button>
           <button className="tb-icon-btn" aria-label="Go forward" title="Forward" disabled>
-            <ArrowRight size={14} />
+            <Icon name="arrow-right" size={14} />
           </button>
         </div>
       )}
@@ -139,12 +128,12 @@ export default function TitleBar({
           aria-label="Quick open"
         >
           <span className="lead">
-            <Search size={13} />
+            <Icon name="search" size={13} />
           </span>
           <span className="label">{activeResource}</span>
           <span className="meta">⌘P</span>
           <span className="trail">
-            <ChevronDown size={12} />
+            <Icon name="chevron-down" size={12} />
           </span>
         </button>
       )}
@@ -163,7 +152,7 @@ export default function TitleBar({
               aria-pressed={primarySideBarVisible}
               onClick={() => void commands.execute('workbench.togglePrimarySideBar')}
             >
-              <PanelLeft size={14} />
+              <Icon name="panel-left" size={14} />
             </button>
             <button
               className={`tb-icon-btn${panelVisible ? ' is-active' : ''}`}
@@ -172,7 +161,7 @@ export default function TitleBar({
               aria-pressed={panelVisible}
               onClick={() => void commands.execute('workbench.togglePanel')}
             >
-              <PanelBottom size={14} />
+              <Icon name="panel-bottom" size={14} />
             </button>
             <button
               className={`tb-icon-btn${auxSideBarVisible ? ' is-active' : ''}`}
@@ -181,7 +170,7 @@ export default function TitleBar({
               aria-pressed={auxSideBarVisible}
               onClick={() => void commands.execute('workbench.toggleAuxSideBar')}
             >
-              <PanelRight size={14} />
+              <Icon name="panel-right" size={14} />
             </button>
           </>
         )}
@@ -192,21 +181,21 @@ export default function TitleBar({
             aria-label="Minimize"
             onClick={() => void proxy.current?.call('minimize')}
           >
-            <Minus size={12} />
+            <Icon name="window-minimize" size={12} />
           </button>
           <button
             className="tb-win-btn"
             aria-label={maximized ? 'Restore' : 'Maximize'}
             onClick={() => void proxy.current?.call('toggleMaximize')}
           >
-            <Square size={10} />
+            <Icon name="window-maximize" size={10} />
           </button>
           <button
             className="tb-win-btn tb-win-btn--close"
             aria-label="Close"
             onClick={() => void proxy.current?.call('close')}
           >
-            <X size={12} />
+            <Icon name="window-close" size={12} />
           </button>
         </div>
       </div>

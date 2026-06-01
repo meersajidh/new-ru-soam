@@ -1,14 +1,13 @@
-import { X, AlertCircle, AlertTriangle, CheckCircle2, Info, BellRing } from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import type { Notification, Severity } from '../../platform/notification/notification-service';
 
 export function SeverityIcon({ severity, size = 14 }: { severity: Severity; size?: number }) {
-  const props = { size, strokeWidth: 2 } as const;
   switch (severity) {
-    case 'error':   return <AlertCircle {...props} />;
-    case 'warning': return <AlertTriangle {...props} />;
-    case 'success': return <CheckCircle2 {...props} />;
-    case 'info':    return <Info {...props} />;
-    case 'alarm':   return <BellRing {...props} />;
+    case 'error':   return <Icon name="error" size={size} />;
+    case 'warning': return <Icon name="warning" size={size} />;
+    case 'success': return <Icon name="pass" size={size} />;
+    case 'info':    return <Icon name="info" size={size} />;
+    case 'alarm':   return <Icon name="bell-dot" size={size} />;
   }
 }
 
@@ -67,7 +66,7 @@ export function NotificationItem({ notification, onDismiss, onMarkRead }: Props)
         onClick={(e) => { e.stopPropagation(); onDismiss(); }}
         aria-label="Dismiss notification"
       >
-        <X size={12} strokeWidth={2} />
+        <Icon name="close" size={12} />
       </button>
     </div>
   );

@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useId, useRef, useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { Icon } from '../icons/Icon';
 import { usePopover } from './use-popover';
 import Popover from './Popover';
 import './Select.css';
@@ -187,11 +187,7 @@ export default function Select({
         <span className="select__trigger-value">
           {selectedItem?.label ?? placeholder}
         </span>
-        <ChevronDown
-          size={14}
-          className="select__trigger-chevron"
-          aria-hidden="true"
-        />
+        <Icon name="chevron-down" size={14} className="select__trigger-chevron" />
       </button>
 
       <Popover
@@ -230,7 +226,7 @@ export default function Select({
               onClick={() => commitItem(idx)}
             >
               <span className="select__option-check" aria-hidden="true">
-                {item.id === value && <Check size={12} strokeWidth={2.5} />}
+                {item.id === value && <Icon name="check" size={12} />}
               </span>
               <span className="select__option-body">
                 <span className="select__option-label">{item.label}</span>

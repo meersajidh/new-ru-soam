@@ -1,55 +1,28 @@
 import './StatusBar.css';
-import { createElement } from 'react';
-import {
-  Lock,
-  Unlock,
-  Briefcase,
-  Hash,
-  Check,
-  Bell,
-  TriangleAlert,
-  Dot,
-  CircleAlert,
-  Info,
-  Cloud,
-  CircleDot,
-  Moon,
-  Sun,
-  Download,
-  type LucideProps,
-} from 'lucide-react';
+import { Icon } from '../../platform/icons/Icon';
 import { useStatusBarEntries, useService } from '../../platform/services/hooks';
 import { CommandServiceId } from '../../platform/services/ids';
 import type { StatusBarEntry } from '../../platform/statusbar/statusbar-service';
 import type { WorkbenchMode } from '../hooks/useWorkbenchMode';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
 
-type LucideComponent = React.ComponentType<LucideProps>;
-
-const ICON_MAP: Record<string, LucideComponent> = {
-  lock: Lock,
-  unlock: Unlock,
-  briefcase: Briefcase,
-  hash: Hash,
-  check: Check,
-  bell: Bell,
-  'triangle-alert': TriangleAlert,
-  dot: Dot,
-  'circle-alert': CircleAlert,
-  info: Info,
-  cloud: Cloud,
-  'circle-dot': CircleDot,
-  moon: Moon,
-  sun: Sun,
-  download: Download,
+// StatusBar icon key → semantic icon id mapping.
+// Keys are the string ids contributed by platform-commands (StatusBarEntry.icon).
+// Remap where the StatusBar's contributed key differs from the registry semantic id.
+const STATUS_ICON_REMAP: Record<string, string> = {
+  'triangle-alert': 'warning',
+  'circle-alert': 'error',
+  moon: 'theme-dark',
+  sun: 'theme-light',
+  download: 'cloud-download',
 };
 
 function renderIcon(entry: StatusBarEntry): React.ReactNode {
   const { icon: name, iconSize = 13 } = entry;
   if (!name) return null;
-  const Comp = ICON_MAP[name];
-  if (!Comp) return null;
-  return createElement(Comp, { size: iconSize });
+  // Remap StatusBar-specific key names to registry semantic ids; fall through 1:1 if not remapped.
+  const semanticId = STATUS_ICON_REMAP[name] ?? name;
+  return <Icon name={semanticId} size={iconSize} />;
 }
 
 function severityClass(severity: StatusBarEntry['severity']): string {

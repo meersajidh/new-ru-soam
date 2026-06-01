@@ -14,6 +14,7 @@ import type { INotificationService } from '../notification/notification-service'
 import type { IProductConfigService } from '../product-config/product-config-service';
 import type { IContributionService } from '../contributions/contribution-service';
 import type { IMenuService } from '../menu/menu-service';
+import type { IActivityBarDensityService } from '../activity-bar/density-service';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -57,5 +58,8 @@ export const ContributionServiceId = serviceId<IContributionService>('workbench.
 
 // ADR-417: menu + context-menu primitive
 export const MenuServiceId = serviceId<IMenuService>('workbench.menu');
+
+// Activity bar density (appearance axis, mirrors FontServiceId pattern)
+export const ActivityBarDensityServiceId = serviceId<IActivityBarDensityService>('workbench.activityBarDensity');
 
 export const RegistryContext = createContext<ServiceRegistry | null>(null);
