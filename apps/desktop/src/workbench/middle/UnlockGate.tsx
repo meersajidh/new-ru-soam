@@ -80,7 +80,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
         const mins = Math.ceil((result.backoffUntilMs - Date.now()) / 60_000);
         setUnlockError(`Too many attempts. Try again in ${mins} minute${mins === 1 ? '' : 's'}.`);
       } else if (result.code === 'not-set-up') {
-        setUnlockError('Workspace not set up. Please complete setup.');
+        setUnlockError('Account not set up. Please complete setup.');
       } else {
         setUnlockError('Unlock failed. Please try again.');
       }
@@ -123,7 +123,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
       if (result.code === 'bad-recovery-code') {
         setRecoveryError('Recovery code is incorrect. Please check every word and try again.');
       } else {
-        setRecoveryError('Workspace not set up. Please complete setup.');
+        setRecoveryError('Account not set up. Please complete setup.');
       }
     } catch (err) {
       setRecoveryError(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -177,7 +177,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
             ) : (
               <>
                 <Lock size={20} />
-                Workspace locked
+                Account locked
               </>
             )}
           </h2>
@@ -279,7 +279,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
           <form className="unlock-gate-form" onSubmit={handleResetPassphrase}>
             <p className="t-description max-w-[48ch] mb-2">
               {forceResetMode
-                ? 'Your workspace was unlocked with a recovery code. Set a new passphrase to continue.'
+                ? 'Your account was unlocked with a recovery code. Set a new passphrase to continue.'
                 : 'Recovery successful. Set a new passphrase to continue.'}
             </p>
             <FormField label="New passphrase" htmlFor="new-passphrase">

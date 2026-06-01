@@ -7,7 +7,13 @@
   width: 100%;
 }
 
-/* Trigger mirrors .text-input so it sits flush with the passphrase field */
+/* Make Select's root div fill the container */
+.account-select .select-root {
+  width: 100%;
+}
+
+/* Trigger mirrors .text-input so it sits flush with the passphrase field.
+   Applied via className="account-select__trigger" on <Select>. */
 .account-select__trigger {
   width: 100%;
   display: flex;
@@ -40,71 +46,4 @@
     0 0 calc(24px * var(--glow-mul))
       color-mix(in oklch, var(--color-accent) calc(28% * var(--glow-mul)), transparent);
   @apply bg-surface-input-focus;
-}
-
-.account-select__value {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.account-select__chevron {
-  @apply text-fg-muted;
-  flex-shrink: 0;
-  transition: transform 0.15s ease;
-}
-
-.account-select__trigger[aria-expanded='true'] .account-select__chevron {
-  transform: rotate(180deg);
-}
-
-/* ── Popover list ── */
-
-.account-select__list {
-  position: absolute;
-  z-index: 10;
-  top: calc(100% + 0.375rem);
-  left: 0;
-  right: 0;
-  margin: 0;
-  padding: 0.25rem;
-  list-style: none;
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  box-shadow: var(--shadow-overlay);
-  max-height: 14rem;
-  overflow-y: auto;
-  outline: none;
-}
-
-.account-select__option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  @apply text-fg-secondary text-sm;
-  border-radius: 7px;
-  padding: 0.5rem 0.625rem;
-  cursor: pointer;
-}
-
-.account-select__option[data-active='true'] {
-  background: var(--color-tint-neutral-soft);
-  @apply text-fg-primary;
-}
-
-.account-select__option[aria-selected='true'] {
-  @apply text-fg-primary;
-}
-
-.account-select__option-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.account-select__check {
-  @apply text-accent;
-  flex-shrink: 0;
 }

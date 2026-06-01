@@ -22,6 +22,7 @@ import { useStatusBarEntries, useService } from '../../platform/services/hooks';
 import { CommandServiceId } from '../../platform/services/ids';
 import type { StatusBarEntry } from '../../platform/statusbar/statusbar-service';
 import type { WorkbenchMode } from '../hooks/useWorkbenchMode';
+import WorkspaceSwitcher from './WorkspaceSwitcher';
 
 type LucideComponent = React.ComponentType<LucideProps>;
 
@@ -144,6 +145,8 @@ export default function StatusBar({ variant = 'workspace' }: StatusBarProps = {}
         {leftItems.map((item, idx) =>
           item === 'divider' ? (
             <span key={`div-${idx}`} className="sb-divider" aria-hidden="true" />
+          ) : item.id === 'workbench.workspace.nickname' ? (
+            <WorkspaceSwitcher key={item.id} entry={item} />
           ) : (
             <EntryNode key={item.id} entry={item} onCommand={handleCommand} />
           ),

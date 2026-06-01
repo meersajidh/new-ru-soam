@@ -168,7 +168,7 @@ function SetupKeysContent() {
 
       const setActiveRes = await window.soam.workspace.setActive(workspaceId);
       if (!setActiveRes.ok) {
-        setPassphraseError('Failed to activate workspace. Please try again.');
+        setPassphraseError('Failed to activate account. Please try again.');
         return;
       }
 
@@ -176,7 +176,7 @@ function SetupKeysContent() {
       if (!genRes.ok) {
         setPassphraseError(
           genRes.code === 'no-active-workspace'
-            ? 'No active workspace. Please restart setup.'
+            ? 'No active account. Please restart setup.'
             : 'Setup already complete. Please restart.',
         );
         return;
@@ -267,11 +267,11 @@ function SetupKeysContent() {
   function renderStep1() {
     return (
       <div className="setup-step">
-        <h1 className="t-h2 font-display">{addNew ? 'Add a new workspace' : 'Welcome to Ru-Soam'}</h1>
+        <h1 className="t-h2 font-display">{addNew ? 'Add a new account' : 'Welcome to Ru-Soam'}</h1>
         <p className="t-description max-w-[48ch]">
           {addNew
-            ? 'Sign in to create an additional workspace. Your data stays on this device — encrypted end-to-end by a passphrase only you hold.'
-            : 'Create your secure workspace. Your data stays on this device — encrypted end-to-end by a passphrase only you hold.'}
+            ? 'Sign in to create an additional account. Your data stays on this device — encrypted end-to-end by a passphrase only you hold.'
+            : 'Create your secure account. Your data stays on this device — encrypted end-to-end by a passphrase only you hold.'}
         </p>
         <button
           className="btn-google setup-btn-google"
@@ -300,7 +300,7 @@ function SetupKeysContent() {
       <div className="setup-step">
         <h1 className="t-h2 font-display">Choose a nickname</h1>
         <p className="t-description max-w-[48ch]">
-          This is a local label for this workspace. It is not shared with anyone.
+          This is a local label for this account. It is not shared with anyone.
         </p>
         <FormField
           label="Nickname"
@@ -444,7 +444,7 @@ function SetupKeysContent() {
                 Sensitive · Write down once
               </span>
               <span className="recovery-banner-body">
-                These 12 words are the <strong>only</strong> way to recover this workspace. Anyone
+                These 12 words are the <strong>only</strong> way to recover this account. Anyone
                 with them can decrypt every note. Store them offline — never in email, screenshots,
                 or chat.
               </span>
@@ -504,7 +504,7 @@ function SetupKeysContent() {
         </div>
         <h1 className="setup-finish-title">Setup complete</h1>
         <p className="setup-finish-desc">
-          Your workspace <strong>{state.nickname || 'Practice'}</strong> is ready. Everything you
+          Your account <strong>{state.nickname || 'Practice'}</strong> is ready. Everything you
           write here is encrypted on this device and never leaves it without your passphrase.
         </p>
         {finishError && <p className="text-xs text-error m-0 flex items-center gap-1.5">{finishError}</p>}
@@ -523,7 +523,7 @@ function SetupKeysContent() {
               'Finishing…'
             ) : (
               <>
-                Open workspace <ArrowRight size={14} />
+                Open account <ArrowRight size={14} />
               </>
             )}
           </Button>
@@ -570,7 +570,7 @@ function SetupKeysContent() {
                 <Lock size={18} />
               </span>
               <span>
-                <strong>Zero-knowledge.</strong> Only your passphrase can unlock the workspace.
+                <strong>Zero-knowledge.</strong> Only your passphrase can unlock your account.
               </span>
             </div>
           </div>

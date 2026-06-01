@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check } from 'lucide-react';
 import type { ResolvedMenuItem } from './menu-service';
+import { usePopover } from '../popover/use-popover';
 import './ContextMenu.css';
 
 interface Props {
@@ -17,50 +18,40 @@ const ITEM_HEIGHT = 28;
 const SEPARATOR_HEIGHT = 9; // 1px rule + 0.25rem margin top/bottom (see ContextMenu.css)
 const PADDING_V = 6;
 
-function clampPosition(
-  x: number,
-  y: number,
-  itemCount: number,
-  separatorCount: number,
-): { left: number; top: number } {
-  const menuH = itemCount * ITEM_HEIGHT + separatorCount * SEPARATOR_HEIGHT + PADDING_V * 2;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const left = x + MENU_WIDTH > vw ? Math.max(0, vw - MENU_WIDTH - 4) : x;
-  const top = y + menuH > vh ? Math.max(0, y - menuH) : y;
-  return { left, top };
-}
-
 export default function ContextMenu({ items, x, y, onSelect, onDismiss }: Props) {
-  const menuRef = useRef<HTMLUListElement>(null);
+  const menuRef = useRef<HTMLUListElement | null>(null);
   const [activeIdx, setActiveIdx] = useState<number>(-1);
-  const prevFocusRef = useRef<Element | null>(null);
 
-  // Remember focused element so we can restore on close
+  const separatorCount = items.filter((it, i) => it.firstInGroup && i !== 0).length;
+  const menuH = items.length * ITEM_HEIGHT + separatorCount * SEPARATOR_HEIGHT + PADDING_V * 2;
+
+  // Delegate shared mechanics (outside-click, Esc, focus capture/restore,
+  // viewport clamp + edge-flip) to usePopover.
+  const popover = usePopover({
+    estimatedWidth: MENU_WIDTH,
+    estimatedHeight: menuH,
+    edgeMargin: 4,
+    onClose: onDismiss,
+  });
+
+  // Wire menuRef into hook's element tracking via callback ref
+  const setMenuRef = (el: HTMLUListElement | null) => {
+    menuRef.current = el;
+    popover.setPopoverElement(el);
+  };
+
+  // Open popover at coords once on mount
   useEffect(() => {
-    prevFocusRef.current = document.activeElement;
-    menuRef.current?.focus();
-    return () => {
-      const el = prevFocusRef.current;
-      if (el instanceof HTMLElement) el.focus();
-    };
+    popover.open({ x, y });
+    // Only run on mount — coords don't change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Outside-click dismiss
+  // Menu-specific keyboard nav: arrow-nav, type-ahead, Enter commit.
+  // Esc is handled by usePopover (which calls onClose → onDismiss).
   useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onDismiss();
-      }
-    }
-    document.addEventListener('mousedown', handle, true);
-    return () => document.removeEventListener('mousedown', handle, true);
-  }, [onDismiss]);
-
-  // Keyboard navigation
-  useEffect(() => {
+    if (!popover.isOpen) return;
     function handle(e: KeyboardEvent) {
-      if (e.key === 'Escape') { e.preventDefault(); onDismiss(); return; }
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setActiveIdx((i) => (i + 1) % items.length);
@@ -94,14 +85,15 @@ export default function ContextMenu({ items, x, y, onSelect, onDismiss }: Props)
     }
     document.addEventListener('keydown', handle, true);
     return () => document.removeEventListener('keydown', handle, true);
-  }, [items, activeIdx, onSelect, onDismiss]);
+  }, [popover.isOpen, items, activeIdx, onSelect]);
 
-  const separatorCount = items.filter((it, i) => it.firstInGroup && i !== 0).length;
-  const { left, top } = clampPosition(x, y, items.length, separatorCount);
+  if (!popover.isOpen || !popover.position) return null;
+
+  const { left, top } = popover.position;
 
   const menu = (
     <ul
-      ref={menuRef}
+      ref={setMenuRef}
       className="context-menu"
       role="menu"
       tabIndex={-1}

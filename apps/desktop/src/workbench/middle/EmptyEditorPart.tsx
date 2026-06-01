@@ -6,10 +6,10 @@ export default function EmptyEditorPart() {
     <div className="part-empty-editor">
       <div className="editor-empty">
         <div className="editor-empty-mark" aria-hidden="true" />
-        <h2 className="editor-empty-title">Open a workspace to begin.</h2>
+        <h2 className="editor-empty-title">Open an account to begin.</h2>
         <p className="editor-empty-line">
           Press <span className="editor-empty-key">Ctrl+Shift+P</span> for the command palette, or
-          pick a workspace from the sidebar.
+          pick an account from the sidebar.
         </p>
       </div>
     </div>

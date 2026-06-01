@@ -16,7 +16,7 @@ export default function LoadingSplash({ embedded = false }: LoadingSplashProps) 
       className={`loading-splash${embedded ? ' loading-splash--embedded' : ''}`}
       role="status"
       aria-live="polite"
-      aria-label="Loading workspace"
+      aria-label="Loading account"
     >
       <svg
         className="loading-splash__background"
@@ -42,7 +42,7 @@ export default function LoadingSplash({ embedded = false }: LoadingSplashProps) 
           <div className="loading-splash__rail-fill" />
         </div>
 
-        <div className="loading-splash__status">Suspending your workspace…</div>
+        <div className="loading-splash__status">Suspending your account…</div>
       </div>
     </div>
   );

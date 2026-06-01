@@ -341,14 +341,14 @@ export function boot(): ServiceRegistry {
         visible: true,
         icon: locked ? 'lock' : 'unlock',
         text: '',
-        tooltip: locked ? 'Workspace locked — enter passphrase to unlock' : 'Workspace unlocked — click to lock',
+        tooltip: locked ? 'Account locked — enter passphrase to unlock' : 'Account unlocked — click to lock',
         command: locked ? undefined : 'workbench.workspace.relock',
       });
       // Show nickname only when unlocked
       statusBar.update('workbench.workspace.nickname', {
         visible: !locked && nickname.length > 0,
         text: nickname,
-        tooltip: `Active workspace: ${nickname}`,
+        tooltip: `Active account: ${nickname}`,
         icon: 'briefcase',
       });
       statusBar.update('workbench.sync.state', {

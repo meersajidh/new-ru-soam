@@ -15,6 +15,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { HelpCircle, KeyRound, Lock, LogOut } from 'lucide-react';
 import { useContextKey } from '../../platform/services/hooks';
+import { usePopover } from '../../platform/popover/use-popover';
+import Popover from '../../platform/popover/Popover';
 import ChangePassphraseDialog from './ChangePassphraseDialog';
 import './UserAvatar.css';
 
@@ -24,11 +26,16 @@ export default function UserAvatar() {
   const nickname = useContextKey('workspace.nickname') as string;
 
   const [email, setEmail] = useState<string>('');
-  const [menuOpen, setMenuOpen] = useState(false);
   const [showChangePassphrase, setShowChangePassphrase] = useState(false);
 
-  const menuRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+
+  const popover = usePopover({
+    placement: 'right-end',
+    gap: 12,
+    estimatedWidth: 248,
+    estimatedHeight: 300,
+  });
 
   useEffect(() => {
     if (!kekLocked && setupComplete) {
@@ -43,52 +50,27 @@ export default function UserAvatar() {
     }
   }, [kekLocked, setupComplete]);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handleClick(e: MouseEvent) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(e.target as Node) &&
-        btnRef.current &&
-        !btnRef.current.contains(e.target as Node)
-      ) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [menuOpen]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setMenuOpen(false);
-    }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [menuOpen]);
-
   if (kekLocked || !setupComplete) return null;
 
   const initial = email ? email[0].toUpperCase() : nickname ? nickname[0].toUpperCase() : '?';
 
   async function handleRelock() {
-    setMenuOpen(false);
+    popover.close();
     await window.soam.lock.relock();
   }
 
   async function handleSignOut() {
-    setMenuOpen(false);
+    popover.close();
     await window.soam.workspace.signOut();
   }
 
   function handleChangePassphrase() {
-    setMenuOpen(false);
+    popover.close();
     setShowChangePassphrase(true);
   }
 
   async function handleHelp() {
-    setMenuOpen(false);
+    popover.close();
     const cap = await window.soam.bindCapability('platform.shell', '1.0');
     try {
       await cap.call('openExternal', 'https://ru-soam.com');
@@ -105,79 +87,84 @@ export default function UserAvatar() {
         <button
           ref={btnRef}
           className="user-avatar-btn"
-          onClick={() => setMenuOpen((v) => !v)}
+          onClick={() => (popover.isOpen ? popover.close() : popover.open(btnRef.current!))}
           aria-label={`Account — ${nickname || email || 'user'}`}
-          aria-expanded={menuOpen}
+          aria-expanded={popover.isOpen}
           title={email || nickname}
         >
           {initial}
         </button>
 
-        {menuOpen && (
-          <div ref={menuRef} className="user-avatar-menu" role="menu" aria-label="Account menu">
-            <div className="user-avatar-menu-header">
-              <div className="user-avatar-menu-badge" aria-hidden="true">
-                {initial}
-              </div>
-              <div className="user-avatar-menu-copy">
-                <p className="user-avatar-menu-nickname">{nickname || 'Account'}</p>
-                <p className="user-avatar-menu-email">{email || 'Signed in locally'}</p>
-              </div>
+        <Popover
+          isOpen={popover.isOpen}
+          position={popover.position}
+          setPopoverElement={popover.setPopoverElement}
+          role="menu"
+          aria-label="Account menu"
+          className="user-avatar-menu"
+        >
+          <div className="user-avatar-menu-header">
+            <div className="user-avatar-menu-badge" aria-hidden="true">
+              {initial}
             </div>
-
-            <div className="user-avatar-menu-group">
-              <button className="user-avatar-menu-item" role="menuitem" onClick={handleRelock}>
-                <span className="user-avatar-menu-item-icon">
-                  <Lock size={14} />
-                </span>
-                <span className="user-avatar-menu-item-label">Lock account</span>
-              </button>
-              <button
-                className="user-avatar-menu-item"
-                role="menuitem"
-                onClick={handleChangePassphrase}
-              >
-                <span className="user-avatar-menu-item-icon">
-                  <KeyRound size={14} />
-                </span>
-                <span className="user-avatar-menu-item-label">Change passphrase</span>
-              </button>
+            <div className="user-avatar-menu-copy">
+              <p className="user-avatar-menu-nickname">{nickname || 'Account'}</p>
+              <p className="user-avatar-menu-email">{email || 'Signed in locally'}</p>
             </div>
+          </div>
 
-            <div className="user-avatar-menu-divider" aria-hidden="true" />
-
-            <div className="user-avatar-menu-group">
-              <button className="user-avatar-menu-item" role="menuitem" onClick={handleHelp}>
-                <span className="user-avatar-menu-item-icon">
-                  <HelpCircle size={14} />
-                </span>
-                <span className="user-avatar-menu-item-label">Help / documentation</span>
-              </button>
-            </div>
-
-            <div className="user-avatar-menu-divider" aria-hidden="true" />
-
+          <div className="user-avatar-menu-group">
+            <button className="user-avatar-menu-item" role="menuitem" onClick={handleRelock}>
+              <span className="user-avatar-menu-item-icon">
+                <Lock size={14} />
+              </span>
+              <span className="user-avatar-menu-item-label">Lock account</span>
+            </button>
             <button
-              className="user-avatar-menu-item user-avatar-menu-item--destructive"
+              className="user-avatar-menu-item"
               role="menuitem"
-              onClick={handleSignOut}
+              onClick={handleChangePassphrase}
             >
               <span className="user-avatar-menu-item-icon">
-                <LogOut size={14} />
+                <KeyRound size={14} />
               </span>
-              <span className="user-avatar-menu-item-label">Sign out</span>
+              <span className="user-avatar-menu-item-label">Change passphrase</span>
             </button>
-
-            {import.meta.env.DEV && (
-              <>
-                <div className="user-avatar-menu-divider" aria-hidden="true" />
-                <div className="user-avatar-menu-footer" role="none">
-                  <span className="user-avatar-menu-dev-label">DEV BUILD</span>
-                </div>
-              </>
-            )}
           </div>
-        )}
+
+          <div className="user-avatar-menu-divider" aria-hidden="true" />
+
+          <div className="user-avatar-menu-group">
+            <button className="user-avatar-menu-item" role="menuitem" onClick={handleHelp}>
+              <span className="user-avatar-menu-item-icon">
+                <HelpCircle size={14} />
+              </span>
+              <span className="user-avatar-menu-item-label">Help / documentation</span>
+            </button>
+          </div>
+
+          <div className="user-avatar-menu-divider" aria-hidden="true" />
+
+          <button
+            className="user-avatar-menu-item user-avatar-menu-item--destructive"
+            role="menuitem"
+            onClick={handleSignOut}
+          >
+            <span className="user-avatar-menu-item-icon">
+              <LogOut size={14} />
+            </span>
+            <span className="user-avatar-menu-item-label">Sign out</span>
+          </button>
+
+          {import.meta.env.DEV && (
+            <>
+              <div className="user-avatar-menu-divider" aria-hidden="true" />
+              <div className="user-avatar-menu-footer" role="none">
+                <span className="user-avatar-menu-dev-label">DEV BUILD</span>
+              </div>
+            </>
+          )}
+        </Popover>
       </div>
 
       {showChangePassphrase && (

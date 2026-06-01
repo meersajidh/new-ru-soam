@@ -32,9 +32,6 @@
 }
 
 .user-avatar-menu {
-  position: absolute;
-  left: calc(100% + 0.75rem);
-  bottom: -0.5rem;
   width: 248px;
   max-width: min(248px, calc(100vw - 72px));
   max-height: calc(100vh - 72px);
@@ -42,7 +39,6 @@
   border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
   @apply rounded-xl shadow-overlay;
   overflow: auto;
-  z-index: 150;
   backdrop-filter: blur(10px);
   box-sizing: border-box;
 }

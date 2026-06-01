@@ -8,7 +8,7 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
     region: 'left',
     priority: 1000,
     text: '',
-    tooltip: 'Workspace locked — enter passphrase to unlock',
+    tooltip: 'Account locked — enter passphrase to unlock',
     command: 'workbench.workspace.relock',
     visible: false, // made visible once a workspace is active (set in boot.ts)
     icon: 'lock',
@@ -18,7 +18,7 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
     region: 'left',
     priority: 900,
     text: '',
-    tooltip: 'Active workspace',
+    tooltip: 'Active account',
     visible: false, // shown when unlocked and nickname available
     icon: 'briefcase',
   },

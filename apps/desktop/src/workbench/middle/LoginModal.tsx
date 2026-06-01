@@ -291,7 +291,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
   const cardSubtitle = isResetMode
     ? null
     : mode === 'identify'
-      ? 'Sign in to your practice workspace'
+      ? 'Sign in to your practice account'
       : displayNickname || null;
 
   // ── Render ────────────────────────────────────────────────────────────────────
