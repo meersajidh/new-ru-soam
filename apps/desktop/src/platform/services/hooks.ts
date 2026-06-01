@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useSyncExternalStore } from 'react';
 import {
   ContributionServiceId,
   ContextKeyServiceId,
@@ -97,12 +97,14 @@ export function useFontSet(): FontSetDescriptor {
 
 export function useStatusBarEntries(region: 'left' | 'right'): StatusBarEntry[] {
   const statusBar = useService(StatusBarServiceId);
-  const [entries, setEntries] = useState(() => statusBar.getEntries(region));
-  useEffect(
-    () => statusBar.onDidChangeEntries(() => setEntries(statusBar.getEntries(region))),
-    [statusBar, region],
+  // useSyncExternalStore re-reads getSnapshot right after subscribing and bails
+  // if unchanged — natively closing the snapshot-vs-subscribe gap that left the
+  // dark-mode glyph stale until the first manual toggle under boot/remount churn
+  // (O437). getEntries is referentially stable between mutations (service cache).
+  return useSyncExternalStore(
+    (onChange) => statusBar.onDidChangeEntries(onChange),
+    () => statusBar.getEntries(region),
   );
-  return entries;
 }
 
 export function useEditorState(): { layout: EditorLayoutNode; focusedGroupId: string | null } {

@@ -32,6 +32,10 @@ export class StatusBarService implements IStatusBarService {
   private readonly _entries = new Map<string, StatusBarEntry>();
   private readonly _listeners = new Set<() => void>();
   private readonly _buffers = new Map<string, UpdateBuffer>();
+  // Per-region snapshot cache: getEntries returns a referentially-stable array
+  // between mutations so it can back useSyncExternalStore (getSnapshot must be
+  // stable or React loops). Invalidated in _emit, i.e. on every change.
+  private readonly _snapshot = new Map<'left' | 'right', StatusBarEntry[]>();
 
   register(entry: StatusBarEntry): void {
     if (this._entries.has(entry.id)) {
@@ -62,9 +66,13 @@ export class StatusBarService implements IStatusBarService {
   }
 
   getEntries(region: 'left' | 'right'): StatusBarEntry[] {
-    return [...this._entries.values()]
+    const cached = this._snapshot.get(region);
+    if (cached) return cached;
+    const next = [...this._entries.values()]
       .filter(e => e.region === region && e.visible)
       .sort((a, b) => b.priority - a.priority);
+    this._snapshot.set(region, next);
+    return next;
   }
 
   onDidChangeEntries(listener: () => void): () => void {
@@ -77,7 +85,11 @@ export class StatusBarService implements IStatusBarService {
     if (!buf || Object.keys(buf.patch).length === 0) return;
     const entry = this._entries.get(id);
     if (!entry) return;
-    Object.assign(entry, buf.patch);
+    // Replace with a NEW object (don't mutate in place): consumers memoize on
+    // entry identity (React Compiler memoizes renderIcon(entry) on the reference),
+    // so an in-place Object.assign leaves memoized children stale — the dark-mode
+    // glyph stuck while its sibling tooltip updated (O437). New identity = recompute.
+    this._entries.set(id, { ...entry, ...buf.patch });
     buf.patch = {};
     buf.lastFlushed = Date.now();
     buf.timer = null;
@@ -85,6 +97,9 @@ export class StatusBarService implements IStatusBarService {
   }
 
   private _emit(): void {
+    // Invalidate snapshots so the next getEntries rebuilds a fresh array
+    // (new identity) — this is what makes useSyncExternalStore re-render.
+    this._snapshot.clear();
     for (const l of this._listeners) l();
   }
 }
