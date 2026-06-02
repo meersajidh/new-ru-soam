@@ -12,15 +12,26 @@ export default function Middle() {
   const showAux = useLayoutVisible(SlotId.AuxSideBar);
   const showPanel = useLayoutVisible(SlotId.Panel);
 
+  // Parts stay MOUNTED across visibility toggles; we hide via `display:none`
+  // instead of unmounting (`&&`). A `display:contents` wrapper vanishes from
+  // layout when visible (the Part's root stays the real flex item) and becomes
+  // `display:none` when hidden — keeping each BundleViewIframe alive so toggling
+  // a panel doesn't re-fetch its HTML / re-init its bridge / lose its state.
   return (
     <div className="part-middle">
       <ActivityBar />
-      {showPrimary && <PrimarySideBar />}
+      <div style={{ display: showPrimary ? 'contents' : 'none' }}>
+        <PrimarySideBar />
+      </div>
       <div className="middle-center">
         <EditorArea />
-        {showPanel && <Panel />}
+        <div style={{ display: showPanel ? 'contents' : 'none' }}>
+          <Panel />
+        </div>
       </div>
-      {showAux && <AuxSideBar />}
+      <div style={{ display: showAux ? 'contents' : 'none' }}>
+        <AuxSideBar />
+      </div>
     </div>
   );
 }

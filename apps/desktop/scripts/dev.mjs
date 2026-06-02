@@ -51,7 +51,7 @@ function startElectron(url) {
     process.platform === 'linux'
       ? ['--ozone-platform=x11', '--no-sandbox', '--class=ru-soam']
       : [];
-  electronProcess = spawn(electronBin, [...extraFlags, '--remote-debugging-port=9333', '.'], {
+  electronProcess = spawn(electronBin, [...extraFlags, '--remote-debugging-port=9333', '--enable-logging', '.'], {
     cwd: root,
     env: { ...process.env, VITE_DEV_SERVER_URL: url },
     stdio: ['ignore', 'pipe', 'pipe'],
