@@ -1,11 +1,23 @@
 # Canonical domain record ownership: `core-domain` Main-resident service
 
 **ID:** ADR-504
-**Status:** Draft
+**Status:** Superseded
 **Date:** 2026-05-28
 **Layer:** cross
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** ADR-506
+
+> **Superseded (2026-06-02) by [ADR-506](506-domain-module-cqrs-and-ownership.md).** This
+> ADR made the canonical record a **Main-resident `core-domain` service** — domain code
+> loaded into Main. That was expedient, not forced. ADR-506 refines the model: **Main stays
+> pure-base (no domain code), `core-domain` is retired, and the canonical record becomes a
+> first-party bundle** whose command logic runs in the First-Party-Host (ADR-418) and whose
+> persistence goes through a generic, ownership-scoped base store capability. **What survives
+> from this ADR:** O69's answer (one canonical owner; surfaces consume via capabilities;
+> validation/invariants/audit at one site) and the hard PHI boundary (keys/decrypt/ciphertext
+> Main-only). **What changed:** the owner is a *bundle*, not Main code; "validation at one
+> site" becomes the hybrid of Main-enforced schema constraints + First-Party-Host logic
+> (ADR-506 §5). The body below is retained as the reasoning trail.
 **Related:** ADR-405 (deferred O69 here), ADR-103 (capability model), ADR-104 (contribution model), ADR-105 (lifecycle / failure isolation), ADR-106 (base / domain), ADR-301 (PHI boundary), ADR-302 (local-first store), ADR-307 (PHI lock-gate), ADR-407 (context keys), ADR-410 (bundle host), ADR-502 (audit ledger), [Product Scope](../Product/Product_Scope.md)
 
 ## Context

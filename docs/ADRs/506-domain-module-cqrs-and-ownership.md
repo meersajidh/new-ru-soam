@@ -1,0 +1,189 @@
+# Domain module model: pure-base Main + CQRS bundle-owned records
+
+**ID:** ADR-506
+**Status:** Accepted
+**Date:** 2026-06-02
+**Layer:** cross
+**Supersedes:** ADR-504 (retires `core-domain` as a Main-resident service)
+**Superseded by:** —
+**Related:** ADR-104 (contribution model), ADR-105 (lifecycle / dependency activation), ADR-106 (base/domain — extended to a base/domain/extensions tier here), ADR-301/302/307 (PHI / store / lock), ADR-410 (bundle host), ADR-418 (bundle trust tiers), ADR-502 (audit ledger), ADR-505 (Practice activity), [Two-Axis Architecture guide](../Guides/architecture-two-axes.md)
+
+## Context
+
+ADR-504 resolved O69 ("who owns the canonical record") by making `core-domain` a
+**Main-resident** domain service — domain code loaded into the Main process. That was
+*expedient* (it reused `registerCapability` + a Main bootstrap), **not forced.** A
+step-back analysis (2026-06-02) established that **nothing domain-specific must be
+code-in-Main**: keys, crypto, the store engine, and the audit ledger are all generic
+(base); domain validation can be either declarative (DB constraints) or run in the trusted
+**First-Party-Host** (ADR-418, which holds PHI returns but no keys); domain queries are
+declarable SQL a generic engine can execute; migrations are declared by a module and
+executed by Main.
+
+This ADR commits the cleaner model: **Main stays pure-base, `core-domain` is retired, and
+the canonical record becomes a first-party bundle like any other.** It supersedes ADR-504's
+"Main-resident domain service" decision while keeping its answer to O69 (one canonical
+owner, consumed via capabilities, validation/audit at one site).
+
+## Decision
+
+### 1. Pure-base Main — no domain code loaded into Main
+
+The Main process loads and runs **no domain code.** It is entirely `basebench`:
+
+- keys (OS keychain, ADR-307), encryption/decryption, the per-workspace encrypted store
+  (ADR-302), the audit ledger (ADR-502);
+- a **generic, ownership-scoped CRUD capability** (writes — §6);
+- a **generic declared-query executor** (reads — §6);
+- a **migration executor** + **schema/dependency validator** (§8).
+
+Main is the smallest, most-audited zone; keeping it domain-free maximises that property and
+removes ADR-504's "deliberate domain-in-Main exception."
+
+### 2. `core-domain` retired — the record is a first-party bundle
+
+There is no Main-resident `core-domain` service. The canonical Client/Patient record is
+owned by a **first-party bundle** (a `record` bundle, or folded into Practice) that, like
+any module, declares its tables + migrations + query specs and runs its command logic in
+the First-Party-Host. O69's answer stands — one canonical owner, no surface re-declares the
+type — but the owner is a bundle, not Main code.
+
+### 3. CQRS is the governing module pattern
+
+- **Command (write)** — one owning Activity per record type (sole writer). Command *logic*
+  (validation, invariants) runs in **First-Party-Host**; persistence goes through Main's
+  generic ownership-scoped write cap (§6), which encrypts + audits.
+- **Query (read)** — many consumers. A query is a **declared SQL / read-model spec** that
+  Main's generic engine executes against the decrypted store and returns to the consumer.
+  Queries never mutate.
+- **Overlay** — a consumer's command side on its **own** tables (journal 0010), never the
+  owner's.
+
+This gives the journal vocabulary precise meaning: *projection* = a query; *owner-write* /
+*minor command* = commands; *overlay* = a command on one's own tables.
+
+### 4. A bundle is a multi-zone vertical slice — none of it in Main
+
+A first-party bundle declares and owns a vertical slice:
+
+- **schema + migrations** (executed by Main, §8);
+- **command logic** (runs in First-Party-Host);
+- **query specs** (declared SQL, executed by Main's generic engine);
+- **UI** (sandboxed `view://` iframe, ADR-411);
+- **declared dependencies** (§8).
+
+Its parts live in **Renderer (UI iframe) + First-Party-Host (logic)** only; **persistence
+is via base capabilities** — **no part of a bundle runs in Main.** (Contrast ADR-504/the
+earlier 506 draft, where PHI handlers ran in Main.)
+
+### 5. Hybrid validation
+
+Validation splits by criticality:
+
+- **Hard, safety/legal-critical invariants → declarative constraints in Main**
+  (`CHECK` / `FK` / `NOT NULL` / triggers in the migration-declared schema). Main-enforced,
+  **with no domain code** — the rules are *data* (the schema), not loaded logic. A
+  compromised First-Party-Host bundle still cannot violate them.
+- **Soft / UX validation → First-Party-Host** (trimming, cross-field hints, transition
+  affordances).
+- **Audit integrity → Main-owned** regardless: the append-only hash-chained ledger
+  (ADR-502) is base; a command *declares* its semantic event + detail, but cannot skip,
+  forge, or reorder the ledger.
+
+So the un-violatable guarantees live in the small trusted core (as schema constraints + the
+audit chain); only soft logic moves to the bundle.
+
+### 6. The generic store capability (design constraints)
+
+Main exposes generic persistence, not domain handlers. To stay safe it is:
+
+- **Ownership-scoped.** Migrations declare *bundle X owns tables {T}*; Main records
+  ownership and enforces `callerBundleId == owner(table)` on every write. This makes
+  **sole-writer Main-enforced** — derived from declarations, **no domain code** (an upgrade
+  over "sole-writer = convention"). Requires `bundleId` identity at the seam (ADR-418 §5).
+- **Audit-tagged.** A command passes a declared semantic event + detail with each write;
+  Main records it in the ledger (ADR-502). The command can *name* the event, never *omit*
+  it.
+- **Not a raw-SQL surface.** Writes are **parameterized CRUD primitives** on owned tables;
+  reads are **pre-declared, load-validated query templates**. A First-Party-Host bundle
+  never ships arbitrary SQL into Main.
+
+### 7. Preload command/query bridge split (CQRS at the ABI)
+
+The preload ABI (ADR-202) expresses CQRS: **a query bridge and a command bridge**, so the
+read/write distinction is structural at the syscall level — queries are read-only,
+cacheable, idempotent; commands are audited and serialized. It is also a **complementary
+enforcement lever**: an untrusted bundle can be handed the **query bridge (non-PHI) only**,
+structurally unable to command.
+
+**Open shape (O447):** two ABI multiplexers (`bindQuery` / `bindCommand`) vs one bridge with
+command/query *method-classes*. Two multiplexers give stronger structural separation; one
+bridge is less ABI surface. Decide when the read path first diverges (caching / read-models
+/ read-only consumers).
+
+### 8. Declared dependencies, validated before load
+
+A bundle declares its dependencies, and Main validates the whole graph **before running any
+migration or activating the bundle** (ADR-104/105):
+
+- **Schema / FK deps** — its tables may `FK` another module's tables → that module must be
+  present, and migration order must satisfy the graph.
+- **Capability deps** — the queries/commands/base caps it binds must exist.
+- **Bundle deps** — other modules it requires.
+
+Invalid graph (dangling FK, missing dependency, cycle) → **refuse to load.** One physical
+store per workspace (ADR-302) makes cross-module FKs real; ownership is **logical** over the
+shared DB, so referential integrity and erasure cascade use real constraints.
+
+### 9. Three-tier layering: base · domain · extensions
+
+ADR-106's base/domain split refines to **three tiers** (a layer concept, not a zone):
+
+- **base** (`basebench`) — the platform. Spans all zones.
+- **domain** (`ru-soam`) — first-party product bundles.
+- **extensions** — third-party bundles.
+
+Provenance → `trustClass` → host is a **policy mapping** (ADR-418): **domain →
+First-Party-Host**, **extensions → Bundle-Host** (the third-party / "extensions" host).
+This correlation is the trustClass policy, **not** an axis collapse — `base` still spans all
+zones, and trust ⟂ layer still holds (a thing's *tier* is "whose code"; its *zone* is "how
+privileged"). *(ADR-106 to be amended to formalise the extensions tier.)*
+
+## Fork directions (set by this model)
+
+- **A — ownership → distributed.** Each first-party bundle owns its slice; **no
+  `core-domain`**. Sole-writer is now **Main-enforced via declared ownership** (§6) — an
+  upgrade over convention.
+- **B — capability granularity → command/query split** (§3/§7), per aggregate. Method
+  catalogue per module (O442).
+- **D — Overview read → a declared read-model query** (§3) executed by Main's generic
+  engine; per-projection degraded-state preserved (a missing module degrades its card).
+  Materialization strategy: O443.
+- **E — erasure → an `ErasePatient` command** with FK `ON DELETE CASCADE` (real, shared
+  store) + composite audit (ADR-502).
+
+## Phasing / current state
+
+Today's code is the **superseded M1**: `core-domain` runs in Main (`record-patient-cap.ts`),
+`record.patient` mixes command + query methods, migrations are a single central
+`migrations.ts`. Migration to this model is **incremental, not big-bang**: extract the
+generic base store engine (ownership-scoped CRUD + declared-query executor), move the record
+logic into a first-party bundle / First-Party-Host, and convert to per-bundle migrations.
+**New modules (e.g. Risk/Safety, O419) author to this model from the start.**
+
+## Open items
+
+- **O442** — per-record command/query method catalogue (couples O197).
+- **O443** — read-model materialization (computed views vs materialized) for Overview + lens
+  memberships.
+- **O444** — per-bundle migration declaration format + Main-side execution + cross-module
+  ordering (today central `migrations.ts`).
+- **O445** — dependency declaration (FK / caps / bundles) + graph validation + activation
+  ordering (ADR-105).
+- **O446** — the generic store capability design: ownership-scoping enforcement,
+  audit-tagging, parameterized-CRUD + declared-query-template validation. *(Replaces the
+  earlier "per-domain Main-handler seam" framing — there are no Main handlers now.)*
+- **O447** — preload command/query bridge shape (two multiplexers vs one bridge with
+  method-classes).
+- **O448** — expressing hard/safety/legal invariants as declarative schema constraints
+  (what's expressible as `CHECK`/`FK`/trigger vs what must stay First-Party-Host logic).

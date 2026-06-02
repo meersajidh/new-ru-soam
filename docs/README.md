@@ -114,14 +114,16 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-415](ADRs/415-react-prosemirror-integration-boundary.md) — React / ProseMirror integration boundary. _(Accepted)_
 - [ADR-416](ADRs/416-snippet-engine.md) — Snippet engine. _(Accepted)_
 - [ADR-417](ADRs/417-menu-and-keybinding-contributions.md) — Menu + keybinding contributions, context-menu primitive, renderer↔view action channel. _(Accepted)_
+- [ADR-418](ADRs/418-bundle-trust-tiers.md) — Bundle trust tiers: First-Party-Host vs Bundle-Host (structural PHI hard-deny for untrusted code). _(Accepted)_
 
 #### Domain (500–599)
 
 - [ADR-501](ADRs/501-tenancy-individual-mvp.md) — Tenancy model: Individual (MVP). _(Accepted)_
 - [ADR-502](ADRs/502-audit-and-consent-ledger.md) — Audit and consent ledger. _(Accepted)_
 - [ADR-503](ADRs/503-tenancy-clinic-proposed.md) — Tenancy model: Clinic. _(Proposed)_
-- [ADR-504](ADRs/504-canonical-domain-record-ownership.md) — Canonical domain record ownership: `core-domain` Main-resident service (resolves O69). _(Draft)_
+- [ADR-504](ADRs/504-canonical-domain-record-ownership.md) — Canonical domain record ownership: `core-domain` Main-resident service (resolves O69). _(Superseded by ADR-506)_
 - [ADR-505](ADRs/505-practice-activity.md) — Practice Activity: roster + Client/Patient record management (first per-Activity pass, O197). _(Draft)_
+- [ADR-506](ADRs/506-domain-module-cqrs-and-ownership.md) — Domain module model: **pure-base Main** + CQRS bundle-owned records (retires `core-domain`; command logic in First-Party-Host; hybrid validation; declared deps; base/domain/extensions tiers). _(Accepted)_
 
 ### Proposals
 
@@ -138,6 +140,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 ### Guides
 
 - [Core concepts: Capability, Bundle, Contribution](Guides/core-concepts.md) — First-principles primer on the three load-bearing concepts. Read before `feature-development.md`.
+- [The Two-Axis Architecture: Trust Zones × Layers](Guides/architecture-two-axes.md) — Why zone (privilege) and layer (base/domain) are orthogonal; the capability seam; the honest PHI invariant; the First-Party-Host + CQRS evolution (ADR-418/506).
 - [Feature development](Guides/feature-development.md) — Checklist for adding a feature without re-litigating the architecture each time.
 - [Disposable pattern](Guides/disposable-pattern.md) — Platform-wide convention for cleanup.
 - [Data encryption, key management, and recovery](Guides/data-encryption-and-recovery.md) — Operational companion to ADR-302/303/304/306.

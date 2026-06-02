@@ -254,3 +254,25 @@ deferred, not part of this decision.
   (enforced one-way boundary + leak cleanup) at ~5% of the cost; defer the mechanism
   (publish / repo split) behind named triggers. Captures the anti-calcification
   benefit immediately while keeping escalation cheap and optional.
+
+## Amendment 1 (2026-06-02) — third tier: extensions
+
+The base/domain split refines to **three layer tiers**, on the same generic→specific
+axis:
+
+- **base** (`basebench`) — the platform. Spans all trust zones.
+- **domain** (`ru-soam`) — **first-party** product bundles.
+- **extensions** — **third-party** bundles (others' product features).
+
+The one-way dependency rule generalises: **base ← domain ← extensions** (extensions may
+depend on domain + base; domain on base; base on neither). Extensions are loaded through
+the same contribution mechanism as first-party bundles (ADR-405) but are **untrusted**:
+per ADR-418 the provenance → `trustClass` → host mapping sends **domain → First-Party-Host**
+and **extensions → Bundle-Host** (the third-party host).
+
+This correlation is a **policy mapping, not an axis collapse.** Layer (whose code:
+platform / first-party / third-party) stays orthogonal to trust zone (how privileged) —
+`base` still spans all zones, and `core-domain`-style diagonals remain possible in
+principle. See the [Two-Axis Architecture guide](../Guides/architecture-two-axes.md) §8 and
+ADR-506 §9. (No structural change to the existing base ← domain lint; the extensions tier
+is formalised here and built when third-party bundle loading ships.)
