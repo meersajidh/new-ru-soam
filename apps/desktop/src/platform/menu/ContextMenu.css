@@ -63,3 +63,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.context-menu__chevron {
+  @apply text-fg-muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.875rem;
+  flex-shrink: 0;
+  margin-left: 0.25rem;
+}
+
+.context-menu__item--has-submenu:hover .context-menu__chevron,
+.context-menu__item--has-submenu.context-menu__item--active .context-menu__chevron {
+  @apply text-fg-primary;
+}

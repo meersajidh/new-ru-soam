@@ -57,12 +57,19 @@ export interface CommandSnapshot {
 
 export interface MenuItemSnapshot {
   readonly menuId: string;
-  readonly command: string;
+  /** Optional only for label-only submenu parents (O425). */
+  readonly command?: string;
   readonly group: string;
   readonly order?: number;
   readonly when?: string;
   readonly toggled?: string;
   readonly title?: string;
+  /** O424: alternate command on Alt. */
+  readonly alt?: string;
+  /** O425: submenu slot id for flyout. */
+  readonly submenu?: string;
+  /** O425: radio group name. */
+  readonly radioGroup?: string;
   readonly bundleId: string;
 }
 
@@ -162,6 +169,9 @@ export function getContributionsSnapshot(): ContributionsSnapshot {
         when: mi.when,
         toggled: mi.toggled,
         title: mi.title,
+        alt: mi.alt,
+        submenu: mi.submenu,
+        radioGroup: mi.radioGroup,
         bundleId,
       });
     }

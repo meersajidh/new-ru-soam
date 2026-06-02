@@ -39,9 +39,11 @@ export interface UsePopoverOptions {
    * - 'bottom-start' (default): left-aligned, below anchor, flips up when no room.
    * - 'right-end': to the right of anchor, bottom-aligned (grows upward), flips left
    *   when no room to the right.
+   * - 'right-start': to the right of anchor, top-aligned (grows downward), flips left
+   *   when no room to the right.
    * Coord-anchors ({x,y}) always use bottom-start regardless.
    */
-  placement?: 'bottom-start' | 'right-end';
+  placement?: 'bottom-start' | 'right-end' | 'right-start';
   /**
    * Extra gap (px) between anchor edge and popover for 'right-end' placement.
    * Default 0.
@@ -138,6 +140,39 @@ function computePositionRightEnd(
   return { left, top, flippedUp: true };
 }
 
+/**
+ * 'right-start' placement: popover opens to the RIGHT of the anchor, top-aligned
+ * (grows downward). Falls back to the LEFT side when there's insufficient room to the right.
+ * Applies viewport clamping on both axes.
+ */
+function computePositionRightStart(
+  anchorRect: DOMRect,
+  popoverW: number,
+  popoverH: number,
+  edgeMargin: number,
+  gap: number,
+): PopoverPosition {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // Prefer right side
+  const spaceRight = vw - anchorRect.right - gap - edgeMargin;
+  let left: number;
+  if (spaceRight >= popoverW) {
+    left = anchorRect.right + gap;
+  } else {
+    // Flip to the left of the anchor
+    left = anchorRect.left - gap - popoverW;
+  }
+  left = Math.max(edgeMargin, Math.min(left, vw - popoverW - edgeMargin));
+
+  // Top-align: popover top ~= anchor top (grows downward)
+  let top = anchorRect.top;
+  top = Math.max(edgeMargin, Math.min(top, vh - popoverH - edgeMargin));
+
+  return { left, top, flippedUp: false };
+}
+
 export function usePopover(options: UsePopoverOptions = {}): UsePopoverReturn {
   const {
     estimatedHeight = 200,
@@ -181,6 +216,14 @@ export function usePopover(options: UsePopoverOptions = {}): UsePopoverReturn {
         edgeMargin,
         gapRef.current,
       );
+    } else if (placementRef.current === 'right-start' && anchorRef.current instanceof HTMLElement) {
+      pos = computePositionRightStart(
+        rect,
+        measuredW.current,
+        measuredH.current,
+        edgeMargin,
+        gapRef.current,
+      );
     } else {
       pos = computePosition(rect, measuredW.current, measuredH.current, edgeMargin);
     }
@@ -207,6 +250,8 @@ export function usePopover(options: UsePopoverOptions = {}): UsePopoverReturn {
       let pos: PopoverPosition;
       if (placementRef.current === 'right-end' && anchor instanceof HTMLElement) {
         pos = computePositionRightEnd(rect, measuredW.current, measuredH.current, edgeMargin, gapRef.current);
+      } else if (placementRef.current === 'right-start' && anchor instanceof HTMLElement) {
+        pos = computePositionRightStart(rect, measuredW.current, measuredH.current, edgeMargin, gapRef.current);
       } else {
         pos = computePosition(rect, measuredW.current, measuredH.current, edgeMargin);
       }

@@ -20,8 +20,8 @@ export default function MenuHost() {
 
   if (!openMenu) return null;
 
-  function handleSelect(item: ResolvedMenuItem) {
-    void menuSvc.executeItem(item, openMenu?.args);
+  function handleSelect(item: ResolvedMenuItem, useAlt?: boolean) {
+    void menuSvc.executeItem(item, openMenu?.args, useAlt);
   }
 
   function handleDismiss() {
@@ -35,6 +35,8 @@ export default function MenuHost() {
       y={openMenu.y}
       onSelect={handleSelect}
       onDismiss={handleDismiss}
+      menuSvc={menuSvc}
+      ctxArgs={openMenu.args}
     />
   );
 }

@@ -14,4 +14,5 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<DefaultKeybinding> = [
   { key: 'ctrl+tab',       command: 'editors.nextTab' },
   { key: 'ctrl+shift+tab', command: 'editors.previousTab' },
   { key: 'ctrl+shift+l',   command: 'workbench.workspace.relock' },
+  { key: 'ctrl+k ctrl+s',  command: 'workbench.openKeyboardShortcuts' },
 ];

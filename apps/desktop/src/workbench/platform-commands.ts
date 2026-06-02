@@ -50,6 +50,12 @@ export function registerPlatformCommands(
     { category: 'View' },
   );
   commands.register(
+    'workbench.openKeyboardShortcuts',
+    'Keyboard Shortcuts',
+    () => contextKeys.set('keyboardShortcuts.open', true),
+    { category: 'Preferences' },
+  );
+  commands.register(
     'workbench.developer.listContextKeys',
     'Developer: List Context Keys',
     () => console.log('[context-keys]', contextKeys.snapshot()),
@@ -206,6 +212,7 @@ export function registerPlatformCommands(
     },
     { category: 'Developer' },
   );
+
 
   commands.register(
     'workbench.theme.bamboo',
@@ -682,17 +689,30 @@ export function registerPlatformCommands(
   );
 
   // Register menu items for editor/title/context slot (O112)
+  // O424: 'Close' gains alt command 'workbench.editors.closeOthers' (hold Alt → Close Others).
   menu.register('editor/title/context', [
-    { command: 'workbench.editors.close',       group: '1_close', order: 1 },
+    { command: 'workbench.editors.close',       group: '1_close', order: 1, alt: 'workbench.editors.closeOthers' },
     { command: 'workbench.editors.closeOthers', group: '1_close', order: 2 },
     { command: 'workbench.editors.closeAll',    group: '1_close', order: 3 },
   ]);
 
   // Register menu items for workbench/title/context slot (O423 — toggle/checked items)
+  // O425: add 'Color Theme' submenu item pointing to workbench/title/colorTheme slot.
   menu.register('workbench/title/context', [
     { command: 'workbench.togglePrimarySideBar', group: '1_layout', order: 1, toggled: 'sideBar.visible',    title: 'Primary Side Bar' },
     { command: 'workbench.togglePanel',          group: '1_layout', order: 2, toggled: 'panel.visible',      title: 'Panel' },
     { command: 'workbench.toggleAuxSideBar',     group: '1_layout', order: 3, toggled: 'auxSideBar.visible', title: 'Secondary Side Bar' },
+    { group: '2_appearance', order: 1, title: 'Color Theme', submenu: 'workbench/title/colorTheme' },
+  ]);
+
+  // O425: submenu slot — 5 palette radio items.
+  // Each uses radioGroup + toggled when-clause driven by workbench.colorTheme context key.
+  menu.register('workbench/title/colorTheme', [
+    { command: 'workbench.theme.bamboo',   group: '1_palette', order: 1, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'bamboo'",   title: 'Bamboo'   },
+    { command: 'workbench.theme.primer',   group: '1_palette', order: 2, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'primer'",   title: 'Primer'   },
+    { command: 'workbench.theme.spectrum', group: '1_palette', order: 3, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'spectrum'", title: 'Spectrum' },
+    { command: 'workbench.theme.iris',     group: '1_palette', order: 4, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'iris'",     title: 'Iris'     },
+    { command: 'workbench.theme.stone',    group: '1_palette', order: 5, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'stone'",    title: 'Stone'    },
   ]);
 
   keybindings.seedDefaults(DEFAULT_KEYBINDINGS);

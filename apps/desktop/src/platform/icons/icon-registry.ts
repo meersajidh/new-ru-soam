@@ -34,6 +34,8 @@ const REGISTRY: Record<SemanticIconId, CodiconGlyph> = {
   'search': 'search',
   'chevron-down': 'chevron-down',
   'chevron-up': 'chevron-up',
+  'chevron-right': 'chevron-right',
+  'chevron-left': 'chevron-left',
 
   // Panel layout toggles
   'panel-left': 'layout-sidebar-left',
@@ -89,6 +91,11 @@ const REGISTRY: Record<SemanticIconId, CodiconGlyph> = {
   'hash': 'tag',
   'dot': 'circle-filled',
   'circle-dot': 'circle-filled',
+
+  // Radio / toggle glyphs (menu system)
+  'circle-large-outline': 'circle-large-outline',
+  'circle-large-filled': 'circle-large-filled',
+  'circle-filled': 'circle-filled',
 
   // ActivityBar manifest vocabulary (stable contract — O435 controls bundle icons)
   'users': 'organization',

@@ -5,6 +5,7 @@ import Banner from './parts/Banner';
 import Middle from './middle/Middle';
 import StatusBar from './parts/StatusBar';
 import CommandPalette from './command-palette/CommandPalette';
+import KeyboardShortcuts from './keyboard-shortcuts/KeyboardShortcuts';
 import PrefsDevPanel from './middle/PrefsDevPanel';
 import { ToastStack } from './notifications/ToastStack';
 import { NotificationPanel } from './notifications/NotificationPanel';
@@ -33,6 +34,7 @@ export default function Workbench({ renderMiddleOverride }: WorkbenchProps = {})
       {renderMiddleOverride != null ? renderMiddleOverride : <Middle />}
       <StatusBar variant={mode} />
       <CommandPalette />
+      <KeyboardShortcuts />
       <ToastStack />
       <NotificationPanel />
       <WhatsNewModal />

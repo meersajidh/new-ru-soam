@@ -4,6 +4,15 @@ import type { StatusBarEntry } from './statusbar-service';
 export const ANCHORED_ENTRIES: StatusBarEntry[] = [
   // ── Left region (highest priority = leftmost) ────────────────────────────
   {
+    // O426: shown mid-chord ("(ctrl+k) waiting for second key…"), hidden otherwise.
+    id: 'workbench.pendingChord',
+    region: 'left',
+    priority: 1100,
+    text: '',
+    visible: false,
+    scope: 'always',
+  },
+  {
     id: 'workbench.lock',
     region: 'left',
     priority: 1000,

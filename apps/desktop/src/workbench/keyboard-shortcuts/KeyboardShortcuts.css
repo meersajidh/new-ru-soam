@@ -1,0 +1,147 @@
+@reference "../../styles/theme.css";
+
+/* Keyboard Shortcuts editor (O426) — mirrors the Command Palette overlay. */
+.kbs-overlay {
+  position: fixed;
+  inset: 0;
+  @apply bg-scrim-overlay;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 80px;
+  z-index: 100;
+}
+
+.kbs {
+  width: 720px;
+  max-width: calc(100vw - 2rem);
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  @apply rounded-md shadow-overlay;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 540px;
+}
+
+.kbs-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  @apply text-fg-primary text-sm;
+  outline: none;
+  @apply px-4 py-3;
+  width: 100%;
+}
+
+.kbs-input::placeholder {
+  @apply text-fg-muted;
+}
+
+.kbs-list {
+  list-style: none;
+  margin: 0;
+  overflow-y: auto;
+  @apply py-1;
+}
+
+.kbs-empty {
+  @apply text-fg-muted text-xs px-4 py-3;
+}
+
+.kbs-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  @apply text-sm px-4 py-2;
+  user-select: none;
+}
+
+.kbs-row:hover {
+  background: var(--color-surface-active);
+}
+
+.kbs-cmd {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kbs-cat {
+  @apply text-fg-muted text-xs;
+}
+
+.kbs-title {
+  @apply text-fg-primary;
+}
+
+.kbs-key {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  justify-content: flex-end;
+}
+
+.kbs-chip {
+  @apply text-xs;
+  font-family: inherit;
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border);
+  @apply rounded-sm;
+  padding: 1px 6px;
+  color: var(--color-fg-secondary);
+}
+
+.kbs-unbound {
+  @apply text-fg-muted text-xs;
+  font-style: italic;
+}
+
+.kbs-recorder {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 160px;
+  justify-content: flex-end;
+  padding: 2px 6px;
+  border: 1px solid var(--color-accent);
+  @apply rounded-sm;
+  outline: none;
+}
+
+.kbs-recorder-hint {
+  @apply text-fg-muted text-xs;
+}
+
+.kbs-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.kbs-badge {
+  @apply text-xs rounded-sm;
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  @apply text-fg-muted;
+}
+
+.kbs-badge--user {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.kbs-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  @apply rounded-sm text-xs text-fg-secondary;
+  padding: 1px 8px;
+  cursor: default;
+}
+
+.kbs-btn:hover {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+}

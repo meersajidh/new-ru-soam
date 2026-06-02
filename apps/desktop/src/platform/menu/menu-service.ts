@@ -4,8 +4,12 @@ import type { IContextKeyService, CtxValue } from '../context-key/context-key-se
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface MenuItemContribution {
-  /** Command id to invoke (ADR-406). Title/icon resolved from CommandService. */
-  readonly command: string;
+  /**
+   * Command id to invoke (ADR-406). Title/icon resolved from CommandService.
+   * Optional ONLY for a label-only submenu parent (has `submenu` + `title`,
+   * opens a flyout on select rather than running a command — O425).
+   */
+  readonly command?: string;
   /** ADR-407 when-clause filtering visibility in this slot. */
   readonly when?: string;
   /** Group name with optional @order suffix: `'1_close@1'`. */
@@ -16,6 +20,12 @@ export interface MenuItemContribution {
   readonly title?: string;
   /** Optional when-clause; when true renders a check/active glyph. */
   readonly toggled?: string;
+  /** O424: Alternate command id executed when Alt is held on select. */
+  readonly alt?: string;
+  /** O425: Menu slot id whose items render as a nested submenu flyout. */
+  readonly submenu?: string;
+  /** O425: Radio group name; item renders radio dot glyph instead of check glyph. */
+  readonly radioGroup?: string;
 }
 
 export interface MenuActionContext {
@@ -34,6 +44,14 @@ export interface ResolvedMenuItem {
   readonly firstInGroup: boolean;
   readonly group: string;
   readonly order: number;
+  /** O424: Alternate command id to execute when Alt held. */
+  readonly altCommand?: string;
+  /** O424: Resolved title of the alternate command. */
+  readonly altTitle?: string;
+  /** O425: Menu slot id for submenu flyout. */
+  readonly submenuId?: string;
+  /** O425: Radio group name; mutually exclusive with check glyph. */
+  readonly radioGroup?: string;
 }
 
 export interface OpenMenuState {
@@ -51,12 +69,19 @@ export interface IDisposable {
 /** Flat item shape returned from the contributions snapshot; `menuId` groups items on seed. */
 export interface SeededMenuItem {
   readonly menuId: string;
-  readonly command: string;
+  /** Optional only for label-only submenu parents (see MenuItemContribution). */
+  readonly command?: string;
   readonly group: string;
   readonly order?: number;
   readonly when?: string;
   readonly toggled?: string;
   readonly title?: string;
+  /** O424: Alternate command id executed when Alt held. */
+  readonly alt?: string;
+  /** O425: Menu slot id for submenu flyout. */
+  readonly submenu?: string;
+  /** O425: Radio group name. */
+  readonly radioGroup?: string;
 }
 
 export interface IMenuService {
@@ -70,7 +95,7 @@ export interface IMenuService {
   getOpenMenu(): OpenMenuState | null;
   onDidChangeOpenMenu(listener: (state: OpenMenuState | null) => void): () => void;
   closeOpenMenu(): void;
-  executeItem(item: ResolvedMenuItem, args?: unknown[]): Promise<void>;
+  executeItem(item: ResolvedMenuItem, args?: unknown[], useAlt?: boolean): Promise<void>;
   /** Replace all previously seeded bundle menu items with a fresh set. Idempotent. */
   seedContributedMenus(items: ReadonlyArray<SeededMenuItem>): void;
 }
@@ -137,7 +162,7 @@ export class MenuService implements IMenuService {
 
     type Candidate = {
       item: MenuItemContribution;
-      cmd: CommandContribution;
+      cmd?: CommandContribution;
       group: string;
       order: number;
       contributionIdx: number;
@@ -148,12 +173,16 @@ export class MenuService implements IMenuService {
 
     for (const entry of slot) {
       for (const item of entry.reg) {
-        const cmd = cmdMap.get(item.command);
-        if (!cmd) { contribIdx++; continue; }
+        const cmd = item.command ? cmdMap.get(item.command) : undefined;
+        // A label-only submenu parent (no command) is valid if it carries a
+        // submenu + title; it opens a flyout on select, never runs a command.
+        const isLabelOnlySubmenu = !item.command && !!item.submenu && !!item.title;
+        if (!cmd && !isLabelOnlySubmenu) { contribIdx++; continue; }
 
-        // Both the item when AND the command's own when must pass
+        // Item when-clause always applies; the command's own when only when a
+        // command is present.
         if (item.when && !this._evaluateWithCtx(item.when, ctxMap)) { contribIdx++; continue; }
-        if (cmd.when && !this._evaluateWithCtx(cmd.when, ctxMap)) { contribIdx++; continue; }
+        if (cmd?.when && !this._evaluateWithCtx(cmd.when, ctxMap)) { contribIdx++; continue; }
 
         const parsed = parseGroup(item.group);
         candidates.push({ item, cmd, group: parsed.group, order: parsed.order, contributionIdx: contribIdx });
@@ -175,17 +204,35 @@ export class MenuService implements IMenuService {
     const resolved: ResolvedMenuItem[] = [];
     let prevGroup: string | undefined;
     for (const c of candidates) {
-      const title = c.item.title ?? c.cmd.title;
+      const title = c.item.title ?? c.cmd?.title ?? '';
       const checked = c.item.toggled ? this._evaluateWithCtx(c.item.toggled, ctxMap) : false;
+
+      // O424: resolve alt command title
+      let altCommand: string | undefined;
+      let altTitle: string | undefined;
+      if (c.item.alt) {
+        const altCmd = cmdMap.get(c.item.alt);
+        if (altCmd) {
+          altCommand = c.item.alt;
+          altTitle = altCmd.title;
+        }
+      }
+
       resolved.push({
-        command: c.item.command,
+        // Label-only submenu parents have no command; synthesize a stable id
+        // for React keying. Never executed (select opens the flyout).
+        command: c.item.command ?? `__submenu__:${c.item.submenu}`,
         title,
-        icon: c.cmd.icon,
+        icon: c.cmd?.icon,
         checked,
         disabled: false,
         firstInGroup: c.group !== prevGroup,
         group: c.group,
         order: c.order,
+        altCommand,
+        altTitle,
+        submenuId: c.item.submenu,
+        radioGroup: c.item.radioGroup,
       });
       prevGroup = c.group;
     }
@@ -240,9 +287,10 @@ export class MenuService implements IMenuService {
     this._emit();
   }
 
-  async executeItem(item: ResolvedMenuItem, args?: unknown[]): Promise<void> {
+  async executeItem(item: ResolvedMenuItem, args?: unknown[], useAlt?: boolean): Promise<void> {
     this.closeOpenMenu();
-    await this._commands.execute(item.command, ...(args ?? []));
+    const cmdId = (useAlt && item.altCommand) ? item.altCommand : item.command;
+    await this._commands.execute(cmdId, ...(args ?? []));
   }
 
   seedContributedMenus(items: ReadonlyArray<SeededMenuItem>): void {
@@ -262,6 +310,9 @@ export class MenuService implements IMenuService {
         when: item.when,
         toggled: item.toggled,
         title: item.title,
+        alt: item.alt,
+        submenu: item.submenu,
+        radioGroup: item.radioGroup,
       });
     }
     for (const [menuId, contributions] of grouped) {

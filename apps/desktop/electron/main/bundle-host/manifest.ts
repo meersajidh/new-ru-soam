@@ -91,12 +91,19 @@ export interface CommandManifest {
  */
 export interface MenuItemManifest {
   readonly menuId: string;
-  readonly command: string;
+  /** Optional only for label-only submenu parents (has `submenu` + `title`). */
+  readonly command?: string;
   readonly group: string;
   readonly order?: number;
   readonly when?: string;
   readonly toggled?: string;
   readonly title?: string;
+  /** O424: Alternate command id executed when Alt held. */
+  readonly alt?: string;
+  /** O425: Menu slot id for submenu flyout. */
+  readonly submenu?: string;
+  /** O425: Radio group name. */
+  readonly radioGroup?: string;
 }
 
 /**
@@ -455,14 +462,20 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
             throw new ManifestError(manifestPath, `menus["${menuId}"] item must be an object`);
           }
           const mi = item as Record<string, unknown>;
-          if (!isString(mi.command)) {
-            throw new ManifestError(manifestPath, `menus["${menuId}"] item requires \`command\` as a non-empty string`);
-          }
-          if (!CONTRIBUTION_ID_RE.test(mi.command)) {
-            throw new ManifestError(
-              manifestPath,
-              `menus["${menuId}"] command "${mi.command}" must match /^[a-z0-9][a-z0-9_.-]*$/i`,
-            );
+          // A label-only submenu parent (has `submenu` + `title`) needs no
+          // command — selecting it opens the flyout. Every other item must
+          // carry a valid command id.
+          const isLabelOnlySubmenu = mi.command === undefined && isString(mi.submenu) && isString(mi.title);
+          if (!isLabelOnlySubmenu) {
+            if (!isString(mi.command)) {
+              throw new ManifestError(manifestPath, `menus["${menuId}"] item requires \`command\` as a non-empty string (or omit it on a submenu item with a \`title\`)`);
+            }
+            if (!CONTRIBUTION_ID_RE.test(mi.command)) {
+              throw new ManifestError(
+                manifestPath,
+                `menus["${menuId}"] command "${mi.command}" must match /^[a-z0-9][a-z0-9_.-]*$/i`,
+              );
+            }
           }
           if (!isString(mi.group)) {
             throw new ManifestError(manifestPath, `menus["${menuId}"] item requires \`group\` as a non-empty string`);
@@ -479,14 +492,26 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
           if (mi.title !== undefined && typeof mi.title !== 'string') {
             throw new ManifestError(manifestPath, `menus["${menuId}"] item \`title\` must be a string if present`);
           }
+          if (mi.alt !== undefined && typeof mi.alt !== 'string') {
+            throw new ManifestError(manifestPath, `menus["${menuId}"] item \`alt\` must be a string if present`);
+          }
+          if (mi.submenu !== undefined && typeof mi.submenu !== 'string') {
+            throw new ManifestError(manifestPath, `menus["${menuId}"] item \`submenu\` must be a string if present`);
+          }
+          if (mi.radioGroup !== undefined && typeof mi.radioGroup !== 'string') {
+            throw new ManifestError(manifestPath, `menus["${menuId}"] item \`radioGroup\` must be a string if present`);
+          }
           menuItems.push({
             menuId,
-            command: mi.command,
+            command: isString(mi.command) ? mi.command : undefined,
             group: mi.group,
             order: typeof mi.order === 'number' ? mi.order : undefined,
             when: typeof mi.when === 'string' ? mi.when : undefined,
             toggled: typeof mi.toggled === 'string' ? mi.toggled : undefined,
             title: typeof mi.title === 'string' ? mi.title : undefined,
+            alt: typeof mi.alt === 'string' ? mi.alt : undefined,
+            submenu: typeof mi.submenu === 'string' ? mi.submenu : undefined,
+            radioGroup: typeof mi.radioGroup === 'string' ? mi.radioGroup : undefined,
           });
         }
       }

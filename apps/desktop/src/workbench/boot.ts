@@ -12,6 +12,7 @@ import { FontService } from '../platform/font/font-service';
 import { ContextKeyService } from '../platform/context-key/context-key-service';
 import { CommandService } from '../platform/command/command-service';
 import { KeybindingService } from '../platform/keybinding/keybinding-service';
+import { readUserKeybindings } from '../platform/keybinding/user-keybindings-store';
 import { WorkspaceService } from '../platform/workspace/workspace-service';
 import { EditorService } from '../platform/editor/editor-service';
 import { RuEditService } from '../platform/ru-edit/ru-edit-service';
@@ -248,6 +249,18 @@ export function boot(): ServiceRegistry {
 
   registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, font, workspace, editor, snippet, notifications, menu);
 
+  // O426: load persisted user keybinding overrides (global, localStorage) +
+  // drive the pending-chord StatusBar indicator mid multi-stroke chord.
+  keybindings.seedUserKeybindings(readUserKeybindings());
+  keybindings.onDidChangePendingChord((first) => {
+    statusBar.update(
+      'workbench.pendingChord',
+      first
+        ? { visible: true, text: `(${first}) waiting for second key…` }
+        : { visible: false, text: '' },
+    );
+  });
+
   // Open mock workspace — real identity comes in Phase 8+
   workspace.open('entity-mock-001', 'individual');
 
@@ -263,7 +276,7 @@ export function boot(): ServiceRegistry {
             contributions.seed(snap as Parameters<typeof contributions.seed>[0]);
             const snapWithCmds = snap as {
               commands?: Array<{ id: string; title: string; category?: string; icon?: string; when?: string }>;
-              menus?: Array<{ menuId: string; command: string; group: string; order?: number; when?: string; toggled?: string; title?: string }>;
+              menus?: Array<{ menuId: string; command: string; group: string; order?: number; when?: string; toggled?: string; title?: string; alt?: string; submenu?: string; radioGroup?: string }>;
               keybindings?: Array<{ key: string; command: string; when?: string; args?: ReadonlyArray<unknown> }>;
             };
             commands.seedContributedCommands(snapWithCmds.commands ?? []);
@@ -320,6 +333,11 @@ export function boot(): ServiceRegistry {
   }
   syncDarkModeEntry(theme.isDark());
   theme.onDarkModeChange(syncDarkModeEntry);
+
+  // ── O425: workbench.colorTheme context key ───────────────────────────────
+  // Tracks the active palette id so radio-group `toggled` when-clauses work.
+  contextKeys.set('workbench.colorTheme', theme.getActive().id);
+  theme.onThemeChange((t) => contextKeys.set('workbench.colorTheme', t.id));
 
   // ── Phase 9b: DEV-mode StatusBar entry ────────────────────────────────────
   // Use import.meta.env.DEV as an approximation of "not packaged".
