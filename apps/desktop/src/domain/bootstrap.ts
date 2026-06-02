@@ -60,6 +60,55 @@ export function domainBootstrap(registry: ServiceRegistry): void {
     { category: 'Practice' },
   );
 
+  // Shared helper — sets lifecycle stage via Main-resident record.patient cap.
+  // PHI never enters Bundle Host (ADR-410/504).
+  async function setPatientStage(ctx: unknown, stage: string): Promise<void> {
+    const clientId = (ctx as Record<string, unknown>)?.clientId;
+    if (typeof clientId !== 'string' || clientId.length === 0) {
+      console.warn('[practice] setStage: missing or invalid clientId in ctx', ctx);
+      return;
+    }
+    const proxy = await window.soam.bindCapability('record.patient', '1.0');
+    try {
+      await proxy.call('setStage', clientId, stage);
+    } catch (err) {
+      console.error('[practice] setStage failed:', err);
+    } finally {
+      proxy.dispose();
+    }
+  }
+
+  commands.register(
+    'ru-soam-practice.lifecycle.setReferral',
+    'Set Stage: Referral',
+    (ctx: unknown) => setPatientStage(ctx, 'referral'),
+    { category: 'Practice' },
+  );
+  commands.register(
+    'ru-soam-practice.lifecycle.setIntake',
+    'Set Stage: Intake',
+    (ctx: unknown) => setPatientStage(ctx, 'intake'),
+    { category: 'Practice' },
+  );
+  commands.register(
+    'ru-soam-practice.lifecycle.setActive',
+    'Set Stage: Active',
+    (ctx: unknown) => setPatientStage(ctx, 'active'),
+    { category: 'Practice' },
+  );
+  commands.register(
+    'ru-soam-practice.lifecycle.setOnHold',
+    'Set Stage: On Hold',
+    (ctx: unknown) => setPatientStage(ctx, 'on_hold'),
+    { category: 'Practice' },
+  );
+  commands.register(
+    'ru-soam-practice.lifecycle.setDischarged',
+    'Set Stage: Discharged',
+    (ctx: unknown) => setPatientStage(ctx, 'discharged'),
+    { category: 'Practice' },
+  );
+
   // Wire editor active-instance changes → patient.activeId / record.activeId context keys.
   // Reads entityId from the active EditorInstance (set by EditorService.open({entityId})).
   // These are domain-reserved keys (ADR-407); only domain code may write them.

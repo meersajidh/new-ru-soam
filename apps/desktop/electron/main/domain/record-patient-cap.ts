@@ -27,8 +27,12 @@ import { registerCapability } from '../capability/registry.js';
 import { localStoreManager } from '../local-store/index.js';
 import { auditService } from '../audit/index.js';
 import { CapErr } from '../../shared/ipc-protocol.js';
+import { LIFECYCLE_STAGES, VALID_STAGES } from './lifecycle-stages.js';
+import type { LifecycleStageDef } from './lifecycle-stages.js';
 import type {
+  LifecycleStage,
   PatientCreateInput,
+  PatientLifecycle,
   PatientProfile,
   PatientProfilePatch,
   PatientRecord,
@@ -222,6 +226,31 @@ function rowToProfile(row: PatientProfileRow): PatientProfile {
   };
 }
 
+// ── Lifecycle row shape ────────────────────────────────────────────────────────
+
+interface PatientLifecycleRow {
+  readonly patient_id: string;
+  readonly stage: string;
+  readonly stage_updated_at: number;
+  readonly stage_reason: string | null;
+}
+
+function rowToLifecycle(row: PatientLifecycleRow): PatientLifecycle {
+  return {
+    patientId: row.patient_id,
+    stage: row.stage as LifecycleStage,
+    stageUpdatedAt: row.stage_updated_at,
+    stageReason: row.stage_reason,
+  };
+}
+
+function validateStage(stage: unknown): LifecycleStage {
+  if (typeof stage !== 'string' || !VALID_STAGES.has(stage)) {
+    throw validationError(`record.patient: invalid stage: ${String(stage)}`);
+  }
+  return stage as LifecycleStage;
+}
+
 // ── Method implementations ────────────────────────────────────────────────────
 
 function implCreate(input: PatientCreateInput): PatientRecord {
@@ -251,6 +280,13 @@ function implCreate(input: PatientCreateInput): PatientRecord {
   };
 
   dbInsert(db, record);
+
+  // Every new patient gets a default 'active' lifecycle row (Am3 §A3.3).
+  db.prepare(
+    `INSERT INTO patient_lifecycle (patient_id, stage, stage_updated_at)
+     VALUES (?, 'active', ?)`,
+  ).run(record.id, now);
+
   store.emitTableChange('patients', 'set', [record.id]);
 
   auditService.emit({
@@ -289,15 +325,18 @@ function implList(): PatientSummary[] {
 
   const rows = db
     .prepare(
-      `SELECT id, given_name, family_name, status
-       FROM patients
-       ORDER BY family_name ASC, given_name ASC`,
+      `SELECT p.id, p.given_name, p.family_name, p.status,
+              COALESCE(pl.stage, 'active') AS stage
+       FROM patients p
+       LEFT JOIN patient_lifecycle pl ON pl.patient_id = p.id
+       ORDER BY p.family_name ASC, p.given_name ASC`,
     )
     .all() as Array<{
       id: string;
       given_name: string;
       family_name: string | null;
       status: string;
+      stage: string;
     }>;
 
   auditService.emit({
@@ -312,6 +351,7 @@ function implList(): PatientSummary[] {
     id: r.id,
     displayName: deriveDisplayName(r.given_name, r.family_name),
     status: r.status as PatientStatus,
+    stage: r.stage as LifecycleStage,
   }));
 }
 
@@ -447,6 +487,73 @@ function implUpdateProfile(id: string, patch: PatientProfilePatch): PatientProfi
   return rowToProfile(updated);
 }
 
+function implGetLifecycle(id: string): PatientLifecycle | null {
+  const store = requireStore();
+  const db = requireDb(store);
+  const workspaceId = store.workspaceId() ?? 'unknown';
+
+  const row = db
+    .prepare(
+      `SELECT patient_id, stage, stage_updated_at, stage_reason
+       FROM patient_lifecycle WHERE patient_id = ?`,
+    )
+    .get(id) as PatientLifecycleRow | undefined;
+
+  auditService.emit({
+    event: 'record.patient.viewed',
+    entityId: workspaceId,
+    recordId: id,
+    recordType: 'patient_lifecycle',
+    principal: 'system',
+  });
+
+  return row ? rowToLifecycle(row) : null;
+}
+
+function implSetStage(id: string, stage: LifecycleStage, reason?: string): PatientLifecycle {
+  const store = requireStore();
+  const db = requireDb(store);
+  const workspaceId = store.workspaceId() ?? 'unknown';
+
+  const existing = dbGetById(db, id);
+  if (!existing) throw notFound(`record.patient.setStage: patient not found: ${id}`);
+
+  const now = Date.now();
+  db.prepare(
+    `INSERT INTO patient_lifecycle (patient_id, stage, stage_updated_at, stage_reason)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(patient_id) DO UPDATE SET
+       stage            = excluded.stage,
+       stage_updated_at = excluded.stage_updated_at,
+       stage_reason     = excluded.stage_reason`,
+  ).run(id, stage, now, reason ?? null);
+
+  store.emitTableChange('patient_lifecycle', 'set', [id]);
+
+  // Audit detail contains only the enum stage — never reason (may be free-text PHI).
+  auditService.emit({
+    event: 'record.patient.lifecycle.changed',
+    entityId: workspaceId,
+    recordId: id,
+    recordType: 'patient_lifecycle',
+    principal: 'system',
+    detail: { stage },
+  });
+
+  const updated = db
+    .prepare(
+      `SELECT patient_id, stage, stage_updated_at, stage_reason
+       FROM patient_lifecycle WHERE patient_id = ?`,
+    )
+    .get(id) as PatientLifecycleRow | undefined;
+  if (!updated) throw new Error(`record.patient.setStage: lifecycle row disappeared after write: ${id}`);
+  return rowToLifecycle(updated);
+}
+
+function implListLifecycleStages(): LifecycleStageDef[] {
+  return [...LIFECYCLE_STAGES];
+}
+
 // ── Registration ──────────────────────────────────────────────────────────────
 
 export function registerRecordPatientCapability(): void {
@@ -508,6 +615,28 @@ export function registerRecordPatientCapability(): void {
             throw validationError('record.patient.updateProfile: patch must be an object');
           }
           return implUpdateProfile(id, patch);
+        }
+        case 'getLifecycle': {
+          const id = args[0];
+          if (typeof id !== 'string') {
+            throw validationError('record.patient.getLifecycle: id must be a string');
+          }
+          return implGetLifecycle(id);
+        }
+        case 'setStage': {
+          const id = args[0];
+          const stage = args[1];
+          const reason = args[2];
+          if (typeof id !== 'string') {
+            throw validationError('record.patient.setStage: id must be a string');
+          }
+          if (reason !== undefined && typeof reason !== 'string') {
+            throw validationError('record.patient.setStage: reason must be a string if provided');
+          }
+          return implSetStage(id, validateStage(stage), typeof reason === 'string' ? reason : undefined);
+        }
+        case 'listLifecycleStages': {
+          return implListLifecycleStages();
         }
         default:
           throw methodNotFound(method);

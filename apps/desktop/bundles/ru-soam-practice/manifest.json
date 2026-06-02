@@ -51,7 +51,22 @@
       "ru-soam-practice/roster/context": [
         { "command": "ru-soam-practice.roster.setActive",   "group": "1_status@1" },
         { "command": "ru-soam-practice.roster.setInactive", "group": "1_status@2" },
-        { "command": "ru-soam-practice.roster.archive",     "group": "9_danger@1" }
+        { "command": "ru-soam-practice.roster.archive",     "group": "9_danger@1" },
+        { "title": "Set Stage", "submenu": "ru-soam-practice/stage/submenu", "group": "2_stage@1" }
+      ],
+      "ru-soam-practice/stage/submenu": [
+        { "command": "ru-soam-practice.lifecycle.setReferral",   "group": "1_stage@1" },
+        { "command": "ru-soam-practice.lifecycle.setIntake",     "group": "1_stage@2" },
+        { "command": "ru-soam-practice.lifecycle.setActive",     "group": "1_stage@3" },
+        { "command": "ru-soam-practice.lifecycle.setOnHold",     "group": "1_stage@4" },
+        { "command": "ru-soam-practice.lifecycle.setDischarged", "group": "1_stage@5" }
+      ],
+      "ru-soam-practice/intake/context": [
+        { "command": "ru-soam-practice.lifecycle.setReferral",   "group": "1_stage@1" },
+        { "command": "ru-soam-practice.lifecycle.setIntake",     "group": "1_stage@2" },
+        { "command": "ru-soam-practice.lifecycle.setActive",     "group": "1_stage@3" },
+        { "command": "ru-soam-practice.lifecycle.setOnHold",     "group": "1_stage@4" },
+        { "command": "ru-soam-practice.lifecycle.setDischarged", "group": "1_stage@5" }
       ]
     }
   }

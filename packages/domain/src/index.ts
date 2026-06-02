@@ -14,6 +14,23 @@
 export type PatientStatus = 'active' | 'inactive' | 'archived';
 
 /**
+ * Lifecycle stage values — ADR-505 Amendment 3.
+ * The runtime ordered list + validity set lives in Main (lifecycle-stages.ts).
+ */
+export type LifecycleStage = 'referral' | 'intake' | 'active' | 'on_hold' | 'discharged';
+
+/**
+ * Lifecycle row for a patient — one row per patient in patient_lifecycle.
+ * PHI: stageReason may be free text — treat same as PatientRecord.
+ */
+export interface PatientLifecycle {
+  readonly patientId: string;
+  readonly stage: LifecycleStage;
+  readonly stageUpdatedAt: number;
+  readonly stageReason: string | null;
+}
+
+/**
  * Full canonical Patient record as stored in the `patients` table.
  * PHI — never log field values, never send plaintext to cloud.
  */
@@ -32,13 +49,15 @@ export interface PatientRecord {
 }
 
 /**
- * Lightweight roster projection — id + displayName + status only.
+ * Lightweight roster projection — id + displayName + status + stage.
  * Returned by `record.patient.list()` to minimise PHI surface in the roster.
  */
 export interface PatientSummary {
   readonly id: string;
   readonly displayName: string;
   readonly status: PatientStatus;
+  /** Current lifecycle stage. Defaults to 'active' when no lifecycle row exists. */
+  readonly stage: LifecycleStage;
 }
 
 /** Input for creating a new patient record. */

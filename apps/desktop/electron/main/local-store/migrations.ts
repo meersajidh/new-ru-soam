@@ -105,6 +105,25 @@ const MIGRATIONS: ReadonlyArray<Migration> = [
       `);
     },
   },
+  {
+    version: 6,
+    description: 'core-domain: patient_lifecycle stage table (ADR-505 Am3)',
+    up(db) {
+      const now = Date.now();
+      db.exec(`
+        CREATE TABLE patient_lifecycle (
+          patient_id       TEXT PRIMARY KEY REFERENCES patients(id),
+          stage            TEXT NOT NULL,
+          stage_updated_at INTEGER NOT NULL,
+          stage_reason     TEXT
+        );
+      `);
+      db.prepare(
+        `INSERT INTO patient_lifecycle (patient_id, stage, stage_updated_at)
+         SELECT id, 'active', ${now} FROM patients`,
+      ).run();
+    },
+  },
 ];
 
 function ensureSchemaVersionTable(db: DatabaseT.Database): void {

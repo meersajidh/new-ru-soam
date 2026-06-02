@@ -299,3 +299,86 @@ built and CDP-verified. Decisions made during the build, recorded here:
   actions) is the honest fit for this model. Trade-off: future bundle views draw their own header.
   A generic shell-drawn, manifest-declared **view-title-action** contribution (VS Code-style) is the
   longer-term alternative if shell-owned titles are wanted later — not built now.
+
+## Amendment 3 (2026-06-02) — lifecycle/status model resolved (O419 thread 1)
+
+Promotes the first settled **O419** design thread: the client **lifecycle/status model**. This
+unblocks the **Intake** Navigation Aspect (Am1 §A1) and seeds the **Attention** obligation set.
+The Risk/Safety keystone, full Attention obligation set, and note-privacy split remain OPEN under
+O419. Data-model granularity tracked under O420; this amendment cuts the `patient_lifecycle`
+increment.
+
+### A3.1 Two orthogonal axes (status ⟂ stage)
+
+`patients.status` (shipped: `active | inactive | archived`) and the new clinical **lifecycle
+stage** are **orthogonal** — they answer different questions and are maintained independently
+(the data-model codex's "do not overload `status` with intake"):
+
+- **`patients.status`** — *roster shelf / visibility*. Practitioner-controlled archival state.
+  Drives the roster dot + visibility (ADR-505 §4, O433 `setStatus`). **Unchanged by this
+  amendment** (no derivation from stage).
+- **`patient_lifecycle.stage`** — *where the client sits in the care pathway*. Does **not** govern
+  roster visibility. A `discharged`-stage client may stay `status:active` (visible) until the
+  practitioner archives them; an `on_hold` client is still `status:active` (you are tracking them).
+
+Nominal overlap (both enums contain `active`) is accepted — they are distinct verbs on distinct
+surfaces.
+
+**Future (status axis): optional inactivity auto-tag.** The system *may* auto-set `status:inactive`
+when a client "drops off" — no upcoming scheduled appointment for a configurable idle period.
+This is an **opt-in** practitioner setting, **distinct from lifecycle stage**, and depends on the
+**Schedule** Activity (appointment data) which does not yet exist → **recorded as a future hook,
+not built this slice**. MVP `status` remains practitioner-controlled (O433). When built it lands as
+a scheduled core-domain sweep that emits the same `setStatus` audit; the practitioner can always
+override back to `active`.
+
+### A3.2 Stage set — lean, extensible, cyclic
+
+Stages (lean MVP set): **`referral` · `intake` · `active` · `discharged`**, plus **`on_hold`**
+(an active client temporarily suspended). `referral` subsumes waitlist for MVP (the two
+intake sub-stages of the codex's full pipeline are collapsed; revisit if the Intake board needs
+finer granularity).
+
+- **Cyclic, not a linear DAG.** The care pathway loops: relapse/return (`discharged → active` or
+  `discharged → intake`), suspend/resume (`active ↔ on_hold`). **MVP enforces no transition
+  graph — any stage → any stage is permitted.** Every transition is **audited** (ADR-502,
+  `record.patient.lifecycle.changed`) with an **optional reason**. A directed-graph constraint is a
+  later option, deliberately deferred — over-constraining a genuinely cyclic clinical reality is
+  premature.
+- **Extensible without migration.** `stage` is stored as **`TEXT` with no DB `CHECK` constraint**;
+  validity is enforced at the capability layer against an app-level **`LIFECYCLE_STAGES` registry**
+  (ordered list, in `core-domain`). Adding/renaming a stage = a registry edit, **zero schema
+  migration**. (User-customizable stages — a config table — are out of MVP scope; this is
+  *developer*-extensibility.)
+
+### A3.3 Ownership, residency, capability surface
+
+Lifecycle is canonical per-client clinical state (not an annotation/overlay), so it lands under
+the existing **`record.patient`** capability (`core-domain`, **Main-resident**, PHI-flagged —
+ADR-504), *not* a sibling capability and *never* Bundle-Host storage (ADR-410). New methods:
+
+- `getLifecycle(id): { stage, stageUpdatedAt, stageReason } | null`
+- `setStage(id, stage, reason?)` — validates `stage` against `LIFECYCLE_STAGES`; rejects unknown
+  ids (NotFound) and locked workspace (ADR-307); audits `record.patient.lifecycle.changed`
+  (ADR-502); `emitTableChange('patient_lifecycle')` so consumers reload.
+
+Schema (O420 increment) — `patient_lifecycle(patient_id PK/FK, stage TEXT NOT NULL, stage_updated_at
+INTEGER NOT NULL, stage_reason TEXT)`. **Every patient has exactly one row.** Migration backfills
+existing patients to **`stage:'active'`** (non-disruptive — matches today's behavior); new patients
+created via the record form default to `active`.
+
+### A3.4 Intake aspect (build target)
+
+The stubbed **Intake** tab (Am2) becomes live: it lists clients in **pre-active stages**
+(`referral`, `intake`), grouped by stage, and offers **stage-advance actions**. Per the O433
+pattern, stage transitions are **renderer-domain commands** (`src/domain/bootstrap.ts`, binding
+`record.patient@1.0` → `setStage`) so PHI never enters the Bundle Host. Stage can also be set from
+the Roster row context menu (reuses the same commands). `on_hold`/`discharged` clients are **not**
+shown in Intake (Intake = pre-active pipeline); they remain on the Roster per their `status`.
+
+### A3.5 Attention seed (not yet built)
+
+Lifecycle unblocks two Attention obligations conceptually — *intake-in-progress with no next step*
+and *on-hold past a review threshold* — but the **Attention aspect stays stubbed** until the full
+obligation set (which mostly needs Schedule/Sessions projections) is designed. Recorded here only
+as the dependency direction; no build this slice.

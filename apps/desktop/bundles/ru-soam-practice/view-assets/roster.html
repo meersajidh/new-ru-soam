@@ -579,9 +579,12 @@
           <p class="lens-placeholder">Attention — needs the lifecycle model.</p>
         </div>
 
-        <!-- INTAKE placeholder -->
+        <!-- INTAKE board (ADR-505 Am3) -->
         <div class="lens-panel" id="lens-intake">
-          <p class="lens-placeholder">Intake — needs the intake pipeline model.</p>
+          <div id="intake-empty" style="display:none">
+            <p class="lens-placeholder">No clients in intake.</p>
+          </div>
+          <div id="intake-content"></div>
         </div>
 
       </div><!-- #lens-body -->
@@ -601,15 +604,17 @@
         var _activeLens = 'roster';
 
         /* ── Element refs ────────────────────────────────── */
-        var elBridgeWait   = document.getElementById('bridge-wait');
-        var elRoot         = document.getElementById('root');
-        var elStatusMsg    = document.getElementById('status-msg');
-        var elBtnNew       = document.getElementById('btn-new');
-        var elSearchInput  = document.getElementById('search-input');
-        var elRosterContent= document.getElementById('roster-content');
-        var elRosterEmpty  = document.getElementById('roster-empty');
-        var elRosterLocked = document.getElementById('roster-locked');
-        var elNoResults    = document.getElementById('roster-no-results');
+        var elBridgeWait    = document.getElementById('bridge-wait');
+        var elRoot          = document.getElementById('root');
+        var elStatusMsg     = document.getElementById('status-msg');
+        var elBtnNew        = document.getElementById('btn-new');
+        var elSearchInput   = document.getElementById('search-input');
+        var elRosterContent = document.getElementById('roster-content');
+        var elRosterEmpty   = document.getElementById('roster-empty');
+        var elRosterLocked  = document.getElementById('roster-locked');
+        var elNoResults     = document.getElementById('roster-no-results');
+        var elIntakeContent = document.getElementById('intake-content');
+        var elIntakeEmpty   = document.getElementById('intake-empty');
 
         /* ── Helpers ─────────────────────────────────────── */
         function computeAge(dob) {
@@ -679,6 +684,9 @@
           panels.forEach(function (p) {
             p.classList.toggle('is-active', p.id === 'lens-' + lensId);
           });
+          if (lensId === 'intake') {
+            renderIntake();
+          }
         }
 
         /* ── Group control ───────────────────────────────── */
@@ -835,6 +843,55 @@
           });
         }
 
+        /* ── Intake board ────────────────────────────────── */
+        var STAGE_LABELS = { referral: 'Referral', intake: 'Intake' };
+        var PRE_ACTIVE_STAGES = ['referral', 'intake'];
+
+        function renderIntake() {
+          elIntakeContent.innerHTML = '';
+          elIntakeEmpty.style.display = 'none';
+
+          var preActive = _roster.filter(function (p) {
+            return PRE_ACTIVE_STAGES.indexOf(p.stage || '') !== -1;
+          });
+
+          if (preActive.length === 0) {
+            elIntakeEmpty.style.display = 'block';
+            return;
+          }
+
+          PRE_ACTIVE_STAGES.forEach(function (stageId) {
+            var list = preActive.filter(function (p) { return p.stage === stageId; });
+            if (list.length === 0) return;
+
+            var label = STAGE_LABELS[stageId] || stageId;
+            var hdr = document.createElement('div');
+            hdr.className = 'group-header';
+            hdr.textContent = label + ' · ' + list.length;
+            elIntakeContent.appendChild(hdr);
+
+            var ul = document.createElement('ul');
+            ul.className = 'roster-group-list';
+            ul.setAttribute('role', 'list');
+            list.forEach(function (p) {
+              var li = buildRow(p);
+              li.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+                if (window.soamView && window.soamView.requestContextMenu) {
+                  window.soamView.requestContextMenu(
+                    'ru-soam-practice/intake/context',
+                    e.clientX,
+                    e.clientY,
+                    { clientId: p.id }
+                  );
+                }
+              });
+              ul.appendChild(li);
+            });
+            elIntakeContent.appendChild(ul);
+          });
+        }
+
         /* ── Load ────────────────────────────────────────── */
         function loadRoster() {
           if (!_proxy) return;
@@ -843,6 +900,7 @@
             elRosterLocked.classList.remove('visible');
             _roster = Array.isArray(data) ? data : [];
             renderRoster();
+            renderIntake();
           }).catch(function (err) {
             if (isLockedError(err)) {
               elRosterContent.innerHTML = '';
@@ -917,7 +975,7 @@
           });
 
           soamView.events.onStoreChange(function (payload) {
-            if (payload && payload.table === 'patients') {
+            if (payload && (payload.table === 'patients' || payload.table === 'patient_lifecycle')) {
               loadRoster();
             }
           });
