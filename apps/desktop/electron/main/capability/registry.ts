@@ -57,6 +57,12 @@ export interface CallerIdentity {
 export interface InvokeCapabilityOpts {
   /** Present only when the call originates from the Bundle Host consumer channel. */
   readonly caller?: CallerIdentity;
+  /**
+   * CQRS multiplexer hint (ADR-506 §7 / O447 rung-E).
+   * When set, the registry gates on entry.kind === expectKind before any other
+   * check. Absent (undefined) → no kind check → back-compat for unclassified caps.
+   */
+  readonly expectKind?: 'command' | 'query';
 }
 
 /** Registration-time config for a capability. */
@@ -139,6 +145,20 @@ export async function invokeCapability(
     return {
       ok: false,
       value: { code: CapErr.NotFound, message: `Capability not registered: ${name}@${version}` },
+    };
+  }
+
+  // CQRS kind-mismatch gate (ADR-506 §7 / O447 rung-E):
+  // bindQuery/bindCommand supply expectKind; plain bindCapability leaves it absent.
+  // An unclassified cap (entry.kind undefined) bound via bindQuery/bindCommand is
+  // always a mismatch — callers must use bindCapability for unclassified caps.
+  if (opts?.expectKind !== undefined && entry.kind !== opts.expectKind) {
+    return {
+      ok: false,
+      value: {
+        code: CapErr.KindMismatch,
+        message: `Capability ${name}@${version} kind mismatch: expected ${opts.expectKind}, got ${entry.kind ?? 'unclassified'}`,
+      },
     };
   }
 

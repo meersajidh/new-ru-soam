@@ -553,7 +553,7 @@
 
             soamView.events.onActivate(function () {
               if (_proxy) return;
-              soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+              soamView.bindCommand('record.patient', '1.0').then(function (proxy) {
                 _proxy = proxy;
               }).catch(function (err) {
                 if (isLockedError(err)) {
@@ -570,8 +570,8 @@
             // Both binds must resolve before the record is ready; either locked error shows locked UI.
             soamView.events.onActivate(function () {
               if (_proxy && _queryProxy) return;
-              var bindCmd   = _proxy        ? Promise.resolve(_proxy)        : soamView.bindCapability('record.patient', '1.0');
-              var bindQuery = _queryProxy   ? Promise.resolve(_queryProxy)   : soamView.bindCapability('record.patient.query', '1.0');
+              var bindCmd   = _proxy        ? Promise.resolve(_proxy)        : soamView.bindCommand('record.patient', '1.0');
+              var bindQuery = _queryProxy   ? Promise.resolve(_queryProxy)   : soamView.bindQuery('record.patient.query', '1.0');
               Promise.all([bindCmd, bindQuery]).then(function (proxies) {
                 _proxy      = proxies[0];
                 _queryProxy = proxies[1];

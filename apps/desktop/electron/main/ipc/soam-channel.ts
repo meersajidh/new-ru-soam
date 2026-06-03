@@ -27,7 +27,9 @@ export function installSoamChannel(): void {
         };
       }
 
-      const result = await invokeCapability(raw.capability, raw.version, raw.method, raw.args);
+      const result = await invokeCapability(raw.capability, raw.version, raw.method, raw.args, {
+        expectKind: raw.expectKind,
+      });
       if (result.ok) {
         return { id: raw.id, ok: true, data: result.value.data };
       }

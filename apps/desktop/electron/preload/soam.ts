@@ -111,6 +111,10 @@ export interface SoamUpdate {
 
 export interface Soam {
   readonly bindCapability: (name: string, version: string) => Promise<SoamCapabilityProxy>;
+  /** CQRS multiplexer: binds a query-classified capability (ADR-506 §7 / O447). */
+  readonly bindQuery: (name: string, version: string) => Promise<SoamCapabilityProxy>;
+  /** CQRS multiplexer: binds a command-classified capability (ADR-506 §7 / O447). */
+  readonly bindCommand: (name: string, version: string) => Promise<SoamCapabilityProxy>;
   readonly events: SoamEvents;
   readonly lock: SoamLock;
   readonly setup: SoamSetup;
@@ -277,25 +281,44 @@ const appBedrock: SoamApp = {
   },
 };
 
+// ── CQRS proxy factory ─────────────────────────────────────────────────────────
+//
+// Shared implementation for bindCapability / bindQuery / bindCommand.
+// Phase 1: bind is a typed-proxy handshake; no permission round-trip yet
+// (ADR-103 O4 — permission scope deferred). The proxy lazily routes each
+// method call through `soam:call`.
+// expectKind is included in the wire request when set (undefined = absent = no gate).
+
+function makeProxy(
+  name: string,
+  version: string,
+  expectKind?: 'command' | 'query',
+): Promise<SoamCapabilityProxy> {
+  let disposed = false;
+  return Promise.resolve({
+    call(method: string, ...args: ReadonlyArray<unknown>): Promise<unknown> {
+      if (disposed) {
+        return Promise.reject(new Error(`Capability proxy disposed: ${name}@${version}`));
+      }
+      return call({ capability: name, version, method, args, expectKind });
+    },
+    dispose() {
+      disposed = true;
+    },
+  });
+}
+
 // ── Main export ────────────────────────────────────────────────────────────────
 
 export const soam: Soam = {
-  async bindCapability(name, version) {
-    // Phase 1: bind is a typed-proxy handshake; no permission round-trip yet
-    // (ADR-103 O4 — permission scope deferred). The proxy lazily routes each
-    // method call through `soam:call`.
-    let disposed = false;
-    return {
-      call(method, ...args) {
-        if (disposed) {
-          return Promise.reject(new Error(`Capability proxy disposed: ${name}@${version}`));
-        }
-        return call({ capability: name, version, method, args });
-      },
-      dispose() {
-        disposed = true;
-      },
-    };
+  bindCapability(name, version) {
+    return makeProxy(name, version);
+  },
+  bindQuery(name, version) {
+    return makeProxy(name, version, 'query');
+  },
+  bindCommand(name, version) {
+    return makeProxy(name, version, 'command');
   },
   events: {
     on(listener) {

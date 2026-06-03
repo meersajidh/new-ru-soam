@@ -16,6 +16,8 @@ export interface CapabilityCallRequest {
   readonly version: string;
   readonly method: string;
   readonly args: ReadonlyArray<unknown>;
+  /** CQRS multiplexer hint (ADR-506 §7 / O447). Absent for unclassified caps. */
+  readonly expectKind?: 'command' | 'query';
 }
 
 export type CapabilityCallResponse =
@@ -59,5 +61,11 @@ export const CapErr = {
    * Fires only when caller.trustClass !== 'first-party' and the cap is phi.
    */
   Denied: 'cap.denied',
+  /**
+   * Capability kind does not match the CQRS multiplexer used by the caller
+   * (ADR-506 §7 / O447 rung-E). bindQuery rejects non-query caps; bindCommand
+   * rejects non-command caps; unclassified caps (kind undefined) always mismatch.
+   */
+  KindMismatch: 'cap.kind_mismatch',
 } as const;
 export type CapErrCode = (typeof CapErr)[keyof typeof CapErr];

@@ -30,7 +30,7 @@ export function domainBootstrap(registry: ServiceRegistry): void {
       console.warn('[practice] setStatus: missing or invalid clientId in ctx', ctx);
       return;
     }
-    const proxy = await window.soam.bindCapability('record.patient', '1.0');
+    const proxy = await window.soam.bindCommand('record.patient', '1.0');
     try {
       await proxy.call('setStatus', clientId, status);
     } catch (err) {
@@ -68,7 +68,7 @@ export function domainBootstrap(registry: ServiceRegistry): void {
       console.warn('[practice] setStage: missing or invalid clientId in ctx', ctx);
       return;
     }
-    const proxy = await window.soam.bindCapability('record.patient', '1.0');
+    const proxy = await window.soam.bindCommand('record.patient', '1.0');
     try {
       await proxy.call('setStage', clientId, stage);
     } catch (err) {

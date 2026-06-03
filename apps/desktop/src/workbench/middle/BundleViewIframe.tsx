@@ -73,11 +73,22 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
       iframe.contentWindow?.postMessage(msg, '*');
     };
 
-    const getProxy = (name: string, version: string): Promise<SoamCapabilityProxy> => {
-      const key = `${name}@${version}`;
+    const getProxy = (
+      name: string,
+      version: string,
+      expectKind?: 'command' | 'query',
+    ): Promise<SoamCapabilityProxy> => {
+      // Include expectKind in the key so command/query/unclassified proxies never collide.
+      const key = `${name}@${version}${expectKind !== undefined ? `#${expectKind}` : ''}`;
       let p = proxyCache.get(key);
       if (!p) {
-        p = window.soam.bindCapability(name, version);
+        if (expectKind === 'query') {
+          p = window.soam.bindQuery(name, version);
+        } else if (expectKind === 'command') {
+          p = window.soam.bindCommand(name, version);
+        } else {
+          p = window.soam.bindCapability(name, version);
+        }
         proxyCache.set(key, p);
       }
       return p;
@@ -115,8 +126,9 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
           const version = m.version as string;
           const method = m.method as string;
           const args = (m.args as ReadonlyArray<unknown>) ?? [];
+          const expectKind = m.expectKind as 'command' | 'query' | undefined;
           try {
-            const proxy = await getProxy(capability, version);
+            const proxy = await getProxy(capability, version, expectKind);
             const data = await proxy.call(method, ...args);
             post({ __soamView: true, kind: 'cap.response', requestId, ok: true, data });
           } catch (err) {

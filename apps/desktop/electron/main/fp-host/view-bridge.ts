@@ -83,7 +83,7 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     }
   });
 
-  function bindCapability(name, version) {
+  function _makeBoundProxy(name, version, expectKind) {
     return ready.then(function () {
       var disposed = false;
       return {
@@ -93,7 +93,9 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
           var id = nextId++;
           return new Promise(function (resolve, reject) {
             pending.set(id, { resolve: resolve, reject: reject });
-            send({ __soamView: true, kind: 'cap.call', requestId: id, capability: name, version: version, method: method, args: args });
+            var msg = { __soamView: true, kind: 'cap.call', requestId: id, capability: name, version: version, method: method, args: args };
+            if (expectKind !== undefined) msg.expectKind = expectKind;
+            send(msg);
           });
         },
         dispose: function () { disposed = true; }
@@ -101,8 +103,14 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     });
   }
 
+  function bindCapability(name, version) { return _makeBoundProxy(name, version, undefined); }
+  function bindQuery(name, version)      { return _makeBoundProxy(name, version, 'query'); }
+  function bindCommand(name, version)    { return _makeBoundProxy(name, version, 'command'); }
+
   window.soamView = Object.freeze({
     bindCapability: bindCapability,
+    bindQuery: bindQuery,
+    bindCommand: bindCommand,
     events: Object.freeze({
       onActivate: function (h) {
         activateHandlers.add(h);
