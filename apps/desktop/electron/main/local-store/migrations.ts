@@ -1,17 +1,27 @@
 /**
- * Schema migrations for the Local Store (Phase 10a).
+ * Per-owner schema migration registry for the Local Store (ADR-506 §4/§8, rung B / O444).
  *
- * A single linear migration list. Each entry has a numeric `version` and an
- * `up` function that performs the schema change. Applied versions are tracked
- * in a `_schema_version` table (single-row, key = 'current').
+ * Design:
+ *   - Each subsystem declares a `MigrationSet` with a stable `owner` key (bundleId
+ *     or the sentinel 'base') and an ordered list of `Migration` entries numbered
+ *     within that owner's namespace (1, 2, 3, …).
+ *   - `_schema_version` stores one row per owner: { owner TEXT PK, version INTEGER }.
+ *     Default version for a fresh DB is 0 (no row present yet).
+ *   - `runMigrations` iterates sets in deterministic order — 'base' ALWAYS first,
+ *     then all other owners in registration order — wrapping the entire upgrade for
+ *     ALL sets in ONE better-sqlite3 transaction (all-or-nothing).
+ *   - Sets are registered via `registerMigrationSet`. The base set self-registers on
+ *     module load. Domain sets register via `registerDomainMigrations()` in
+ *     `electron/main/domain/bootstrap.ts`, which MUST be called before the store
+ *     opens (before `localStoreManager.openFor()`).
  *
- * `runMigrations` is idempotent: on boot it reads the current version, then
- * runs every migration whose version is greater. New migrations are appended
- * to MIGRATIONS — never re-ordered or rewritten in place (the DB on disk is
- * the source of truth for what has actually been applied).
+ * ADR-106 boundary: this is base code. Domain modules may import from here;
+ * this module MUST NOT import from any domain module.
  */
 
 import type DatabaseT from 'better-sqlite3';
+
+// ── Interfaces ────────────────────────────────────────────────────────────────
 
 export interface Migration {
   readonly version: number;
@@ -19,157 +29,174 @@ export interface Migration {
   readonly up: (db: DatabaseT.Database) => void;
 }
 
-const MIGRATIONS: ReadonlyArray<Migration> = [
-  {
-    version: 1,
-    description: 'Initial schema: prefs table',
-    up(db) {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS prefs (
-          key        TEXT PRIMARY KEY,
-          value      TEXT NOT NULL,
-          updated_at INTEGER NOT NULL
-        );
-      `);
+export interface MigrationSet {
+  readonly owner: string;
+  readonly migrations: ReadonlyArray<Migration>;
+}
+
+// ── Registry ──────────────────────────────────────────────────────────────────
+
+const BASE_OWNER = 'base';
+
+/** Ordered registration list for non-base sets (in call order). */
+const _domainSets: MigrationSet[] = [];
+let _baseSet: MigrationSet | null = null;
+
+/**
+ * Register a migration set. Throws on duplicate owner.
+ * The 'base' owner is reserved for the set defined in this module.
+ */
+export function registerMigrationSet(set: MigrationSet): void {
+  if (set.owner === BASE_OWNER) {
+    if (_baseSet !== null) {
+      throw new Error(`[migrations] Duplicate migration set owner: '${set.owner}'`);
+    }
+    _baseSet = set;
+    return;
+  }
+  if (_domainSets.some((s) => s.owner === set.owner)) {
+    throw new Error(`[migrations] Duplicate migration set owner: '${set.owner}'`);
+  }
+  _domainSets.push(set);
+}
+
+/**
+ * Returns all registered sets in deterministic order:
+ * 'base' first, then domain sets in registration order.
+ * Throws if the base set has not been registered (should never happen — it
+ * self-registers below on module load).
+ */
+export function getOrderedMigrationSets(): ReadonlyArray<MigrationSet> {
+  if (_baseSet === null) {
+    throw new Error('[migrations] Base migration set not registered');
+  }
+  return [_baseSet, ..._domainSets];
+}
+
+// ── Base migration set ────────────────────────────────────────────────────────
+
+const BASE_MIGRATION_SET: MigrationSet = {
+  owner: BASE_OWNER,
+  migrations: [
+    {
+      version: 1,
+      description: 'Initial schema: prefs table',
+      up(db) {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS prefs (
+            key        TEXT PRIMARY KEY,
+            value      TEXT NOT NULL,
+            updated_at INTEGER NOT NULL
+          );
+        `);
+      },
     },
-  },
-  {
-    version: 2,
-    description: 'Audit ledger: append-only SHA-256 hash-chained log',
-    up(db) {
-      db.exec(`
-        CREATE TABLE audit_log (
-          id          INTEGER PRIMARY KEY AUTOINCREMENT,
-          seq         INTEGER NOT NULL UNIQUE,
-          ts          INTEGER NOT NULL,
-          event       TEXT NOT NULL,
-          principal   TEXT,
-          entity_id   TEXT NOT NULL,
-          record_id   TEXT,
-          record_type TEXT,
-          detail      TEXT,
-          prev_hash   TEXT NOT NULL,
-          entry_hash  TEXT NOT NULL
-        );
-        CREATE INDEX idx_audit_log_event ON audit_log(event);
-        CREATE INDEX idx_audit_log_ts    ON audit_log(ts);
-      `);
+    {
+      version: 2,
+      description: 'Audit ledger: append-only SHA-256 hash-chained log',
+      up(db) {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS audit_log (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            seq         INTEGER NOT NULL UNIQUE,
+            ts          INTEGER NOT NULL,
+            event       TEXT NOT NULL,
+            principal   TEXT,
+            entity_id   TEXT NOT NULL,
+            record_id   TEXT,
+            record_type TEXT,
+            detail      TEXT,
+            prev_hash   TEXT NOT NULL,
+            entry_hash  TEXT NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_audit_log_event ON audit_log(event);
+          CREATE INDEX IF NOT EXISTS idx_audit_log_ts    ON audit_log(ts);
+        `);
+      },
     },
-  },
-  {
-    version: 3,
-    description: 'Workspace settings: key/value table',
-    up(db) {
-      db.exec(`
-        CREATE TABLE workspace_settings (
-          key        TEXT PRIMARY KEY,
-          value      TEXT NOT NULL,
-          updated_at INTEGER NOT NULL
-        );
-      `);
+    {
+      version: 3,
+      description: 'Workspace settings: key/value table',
+      up(db) {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS workspace_settings (
+            key        TEXT PRIMARY KEY,
+            value      TEXT NOT NULL,
+            updated_at INTEGER NOT NULL
+          );
+        `);
+      },
     },
-  },
-  {
-    version: 4,
-    description: 'core-domain: patients roster table (ADR-504 / ADR-505)',
-    up(db) {
-      db.exec(`
-        CREATE TABLE patients (
-          id              TEXT PRIMARY KEY,
-          created_at      INTEGER NOT NULL,
-          updated_at      INTEGER NOT NULL,
-          given_name      TEXT NOT NULL,
-          family_name     TEXT,
-          contact_phone   TEXT,
-          contact_email   TEXT,
-          dob             TEXT,
-          status          TEXT NOT NULL DEFAULT 'active'
-        );
-        CREATE INDEX idx_patients_status     ON patients(status);
-        CREATE INDEX idx_patients_updated_at ON patients(updated_at);
-      `);
-    },
-  },
-  {
-    version: 5,
-    description: 'codex: patient_profile adjunct table (ADR-505)',
-    up(db) {
-      db.exec(`
-        CREATE TABLE patient_profile (
-          patient_id           TEXT PRIMARY KEY REFERENCES patients(id),
-          preferred_language   TEXT,
-          medication_awareness TEXT,
-          diagnosis            TEXT,
-          updated_at           INTEGER NOT NULL
-        );
-      `);
-    },
-  },
-  {
-    version: 6,
-    description: 'core-domain: patient_lifecycle stage table (ADR-505 Am3)',
-    up(db) {
-      const now = Date.now();
-      db.exec(`
-        CREATE TABLE patient_lifecycle (
-          patient_id       TEXT PRIMARY KEY REFERENCES patients(id),
-          stage            TEXT NOT NULL,
-          stage_updated_at INTEGER NOT NULL,
-          stage_reason     TEXT
-        );
-      `);
-      db.prepare(
-        `INSERT INTO patient_lifecycle (patient_id, stage, stage_updated_at)
-         SELECT id, 'active', ${now} FROM patients`,
-      ).run();
-    },
-  },
-];
+  ],
+};
+
+// Self-register on module load.
+registerMigrationSet(BASE_MIGRATION_SET);
+
+// ── Schema version table ──────────────────────────────────────────────────────
 
 function ensureSchemaVersionTable(db: DatabaseT.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS _schema_version (
-      id      INTEGER PRIMARY KEY CHECK (id = 1),
+      owner   TEXT PRIMARY KEY,
       version INTEGER NOT NULL
     );
   `);
-  db.prepare(
-    `INSERT OR IGNORE INTO _schema_version (id, version) VALUES (1, 0)`,
-  ).run();
 }
 
-function readCurrentVersion(db: DatabaseT.Database): number {
-  const row = db.prepare(`SELECT version FROM _schema_version WHERE id = 1`).get() as
-    | { version: number }
-    | undefined;
+function readOwnerVersion(db: DatabaseT.Database, owner: string): number {
+  const row = db
+    .prepare(`SELECT version FROM _schema_version WHERE owner = ?`)
+    .get(owner) as { version: number } | undefined;
   return row?.version ?? 0;
 }
 
-function writeCurrentVersion(db: DatabaseT.Database, version: number): void {
-  db.prepare(`UPDATE _schema_version SET version = ? WHERE id = 1`).run(version);
+function writeOwnerVersion(db: DatabaseT.Database, owner: string, version: number): void {
+  db
+    .prepare(
+      `INSERT INTO _schema_version (owner, version) VALUES (?, ?)
+       ON CONFLICT(owner) DO UPDATE SET version = excluded.version`,
+    )
+    .run(owner, version);
 }
 
+// ── runMigrations ─────────────────────────────────────────────────────────────
+
 /**
- * Apply every pending migration. Called once when the store opens.
- * Idempotent: if all migrations are already applied this is a no-op.
+ * Apply all pending migrations across all registered sets.
+ * Called once when the store opens. Idempotent: all-applied → no-op.
+ *
+ * Execution order: 'base' set first, then domain sets in registration order.
+ * The entire upgrade (all sets, all pending migrations) is wrapped in ONE
+ * better-sqlite3 transaction to preserve all-or-nothing atomicity.
+ * better-sqlite3 transactions are synchronous.
  */
 export function runMigrations(db: DatabaseT.Database): void {
   ensureSchemaVersionTable(db);
-  const current = readCurrentVersion(db);
 
-  const pending = MIGRATIONS.filter((m) => m.version > current).sort(
-    (a, b) => a.version - b.version,
-  );
-  if (pending.length === 0) return;
+  const orderedSets = getOrderedMigrationSets();
 
-  // Wrap the whole upgrade in a single transaction — partial migrations
-  // would leave the schema-version pointer out of sync with the on-disk
-  // shape. better-sqlite3 transactions are synchronous.
-  const tx = db.transaction((list: ReadonlyArray<Migration>) => {
-    for (const m of list) {
-      m.up(db);
-      writeCurrentVersion(db, m.version);
+  // Collect all pending work outside the transaction (reads are fine outside).
+  type PendingWork = { set: MigrationSet; pending: ReadonlyArray<Migration> };
+  const allWork: PendingWork[] = orderedSets.map((set) => {
+    const current = readOwnerVersion(db, set.owner);
+    const pending = set.migrations
+      .filter((m) => m.version > current)
+      .sort((a, b) => a.version - b.version);
+    return { set, pending };
+  });
+
+  const hasWork = allWork.some((w) => w.pending.length > 0);
+  if (!hasWork) return;
+
+  // One transaction wraps ALL sets' pending migrations.
+  const tx = db.transaction(() => {
+    for (const { set, pending } of allWork) {
+      for (const m of pending) {
+        m.up(db);
+        writeOwnerVersion(db, set.owner, m.version);
+      }
     }
   });
-  tx(pending);
+  tx();
 }

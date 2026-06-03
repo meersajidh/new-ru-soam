@@ -35,7 +35,7 @@ import { registerUpdateCapability } from './ipc/update-channel';
 import { registerCommandsCapability } from './capability/commands';
 import { initUpdater } from './updater/index';
 import { registerQuiesceHook } from './updater/db-quiesce';
-import { registerDomainCapabilities } from './domain/bootstrap';
+import { registerDomainCapabilities, registerDomainMigrations } from './domain/bootstrap';
 import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
 
 if (process.platform === 'linux') {
@@ -142,6 +142,12 @@ app.whenReady().then(() => {
   registerQuiesceHook(async () => {
     localStoreManager.quiesceActive();
   });
+
+  // Domain migration sets MUST be registered before any store.open / runMigrations.
+  // registerDomainCapabilities() fires later (after setLockServiceGetter at ~line 180)
+  // because capabilities need the PHI lock gate armed. Migration sets have no such
+  // dependency — they are pure DDL descriptors consumed only when the store opens.
+  registerDomainMigrations();
 
   // 3. Resolve active LockService
   const activeId = workspaceRegistry.getActive();

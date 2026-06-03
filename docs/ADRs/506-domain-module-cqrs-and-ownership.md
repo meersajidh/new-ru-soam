@@ -189,7 +189,10 @@ The incremental ladder (ADR-418 Am1 §A1.5), spine `0 → C → D`:
   Foundational; everything below consumes it. **O449** (+ trust-class assignment O439,
   dir/name reconciliation O450).
 - **A** CQRS-explicit authoring (O442 — **DONE 2026-06-03**: separate command/query caps;
-  `record.patient` split; dormant `kind` on `registerCapability`) · **B** per-bundle migrations (O444) ·
+  `record.patient` split; dormant `kind` on `registerCapability`) · **B** per-bundle migrations
+  (O444 — **DONE 2026-06-03**: per-owner `MigrationSet` registry; `_schema_version` per-owner;
+  owner = bundleId; patient tables → `domain/practice-migrations.ts`; sets register before
+  store open) ·
   **C** generic ownership-scoped store cap + declared-query executor (O446) ·
   **D** move record command logic Main→FP-Host, consuming C — *this rung is "pure-base
   Main"* · **E** CQRS preload bridge split (O447) · **F** dep-graph validation (O445) ·
