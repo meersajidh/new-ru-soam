@@ -155,7 +155,9 @@ privileged"). *(ADR-106 to be amended to formalise the extensions tier.)*
   `core-domain`**. Sole-writer is now **Main-enforced via declared ownership** (§6) — an
   upgrade over convention.
 - **B — capability granularity → command/query split** (§3/§7), per aggregate. Method
-  catalogue per module (O442).
+  catalogue per module (O442 — **resolved rung A: SEPARATE CAPS** per module, not one cap
+  with method-classes; cap identity = CQRS class. `record.patient` retrofitted to
+  `record.patient` (command) + `record.patient.query` (query)).
 - **D — Overview read → a declared read-model query** (§3) executed by Main's generic
   engine; per-projection degraded-state preserved (a missing module degrades its card).
   Materialization strategy: O443.
@@ -186,7 +188,8 @@ The incremental ladder (ADR-418 Am1 §A1.5), spine `0 → C → D`:
   caller `bundleId`/`trustClass` identity in registry dispatch + PHI-gate-by-trustClass.
   Foundational; everything below consumes it. **O449** (+ trust-class assignment O439,
   dir/name reconciliation O450).
-- **A** CQRS-explicit authoring (O442) · **B** per-bundle migrations (O444) ·
+- **A** CQRS-explicit authoring (O442 — **DONE 2026-06-03**: separate command/query caps;
+  `record.patient` split; dormant `kind` on `registerCapability`) · **B** per-bundle migrations (O444) ·
   **C** generic ownership-scoped store cap + declared-query executor (O446) ·
   **D** move record command logic Main→FP-Host, consuming C — *this rung is "pure-base
   Main"* · **E** CQRS preload bridge split (O447) · **F** dep-graph validation (O445) ·
@@ -202,7 +205,10 @@ today — refactoring into the FP-Host when the seam + store cap exist.
 
 ## Open items
 
-- **O442** — per-record command/query method catalogue (couples O197).
+- **O442** — per-record command/query method catalogue (couples O197). **RESOLVED rung A
+  (2026-06-03):** separate caps per module (cap = CQRS class), not method-classes within one
+  cap; command path → FP-Host (rung D), query path → generic query executor (rung C). See
+  Open_Items O442.
 - **O443** — read-model materialization (computed views vs materialized) for Overview + lens
   memberships.
 - **O444** — per-bundle migration declaration format + Main-side execution + cross-module

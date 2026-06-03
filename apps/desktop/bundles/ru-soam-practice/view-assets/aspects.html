@@ -570,7 +570,7 @@
         if (!_clientId || _clientId === 'new') return;
         if (_proxy) { loadAndRender(); return; }
         if (!_soamView) return;
-        _soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+        _soamView.bindCapability('record.patient.query', '1.0').then(function (proxy) {
           _proxy = proxy;
           loadAndRender();
         }).catch(function (err) {

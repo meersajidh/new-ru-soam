@@ -66,6 +66,13 @@ export interface CapabilityConfig {
    * workspace is locked. The lock check runs before the handler.
    */
   readonly phi?: boolean;
+
+  /**
+   * CQRS class per ADR-506 §3 / O442.
+   * Dormant convention metadata this rung — not yet enforced.
+   * Rung E (preload bridge split) and rung C (generic store cap) consume it.
+   */
+  readonly kind?: 'command' | 'query';
 }
 
 interface CapabilityEntry {
@@ -73,6 +80,7 @@ interface CapabilityEntry {
   readonly version: string;
   readonly handler: CapabilityHandler;
   readonly phi: boolean;
+  readonly kind?: 'command' | 'query';
 }
 
 const registry = new Map<string, CapabilityEntry>();
@@ -102,7 +110,7 @@ export function registerCapability(
   if (registry.has(k)) {
     throw new Error(`Capability already registered: ${k}`);
   }
-  registry.set(k, { name, version, handler, phi: config?.phi ?? false });
+  registry.set(k, { name, version, handler, phi: config?.phi ?? false, kind: config?.kind });
 }
 
 export interface CapabilityInvokeFailure {

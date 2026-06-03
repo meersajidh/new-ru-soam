@@ -962,7 +962,7 @@
               loadRoster();
               return;
             }
-            soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+            soamView.bindCapability('record.patient.query', '1.0').then(function (proxy) {
               _proxy = proxy;
               loadRoster();
             }).catch(function (err) {

@@ -1,19 +1,32 @@
 /**
- * record.patient@1.0 — canonical Patient record capability (ADR-504 / ADR-505).
+ * record.patient@1.0 — command cap (ADR-505 / ADR-506 §3 / O442 rung A).
+ * record.patient.query@1.0 — query cap (same ADRs).
  *
- * PHI-flagged (`phi: true`): the ADR-307 lock-gate in the registry rejects all
- * calls with `cap.locked` when the workspace is locked. No PHI enters the
- * Bundle Host — this handler runs in Main only.
+ * CQRS split per ADR-506 §3: write-side (sole-writer, destined for FP-Host rung D)
+ * vs read-side (many-consumer, destined for generic query executor rung C).
+ * Both caps run in Main as a stopgap — rung D moves command logic to FP-Host.
+ *
+ * Both are PHI-flagged (`phi: true`): patient reads are PHI too (ADR-307).
+ * The ADR-307 lock-gate in the registry rejects all calls with `cap.locked`
+ * when the workspace is locked. No PHI enters the Bundle Host — both handlers
+ * run in Main only.
  *
  * Backed by the per-workspace encrypted Local Store `patients` table
  * (migration version 4). Audit-on-write AND audit-on-view (ADR-502).
  *
- * Methods:
+ * record.patient (command) methods:
  *   create(input: PatientCreateInput)             → PatientRecord
- *   get(id: string)                               → PatientRecord | null
- *   list()                                        → PatientSummary[]
  *   update(id: string, patch: PatientUpdatePatch) → PatientRecord
  *   setStatus(id: string, status: PatientStatus)  → PatientRecord
+ *   setStage(id, stage, reason?)                  → PatientLifecycle
+ *   updateProfile(id, patch)                      → PatientProfile
+ *
+ * record.patient.query (query) methods:
+ *   get(id: string)                               → PatientRecord | null
+ *   list()                                        → PatientSummary[]
+ *   getProfile(id: string)                        → PatientProfile | null
+ *   getLifecycle(id: string)                      → PatientLifecycle | null
+ *   listLifecycleStages()                         → LifecycleStageDef[]
  *
  * Reactivity note: no `subscribe()` method is provided. The Local Store emits
  * `store.changed` (table: 'patients') after every write via `emitTableChange()`.
@@ -71,8 +84,8 @@ function notFound(message: string): Error {
   return Object.assign(new Error(message), { code: CapErr.NotFound });
 }
 
-function methodNotFound(method: string): Error {
-  return Object.assign(new Error(`record.patient: unknown method: ${method}`), {
+function methodNotFound(cap: string, method: string): Error {
+  return Object.assign(new Error(`${cap}: unknown method: ${method}`), {
     code: CapErr.MethodNotFound,
   });
 }
@@ -557,6 +570,7 @@ function implListLifecycleStages(): LifecycleStageDef[] {
 // ── Registration ──────────────────────────────────────────────────────────────
 
 export function registerRecordPatientCapability(): void {
+  // ── Command cap: sole-writer methods (destined for FP-Host at rung D) ────────
   registerCapability(
     'record.patient',
     '1.0',
@@ -568,16 +582,6 @@ export function registerRecordPatientCapability(): void {
             throw validationError('record.patient.create: input must be an object');
           }
           return implCreate(input);
-        }
-        case 'get': {
-          const id = args[0];
-          if (typeof id !== 'string') {
-            throw validationError('record.patient.get: id must be a string');
-          }
-          return implGet(id);
-        }
-        case 'list': {
-          return implList();
         }
         case 'update': {
           const id = args[0];
@@ -598,31 +602,6 @@ export function registerRecordPatientCapability(): void {
           }
           return implSetStatus(id, validateStatus(status));
         }
-        case 'getProfile': {
-          const id = args[0];
-          if (typeof id !== 'string') {
-            throw validationError('record.patient.getProfile: id must be a string');
-          }
-          return implGetProfile(id);
-        }
-        case 'updateProfile': {
-          const id = args[0];
-          const patch = args[1] as PatientProfilePatch;
-          if (typeof id !== 'string') {
-            throw validationError('record.patient.updateProfile: id must be a string');
-          }
-          if (!patch || typeof patch !== 'object') {
-            throw validationError('record.patient.updateProfile: patch must be an object');
-          }
-          return implUpdateProfile(id, patch);
-        }
-        case 'getLifecycle': {
-          const id = args[0];
-          if (typeof id !== 'string') {
-            throw validationError('record.patient.getLifecycle: id must be a string');
-          }
-          return implGetLifecycle(id);
-        }
         case 'setStage': {
           const id = args[0];
           const stage = args[1];
@@ -635,13 +614,61 @@ export function registerRecordPatientCapability(): void {
           }
           return implSetStage(id, validateStage(stage), typeof reason === 'string' ? reason : undefined);
         }
+        case 'updateProfile': {
+          const id = args[0];
+          const patch = args[1] as PatientProfilePatch;
+          if (typeof id !== 'string') {
+            throw validationError('record.patient.updateProfile: id must be a string');
+          }
+          if (!patch || typeof patch !== 'object') {
+            throw validationError('record.patient.updateProfile: patch must be an object');
+          }
+          return implUpdateProfile(id, patch);
+        }
+        default:
+          throw methodNotFound('record.patient', method);
+      }
+    },
+    { phi: true, kind: 'command' },
+  );
+
+  // ── Query cap: read-only methods (many-consumer; destined for generic query executor at rung C) ─
+  registerCapability(
+    'record.patient.query',
+    '1.0',
+    async (method, args) => {
+      switch (method) {
+        case 'get': {
+          const id = args[0];
+          if (typeof id !== 'string') {
+            throw validationError('record.patient.query.get: id must be a string');
+          }
+          return implGet(id);
+        }
+        case 'list': {
+          return implList();
+        }
+        case 'getProfile': {
+          const id = args[0];
+          if (typeof id !== 'string') {
+            throw validationError('record.patient.query.getProfile: id must be a string');
+          }
+          return implGetProfile(id);
+        }
+        case 'getLifecycle': {
+          const id = args[0];
+          if (typeof id !== 'string') {
+            throw validationError('record.patient.query.getLifecycle: id must be a string');
+          }
+          return implGetLifecycle(id);
+        }
         case 'listLifecycleStages': {
           return implListLifecycleStages();
         }
         default:
-          throw methodNotFound(method);
+          throw methodNotFound('record.patient.query', method);
       }
     },
-    { phi: true },
+    { phi: true, kind: 'query' },
   );
 }

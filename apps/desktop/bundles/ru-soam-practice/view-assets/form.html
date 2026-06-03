@@ -362,7 +362,8 @@
         // Parse id from query string. null / 'new' = create mode.
         var _clientId = new URLSearchParams(location.search).get('id');
         var _isCreate = !_clientId || _clientId === 'new';
-        var _proxy = null;
+        var _proxy = null;       // record.patient (command) proxy
+        var _queryProxy = null;  // record.patient.query proxy (edit mode only)
         var _saving = false;
         var _statusTimer = null;
 
@@ -565,12 +566,16 @@
             });
 
           } else {
-            // Edit mode: bind cap, load record, then show page.
+            // Edit mode: bind both caps — query cap to load, command cap for save.
+            // Both binds must resolve before the record is ready; either locked error shows locked UI.
             soamView.events.onActivate(function () {
-              if (_proxy) return;
-              soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
-                _proxy = proxy;
-                return _proxy.call('get', _clientId);
+              if (_proxy && _queryProxy) return;
+              var bindCmd   = _proxy        ? Promise.resolve(_proxy)        : soamView.bindCapability('record.patient', '1.0');
+              var bindQuery = _queryProxy   ? Promise.resolve(_queryProxy)   : soamView.bindCapability('record.patient.query', '1.0');
+              Promise.all([bindCmd, bindQuery]).then(function (proxies) {
+                _proxy      = proxies[0];
+                _queryProxy = proxies[1];
+                return _queryProxy.call('get', _clientId);
               }).then(function (rec) {
                 if (!rec) {
                   elNotFound.classList.add('visible');

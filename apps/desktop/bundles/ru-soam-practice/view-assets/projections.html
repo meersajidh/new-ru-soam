@@ -269,7 +269,7 @@
 
       /* ── State ──────────────────────────────────────────────────── */
       var _clientId   = null;
-      var _proxy      = null;    // record.patient capability proxy
+      var _proxy      = null;    // record.patient.query capability proxy
       var _soamView   = null;
       var _notes = MOCK_NOTES.map(function (n) { return Object.assign({}, n); });
 
@@ -374,7 +374,7 @@
       function ensureProxyAndFetchName() {
         if (!_clientId || !_soamView) return;
         if (_proxy) { fetchAndShowClientName(_clientId); return; }
-        _soamView.bindCapability('record.patient', '1.0').then(function (proxy) {
+        _soamView.bindCapability('record.patient.query', '1.0').then(function (proxy) {
           _proxy = proxy;
           fetchAndShowClientName(_clientId);
         }).catch(function () {
