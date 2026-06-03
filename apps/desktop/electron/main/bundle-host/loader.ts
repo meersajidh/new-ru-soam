@@ -29,7 +29,8 @@ async function ensureActivated(bundleId: string, entryPath: string): Promise<voi
   if (isBundleActivated(bundleId)) return;
   let inflight = activationLocks.get(bundleId);
   if (!inflight) {
-    inflight = activateBundle(bundleId, entryPath)
+    // All discovered bundles are in-package → first-party (O449 rung-0, ADR-418 Am1).
+    inflight = activateBundle(bundleId, entryPath, 'first-party')
       .then(() => undefined)
       .finally(() => {
         activationLocks.delete(bundleId);
@@ -99,7 +100,8 @@ export async function loadAndActivateBundles(): Promise<LoaderResult> {
     if (!bundle.manifest.activationEvents.includes('eager')) continue;
 
     try {
-      await activateBundle(bundle.manifest.id, bundle.entryPath);
+      // All in-package discovered bundles are first-party (O449 rung-0, ADR-418 Am1).
+      await activateBundle(bundle.manifest.id, bundle.entryPath, 'first-party');
       activated.push(bundle.manifest.id);
       console.log(`[bundles] activated ${bundle.manifest.id}`);
     } catch (err) {

@@ -138,6 +138,62 @@ declare const process: NodeJS.Process & {
   };
 };
 
+// ─── Host-side consume channel (O449 rung-0) ────────────────────────────────
+// The host ORIGINATES requests here; ids come from a host-allocated counter
+// that is SEPARATE from Main's pending-id namespace. Main branches on kind
+// before its own pending-map lookup to prevent id-collision false matches.
+
+interface HostPendingRequest {
+  resolve: (data: unknown) => void;
+  reject: (err: Error) => void;
+}
+
+/** Host-allocated id counter — independent of Main's nextId. */
+let hostNextId = 1;
+const hostPending = new Map<number, HostPendingRequest>();
+
+interface BoundCapability {
+  call(method: string, args: ReadonlyArray<unknown>): Promise<unknown>;
+  dispose(): void;
+}
+
+/**
+ * Ask Main to invoke a capability on behalf of the calling bundle (O449 rung-0).
+ *
+ * bundleId is carried so Main can resolve trustClass from its own records;
+ * trustClass is NEVER sent — Main resolves it from provenance.
+ *
+ * Returns a handle whose `call(method, args)` dispatches over the wire and
+ * whose `dispose()` is a no-op placeholder (for future subscription cleanup).
+ */
+function bindCapabilityForBundle(
+  bundleId: string,
+  capabilityName: string,
+  version: string,
+): BoundCapability {
+  return {
+    call(method: string, args: ReadonlyArray<unknown>): Promise<unknown> {
+      const id = hostNextId++;
+      return new Promise<unknown>((resolve, reject) => {
+        hostPending.set(id, { resolve, reject });
+        const msg: HostToMainMessage = {
+          kind: 'host.consume.invoke',
+          id,
+          bundleId,
+          capability: capabilityName,
+          version,
+          method,
+          args,
+        };
+        send(msg);
+      });
+    },
+    dispose(): void {
+      // No-op placeholder — future subscription cleanup goes here.
+    },
+  };
+}
+
 type BundleHandler = (
   method: string,
   args: ReadonlyArray<unknown>,
@@ -197,6 +253,16 @@ async function activate(
       }
       commands.set(commandId, handler);
       declaredCommandIds.push(commandId);
+    },
+    /**
+     * Bind a Main-resident capability for consumption by this bundle (O449 rung-0).
+     *
+     * Returns a handle with `call(method, args)` that sends a host.consume.invoke
+     * to Main and awaits the reply. Main resolves the caller's trustClass from its
+     * own provenance record — the bundle never sends trustClass.
+     */
+    bindCapability(name: string, version: string): BoundCapability {
+      return bindCapabilityForBundle(bundleId, name, version);
     },
   };
 
@@ -367,6 +433,26 @@ process.parentPort.on('message', (e) => {
     case 'host.command.invoke':
       void invokeCommand(msg.id, msg.bundleId, msg.commandId, msg.args);
       return;
+    // O449 rung-0: replies to host-originated consume requests.
+    // These resolve the host's OWN pending map (hostPending), keyed by the
+    // host-allocated id. Must be handled here (not in manager.ts) since this
+    // is the host process.
+    case 'host.consume.result': {
+      const req = hostPending.get(msg.id);
+      if (req) {
+        hostPending.delete(msg.id);
+        req.resolve(msg.data);
+      }
+      return;
+    }
+    case 'host.consume.error': {
+      const req = hostPending.get(msg.id);
+      if (req) {
+        hostPending.delete(msg.id);
+        req.reject(Object.assign(new Error(msg.message), { code: msg.code }));
+      }
+      return;
+    }
   }
 });
 

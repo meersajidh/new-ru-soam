@@ -1,4 +1,5 @@
 import { CapErr, type CapErrCode } from '../../shared/ipc-protocol';
+import type { TrustClass } from '../../shared/host-protocol';
 import type { LockService } from '../lock/service';
 
 /**
@@ -18,6 +19,13 @@ import type { LockService } from '../lock/service';
  * the active lock service before dispatching and rejects with `cap.locked` if
  * the workspace is locked. Pass `getActiveLockService` via `setLockServiceGetter`
  * before any PHI-flagged capability is invoked.
+ *
+ * O449 rung-0: `invokeCapability` accepts an optional `opts.caller` with
+ * `{ bundleId, trustClass }`. When caller is present, phi-flagged capabilities
+ * are additionally gated on `trustClass === 'first-party'`; any other class
+ * is rejected with `cap.denied` (ADR-418 Am1 PHI-gate-by-trustClass).
+ * Existing callers (Renderer via soam-channel, internal Main) pass no opts →
+ * caller is undefined → gate is dormant → back-compat preserved.
  */
 
 const KNOWN_CAP_ERR_CODES: ReadonlySet<string> = new Set(Object.values(CapErr));
@@ -33,6 +41,22 @@ export type CapabilityHandler = (
   method: string,
   args: ReadonlyArray<unknown>,
 ) => Promise<unknown>;
+
+/**
+ * Caller identity supplied by bundle-host/manager.ts when dispatching a
+ * Host→Main consume request (O449 rung-0). Main resolves trustClass from its
+ * own activated-bundle record — the host never self-declares trustClass.
+ */
+export interface CallerIdentity {
+  readonly bundleId: string;
+  readonly trustClass: TrustClass;
+}
+
+/** Options accepted by `invokeCapability` (additive, back-compat). */
+export interface InvokeCapabilityOpts {
+  /** Present only when the call originates from the Bundle Host consumer channel. */
+  readonly caller?: CallerIdentity;
+}
 
 /** Registration-time config for a capability. */
 export interface CapabilityConfig {
@@ -99,12 +123,27 @@ export async function invokeCapability(
   version: string,
   method: string,
   args: ReadonlyArray<unknown>,
+  opts?: InvokeCapabilityOpts,
 ): Promise<CapabilityInvokeResult> {
   const entry = registry.get(key(name, version));
   if (!entry) {
     return {
       ok: false,
       value: { code: CapErr.NotFound, message: `Capability not registered: ${name}@${version}` },
+    };
+  }
+
+  // PHI-gate-by-trustClass (O449 rung-0, ADR-418 Am1):
+  // When a caller identity is present and the capability is PHI-flagged,
+  // only first-party callers are allowed through. Renderer calls and internal
+  // Main calls never supply caller → gate is dormant → back-compat.
+  if (entry.phi && opts?.caller !== undefined && opts.caller.trustClass !== 'first-party') {
+    return {
+      ok: false,
+      value: {
+        code: CapErr.Denied,
+        message: `PHI capability ${name}@${version} denied for trustClass=${opts.caller.trustClass} bundleId=${opts.caller.bundleId}`,
+      },
     };
   }
 

@@ -53,5 +53,11 @@ export const CapErr = {
   SenderRejected: 'cap.sender_rejected',
   /** Capability refused because the workspace is locked (ADR-307). */
   Locked: 'cap.locked',
+  /**
+   * Capability refused because the caller's trustClass is insufficient for
+   * a PHI-flagged capability (ADR-418, O449 rung-0 PHI gate).
+   * Fires only when caller.trustClass !== 'first-party' and the cap is phi.
+   */
+  Denied: 'cap.denied',
 } as const;
 export type CapErrCode = (typeof CapErr)[keyof typeof CapErr];

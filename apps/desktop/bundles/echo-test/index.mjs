@@ -21,6 +21,11 @@ async function probeImport(specifier) {
 export function activate(ctx) {
   ctx.registerCommand('echo-test.hello', (name) => 'hello from host: ' + (name ?? 'world'));
 
+  // O449 rung-0 proof: bind platform.bundles@1.0 (non-PHI) via the Host→Main
+  // consumer channel. listActivated returns the current activated bundle list
+  // without needing an active workspace — deterministic in any state.
+  const platformBundles = ctx.bindCapability('platform.bundles', '1.0');
+
   ctx.registerCapability('echo.ping', '1.0', async (method, args) => {
     switch (method) {
       case 'echo': {
@@ -50,6 +55,21 @@ export function activate(ctx) {
           const message = err instanceof Error ? err.message : String(err);
           return { ok: false, errCode: 'process-exit-rejected', message };
         }
+      case 'consume-prefs': {
+        // O449 rung-0 proof: call platform.bundles@1.0 listActivated through the
+        // Host→Main consumer channel. Non-PHI, no workspace needed, deterministic.
+        try {
+          const result = await platformBundles.call('listActivated', []);
+          return { ok: true, via: 'host.consume.invoke', result };
+        } catch (err) {
+          return {
+            ok: false,
+            via: 'host.consume.invoke',
+            code: err && typeof err === 'object' && 'code' in err ? err.code : 'unknown',
+            message: err instanceof Error ? err.message : String(err),
+          };
+        }
+      }
       default:
         throw new Error(`echo.ping: unknown method ${method}`);
     }

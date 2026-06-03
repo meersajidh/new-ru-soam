@@ -5,7 +5,9 @@ import {
   type CapabilityDescriptor,
   type HostToMainMessage,
   type MainToHostMessage,
+  type TrustClass,
 } from '../../shared/host-protocol';
+import { invokeCapability } from '../capability/registry';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HOST_ENTRY = path.join(__dirname, '../bundle-host/index.mjs');
@@ -34,6 +36,8 @@ interface PendingRequest {
 interface ActivatedBundle {
   readonly bundleId: string;
   readonly capabilities: ReadonlyArray<CapabilityDescriptor>;
+  /** Assigned by Main from provenance at activation time (O449 rung-0). */
+  readonly trustClass: TrustClass;
 }
 
 const OUTPUT_RING_CAPACITY = 256;
@@ -74,6 +78,51 @@ export function setOnBundlesCrashed(
   onBundlesCrashed = cb;
 }
 
+/**
+ * Handles a host.consume.invoke message (O449 rung-0 consumer channel).
+ *
+ * The host asks Main to invoke a Main-resident capability on behalf of a bundle.
+ * Main resolves the caller's trustClass from its OWN activated-bundle record —
+ * the host NEVER sends trustClass, so it cannot self-elevate.
+ */
+async function handleConsumeRequest(
+  proc: UtilityProcess,
+  msg: Extract<HostToMainMessage, { kind: 'host.consume.invoke' }>,
+): Promise<void> {
+  const record = activated.get(msg.bundleId);
+  if (!record) {
+    const reply: MainToHostMessage = {
+      kind: 'host.consume.error',
+      id: msg.id,
+      code: 'cap.not_found',
+      message: `Bundle not activated on Main side: ${msg.bundleId}`,
+    };
+    proc.postMessage(reply);
+    return;
+  }
+
+  const result = await invokeCapability(msg.capability, msg.version, msg.method, msg.args, {
+    caller: { bundleId: record.bundleId, trustClass: record.trustClass },
+  });
+
+  if (result.ok) {
+    const reply: MainToHostMessage = {
+      kind: 'host.consume.result',
+      id: msg.id,
+      data: result.value.data,
+    };
+    proc.postMessage(reply);
+  } else {
+    const reply: MainToHostMessage = {
+      kind: 'host.consume.error',
+      id: msg.id,
+      code: result.value.code,
+      message: result.value.message,
+    };
+    proc.postMessage(reply);
+  }
+}
+
 function spawn(): UtilityProcess {
   shuttingDown = false;
   const proc = utilityProcess.fork(HOST_ENTRY, [], {
@@ -82,6 +131,14 @@ function spawn(): UtilityProcess {
   });
 
   proc.on('message', (msg: HostToMainMessage) => {
+    // CRITICAL (O449): host.consume.invoke is HOST-ORIGINATED (separate id namespace).
+    // Must branch and return BEFORE the pending-map lookup or a host consume-id
+    // could falsely match a Main pending-id.
+    if (msg.kind === 'host.consume.invoke') {
+      void handleConsumeRequest(proc, msg);
+      return;
+    }
+
     const req = pending.get(msg.id);
     if (!req) return;
     pending.delete(msg.id);
@@ -173,6 +230,7 @@ export interface ActivateBundleResult {
 export async function activateBundle(
   bundleId: string,
   modulePath: string,
+  trustClass: TrustClass = 'first-party',
 ): Promise<ActivateBundleResult> {
   if (activated.has(bundleId)) {
     throw new Error(`Bundle already activated: ${bundleId}`);
@@ -187,7 +245,7 @@ export async function activateBundle(
   if (reply.kind !== 'host.activated') {
     throw new Error(`Unexpected reply for host.activate: ${reply.kind}`);
   }
-  activated.set(bundleId, { bundleId, capabilities: reply.capabilities });
+  activated.set(bundleId, { bundleId, capabilities: reply.capabilities, trustClass });
   for (const cmdId of reply.commandIds) {
     commandOwners.set(cmdId, bundleId);
   }

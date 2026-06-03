@@ -15,7 +15,7 @@ import { registerBundlesOutputCapability } from './capability/bundles-output';
 import { registerBundleViewsCapability } from './capability/bundle-views';
 import { registerContributionsCapability } from './capability/contributions';
 import { registerShellCapability } from './capability/shell';
-import { setLockServiceGetter } from './capability/registry';
+import { setLockServiceGetter, invokeCapability } from './capability/registry';
 import { registerPhiDemoEchoCapability } from './capability/phi-demo-echo';
 import { registerPlatformDevCapability } from './capability/platform-dev';
 import { registerPrefsCapability } from './capability/prefs';
@@ -185,6 +185,22 @@ app.whenReady().then(() => {
   registerContributionsCapability();
   registerShellCapability();
   registerPhiDemoEchoCapability();
+
+  // O449 rung-0 PHI-gate self-check (dev-only, ADR-418 Am1).
+  // Verifies that a synthetic third-party caller is denied access to a PHI cap.
+  // PASS = result is ok:false with code cap.denied.
+  if (DEV) {
+    void invokeCapability('phi.demo.echo', '1.0', 'echo', ['x'], {
+      caller: { bundleId: '__synthetic_third_party__', trustClass: 'third-party' },
+    }).then((result) => {
+      if (!result.ok && result.value.code === 'cap.denied') {
+        console.log('[O449] PHI-gate self-check PASS — cap.denied returned for third-party caller');
+      } else {
+        console.error('[O449] PHI-gate self-check FAIL — expected cap.denied, got:', result);
+      }
+    });
+  }
+
   registerPlatformDevCapability();
   registerPrefsCapability();
   registerAuditCapability();
