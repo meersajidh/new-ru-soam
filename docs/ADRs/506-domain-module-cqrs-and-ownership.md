@@ -171,6 +171,35 @@ generic base store engine (ownership-scoped CRUD + declared-query executor), mov
 logic into a first-party bundle / First-Party-Host, and convert to per-bundle migrations.
 **New modules (e.g. Risk/Safety, O419) author to this model from the start.**
 
+### Phasing correction (2026-06-03) — FP-Host is MVP; "pure-base Main" is an MVP target
+
+A planning pass clarified a sequencing point: the **First-Party-Host is part of MVP**, not
+deferred. ADR-418 Amendment 1 promotes the single existing host (`electron/bundle-host/`) to
+the **capable** First-Party-Host; the zone genuinely deferred is the **second, untrusted
+third-party/extensions host** (rung H). Therefore §4's "no part of a bundle runs in Main" and
+the retirement of `core-domain` are **reachable in MVP** — the record's command logic has a
+non-Main, PHI-capable home (the FP-Host) to move into.
+
+The incremental ladder (ADR-418 Am1 §A1.5), spine `0 → C → D`:
+
+- **Rung 0** — FP-Host **capable promotion**: the Host→Main capability-consumer seam +
+  caller `bundleId`/`trustClass` identity in registry dispatch + PHI-gate-by-trustClass.
+  Foundational; everything below consumes it. **O449** (+ trust-class assignment O439,
+  dir/name reconciliation O450).
+- **A** CQRS-explicit authoring (O442) · **B** per-bundle migrations (O444) ·
+  **C** generic ownership-scoped store cap + declared-query executor (O446) ·
+  **D** move record command logic Main→FP-Host, consuming C — *this rung is "pure-base
+  Main"* · **E** CQRS preload bridge split (O447) · **F** dep-graph validation (O445) ·
+  **G** hard invariants → schema constraints (O448).
+- **Rung H (deferred, post-MVP)** — spawn the 2nd untrusted Bundle-Host
+  (`trustClass: 'third-party'`), full publisher-key authN; the PHI hard-deny falls out of
+  the trustClass gate built at rung 0, no retrofit.
+
+Until rungs C/D land, a *new* module (Risk/Safety) authors **CQRS-explicit** (clean
+command/query method split, own migration set once B lands, hard invariants as `CHECK`/`FK`)
+but may physically register as a Main cap as a stopgap — same residency as `record.patient`
+today — refactoring into the FP-Host when the seam + store cap exist.
+
 ## Open items
 
 - **O442** — per-record command/query method catalogue (couples O197).

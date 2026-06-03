@@ -150,8 +150,86 @@ untrusted to isolate). What is required *now*, to avoid painting into a corner:
 
 - **Trust-class assignment** — how a bundle is classified `first-party` vs `third-party`
   (code signing / install source / a platform registry). Provenance mechanism.
+  **Tiered (Amendment 1):** MVP = platform-assigned by load provenance + optional
+  load-time hash fingerprint; full publisher-key authN = rung H. See Amendment 1.
 - **First-Party-Host process granularity** — one shared process for all first-party
   bundles vs one-per-bundle (resilience vs overhead). ADR-410 spawns on demand today.
 - **Non-PHI capability tiering + grant/consent model** for Bundle-Host.
 - **Renderer-relay enforcement point** — the `soamView` relay must enforce the PHI
   hard-deny for untrusted iframe-originated binds; confirm it as the single chokepoint.
+
+## Amendment 1 — FP-Host is MVP + capable; provenance authN tiered (2026-06-03)
+
+A planning pass on the ADR-506 migration surfaced a **mis-reading** worth correcting in
+the record: that "the First-Party-Host is MVP-deferred." It is **not.** The *Phasing (MVP)*
+section above already says *"treat the existing Bundle-Host as the First-Party-Host"* — the
+zone that is deferred is the **second, untrusted third-party / extensions host**, the one
+with nothing to run until extensions ship. This amendment makes that explicit and commits
+the **capable** (not merely conceptual) promotion, plus a tiered provenance-authN model.
+
+### A1.1 The single existing host is promoted to the First-Party-Host
+
+`electron/bundle-host/` (one separately-spawned process) **is the First-Party-Host.** Every
+MVP bundle is first-party (domain) → all run here, per ADR-506 §9 (`domain → FP-Host`). The
+untrusted **Bundle-Host (third-party / extensions tier)** is **not spawned in MVP** — nothing
+untrusted to isolate. It lands with the extensions tier (rung H below).
+
+Consequences:
+
+- **"Pure-base Main" (ADR-506) is an MVP target, not deferred.** Domain command logic moves
+  *into* the FP-Host, which exists. (Earlier migration notes that listed "move command
+  logic out of Main" as post-MVP were wrong on that point.)
+- The current host's **weak sandbox** ("defense-in-depth, not airtight"; O137) stops being a
+  liability once the host is labelled trusted — that sandbox existed to contain *untrusted*
+  code (§4 still keeps the UI iframe sandbox for bug-containment regardless). The
+  airtight-process-sandbox requirement **transfers to the future Bundle-Host**, the deferred
+  zone — the hard constraint is parked with the work that needs it.
+
+### A1.2 Promotion is capable, not a label — the Host→Main consumer seam
+
+For the FP-Host to run command logic that persists via the generic base store capability
+(ADR-506 §6), a host bundle must be able to **consume** Main capabilities. Today the host
+can only **provide** caps (it receives `host.cap.invoke`); there is **no Host→Main consumer
+channel**, and the capability registry dispatch is **identity-blind** (`(method, args)` —
+§5's noted gap). Promotion therefore requires wiring, now, so the future Bundle-Host is
+**purely additive**:
+
+- a **Host→Main capability-consumer channel** (`ctx.bindCapability` in the host → a new
+  host-protocol request direction → Main dispatch);
+- **caller identity** (`bundleId` + `trustClass`) threaded into registry dispatch (closes
+  the §5 identity-blind gap);
+- the **PHI gate keyed on `trustClass`** at that chokepoint (`phi && trustClass !==
+  'first-party' → deny`) — dormant while all bundles are first-party, structurally present
+  so adding a `third-party` bundle later flips no policy, just registers a trustClass.
+
+Tracked as **O449** (the capable-promotion seam).
+
+### A1.3 Provenance authN, tiered (refines the Trust-class-assignment open item, O439)
+
+`trustClass` is **platform-assigned by provenance, never self-declared** (a manifest
+`trustClass` field would let a bundle claim its own trust):
+
+- **MVP (first-party only):** a bundle residing in the app's **signed package**
+  (`resourcesPath/bundles`) is assigned `first-party`. **Root of trust = OS app-code-signing**
+  (ADR-204/308) — the whole package is already signed. An **optional load-time content-hash
+  fingerprint check** (sha256 of entry + view-assets vs a pinned `fingerprints.json` shipped
+  in-package) adds tamper detection; toggleable (off in dev), **not** the primary trust root.
+- **Rung H (third-party tier):** full **publisher-key authN** — bundles installed from
+  *outside* the signed package carry a **signature verified against a publisher public key**;
+  `trustClass` derives from signature validity. This is the real provenance crypto, and is
+  only load-bearing once untrusted bundles load from outside the package.
+
+### A1.4 Naming hazard
+
+The dir `electron/bundle-host/` now hosts the *First-Party*-Host, inverting the ADR-410/418
+convention "Bundle-Host = the untrusted tier." Reconcile: rename → `electron/fp-host/`
+(O196-class brand churn) **or** document the mismatch loudly at the seam. Tracked as **O450**.
+
+### A1.5 Rung ladder (ADR-506 migration, corrected)
+
+`0` FP-Host capable promotion (this amendment, O449) → `A` CQRS-explicit authoring (O442) →
+`B` per-bundle migrations (O444) → `C` generic ownership-scoped store cap (O446) → `D` move
+record command logic Main→FP-Host (consumes C; *this* is "pure-base Main") → `E` CQRS preload
+bridge split (O447) → `F` dep-graph validation (O445) → `G` hard invariants → schema (O448).
+Spine = `0 → C → D`. **Rung H (deferred, post-MVP):** spawn the 2nd untrusted Bundle-Host,
+`trustClass: 'third-party'`, full publisher-key authN — PHI deny falls out structurally.
