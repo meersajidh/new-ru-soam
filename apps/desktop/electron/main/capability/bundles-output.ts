@@ -1,5 +1,5 @@
 import { registerCapability } from './registry';
-import { getBundleOutput, listActivatedBundleIds } from '../bundle-host/manager';
+import { getBundleOutput, listActivatedBundleIds } from '../fp-host/manager';
 
 /**
  * `platform.bundles@1.0` — Phase 6.5 stub surface.

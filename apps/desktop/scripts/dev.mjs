@@ -90,16 +90,16 @@ async function main() {
   });
 
   await build({
-    configFile: path.join(root, 'vite.bundle-host.config.ts'),
+    configFile: path.join(root, 'vite.fp-host.config.ts'),
     mode: 'development',
     clearScreen: false,
     logLevel: 'error',
     build: { watch: {} },
     plugins: [
       {
-        name: 'bundle-host-log',
+        name: 'fp-host-log',
         closeBundle() {
-          console.log('[bundle-host] rebuilt');
+          console.log('[fp-host] rebuilt');
         },
       },
     ],

@@ -12,7 +12,7 @@ files:
   - dist/main/**
   - dist/preload/**
   - dist/renderer/**
-  - dist/bundle-host/**
+  - dist/fp-host/**
   - changelog.json
   - package.json
 
@@ -25,7 +25,7 @@ asarUnpack:
   - "node_modules/@node-rs/argon2*/**"
 
 # First-party bundles ship under `resources/bundles/`, which is what
-# `bundle-host/loader.ts` reads via `path.join(process.resourcesPath, 'bundles')`
+# `fp-host/loader.ts` reads via `path.join(process.resourcesPath, 'bundles')`
 # in packaged builds.
 extraResources:
   - from: bundles

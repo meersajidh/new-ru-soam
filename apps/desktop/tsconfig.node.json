@@ -7,6 +7,6 @@
     "vite.config.ts",
     "vite.main.config.ts",
     "vite.preload.config.ts",
-    "vite.bundle-host.config.ts"
+    "vite.fp-host.config.ts"
   ]
 }

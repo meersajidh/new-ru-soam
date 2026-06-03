@@ -323,7 +323,7 @@ async function deactivate(id: number, bundleId: string): Promise<void> {
       await bundle.dispose();
     } catch (err) {
       process.stderr.write(
-        `[bundle-host] dispose threw for ${bundleId}: ${err instanceof Error ? err.stack ?? err.message : String(err)}\n`,
+        `[fp-host] dispose threw for ${bundleId}: ${err instanceof Error ? err.stack ?? err.message : String(err)}\n`,
       );
     }
   }
@@ -457,11 +457,11 @@ process.parentPort.on('message', (e) => {
 });
 
 process.on('uncaughtException', (err) => {
-  process.stderr.write(`[bundle-host] uncaughtException: ${err.stack ?? err.message}\n`);
+  process.stderr.write(`[fp-host] uncaughtException: ${err.stack ?? err.message}\n`);
   realExit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
   const msg = reason instanceof Error ? (reason.stack ?? reason.message) : String(reason);
-  process.stderr.write(`[bundle-host] unhandledRejection: ${msg}\n`);
+  process.stderr.write(`[fp-host] unhandledRejection: ${msg}\n`);
 });

@@ -5,6 +5,6 @@
     { "path": "./tsconfig.node.json" },
     { "path": "./tsconfig.main.json" },
     { "path": "./tsconfig.preload.json" },
-    { "path": "./tsconfig.bundle-host.json" }
+    { "path": "./tsconfig.fp-host.json" }
   ]
 }

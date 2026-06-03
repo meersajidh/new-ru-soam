@@ -43,7 +43,7 @@ export type CapabilityHandler = (
 ) => Promise<unknown>;
 
 /**
- * Caller identity supplied by bundle-host/manager.ts when dispatching a
+ * Caller identity supplied by fp-host/manager.ts when dispatching a
  * Host→Main consume request (O449 rung-0). Main resolves trustClass from its
  * own activated-bundle record — the host never self-declares trustClass.
  */

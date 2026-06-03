@@ -1,5 +1,5 @@
 import { registerCapability } from './registry.js';
-import { getContributionsSnapshot } from '../bundle-host/contributions-registry.js';
+import { getContributionsSnapshot } from '../fp-host/contributions-registry.js';
 
 /**
  * `platform.contributions@1.0` — manifest contribution metadata for the Renderer.

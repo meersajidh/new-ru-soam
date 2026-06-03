@@ -10,7 +10,7 @@ import {
 import { invokeCapability } from '../capability/registry';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const HOST_ENTRY = path.join(__dirname, '../bundle-host/index.mjs');
+const HOST_ENTRY = path.join(__dirname, '../fp-host/index.mjs');
 
 /**
  * Bundle Host process manager.
@@ -127,7 +127,7 @@ function spawn(): UtilityProcess {
   shuttingDown = false;
   const proc = utilityProcess.fork(HOST_ENTRY, [], {
     stdio: 'pipe',
-    serviceName: 'ru-soam-bundle-host',
+    serviceName: 'ru-soam-fp-host',
   });
 
   proc.on('message', (msg: HostToMainMessage) => {
@@ -153,9 +153,9 @@ function spawn(): UtilityProcess {
   proc.on('exit', (code) => {
     const wasCrash = !shuttingDown;
     if (wasCrash) {
-      console.error(`[bundle-host] exited unexpectedly code=${code}`);
+      console.error(`[fp-host] exited unexpectedly code=${code}`);
     } else {
-      console.log(`[bundle-host] shutdown clean code=${code}`);
+      console.log(`[fp-host] shutdown clean code=${code}`);
     }
     const inflight = pending;
     pending = new Map();
@@ -173,12 +173,12 @@ function spawn(): UtilityProcess {
 
   if (proc.stdout) {
     proc.stdout.on('data', (chunk: Buffer) =>
-      process.stdout.write(`[bundle-host] ${chunk}`),
+      process.stdout.write(`[fp-host] ${chunk}`),
     );
   }
   if (proc.stderr) {
     proc.stderr.on('data', (chunk: Buffer) =>
-      process.stderr.write(`[bundle-host] ${chunk}`),
+      process.stderr.write(`[fp-host] ${chunk}`),
     );
   }
 
@@ -362,7 +362,7 @@ export async function shutdownHost(): Promise<void> {
       await deactivateBundle(id);
     } catch (err) {
       console.error(
-        `[bundle-host] deactivate ${id} during shutdown failed:`,
+        `[fp-host] deactivate ${id} during shutdown failed:`,
         err instanceof Error ? err.message : err,
       );
       activated.delete(id);

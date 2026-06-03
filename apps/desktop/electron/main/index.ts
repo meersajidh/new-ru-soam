@@ -7,9 +7,9 @@ import { installCsp } from './security';
 import { createWorkbenchWindow } from './window-factory';
 import { installSoamChannel } from './ipc/soam-channel';
 import { registerPlatformWindow } from './ipc/sender-validate';
-import { shutdownHost } from './bundle-host/manager';
-import { installBundleCrashEventBridge, loadAndActivateBundles } from './bundle-host/loader';
-import { registerViewProtocol } from './bundle-host/view-protocol';
+import { shutdownHost } from './fp-host/manager';
+import { installBundleCrashEventBridge, loadAndActivateBundles } from './fp-host/loader';
+import { registerViewProtocol } from './fp-host/view-protocol';
 import { registerWindowControlsCapability } from './capability/window-controls';
 import { registerBundlesOutputCapability } from './capability/bundles-output';
 import { registerBundleViewsCapability } from './capability/bundle-views';
@@ -282,7 +282,7 @@ app.on('before-quit', (event) => {
   }
   shutdownHost()
     .catch((err) =>
-      console.error('[bundle-host] shutdown error:', err instanceof Error ? err.message : err),
+      console.error('[fp-host] shutdown error:', err instanceof Error ? err.message : err),
     )
     .finally(() => app.quit());
 });

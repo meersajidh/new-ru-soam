@@ -1,6 +1,6 @@
 import { CapErr } from '../../shared/ipc-protocol';
 import { registerCapability } from './registry';
-import { invokeBundleCommand, hasBundleCommand } from '../bundle-host/manager';
+import { invokeBundleCommand, hasBundleCommand } from '../fp-host/manager';
 
 function methodNotFound(method: string): Error {
   return Object.assign(new Error(`commands: unknown method: ${method}`), {

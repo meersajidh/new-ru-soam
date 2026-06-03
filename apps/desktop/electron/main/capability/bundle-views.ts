@@ -1,5 +1,5 @@
 import { registerCapability } from './registry';
-import { resolveViewPath, viewUrlFor } from '../bundle-host/view-protocol';
+import { resolveViewPath, viewUrlFor } from '../fp-host/view-protocol';
 
 /**
  * `platform.views@1.0` — view URL resolution for the Renderer.

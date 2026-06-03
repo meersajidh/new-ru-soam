@@ -16,11 +16,11 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       lib: {
-        entry: 'electron/bundle-host/index.ts',
+        entry: 'electron/fp-host/index.ts',
         formats: ['es'],
         fileName: () => 'index.mjs',
       },
-      outDir: 'dist/bundle-host',
+      outDir: 'dist/fp-host',
       emptyOutDir: true,
       sourcemap: true,
       rollupOptions: {
