@@ -14,6 +14,45 @@
     { "id": "aspects", "path": "aspects.html" },
     { "id": "projections", "path": "projections.html" }
   ],
+  "ownedTables": ["patients", "patient_profile", "patient_lifecycle"],
+  "migrations": [
+    {
+      "version": 1,
+      "description": "Practice: patients roster table (ADR-505)",
+      "sql": "CREATE TABLE IF NOT EXISTS patients (\n  id              TEXT PRIMARY KEY,\n  created_at      INTEGER NOT NULL,\n  updated_at      INTEGER NOT NULL,\n  given_name      TEXT NOT NULL,\n  family_name     TEXT,\n  contact_phone   TEXT,\n  contact_email   TEXT,\n  dob             TEXT,\n  status          TEXT NOT NULL DEFAULT 'active'\n);\nCREATE INDEX IF NOT EXISTS idx_patients_status     ON patients(status);\nCREATE INDEX IF NOT EXISTS idx_patients_updated_at ON patients(updated_at);"
+    },
+    {
+      "version": 2,
+      "description": "Practice: patient_profile adjunct table (ADR-505)",
+      "sql": "CREATE TABLE IF NOT EXISTS patient_profile (\n  patient_id           TEXT PRIMARY KEY REFERENCES patients(id),\n  preferred_language   TEXT,\n  medication_awareness TEXT,\n  diagnosis            TEXT,\n  updated_at           INTEGER NOT NULL\n);"
+    },
+    {
+      "version": 3,
+      "description": "Practice: patient_lifecycle stage table (ADR-505 Am3)",
+      "sql": "CREATE TABLE IF NOT EXISTS patient_lifecycle (\n  patient_id       TEXT PRIMARY KEY REFERENCES patients(id),\n  stage            TEXT NOT NULL,\n  stage_updated_at INTEGER NOT NULL,\n  stage_reason     TEXT\n);\nINSERT OR IGNORE INTO patient_lifecycle (patient_id, stage, stage_updated_at)\nSELECT id, 'active', (strftime('%s','now') * 1000) FROM patients;"
+    }
+  ],
+  "queryTemplates": [
+    {
+      "id": "patient.get",
+      "sql": "SELECT id, created_at, updated_at, given_name, family_name,\n       contact_phone, contact_email, dob, status\nFROM patients WHERE id = @id"
+    },
+    {
+      "id": "patient.list",
+      "sql": "SELECT p.id, p.given_name, p.family_name, p.status,\n       COALESCE(pl.stage, 'active') AS stage\nFROM patients p\nLEFT JOIN patient_lifecycle pl ON pl.patient_id = p.id\nORDER BY p.family_name ASC, p.given_name ASC"
+    },
+    {
+      "id": "patient.getProfile",
+      "sql": "SELECT patient_id, preferred_language, medication_awareness, diagnosis, updated_at\nFROM patient_profile WHERE patient_id = @id"
+    },
+    {
+      "id": "patient.getLifecycle",
+      "sql": "SELECT patient_id, stage, stage_updated_at, stage_reason\nFROM patient_lifecycle WHERE patient_id = @id"
+    }
+  ],
+  "dependencies": {
+    "capabilities": ["store.write@1.0", "store.query@1.0"]
+  },
   "contributes": {
     "activityBar.items": [
       {

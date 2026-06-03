@@ -1,16 +1,17 @@
 import path from 'path';
 import { app, type BrowserWindow } from 'electron';
-import { discoverBundles, type DiscoveredBundle } from './manifest';
+import { type DiscoveredBundle } from './manifest.js';
 import {
   activateBundle,
   invokeBundleCapability,
   isBundleActivated,
   setOnBundlesCrashed,
-} from './manager';
-import { registerCapability } from '../capability/registry';
-import { registerBundleViews } from './view-protocol';
-import { registerBundleContributions } from './contributions-registry';
-import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol';
+} from './manager.js';
+import { registerCapability } from '../capability/registry.js';
+import { registerBundleViews } from './view-protocol.js';
+import { registerBundleContributions } from './contributions-registry.js';
+import { validateCapabilityDependencies } from './bundle-schema.js';
+import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol.js';
 
 /**
  * Wires bundle manifests into the platform at boot per ADR-104 amendment:
@@ -25,10 +26,15 @@ import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol';
 
 const activationLocks = new Map<string, Promise<void>>();
 
-async function ensureActivated(bundleId: string, entryPath: string): Promise<void> {
+async function ensureActivated(bundle: DiscoveredBundle): Promise<void> {
+  const { manifest, entryPath } = bundle;
+  const bundleId = manifest.id;
   if (isBundleActivated(bundleId)) return;
   let inflight = activationLocks.get(bundleId);
   if (!inflight) {
+    // Validate capability dependencies before activation — refuse with clear error
+    // if any declared dep is not registered (rung F / O445).
+    validateCapabilityDependencies(manifest);
     // All discovered bundles are in-package → first-party (O449 rung-0, ADR-418 Am1).
     inflight = activateBundle(bundleId, entryPath, 'first-party')
       .then(() => undefined)
@@ -57,7 +63,7 @@ function registerRoutingHandlers(bundle: DiscoveredBundle): void {
         cap.version,
         async (method, args) => {
           if (isLazy) {
-            await ensureActivated(bundle.manifest.id, bundle.entryPath);
+            await ensureActivated(bundle);
           }
           return invokeBundleCapability(
             bundle.manifest.id,
@@ -84,15 +90,23 @@ export interface LoaderResult {
   readonly failed: ReadonlyArray<{ bundleId: string; reason: string }>;
 }
 
-export async function loadAndActivateBundles(): Promise<LoaderResult> {
-  const dir = resolveBundlesDir();
-  const discovered = discoverBundles(dir);
+/**
+ * Load, wire, and eagerly-activate bundles from the pre-discovered list.
+ *
+ * Accepts the already-discovered bundle list from the caller (index.ts) so that
+ * the same list is shared between the migration step (`registerBundleMigrations`),
+ * query-template step (`registerBundleQueryTemplates`), and activation — no
+ * double-discovery with divergent results (rung F / O445).
+ */
+export async function loadAndActivateBundles(
+  discovered: ReadonlyArray<DiscoveredBundle>,
+): Promise<LoaderResult> {
   if (discovered.length === 0) {
-    console.log(`[bundles] no bundles discovered in ${dir}`);
+    console.log('[bundles] no bundles to load');
     return { discovered, activated: [], failed: [] };
   }
 
-  console.log(`[bundles] discovered ${discovered.length} bundle(s) in ${dir}`);
+  console.log(`[bundles] loading ${discovered.length} bundle(s)`);
 
   const activated: string[] = [];
   const failed: { bundleId: string; reason: string }[] = [];
@@ -105,6 +119,8 @@ export async function loadAndActivateBundles(): Promise<LoaderResult> {
     if (!bundle.manifest.activationEvents.includes('eager')) continue;
 
     try {
+      // Validate capability dependencies before eager activation (rung F / O445).
+      validateCapabilityDependencies(bundle.manifest);
       // All in-package discovered bundles are first-party (O449 rung-0, ADR-418 Am1).
       await activateBundle(bundle.manifest.id, bundle.entryPath, 'first-party');
       activated.push(bundle.manifest.id);
@@ -117,6 +133,14 @@ export async function loadAndActivateBundles(): Promise<LoaderResult> {
   }
 
   return { discovered, activated, failed };
+}
+
+/**
+ * Resolve the bundles root directory (same logic used to discover bundles
+ * at boot — exported for use by index.ts composition root).
+ */
+export function resolveBundlesDirectory(): string {
+  return resolveBundlesDir();
 }
 
 export function installBundleCrashEventBridge(getWindow: () => BrowserWindow | null): void {

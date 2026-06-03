@@ -17,6 +17,25 @@ export interface CapabilityManifestEntry {
   readonly kind?: 'command' | 'query';
 }
 
+/** Single migration entry declared in a bundle manifest (ADR-506 §4/§8 rung F / O445). */
+export interface MigrationManifestEntry {
+  readonly version: number;
+  readonly description: string;
+  readonly sql: string;
+}
+
+/** Single query template declared in a bundle manifest (ADR-506 §6 rung F / O445). */
+export interface QueryTemplateManifestEntry {
+  readonly id: string;
+  readonly sql: string;
+}
+
+/** Capability dependency declarations (rung F / O445). */
+export interface BundleDependencies {
+  /** Each entry is "name@version", e.g. "store.write@1.0". */
+  readonly capabilities?: ReadonlyArray<string>;
+}
+
 export type ActivationEvent = 'eager' | 'lazy' | 'onCommand' | 'onEvent';
 
 /**
@@ -136,6 +155,14 @@ export interface BundleManifest {
   readonly capabilities: ReadonlyArray<CapabilityManifestEntry>;
   readonly views: ReadonlyArray<ViewManifestEntry>;
   readonly contributes: BundleContributions;
+  /** Tables this bundle exclusively writes (ADR-506 §6 rung C / O446). */
+  readonly ownedTables?: ReadonlyArray<string>;
+  /** Per-bundle SQL migrations (rung F / O445). */
+  readonly migrations?: ReadonlyArray<MigrationManifestEntry>;
+  /** Pre-declared SELECT templates consumed by store.query (rung F / O445). */
+  readonly queryTemplates?: ReadonlyArray<QueryTemplateManifestEntry>;
+  /** Declared capability dependencies (rung F / O445). */
+  readonly dependencies?: BundleDependencies;
 }
 
 export interface DiscoveredBundle {
@@ -602,6 +629,106 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
     }
   }
 
+  // ── ownedTables (optional) ────────────────────────────────────────────────
+  let ownedTables: string[] | undefined;
+  if (m.ownedTables !== undefined) {
+    if (!Array.isArray(m.ownedTables)) {
+      throw new ManifestError(manifestPath, '`ownedTables` must be an array if present');
+    }
+    ownedTables = [];
+    for (const t of m.ownedTables) {
+      if (typeof t !== 'string' || t.trim().length === 0) {
+        throw new ManifestError(manifestPath, '`ownedTables` entries must be non-empty strings');
+      }
+      ownedTables.push(t);
+    }
+  }
+
+  // ── migrations (optional) ─────────────────────────────────────────────────
+  let migrations: MigrationManifestEntry[] | undefined;
+  if (m.migrations !== undefined) {
+    if (!Array.isArray(m.migrations)) {
+      throw new ManifestError(manifestPath, '`migrations` must be an array if present');
+    }
+    migrations = [];
+    const seenVersions = new Set<number>();
+    for (const entry of m.migrations) {
+      if (!entry || typeof entry !== 'object') {
+        throw new ManifestError(manifestPath, '`migrations` entries must be objects');
+      }
+      const me = entry as Record<string, unknown>;
+      if (typeof me['version'] !== 'number') {
+        throw new ManifestError(manifestPath, '`migrations` entry `version` must be a number');
+      }
+      if (!isString(me['description'])) {
+        throw new ManifestError(manifestPath, '`migrations` entry `description` must be a non-empty string');
+      }
+      if (!isString(me['sql'])) {
+        throw new ManifestError(manifestPath, '`migrations` entry `sql` must be a non-empty string');
+      }
+      const ver = me['version'] as number;
+      if (seenVersions.has(ver)) {
+        throw new ManifestError(manifestPath, `\`migrations\` has duplicate version: ${ver}`);
+      }
+      seenVersions.add(ver);
+      migrations.push({ version: ver, description: me['description'] as string, sql: me['sql'] as string });
+    }
+  }
+
+  // ── queryTemplates (optional) ─────────────────────────────────────────────
+  let queryTemplates: QueryTemplateManifestEntry[] | undefined;
+  if (m.queryTemplates !== undefined) {
+    if (!Array.isArray(m.queryTemplates)) {
+      throw new ManifestError(manifestPath, '`queryTemplates` must be an array if present');
+    }
+    queryTemplates = [];
+    for (const entry of m.queryTemplates) {
+      if (!entry || typeof entry !== 'object') {
+        throw new ManifestError(manifestPath, '`queryTemplates` entries must be objects');
+      }
+      const qt = entry as Record<string, unknown>;
+      if (!isString(qt['id'])) {
+        throw new ManifestError(manifestPath, '`queryTemplates` entry `id` must be a non-empty string');
+      }
+      if (!CONTRIBUTION_ID_RE.test(qt['id'] as string)) {
+        throw new ManifestError(
+          manifestPath,
+          `\`queryTemplates\` entry id "${qt['id']}" must match /^[a-z0-9][a-z0-9_.-]*$/i`,
+        );
+      }
+      if (!isString(qt['sql'])) {
+        throw new ManifestError(manifestPath, '`queryTemplates` entry `sql` must be a non-empty string');
+      }
+      queryTemplates.push({ id: qt['id'] as string, sql: qt['sql'] as string });
+    }
+  }
+
+  // ── dependencies (optional) ───────────────────────────────────────────────
+  let dependencies: BundleDependencies | undefined;
+  if (m.dependencies !== undefined) {
+    if (!m.dependencies || typeof m.dependencies !== 'object' || Array.isArray(m.dependencies)) {
+      throw new ManifestError(manifestPath, '`dependencies` must be an object if present');
+    }
+    const deps = m.dependencies as Record<string, unknown>;
+    let depCaps: string[] | undefined;
+    if (deps['capabilities'] !== undefined) {
+      if (!Array.isArray(deps['capabilities'])) {
+        throw new ManifestError(manifestPath, '`dependencies.capabilities` must be an array if present');
+      }
+      depCaps = [];
+      for (const c of deps['capabilities']) {
+        if (typeof c !== 'string' || c.trim().length === 0) {
+          throw new ManifestError(
+            manifestPath,
+            '`dependencies.capabilities` entries must be non-empty "name@version" strings',
+          );
+        }
+        depCaps.push(c);
+      }
+    }
+    dependencies = { capabilities: depCaps };
+  }
+
   return {
     id: m.id,
     version: m.version,
@@ -617,6 +744,10 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
       menus: menuItems,
       keybindings: keybindingItems,
     },
+    ownedTables: ownedTables,
+    migrations: migrations,
+    queryTemplates: queryTemplates,
+    dependencies: dependencies,
   };
 }
 

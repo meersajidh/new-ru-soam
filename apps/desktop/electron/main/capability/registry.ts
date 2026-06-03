@@ -107,6 +107,14 @@ function key(name: string, version: string): string {
   return `${name}@${version}`;
 }
 
+/**
+ * Returns true if a capability with the given name and version is already registered.
+ * Used by bundle-schema.ts to validate declared capability dependencies at activation.
+ */
+export function isCapabilityRegistered(name: string, version: string): boolean {
+  return registry.has(key(name, version));
+}
+
 export function registerCapability(
   name: string,
   version: string,

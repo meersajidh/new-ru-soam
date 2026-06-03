@@ -8,7 +8,9 @@ import { createWorkbenchWindow } from './window-factory';
 import { installSoamChannel } from './ipc/soam-channel';
 import { registerPlatformWindow } from './ipc/sender-validate';
 import { shutdownHost } from './fp-host/manager';
-import { installBundleCrashEventBridge, loadAndActivateBundles } from './fp-host/loader';
+import { installBundleCrashEventBridge, loadAndActivateBundles, resolveBundlesDirectory } from './fp-host/loader';
+import { discoverBundles } from './fp-host/manifest';
+import { registerBundleMigrations, registerBundleQueryTemplates } from './fp-host/bundle-schema';
 import { registerViewProtocol } from './fp-host/view-protocol';
 import { registerWindowControlsCapability } from './capability/window-controls';
 import { registerBundlesOutputCapability } from './capability/bundles-output';
@@ -37,7 +39,6 @@ import { registerUpdateCapability } from './ipc/update-channel';
 import { registerCommandsCapability } from './capability/commands';
 import { initUpdater } from './updater/index';
 import { registerQuiesceHook } from './updater/db-quiesce';
-import { registerDomainCapabilities, registerDomainMigrations, registerDomainQueries } from './domain/bootstrap';
 import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
 
 if (process.platform === 'linux') {
@@ -145,11 +146,14 @@ app.whenReady().then(() => {
     localStoreManager.quiesceActive();
   });
 
-  // Domain migration sets MUST be registered before any store.open / runMigrations.
-  // registerDomainCapabilities() fires later (after setLockServiceGetter at ~line 180)
-  // because capabilities need the PHI lock gate armed. Migration sets have no such
-  // dependency — they are pure DDL descriptors consumed only when the store opens.
-  registerDomainMigrations();
+  // Discover bundles ONCE early — the same list is shared across migration registration,
+  // query-template registration, and activation (rung F / O445 — no double-discovery).
+  const discovered = discoverBundles(resolveBundlesDirectory());
+
+  // Bundle migration sets MUST be registered before any store.open / runMigrations.
+  // Migration sets have no capability/lock dependency — they are pure DDL descriptors
+  // consumed only when the store opens.
+  registerBundleMigrations(discovered);
 
   // 3. Resolve active LockService
   const activeId = workspaceRegistry.getActive();
@@ -267,11 +271,10 @@ app.whenReady().then(() => {
   registerUpdateCapability();
   registerCommandsCapability();
 
-  // Domain capabilities + query templates — ADR-504 / ADR-506 §6 rung C.
-  // Must come after setLockServiceGetter so PHI gate is armed.
-  // registerDomainQueries() must come after registerStoreQueryCapability() (already called above).
-  registerDomainCapabilities();
-  registerDomainQueries();
+  // Bundle query templates — rung F / O445.
+  // Must come after registerStoreQueryCapability() (already called above)
+  // so the template registry module is initialised.
+  registerBundleQueryTemplates(discovered);
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);
@@ -312,7 +315,7 @@ app.whenReady().then(() => {
   });
 
   installBundleCrashEventBridge(() => mainWindow);
-  void loadAndActivateBundles().catch((err) =>
+  void loadAndActivateBundles(discovered).catch((err) =>
     console.error('[bundles] loader failed:', err instanceof Error ? err.stack : err),
   );
 
