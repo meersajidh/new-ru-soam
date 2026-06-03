@@ -166,11 +166,9 @@ privileged"). *(ADR-106 to be amended to formalise the extensions tier.)*
 
 ## Phasing / current state
 
-Today's code is the **superseded M1**: `core-domain` runs in Main (`record-patient-cap.ts`),
-`record.patient` mixes command + query methods, migrations are a single central
-`migrations.ts`. Migration to this model is **incremental, not big-bang**: extract the
-generic base store engine (ownership-scoped CRUD + declared-query executor), move the record
-logic into a first-party bundle / First-Party-Host, and convert to per-bundle migrations.
+**Current state (2026-06-03): this model is REACHED for the patient record — spine `0→A→B→C→D` complete; Main is pure-base.** The incremental ladder landed: rung 0 FP-Host capable seam (O449), A separate command/query caps (O442), B per-owner `MigrationSet`s (O444), C generic `store.write` + `store.query` (O446), D record command + query logic relocated to the ru-soam-practice FP-Host bundle (`record-patient-cap.ts` deleted; Main registers no domain logic). Sole-writer is Main-enforced via declared `ownedTables` + the `callerBundleId == owner` gate in `store.write`. Remaining rungs (decouple from "pure-base", refine): E CQRS preload bridge split (O447), F dep-graph validation (O445), G hard-invariants→schema constraints (O448); migration sets + query templates still register Main-side at boot as a stopgap (manifest-driven declaration deferred to F).
+
+(Historical: the **superseded M1** had `core-domain` running in Main (`record-patient-cap.ts`), `record.patient` mixing command + query, and a single central `migrations.ts`. Migration was **incremental, not big-bang**: extract the generic base store engine, move record logic into the First-Party-Host, convert to per-bundle migrations.)
 **New modules (e.g. Risk/Safety, O419) author to this model from the start.**
 
 ### Phasing correction (2026-06-03) — FP-Host is MVP; "pure-base Main" is an MVP target
@@ -197,10 +195,12 @@ The incremental ladder (ADR-418 Am1 §A1.5), spine `0 → C → D`:
   column validation + audit-tagged; `store.query@1.0` declared SELECT templates + `stmt.readonly`
   guard + named params; both PHI-gated, both unconsumed until D) ·
   **C** generic ownership-scoped store cap + declared-query executor (O446) ·
-  **D** move record command logic Main→FP-Host, consuming C — *this rung is "pure-base
-  Main"* (**D1 DONE 2026-06-03**: enabler [manifest cap `phi`/`kind` → loader threads to
-  registry] + `record.patient.query` relocated to the ru-soam-practice FP-Host bundle,
-  consuming `store.query`; **D2 pending**: move command cap, delete `record-patient-cap.ts`) ·
+  **D ✅ DONE 2026-06-03 — PURE-BASE MAIN REACHED.** Both record caps relocated to the
+  ru-soam-practice FP-Host bundle (D1: `record.patient.query`→`store.query`; D2:
+  `record.patient` command→`store.write` + `store.query` read-backs); `record-patient-cap.ts`
+  DELETED; `registerDomainCapabilities` is a no-op stub. Main now registers NO domain logic —
+  only base mechanisms + data declarations (migration sets, query templates). Enabler:
+  manifest cap `phi`/`kind` → loader threads to the routing registry. ·
   **E** CQRS preload bridge split (O447) · **F** dep-graph validation (O445) ·
   **G** hard invariants → schema constraints (O448).
 - **Rung H (deferred, post-MVP)** — spawn the 2nd untrusted Bundle-Host

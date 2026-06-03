@@ -1,5 +1,5 @@
 /**
- * Main-side domain bootstrap (ADR-504 / ADR-106 composition seam).
+ * Main-side domain bootstrap (ADR-504 / ADR-106 / ADR-506 composition seam).
  *
  * Mirrors the renderer's `src/domain/bootstrap.ts` pattern: this module is the
  * ONLY file in `electron/main/domain/**` that the Main composition root
@@ -12,8 +12,12 @@
  *     sets with the base migration registry so `runMigrations` creates all
  *     domain tables on first open of a fresh DB.
  *
- *   registerDomainCapabilities() — called after `setLockServiceGetter` so the
- *     PHI gate is armed. Registers Main-resident domain capabilities.
+ *   registerDomainCapabilities() — ADR-506 rung D2: Main is now pure-base.
+ *     record.patient (command) and record.patient.query are FP-Host-resident
+ *     (ru-soam-practice bundle, routed by the loader from manifest declarations).
+ *     No domain logic capabilities register here. Future Main-resident domain
+ *     capabilities (if any — e.g. rung G hard-invariant enforcement) would
+ *     register here. Currently a no-op stub.
  *
  *   registerDomainQueries() — called alongside registerDomainCapabilities().
  *     Registers pre-declared SELECT templates with the base store.query
@@ -29,7 +33,6 @@
  */
 
 import { registerPracticeMigrations } from './practice-migrations.js';
-import { registerRecordPatientCapability } from './record-patient-cap.js';
 import { registerPracticeQueries } from './practice-queries.js';
 
 /**
@@ -40,8 +43,19 @@ export function registerDomainMigrations(): void {
   registerPracticeMigrations();
 }
 
+/**
+ * Pure-base Main stub (ADR-506 rung D2).
+ *
+ * record.patient (command) and record.patient.query are both FP-Host-resident
+ * (ru-soam-practice/index.mjs). The loader routes them via manifest
+ * declarations — no Main registration required or permitted.
+ *
+ * Leave this stub so index.ts call-site compiles unchanged. Add future
+ * Main-resident domain caps here only when rung G hard-invariant enforcement
+ * (O448) or a new base-only domain cap warrants it.
+ */
 export function registerDomainCapabilities(): void {
-  registerRecordPatientCapability();
+  // No-op: Main holds no domain logic capabilities at rung D2.
 }
 
 /**
