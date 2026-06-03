@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "entry": "index.mjs",
   "activationEvents": ["lazy"],
-  "capabilities": [],
+  "capabilities": [
+    { "name": "record.patient.query", "version": "1.0", "phi": true, "kind": "query" }
+  ],
   "views": [
     { "id": "roster", "path": "roster.html" },
     { "id": "form", "path": "form.html" },

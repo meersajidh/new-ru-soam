@@ -1,18 +1,19 @@
 /**
- * record.patient@1.0 — command cap (ADR-505 / ADR-506 §3 / O442 rung A).
- * record.patient.query@1.0 — query cap (same ADRs).
+ * record.patient@1.0 — command cap only (ADR-505 / ADR-506 §3 / O442 rung A).
  *
- * CQRS split per ADR-506 §3: write-side (sole-writer, destined for FP-Host rung D)
- * vs read-side (many-consumer, destined for generic query executor rung C).
- * Both caps run in Main as a stopgap — rung D moves command logic to FP-Host.
+ * Rung D1: record.patient.query (query cap) moved to the ru-soam-practice
+ * FP-Host bundle (bundles/ru-soam-practice/index.mjs). This file now hosts
+ * the command cap only; the loader routing handler registers query via the
+ * bundle manifest declaration.
  *
- * Both are PHI-flagged (`phi: true`): patient reads are PHI too (ADR-307).
- * The ADR-307 lock-gate in the registry rejects all calls with `cap.locked`
- * when the workspace is locked. No PHI enters the Bundle Host — both handlers
- * run in Main only.
+ * CQRS split per ADR-506 §3: write-side (sole-writer, destined for FP-Host rung D2)
+ * runs in Main as a stopgap.
+ *
+ * PHI-flagged (`phi: true`): ADR-307 lock-gate rejects with `cap.locked`
+ * when workspace is locked.
  *
  * Backed by the per-workspace encrypted Local Store `patients` table
- * (migration version 4). Audit-on-write AND audit-on-view (ADR-502).
+ * (migration version 4). Audit-on-write (ADR-502).
  *
  * record.patient (command) methods:
  *   create(input: PatientCreateInput)             → PatientRecord
@@ -20,13 +21,6 @@
  *   setStatus(id: string, status: PatientStatus)  → PatientRecord
  *   setStage(id, stage, reason?)                  → PatientLifecycle
  *   updateProfile(id, patch)                      → PatientProfile
- *
- * record.patient.query (query) methods:
- *   get(id: string)                               → PatientRecord | null
- *   list()                                        → PatientSummary[]
- *   getProfile(id: string)                        → PatientProfile | null
- *   getLifecycle(id: string)                      → PatientLifecycle | null
- *   listLifecycleStages()                         → LifecycleStageDef[]
  *
  * Reactivity note: no `subscribe()` method is provided. The Local Store emits
  * `store.changed` (table: 'patients') after every write via `emitTableChange()`.
@@ -40,8 +34,7 @@ import { registerCapability } from '../capability/registry.js';
 import { localStoreManager } from '../local-store/index.js';
 import { auditService } from '../audit/index.js';
 import { CapErr } from '../../shared/ipc-protocol.js';
-import { LIFECYCLE_STAGES, VALID_STAGES } from './lifecycle-stages.js';
-import type { LifecycleStageDef } from './lifecycle-stages.js';
+import { VALID_STAGES } from './lifecycle-stages.js';
 import type {
   LifecycleStage,
   PatientCreateInput,
@@ -50,7 +43,6 @@ import type {
   PatientProfilePatch,
   PatientRecord,
   PatientStatus,
-  PatientSummary,
   PatientUpdatePatch,
 } from '@ru-soam/domain';
 import type { LocalStore } from '../local-store/store.js';
@@ -313,61 +305,6 @@ function implCreate(input: PatientCreateInput): PatientRecord {
   return record;
 }
 
-function implGet(id: string): PatientRecord | null {
-  const store = requireStore();
-  const db = requireDb(store);
-  const workspaceId = store.workspaceId() ?? 'unknown';
-
-  const row = dbGetById(db, id);
-
-  auditService.emit({
-    event: 'record.patient.viewed',
-    entityId: workspaceId,
-    recordId: id,
-    recordType: 'patient',
-    principal: 'system',
-  });
-
-  return row ? rowToRecord(row) : null;
-}
-
-function implList(): PatientSummary[] {
-  const store = requireStore();
-  const db = requireDb(store);
-  const workspaceId = store.workspaceId() ?? 'unknown';
-
-  const rows = db
-    .prepare(
-      `SELECT p.id, p.given_name, p.family_name, p.status,
-              COALESCE(pl.stage, 'active') AS stage
-       FROM patients p
-       LEFT JOIN patient_lifecycle pl ON pl.patient_id = p.id
-       ORDER BY p.family_name ASC, p.given_name ASC`,
-    )
-    .all() as Array<{
-      id: string;
-      given_name: string;
-      family_name: string | null;
-      status: string;
-      stage: string;
-    }>;
-
-  auditService.emit({
-    event: 'record.patient.listed',
-    entityId: workspaceId,
-    recordType: 'patient',
-    principal: 'system',
-    detail: { count: rows.length },
-  });
-
-  return rows.map((r) => ({
-    id: r.id,
-    displayName: deriveDisplayName(r.given_name, r.family_name),
-    status: r.status as PatientStatus,
-    stage: r.stage as LifecycleStage,
-  }));
-}
-
 function implUpdate(id: string, patch: PatientUpdatePatch): PatientRecord {
   const store = requireStore();
   const db = requireDb(store);
@@ -431,29 +368,6 @@ function implSetStatus(id: string, status: PatientStatus): PatientRecord {
   return rowToRecord(updated);
 }
 
-function implGetProfile(id: string): PatientProfile | null {
-  const store = requireStore();
-  const db = requireDb(store);
-  const workspaceId = store.workspaceId() ?? 'unknown';
-
-  const row = db
-    .prepare(
-      `SELECT patient_id, preferred_language, medication_awareness, diagnosis, updated_at
-       FROM patient_profile WHERE patient_id = ?`,
-    )
-    .get(id) as PatientProfileRow | undefined;
-
-  auditService.emit({
-    event: 'record.patient.viewed',
-    entityId: workspaceId,
-    recordId: id,
-    recordType: 'patient_profile',
-    principal: 'system',
-  });
-
-  return row ? rowToProfile(row) : null;
-}
-
 function implUpdateProfile(id: string, patch: PatientProfilePatch): PatientProfile {
   const store = requireStore();
   const db = requireDb(store);
@@ -500,29 +414,6 @@ function implUpdateProfile(id: string, patch: PatientProfilePatch): PatientProfi
   return rowToProfile(updated);
 }
 
-function implGetLifecycle(id: string): PatientLifecycle | null {
-  const store = requireStore();
-  const db = requireDb(store);
-  const workspaceId = store.workspaceId() ?? 'unknown';
-
-  const row = db
-    .prepare(
-      `SELECT patient_id, stage, stage_updated_at, stage_reason
-       FROM patient_lifecycle WHERE patient_id = ?`,
-    )
-    .get(id) as PatientLifecycleRow | undefined;
-
-  auditService.emit({
-    event: 'record.patient.viewed',
-    entityId: workspaceId,
-    recordId: id,
-    recordType: 'patient_lifecycle',
-    principal: 'system',
-  });
-
-  return row ? rowToLifecycle(row) : null;
-}
-
 function implSetStage(id: string, stage: LifecycleStage, reason?: string): PatientLifecycle {
   const store = requireStore();
   const db = requireDb(store);
@@ -561,10 +452,6 @@ function implSetStage(id: string, stage: LifecycleStage, reason?: string): Patie
     .get(id) as PatientLifecycleRow | undefined;
   if (!updated) throw new Error(`record.patient.setStage: lifecycle row disappeared after write: ${id}`);
   return rowToLifecycle(updated);
-}
-
-function implListLifecycleStages(): LifecycleStageDef[] {
-  return [...LIFECYCLE_STAGES];
 }
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -632,43 +519,4 @@ export function registerRecordPatientCapability(): void {
     { phi: true, kind: 'command' },
   );
 
-  // ── Query cap: read-only methods (many-consumer; destined for generic query executor at rung C) ─
-  registerCapability(
-    'record.patient.query',
-    '1.0',
-    async (method, args) => {
-      switch (method) {
-        case 'get': {
-          const id = args[0];
-          if (typeof id !== 'string') {
-            throw validationError('record.patient.query.get: id must be a string');
-          }
-          return implGet(id);
-        }
-        case 'list': {
-          return implList();
-        }
-        case 'getProfile': {
-          const id = args[0];
-          if (typeof id !== 'string') {
-            throw validationError('record.patient.query.getProfile: id must be a string');
-          }
-          return implGetProfile(id);
-        }
-        case 'getLifecycle': {
-          const id = args[0];
-          if (typeof id !== 'string') {
-            throw validationError('record.patient.query.getLifecycle: id must be a string');
-          }
-          return implGetLifecycle(id);
-        }
-        case 'listLifecycleStages': {
-          return implListLifecycleStages();
-        }
-        default:
-          throw methodNotFound('record.patient.query', method);
-      }
-    },
-    { phi: true, kind: 'query' },
-  );
 }

@@ -198,7 +198,10 @@ The incremental ladder (ADR-418 Am1 §A1.5), spine `0 → C → D`:
   guard + named params; both PHI-gated, both unconsumed until D) ·
   **C** generic ownership-scoped store cap + declared-query executor (O446) ·
   **D** move record command logic Main→FP-Host, consuming C — *this rung is "pure-base
-  Main"* · **E** CQRS preload bridge split (O447) · **F** dep-graph validation (O445) ·
+  Main"* (**D1 DONE 2026-06-03**: enabler [manifest cap `phi`/`kind` → loader threads to
+  registry] + `record.patient.query` relocated to the ru-soam-practice FP-Host bundle,
+  consuming `store.query`; **D2 pending**: move command cap, delete `record-patient-cap.ts`) ·
+  **E** CQRS preload bridge split (O447) · **F** dep-graph validation (O445) ·
   **G** hard invariants → schema constraints (O448).
 - **Rung H (deferred, post-MVP)** — spawn the 2nd untrusted Bundle-Host
   (`trustClass: 'third-party'`), full publisher-key authN; the PHI hard-deny falls out of

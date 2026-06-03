@@ -52,18 +52,23 @@ function registerRoutingHandlers(bundle: DiscoveredBundle): void {
   const isLazy = bundle.manifest.activationEvents.includes('lazy');
   for (const cap of bundle.manifest.capabilities) {
     try {
-      registerCapability(cap.name, cap.version, async (method, args) => {
-        if (isLazy) {
-          await ensureActivated(bundle.manifest.id, bundle.entryPath);
-        }
-        return invokeBundleCapability(
-          bundle.manifest.id,
-          cap.name,
-          cap.version,
-          method,
-          args,
-        );
-      });
+      registerCapability(
+        cap.name,
+        cap.version,
+        async (method, args) => {
+          if (isLazy) {
+            await ensureActivated(bundle.manifest.id, bundle.entryPath);
+          }
+          return invokeBundleCapability(
+            bundle.manifest.id,
+            cap.name,
+            cap.version,
+            method,
+            args,
+          );
+        },
+        { phi: cap.phi ?? false, kind: cap.kind },
+      );
     } catch (err) {
       console.error(
         `[bundles] capability registration failed for ${bundle.manifest.id} ${cap.name}@${cap.version}:`,

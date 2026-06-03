@@ -13,6 +13,8 @@ import path from 'path';
 export interface CapabilityManifestEntry {
   readonly name: string;
   readonly version: string;
+  readonly phi?: boolean;
+  readonly kind?: 'command' | 'query';
 }
 
 export type ActivationEvent = 'eager' | 'lazy' | 'onCommand' | 'onEvent';
@@ -203,7 +205,22 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
     if (!isString(cap.name) || !isString(cap.version)) {
       throw new ManifestError(manifestPath, 'capability requires `name` and `version` strings');
     }
-    caps.push({ name: cap.name, version: cap.version });
+    if (cap.phi !== undefined && typeof cap.phi !== 'boolean') {
+      throw new ManifestError(manifestPath, 'capability `phi` must be a boolean if present');
+    }
+    if (
+      cap.kind !== undefined &&
+      cap.kind !== 'command' &&
+      cap.kind !== 'query'
+    ) {
+      throw new ManifestError(manifestPath, 'capability `kind` must be "command" or "query" if present');
+    }
+    caps.push({
+      name: cap.name,
+      version: cap.version,
+      phi: typeof cap.phi === 'boolean' ? cap.phi : undefined,
+      kind: cap.kind === 'command' || cap.kind === 'query' ? cap.kind : undefined,
+    });
   }
 
   const views: ViewManifestEntry[] = [];
