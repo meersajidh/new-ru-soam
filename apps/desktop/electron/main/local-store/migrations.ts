@@ -32,6 +32,12 @@ export interface Migration {
 export interface MigrationSet {
   readonly owner: string;
   readonly migrations: ReadonlyArray<Migration>;
+  /**
+   * Tables this owner exclusively writes (ADR-506 §6 rung C / O446).
+   * Used by `tableOwner()` to enforce sole-writer constraints in `store.write`.
+   * Each table may appear in exactly one MigrationSet across all registered sets.
+   */
+  readonly ownedTables: ReadonlyArray<string>;
 }
 
 // ── Registry ──────────────────────────────────────────────────────────────────
@@ -43,21 +49,52 @@ const _domainSets: MigrationSet[] = [];
 let _baseSet: MigrationSet | null = null;
 
 /**
- * Register a migration set. Throws on duplicate owner.
+ * Table-to-owner map for the store.write ownership gate (ADR-506 §6 rung C / O446).
+ * Populated incrementally as MigrationSets register. Keyed by table name.
+ */
+const _tableOwnerMap = new Map<string, string>();
+
+/**
+ * Register a migration set. Throws on duplicate owner or duplicate table claim.
  * The 'base' owner is reserved for the set defined in this module.
  */
 export function registerMigrationSet(set: MigrationSet): void {
+  // Validate no table is claimed by two owners before mutating state.
+  for (const table of set.ownedTables) {
+    const existing = _tableOwnerMap.get(table);
+    if (existing !== undefined) {
+      throw new Error(
+        `[migrations] Table '${table}' claimed by '${set.owner}' is already owned by '${existing}'`,
+      );
+    }
+  }
+
   if (set.owner === BASE_OWNER) {
     if (_baseSet !== null) {
       throw new Error(`[migrations] Duplicate migration set owner: '${set.owner}'`);
     }
     _baseSet = set;
-    return;
+  } else {
+    if (_domainSets.some((s) => s.owner === set.owner)) {
+      throw new Error(`[migrations] Duplicate migration set owner: '${set.owner}'`);
+    }
+    _domainSets.push(set);
   }
-  if (_domainSets.some((s) => s.owner === set.owner)) {
-    throw new Error(`[migrations] Duplicate migration set owner: '${set.owner}'`);
+
+  // Register table ownership after duplicate checks pass.
+  for (const table of set.ownedTables) {
+    _tableOwnerMap.set(table, set.owner);
   }
-  _domainSets.push(set);
+}
+
+/**
+ * Returns the bundleId / 'base' that owns `table`, or null if the table is
+ * not declared by any registered MigrationSet (unowned or unknown table).
+ * '_schema_version' is migration infra — never owned by any set → returns null.
+ * (ADR-506 §6 rung C / O446)
+ */
+export function tableOwner(table: string): string | null {
+  return _tableOwnerMap.get(table) ?? null;
 }
 
 /**
@@ -77,6 +114,9 @@ export function getOrderedMigrationSets(): ReadonlyArray<MigrationSet> {
 
 const BASE_MIGRATION_SET: MigrationSet = {
   owner: BASE_OWNER,
+  // 'prefs', 'audit_log', 'workspace_settings' are base-owned tables.
+  // '_schema_version' is migration infra — not a data table, not ownable.
+  ownedTables: ['prefs', 'audit_log', 'workspace_settings'],
   migrations: [
     {
       version: 1,

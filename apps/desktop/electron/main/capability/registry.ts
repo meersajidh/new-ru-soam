@@ -40,6 +40,7 @@ function extractCapErrCode(err: unknown): CapErrCode | null {
 export type CapabilityHandler = (
   method: string,
   args: ReadonlyArray<unknown>,
+  caller?: CallerIdentity,
 ) => Promise<unknown>;
 
 /**
@@ -168,7 +169,7 @@ export async function invokeCapability(
   }
 
   try {
-    const data = await entry.handler(method, args);
+    const data = await entry.handler(method, args, opts?.caller);
     return { ok: true, value: { data } };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

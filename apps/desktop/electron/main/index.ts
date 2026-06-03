@@ -20,6 +20,7 @@ import { registerPhiDemoEchoCapability } from './capability/phi-demo-echo';
 import { registerPlatformDevCapability } from './capability/platform-dev';
 import { registerPrefsCapability } from './capability/prefs';
 import { registerAuditCapability } from './capability/audit-cap';
+import { registerStoreWriteCapability } from './local-store/store-write-cap';
 import { registerPlatformAuthCapability } from './capability/platform-auth';
 import { isOAuthConfigured } from './auth/oauth.js';
 import { localStoreManager } from './local-store/index';
@@ -210,6 +211,33 @@ app.whenReady().then(() => {
   registerPlatformDevCapability();
   registerPrefsCapability();
   registerAuditCapability();
+  registerStoreWriteCapability();
+
+  // O446 rung-C store.write self-check (dev-only, ADR-506 §6).
+  // Runs AFTER registerStoreWriteCapability() so the cap is registered when invoked.
+  // Exercise ownership-mismatch denial — must NOT write to the DB.
+  // store.write is PHI-flagged: if workspace is locked at boot the registry
+  // returns cap.locked before the handler runs — treat as SKIP (lock-tolerant).
+  if (DEV) {
+    void invokeCapability(
+      'store.write',
+      '1.0',
+      'insert',
+      ['patients', { given_name: 'x' }, { event: 'selfcheck' }],
+      { caller: { bundleId: '__not_the_owner__', trustClass: 'first-party' } },
+    ).then((result) => {
+      if (!result.ok && result.value.code === 'cap.denied') {
+        console.log(
+          '[O446] store.write self-check PASS — cap.denied returned for non-owner caller',
+        );
+      } else if (!result.ok && result.value.code === 'cap.locked') {
+        console.log('[O446] store.write self-check SKIP — workspace locked');
+      } else {
+        console.error('[O446] store.write self-check FAIL — expected cap.denied, got:', result);
+      }
+    });
+  }
+
   registerPlatformAuthCapability();
   registerUpdateCapability();
   registerCommandsCapability();

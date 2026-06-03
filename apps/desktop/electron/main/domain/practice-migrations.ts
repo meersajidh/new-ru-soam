@@ -14,6 +14,8 @@ export const PRACTICE_BUNDLE_OWNER = 'ru-soam-practice';
 
 const PRACTICE_MIGRATION_SET: MigrationSet = {
   owner: PRACTICE_BUNDLE_OWNER,
+  // Tables owned by the ru-soam-practice bundle (ADR-506 §6 rung C / O446).
+  ownedTables: ['patients', 'patient_profile', 'patient_lifecycle'],
   migrations: [
     {
       version: 1,
