@@ -5,7 +5,7 @@
  * ONLY file in `electron/main/domain/**` that the Main composition root
  * (`electron/main/index.ts`) imports. All other domain modules are internal.
  *
- * Two entry points — called at different boot phases:
+ * Three entry points — called at different boot phases:
  *
  *   registerDomainMigrations() — MUST be called BEFORE the store opens
  *     (before `localStoreManager.openFor()`). Registers per-bundle migration
@@ -15,6 +15,14 @@
  *   registerDomainCapabilities() — called after `setLockServiceGetter` so the
  *     PHI gate is armed. Registers Main-resident domain capabilities.
  *
+ *   registerDomainQueries() — called alongside registerDomainCapabilities().
+ *     Registers pre-declared SELECT templates with the base store.query
+ *     executor (ADR-506 §6 rung C / O446). Order relative to
+ *     registerDomainCapabilities() does not matter — templates are consumed at
+ *     runtime, not at boot. MUST be called after registerStoreQueryCapability()
+ *     so the template registry is ready (registration validates at module load,
+ *     not at cap invocation time).
+ *
  * ADR-106 one-way boundary: domain→base is fine (this module imports base
  * capability registration); base MUST NOT import domain. The base library
  * stays domain-free — this file is the app's wiring point, not a base module.
@@ -22,6 +30,7 @@
 
 import { registerPracticeMigrations } from './practice-migrations.js';
 import { registerRecordPatientCapability } from './record-patient-cap.js';
+import { registerPracticeQueries } from './practice-queries.js';
 
 /**
  * Register all domain migration sets with the base registry.
@@ -33,4 +42,14 @@ export function registerDomainMigrations(): void {
 
 export function registerDomainCapabilities(): void {
   registerRecordPatientCapability();
+}
+
+/**
+ * Register all domain query templates with the base store.query executor.
+ * Called alongside registerDomainCapabilities() in index.ts, after
+ * registerStoreQueryCapability() so the template registry module is ready.
+ * (ADR-506 §6 rung C / O446)
+ */
+export function registerDomainQueries(): void {
+  registerPracticeQueries();
 }

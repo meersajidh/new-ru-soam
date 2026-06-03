@@ -109,6 +109,8 @@ export interface AuditTag {
   readonly event: string;
   readonly detail?: Record<string, unknown>;
   readonly recordType?: string;
+  /** Non-PHI record identifier. For writes, derived from pk; for reads, caller-supplied. */
+  readonly recordId?: string;
 }
 
 // ── Store / DB helpers ────────────────────────────────────────────────────────

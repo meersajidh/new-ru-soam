@@ -21,6 +21,7 @@ import { registerPlatformDevCapability } from './capability/platform-dev';
 import { registerPrefsCapability } from './capability/prefs';
 import { registerAuditCapability } from './capability/audit-cap';
 import { registerStoreWriteCapability } from './local-store/store-write-cap';
+import { registerStoreQueryCapability } from './local-store/store-query-cap';
 import { registerPlatformAuthCapability } from './capability/platform-auth';
 import { isOAuthConfigured } from './auth/oauth.js';
 import { localStoreManager } from './local-store/index';
@@ -36,7 +37,7 @@ import { registerUpdateCapability } from './ipc/update-channel';
 import { registerCommandsCapability } from './capability/commands';
 import { initUpdater } from './updater/index';
 import { registerQuiesceHook } from './updater/db-quiesce';
-import { registerDomainCapabilities, registerDomainMigrations } from './domain/bootstrap';
+import { registerDomainCapabilities, registerDomainMigrations, registerDomainQueries } from './domain/bootstrap';
 import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
 
 if (process.platform === 'linux') {
@@ -212,6 +213,7 @@ app.whenReady().then(() => {
   registerPrefsCapability();
   registerAuditCapability();
   registerStoreWriteCapability();
+  registerStoreQueryCapability();
 
   // O446 rung-C store.write self-check (dev-only, ADR-506 §6).
   // Runs AFTER registerStoreWriteCapability() so the cap is registered when invoked.
@@ -238,13 +240,38 @@ app.whenReady().then(() => {
     });
   }
 
+  // O446 rung-C store.query self-check (dev-only, ADR-506 §6).
+  // Runs AFTER registerStoreQueryCapability() so the cap is registered when invoked.
+  // Exercise unknown-template path — no PHI read, no template-ordering dependency.
+  // store.query is PHI-flagged: if workspace is locked at boot the registry
+  // returns cap.locked before the handler runs — treat as SKIP (lock-tolerant).
+  if (DEV) {
+    void invokeCapability(
+      'store.query',
+      '1.0',
+      'run',
+      ['__selfcheck.unknown__'],
+      { caller: { bundleId: '__selfcheck__', trustClass: 'first-party' } },
+    ).then((result) => {
+      if (!result.ok && result.value.code === 'cap.not_found') {
+        console.log('[O446] store.query self-check PASS — cap.not_found for unknown template');
+      } else if (!result.ok && result.value.code === 'cap.locked') {
+        console.log('[O446] store.query self-check SKIP — workspace locked');
+      } else {
+        console.error('[O446] store.query self-check FAIL — expected cap.not_found, got:', result);
+      }
+    });
+  }
+
   registerPlatformAuthCapability();
   registerUpdateCapability();
   registerCommandsCapability();
 
-  // Domain capabilities — ADR-504: Main-resident domain bootstrap.
+  // Domain capabilities + query templates — ADR-504 / ADR-506 §6 rung C.
   // Must come after setLockServiceGetter so PHI gate is armed.
+  // registerDomainQueries() must come after registerStoreQueryCapability() (already called above).
   registerDomainCapabilities();
+  registerDomainQueries();
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);

@@ -192,9 +192,10 @@ The incremental ladder (ADR-418 Am1 §A1.5), spine `0 → C → D`:
   `record.patient` split; dormant `kind` on `registerCapability`) · **B** per-bundle migrations
   (O444 — **DONE 2026-06-03**: per-owner `MigrationSet` registry; `_schema_version` per-owner;
   owner = bundleId; patient tables → `domain/practice-migrations.ts`; sets register before
-  store open) · **C** generic ownership-scoped store cap (O446 — **slice 1 DONE 2026-06-03**:
-  `ownedTables`+`tableOwner`; `store.write@1.0` ownership-gated parameterized CRUD, PRAGMA
-  column validation, audit-tagged, unconsumed until D; **slice 2 = `store.query` executor pending**) ·
+  store open) · **C** generic ownership-scoped store cap (O446 — **DONE 2026-06-03**:
+  `ownedTables`+`tableOwner`; `store.write@1.0` ownership-gated parameterized CRUD + PRAGMA
+  column validation + audit-tagged; `store.query@1.0` declared SELECT templates + `stmt.readonly`
+  guard + named params; both PHI-gated, both unconsumed until D) ·
   **C** generic ownership-scoped store cap + declared-query executor (O446) ·
   **D** move record command logic Main→FP-Host, consuming C — *this rung is "pure-base
   Main"* · **E** CQRS preload bridge split (O447) · **F** dep-graph validation (O445) ·
