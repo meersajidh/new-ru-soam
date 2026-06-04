@@ -1,10 +1,17 @@
 /**
  * LocalStore — SQLite-backed per-workspace key/value + table store.
  *
- * Phase 10b: SQLCipher at-rest encryption. The DB is opened with a 32-byte
+ * Phase 10b: at-rest encryption via better-sqlite3-multiple-ciphers
+ * (better-sqlite3 is npm-aliased to it — see package.json). NOT SQLCipher:
+ * the cipher is the library DEFAULT scheme `chacha20` (sqleet-compatible),
+ * since no `cipher`/`legacy` pragma is set. The DB is opened with a 32-byte
  * raw key applied as `PRAGMA key = "x'<64hex>'"` before any other pragma or
  * migration. If the DB is plaintext (Phase 10a leftover) or corrupt the open
  * call will fail — in that case the DB is deleted and recreated encrypted.
+ *
+ * To inspect a workspace DB externally, use a chacha20-capable shell
+ * (`sqlite3mc`), NOT `sqlcipher` — the latter cannot decrypt this format.
+ * Helper: `just dev-db <name> --tables` (scripts/dev-localstore.mjs).
  *
  * Each write emits a change event via the injected `emitChange` callback.
  *
@@ -41,7 +48,8 @@ export interface PrefRow {
 
 /**
  * Open a fresh, keyed SQLite DB at `dbPath`.
- * Applies the SQLCipher key pragma, then WAL + foreign_keys, then migrations.
+ * Applies the cipher key pragma (default chacha20 scheme), then WAL +
+ * foreign_keys, then migrations.
  *
  * The caller owns `key`'s lifecycle and is responsible for zeroing the buffer
  * after `open()` returns — `openEncryptedDb` may be called twice (initial +
@@ -54,7 +62,7 @@ export interface PrefRow {
  */
 function openEncryptedDb(dbPath: string, key: Buffer): DatabaseT.Database {
   const db = new Database(dbPath);
-  // SQLCipher key must be applied before any other operation.
+  // Cipher key must be applied before any other operation.
   // Hex form: key = "x'<64 hex chars>'" for a raw 32-byte key.
   db.pragma(`key = "x'${key.toString('hex')}'"`);
   db.pragma('journal_mode = WAL');
