@@ -15,6 +15,7 @@ import type { IProductConfigService } from '../product-config/product-config-ser
 import type { IContributionService } from '../contributions/contribution-service';
 import type { IMenuService } from '../menu/menu-service';
 import type { IActivityBarDensityService } from '../activity-bar/density-service';
+import type { IMaturityHighlightService } from '../maturity/maturity-highlight';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -61,5 +62,8 @@ export const MenuServiceId = serviceId<IMenuService>('workbench.menu');
 
 // Activity bar density (appearance axis, mirrors FontServiceId pattern)
 export const ActivityBarDensityServiceId = serviceId<IActivityBarDensityService>('workbench.activityBarDensity');
+
+// Maturity-highlight toggle (Phase 0 build-legibility, mirrors density pattern)
+export const MaturityHighlightServiceId = serviceId<IMaturityHighlightService>('workbench.maturityHighlight');
 
 export const RegistryContext = createContext<ServiceRegistry | null>(null);

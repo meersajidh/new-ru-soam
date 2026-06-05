@@ -382,3 +382,89 @@ Lifecycle unblocks two Attention obligations conceptually — *intake-in-progres
 and *on-hold past a review threshold* — but the **Attention aspect stays stubbed** until the full
 obligation set (which mostly needs Schedule/Sessions projections) is designed. Recorded here only
 as the dependency direction; no build this slice.
+
+## Amendment 4 (2026-06-05) — Information Architecture map + build plan; Risk/Safety resolved
+
+Promotes the Practice **Information Architecture** synthesis. Two new design artifacts in the
+journal are the working source of truth; this amendment records the decisions they settle:
+
+- **`docs/Activities/practice/practice-information-architecture.md`** — the IA matrix
+  (*lifecycle stage × entity/table × surface × capture-command × ownership*), the surface map, the
+  three Overview view modes, the lifecycle/intake capture path, and the drill-down zoom ladder.
+- **`docs/Activities/practice/practice-build-plan.md`** — release-phased build order (P0 legibility →
+  P1/P2 owned spine → P3 documents → P4 Risk → P5 modes/Intake/Attention → P6 projections).
+
+These were produced by **working backwards from the static prototype** (`practice-proto-handoff/`),
+which encodes more decisions than the functional draft's `[OPEN]`s admitted.
+
+### A4.1 Risk/Safety keystone resolved — **both** banner + aspect (closes O419 thread 1 of the keystone)
+
+The prototype (`Overview.jsx` `RiskBanner`, `_check5.png`) settles the long-open
+*dedicated-aspect vs banner vs both* question: **both.**
+
+- **Conditional Overview banner** — shows only on an active risk/safety concern; headline + meta
+  (`Noted … · Capacity intact · MHA §23 not invoked`) + actions (Safety plan, Details); the
+  "Details" affordance expands the banner into the aspect body.
+- **Always-present Risk/Safety contextual aspect** — capacity · §23 exception state · NR engagement ·
+  SI status · means restriction · safety-plan status; actions **Open safety** / **Log §23**.
+- **Convergence + logging** — `addRiskEvent` (→ `patient_risk_event`), `setCapacity` and
+  `toggleException` (→ `patient_consent_state.confidentiality_exception_active`) are **owned
+  commands that MUST emit an audit event** (ADR-502). Renderer-domain commands (ADR-417) — PHI
+  never enters a host. The safety-plan editor is an **owned writable artifact tab** (not a
+  projection).
+
+**Residual (still O419):** the safety-plan editor field set + the §23 confirmation UX — bounded;
+designed at the start of build Phase 4.
+
+### A4.2 Overview is a dashboard of pointers, with three view modes
+
+Nothing is authored in the Overview; every tile is a triage pointer (glanceable in ~5 s). The
+prototype ships **three view modes of the same client function** (determinism holds — same content,
+different arrangement):
+
+- **Dense** — full 6-card grid. *"Show me everything."*
+- **Focused** — two prominent cards + an "At a glance" ministat strip. *"What matters today."*
+- **Timeline** — chronological event stream + a "Standing facts" rail. *"Tell me the story."*
+
+View mode is a **persisted user preference axis** (renderer-only, like the Activity-Bar density
+pref) — **not** an architectural surface change, **no further ADR** (tracked O-VIEWMODES). Entry
+intent may select a mode (e.g. open-from-Agenda-Today → Focused).
+
+### A4.3 Lifecycle/intake = progressive capture; Intake is a checklist surface
+
+Resolves the Intake `[OPEN]` stages (Am3 §A3.4) into a capture model: **grab a referral in
+seconds, complete the chart over the first contacts.** Intake renders as a **checklist/wizard in
+the Work Area** (not one giant form); each completed item writes through the relevant owned command
+into its aspect. The visible **completeness state** (e.g. "6/9") is the single data source that (a)
+drives Intake-lens membership and (b) seeds the Attention obligation set — resolving Am3 §A3.5's
+two threads as two readings of the same data. **Documents** are prompted *contextually* during
+intake (and as inline upload in Consent & Legal), never as a separate chore; a missing required
+document is an Attention obligation.
+
+### A4.4 Residency reconciliation — ADR-506 supersedes Am3's "Main-resident"
+
+Am3 §A3.3 placed `record.patient` (incl. `setStage`) as **Main-resident** per ADR-504. **ADR-506
+has since superseded ADR-504**: Main is pure-`basebench`, `record.patient` command/query logic is
+**FP-Host-resident**, persisted via generic base store caps (`store.write`/`store.query`) with
+declared table ownership. All Practice-owned commands in the IA matrix and build plan are authored
+under the **ADR-506** rule (CQRS-explicit, FP-Host-resident, manifest-declared,
+`residency:'protected'` per O452, audited). Wherever Am1–Am3 say "Main-resident" / "Bundle Host",
+read the ADR-506 model.
+
+### A4.5 UI maturity-marking (cross-cutting)
+
+Every Practice card/aspect declares its build state on the UI — **Concrete / WIP / Mock** — via a
+maturity registry + `data-maturity` attribute + palette-token CSS (extends the prototype
+source-pill; always-on subtle, with an optional "highlight build status" toggle). Renderer/bundle
+CSS only; convention note in `docs/Guides/styling-system.md`; **no ADR** (tracked O-MATURITY).
+
+### A4.6 Catalogue amendments raised (to Product_Scope)
+
+Three amendments proposed to `docs/Product/Product_Scope.md` (debate there): **A1** confirm Billing
+as an MVP Activity (else the Payment projection has no owner — ties to O421); **A2** expose
+lifecycle stage on the **ambient focused-client** context so sibling Activities can read it (stays
+owned by `record.patient`); **A3** record the Overview view-mode preference axis.
+
+**Open after this amendment:** O419 (safety-plan fields + §23 UX), O420 (data-model increments per
+phase), O421 (Billing promotion), O197 (per-Activity projection scoping), plus new tracked items
+O-MATURITY / O-BLOBSTORE / O-VIEWMODES / O-ATTENTION (see build plan + Open_Items).

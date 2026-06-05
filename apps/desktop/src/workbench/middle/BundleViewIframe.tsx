@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useService } from '../../platform/services/hooks';
-import { EditorServiceId, FontServiceId, MenuServiceId, ThemeServiceId } from '../../platform/services/ids';
+import { EditorServiceId, FontServiceId, MaturityHighlightServiceId, MenuServiceId, ThemeServiceId } from '../../platform/services/ids';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 
 /**
@@ -48,6 +48,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
   const font = useService(FontServiceId);
   const editor = useService(EditorServiceId);
   const menu = useService(MenuServiceId);
+  const maturity = useService(MaturityHighlightServiceId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   // Ref so the view.ready handler always sees the latest entityId without re-running main effect.
   const entityIdRef = useRef<string | null | undefined>(entityId);
@@ -97,8 +98,15 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
     // Appearance snapshot = theme colours + active font-set vars, merged onto
     // the one bridge channel (the bridge applies any CSS var generically). Font
     // sets ride the same path as theme/dark-mode — they are just more CSS vars.
+    // maturityHighlight is pushed alongside — view-bridge.ts applies it to body.classList.
     const appearance = () => ({ ...theme.getTokenSnapshot(), ...font.getFontSnapshot() });
-    const pushTheme = () => post({ __soamView: true, kind: 'theme', theme: appearance() });
+    const pushTheme = () =>
+      post({
+        __soamView: true,
+        kind: 'theme',
+        theme: appearance(),
+        maturityHighlight: maturity.isEnabled(),
+      });
 
     const onMessage = async (e: MessageEvent) => {
       if (disposed) return;
@@ -110,7 +118,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
         case 'view.ready': {
           viewReadyRef.current = true;
           clearTimeout(readyTimeout);
-          post({ __soamView: true, kind: 'init', theme: appearance() });
+          post({ __soamView: true, kind: 'init', theme: appearance(), maturityHighlight: maturity.isEnabled() });
           if (!activated) {
             activated = true;
             // Include entityId in activate payload so view gets it on first load.
@@ -238,6 +246,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
     const offTheme = theme.onThemeChange(() => requestAnimationFrame(pushTheme));
     const offDark = theme.onDarkModeChange(() => requestAnimationFrame(pushTheme));
     const offFont = font.onFontSetChange(() => requestAnimationFrame(pushTheme));
+    const offMaturity = maturity.onDidChange(() => requestAnimationFrame(pushTheme));
 
     return () => {
       disposed = true;
@@ -248,12 +257,13 @@ export default function BundleViewIframe({ resource, instanceId, entityId, onReq
       offTheme();
       offDark();
       offFont();
+      offMaturity();
       for (const p of proxyCache.values()) {
         p.then((proxy) => proxy.dispose()).catch(() => undefined);
       }
       proxyCache.clear();
     };
-  }, [resource, instanceId, theme, font, editor, menu, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
+  }, [resource, instanceId, theme, font, editor, menu, maturity, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
 
   // Separate effect: push context message when entityId changes while mounted.
   // Does NOT trigger re-handshake — only sends a lightweight context update.

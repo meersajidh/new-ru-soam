@@ -167,4 +167,22 @@ third-party-trust process (ADR-410). The user-facing roster UI remains the separ
 - **O421** — **Billing** is a *candidate* owning domain raised by the Practice functional-design
   journal (self-pay payments/receipts; Practice projects payment status read-only). **Not** in the
   catalogue above until it passes the ADR-405 promotion test (Activity-Bar slot vs other
-  placement) and gets a bundle ADR. Tracked, not committed.
+  placement) and gets a bundle ADR. Tracked, not committed. **See proposed amendment A1 below**
+  (the Practice IA recommends confirming it, else the Payment projection has no owner).
+
+## Amendments raised by the Practice IA (2026-06-05) — proposed, debate before promoting
+
+Raised by `docs/Activities/practice/practice-information-architecture.md` (§2) and ADR-505
+Amendment 4. Recorded here as proposals; promote into the catalogue above once decided.
+
+- **A1 — Confirm Billing as an MVP Activity (resolve O421).** The Client Overview projects a
+  Payment card in all three view modes; a read-only projection needs a real owner. Smallest viable
+  Billing = a per-client payments ledger (self-pay, no insurance, ADR-0013). Until confirmed, the
+  Payment card stays permanently **Mock**. *Decision pending.*
+- **A2 — Lifecycle stage is a cross-Activity ambient facet.** Stage stays **owned** by
+  `record.patient` (ADR-505 Am3) but is exposed on the **ambient focused-client** context
+  (ADR-0009 / ADR-505 §4.2) so sibling Activities (Sessions, Schedule) can read "this client is
+  `intake_in_progress` vs `active`." Read-only exposure, not new ownership.
+- **A3 — Overview "view mode" (dense / focused / timeline) is a first-class preference axis**,
+  analogous to the Activity-Bar density pref — renderer-only, persisted, no Activity-Bar change.
+  Tracked O-VIEWMODES.

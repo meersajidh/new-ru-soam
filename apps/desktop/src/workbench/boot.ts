@@ -31,6 +31,11 @@ import { MenuService } from '../platform/menu/menu-service';
 import { MenuServiceId } from '../platform/services/ids';
 import { ActivityBarDensityService, readPersistedDensity } from '../platform/activity-bar/density-service';
 import { ActivityBarDensityServiceId } from '../platform/services/ids';
+import {
+  MaturityHighlightService,
+  readPersistedMaturityHighlight,
+} from '../platform/maturity/maturity-highlight';
+import { MaturityHighlightServiceId } from '../platform/services/ids';
 
 const SLOT_TO_CTX_KEY: Partial<Record<SlotId, string>> = {
   [SlotId.PrimarySideBar]: 'sideBar.visible',
@@ -122,6 +127,10 @@ export function boot(): ServiceRegistry {
   const initialDensity = readPersistedDensity() ?? 'default';
   const activityBarDensity = new ActivityBarDensityService(document.documentElement, initialDensity);
   registry.register(ActivityBarDensityServiceId, activityBarDensity);
+
+  // Maturity-highlight — localStorage-backed; default off.
+  const maturityHighlight = new MaturityHighlightService(readPersistedMaturityHighlight());
+  registry.register(MaturityHighlightServiceId, maturityHighlight);
 
   const statusBar = new StatusBarService();
   for (const entry of ANCHORED_ENTRIES) statusBar.register(entry);
@@ -247,6 +256,15 @@ export function boot(): ServiceRegistry {
   // Disposable returned but not tracked — lives for the session (no teardown needed).
   installUpdateAlerts(notifications, statusBar);
 
+  // Maturity-highlight toggle command — registered before platform-commands so
+  // it's available immediately; no category so it doesn't pollute the palette.
+  commands.register(
+    'workbench.toggleMaturityHighlight',
+    'View: Toggle Build-State Highlight',
+    () => maturityHighlight.setEnabled(!maturityHighlight.isEnabled()),
+    { category: 'Developer' },
+  );
+
   registerPlatformCommands(layout, contextKeys, commands, keybindings, theme, font, workspace, editor, snippet, notifications, menu);
 
   // O426: load persisted user keybinding overrides (global, localStorage) +
@@ -338,6 +356,19 @@ export function boot(): ServiceRegistry {
   // Tracks the active palette id so radio-group `toggled` when-clauses work.
   contextKeys.set('workbench.colorTheme', theme.getActive().id);
   theme.onThemeChange((t) => contextKeys.set('workbench.colorTheme', t.id));
+
+  // ── Phase 0: maturity-highlight StatusBar + command ──────────────────────
+  function syncMaturityHighlightEntry(on: boolean): void {
+    statusBar.update('workbench.maturityHighlight', {
+      icon: 'target',
+      severity: on ? 'warning' : undefined,
+      tooltip: on
+        ? 'Build-state highlight ON — click to turn off'
+        : 'Toggle build-state highlight (maturity marks)',
+    });
+  }
+  syncMaturityHighlightEntry(maturityHighlight.isEnabled());
+  maturityHighlight.onDidChange(syncMaturityHighlightEntry);
 
   // ── Phase 9b: DEV-mode StatusBar entry ────────────────────────────────────
   // Use import.meta.env.DEV as an approximation of "not packaged".

@@ -68,11 +68,17 @@ The single residual *design* question (not residency, which is settled) is owner
 
 ## Open threads (journal) → canonical Open Items
 
-The journal's still-OPEN design threads are tracked canonically so they are not lost:
+The journal's still-OPEN design threads are tracked canonically so they are not lost.
+**Synthesis (2026-06-05):** the [IA map](practice-information-architecture.md) + [build
+plan](practice-build-plan.md) + **ADR-505 Amendment 4** resolved most of O419 by working backwards
+from the prototype — Risk/Safety = **both** banner + aspect (§A4.1), Intake = progressive-capture
+checklist (§A4.3). New build-plan items: O453 (maturity-marking), O454 (protected blob store), O455
+(view-modes), O456 (Attention set).
 
-- **O419** — Practice clinical-aspect design cluster: Risk/Safety keystone (MHA §23 convergence),
-  lifecycle/status model (intake→active→on-hold→discharged), Intake pipeline stages, Attention
-  obligation set, note-privacy split (progress vs process notes). References O197.
+- **O419** — Practice clinical-aspect design cluster: ~~Risk/Safety keystone (dedicated/banner/both)~~
+  **RESOLVED → Am4 §A4.1 = both** (residual: safety-plan editor fields + §23 UX); ~~lifecycle/status
+  model~~ **RESOLVED → Am3**; ~~Intake pipeline stages~~ **RESOLVED → Am4 §A4.3**; Attention
+  obligation set (→ O456); note-privacy split (still OPEN). References O197.
 - **O420** — Adjunct-record ownership granularity + residency: core-domain owns the clinical
   adjuncts (profile / circle / consent / lifecycle / risk / document) as `record.*` members
   (Main-resident, per ADR-504); Practice owns **overlays** (its own annotation, ADR-0010). Confirm

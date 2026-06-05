@@ -775,6 +775,7 @@
       function buildRiskBanner() {
         var r = MOCK.risk;
         var wrap = el('div', 'risk-banner');
+        wrap.setAttribute('data-maturity-id', 'risk-banner');
 
         var bar = el('div', 'risk-banner-bar');
         var ico = el('div', 'risk-banner-ico');
@@ -869,6 +870,7 @@
         }
 
         var header = el('header', 'ov-header');
+        header.setAttribute('data-maturity-id', 'overview-header');
 
         var avatar = el('div', 'ov-avatar');
         avatar.textContent = initials(rec);
@@ -946,11 +948,13 @@
         apptText.appendChild(txt('div', 'next-when', a.when));
         apptText.appendChild(txt('div', 'next-label', a.label));
         apptBody.appendChild(apptText);
-        grid.appendChild(buildCard(
+        var apptCard = buildCard(
           'calendar-clock', 'Next session', 'Schedule',
           apptBody,
           '<button class="link-btn" type="button">Open session prep ' + icon('arrow-up-right', 12) + '</button>'
-        ));
+        );
+        apptCard.setAttribute('data-maturity-id', 'card-next-session');
+        grid.appendChild(apptCard);
 
         // Last note
         var n = MOCK.lastNote;
@@ -958,27 +962,37 @@
         noteBody.appendChild(txt('div', 'last-note-meta', n.when + ' · by ' + n.author));
         var noteSummary = txt('p', 'last-note-summary', n.summary);
         noteBody.appendChild(noteSummary);
-        grid.appendChild(buildCard(
+        var noteCard = buildCard(
           'file-text', 'Most recent note', 'Sessions',
           noteBody,
           '<button class="link-btn" type="button">Read full note ' + icon('arrow-up-right', 12) + '</button>'
-        ));
+        );
+        noteCard.setAttribute('data-maturity-id', 'card-last-note');
+        grid.appendChild(noteCard);
 
         // Scores
         var scoresBody = buildScoresBody();
-        grid.appendChild(buildCard('activity', 'Assessment trend', 'Assessments', scoresBody, null));
+        var scoresCard = buildCard('activity', 'Assessment trend', 'Assessments', scoresBody, null);
+        scoresCard.setAttribute('data-maturity-id', 'card-scores');
+        grid.appendChild(scoresCard);
 
         // Goals
         var goalsBody = buildGoalsBody();
-        grid.appendChild(buildCard('list-checks', 'Treatment goals', 'Planner', goalsBody, null));
+        var goalsCard = buildCard('list-checks', 'Treatment goals', 'Planner', goalsBody, null);
+        goalsCard.setAttribute('data-maturity-id', 'card-goals');
+        grid.appendChild(goalsCard);
 
         // Payment
         var payBody = buildPaymentBody();
-        grid.appendChild(buildCard('indian-rupee', 'Payment', 'Billing', payBody, null));
+        var payCard = buildCard('indian-rupee', 'Payment', 'Billing', payBody, null);
+        payCard.setAttribute('data-maturity-id', 'card-payment');
+        grid.appendChild(payCard);
 
         // Circle
         var circleBody = buildCircleMini();
-        grid.appendChild(buildCard('users', 'People / Circle', 'Practice', circleBody, null));
+        var circleCard = buildCard('users', 'People / Circle', 'Practice', circleBody, null);
+        circleCard.setAttribute('data-maturity-id', 'card-circle');
+        grid.appendChild(circleCard);
 
         return grid;
       }
@@ -995,25 +1009,30 @@
         apptText.appendChild(txt('div', 'next-when', a.when));
         apptText.appendChild(txt('div', 'next-label', a.label));
         apptBody.appendChild(apptText);
-        grid.appendChild(buildCard(
+        var apptCard2 = buildCard(
           'calendar-clock', 'Next session', 'Schedule',
           apptBody,
           '<button class="link-btn" type="button">Open session prep ' + icon('arrow-up-right', 12) + '</button>'
-        ));
+        );
+        apptCard2.setAttribute('data-maturity-id', 'card-next-session');
+        grid.appendChild(apptCard2);
 
         // Last note
         var n = MOCK.lastNote;
         var noteBody = el('div');
         noteBody.appendChild(txt('div', 'last-note-meta', n.when + ' · by ' + n.author));
         noteBody.appendChild(txt('p', 'last-note-summary', n.summary));
-        grid.appendChild(buildCard(
+        var noteCard2 = buildCard(
           'file-text', 'Most recent note', 'Sessions',
           noteBody,
           '<button class="link-btn" type="button">Read full note ' + icon('arrow-up-right', 12) + '</button>'
-        ));
+        );
+        noteCard2.setAttribute('data-maturity-id', 'card-last-note');
+        grid.appendChild(noteCard2);
 
         // Glance row
         var more = el('div', 'ov-more');
+        more.setAttribute('data-maturity-id', 'glance-row');
         var moreHead = txt('span', 'ov-more-head', 'At a glance');
         more.appendChild(moreHead);
         var moreRow = el('div', 'ov-more-row');
@@ -1041,6 +1060,7 @@
       /* ── Timeline ───────────────────────────────────────────────── */
       function buildTimeline() {
         var wrap = el('div', 'ov-timeline-wrap');
+        wrap.setAttribute('data-maturity-id', 'timeline-wrap');
 
         var list = el('ul', 'ov-timeline');
         MOCK.timeline.forEach(function (ev) {
@@ -1187,6 +1207,8 @@
         }
 
         elOvBody.appendChild(inner);
+        // Re-hydrate maturity marks after dynamic render (hydrateMaturity is idempotent).
+        if (window.hydrateMaturity) window.hydrateMaturity(elOvBody);
       }
 
       /* ── Density switcher (compact icon dropdown) ──────────────── */

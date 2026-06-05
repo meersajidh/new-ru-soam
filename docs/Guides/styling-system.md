@@ -444,6 +444,35 @@ for elimination in PR-10. Do not add new selectors to it.
 
 ---
 
+## Bundle-view maturity marks (Phase 0 convention)
+
+Practice bundle views (and any future bundle) can carry build-state markers injected by the platform. These are renderer/bundle CSS only — no ADR required.
+
+### How it works
+
+1. `view-protocol.ts` injects `VIEW_MATURITY_CSS` (as `<style>`) and `VIEW_MATURITY_SOURCE` (as `<script>`) into every HTML view at serve time, alongside the bridge and codicons.
+2. The `MATURITY` registry in `view-maturity.ts` is the **single source of truth**: `elementId → 'concrete'|'wip'|'mock'`. Flip one entry there — no HTML change needed.
+3. Any card/section root in a view HTML file carries `data-maturity-id="<id>"`. The injected `window.hydrateMaturity(root?)` walks these, sets `data-maturity`, appends pills, and sets tooltips. Re-call after dynamic renders.
+4. `body.maturity-highlight` (toggled via StatusBar entry `workbench.maturityHighlight`) intensifies all marks.
+
+### State vocabulary
+
+| State | Border | Pill | Meaning |
+|---|---|---|---|
+| `concrete` | none (green outline in highlight mode) | none | Real owned data, real read/write |
+| `wip` | dotted amber | WIP | Wired but incomplete — structure built, real data pending |
+| `mock` | dashed muted | Mock | Projection from an unbuilt Activity (pure placeholder) |
+
+### Color constraints
+
+Bundle views are opaque-origin sandboxed iframes — `@theme {}` tokens are absent. Use only:
+- Palette custom props pushed via the theme snapshot (`--color-warning`, `--color-fg-muted`, `--color-border`, `--color-accent`) — these arrive via the `theme`/`init` bridge message.
+- Self-contained fallback literals that match the dark theme defaults (for the brief flash before the first theme message).
+
+Never reference `@theme {}`-generated vars or renderer Tailwind utilities inside `VIEW_MATURITY_CSS`.
+
+---
+
 ## Adding a new component CSS file
 
 1. Colocate: `apps/desktop/src/path/to/MyComponent.tsx` +

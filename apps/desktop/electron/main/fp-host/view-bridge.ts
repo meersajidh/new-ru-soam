@@ -51,6 +51,9 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
       case 'init':
         themeSnapshot = m.theme || {};
         applyTheme(themeSnapshot);
+        if (typeof m.maturityHighlight === 'boolean') {
+          document.body.classList.toggle('maturity-highlight', m.maturityHighlight);
+        }
         resolvedReady();
         break;
       case 'activate':
@@ -64,6 +67,9 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
       case 'theme':
         themeSnapshot = m.theme || {};
         applyTheme(themeSnapshot);
+        if (typeof m.maturityHighlight === 'boolean') {
+          document.body.classList.toggle('maturity-highlight', m.maturityHighlight);
+        }
         break;
       case 'store.changed':
         storeChangeHandlers.forEach(function (h) { try { h(m.payload); } catch (err) { console.error(err); } });

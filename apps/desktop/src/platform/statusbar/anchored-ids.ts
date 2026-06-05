@@ -117,4 +117,17 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
     visible: false, // gated: bundle.active (Phase 6)
     icon: 'circle-dot',
   },
+  {
+    // Phase 0 maturity-highlight toggle. Always visible so developers can scan
+    // build state at any time. Text and icon updated in boot.ts to reflect state.
+    id: 'workbench.maturityHighlight',
+    region: 'right',
+    priority: 60,
+    text: '',
+    tooltip: 'Toggle build-state highlight (maturity marks)',
+    command: 'workbench.toggleMaturityHighlight',
+    visible: true,
+    icon: 'target',
+    scope: 'always',
+  },
 ];

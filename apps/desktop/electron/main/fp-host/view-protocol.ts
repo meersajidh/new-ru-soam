@@ -6,6 +6,7 @@ import type { DiscoveredBundle } from './manifest';
 import { VIEW_BRIDGE_SOURCE } from './view-bridge';
 import { VIEW_CODICONS_SOURCE } from './view-codicons';
 import { VIEW_FONTS_SOURCE } from './view-fonts';
+import { VIEW_MATURITY_CSS, VIEW_MATURITY_SOURCE } from './view-maturity';
 
 /**
  * `view://` protocol handler per ADR-411 (Phase 7 trimmed scope).
@@ -97,14 +98,19 @@ export function viewUrlFor(bundleId: string, viewId: string): string | undefined
 // escaping is required.
 function injectBridgeAndCsp(html: string): string {
   const fontsTag = `<style>${VIEW_FONTS_SOURCE}</style>`;
+  const maturityCssTag = `<style>${VIEW_MATURITY_CSS}</style>`;
   const bridgeTag = `<script>${VIEW_BRIDGE_SOURCE}</script>`;
   const codiconsTag = `<script>${VIEW_CODICONS_SOURCE}</script>`;
+  const maturityTag = `<script>${VIEW_MATURITY_SOURCE}</script>`;
   const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${VIEW_CSP}">`;
   const headOpen = /<head\b[^>]*>/i;
   if (headOpen.test(html)) {
-    return html.replace(headOpen, (m) => `${m}\n${cspMeta}\n${fontsTag}\n${bridgeTag}\n${codiconsTag}`);
+    return html.replace(
+      headOpen,
+      (m) => `${m}\n${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${maturityTag}`,
+    );
   }
-  return `${cspMeta}\n${fontsTag}\n${bridgeTag}\n${codiconsTag}\n${html}`;
+  return `${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${maturityTag}\n${html}`;
 }
 
 function withinRoot(root: string, target: string): boolean {
