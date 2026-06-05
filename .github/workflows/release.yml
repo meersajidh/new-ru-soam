@@ -29,6 +29,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify release version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          node apps/desktop/scripts/check-release.mjs "$VERSION"
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 

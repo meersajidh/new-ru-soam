@@ -44,3 +44,15 @@ dist:
 # Install .desktop + icons via xdg
 install-desktop:
     @cd apps/desktop && pnpm run dist:install
+
+# ── Release guards ────────────────────────────────────────────────────────────
+
+# Validate package.json versions + CHANGELOG before tagging.
+# Example: just release-check 0.1.6
+release-check version:
+    @node apps/desktop/scripts/check-release.mjs {{version}}
+
+# Opt-in pre-push hook that runs release-check before any v* tag reaches CI.
+# Run once per clone: just hooks-install
+hooks-install:
+    @git config core.hooksPath .githooks

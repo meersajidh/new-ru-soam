@@ -1,0 +1,32 @@
+#!/bin/sh
+# pre-push — block push of a vX.Y.Z tag if check-release fails.
+#
+# Install once per clone:
+#   git config core.hooksPath .githooks
+#   (or: just hooks-install)
+#
+# git passes "localref localsha remoteref remotesha" lines on stdin.
+# For each tag ref whose remotesha is non-zero (not a deletion), run the guard.
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+while read -r localref localsha remoteref remotesha; do
+  # Skip deletions (remotesha = all zeros).
+  case "$remotesha" in
+    0000000000000000000000000000000000000000) continue ;;
+  esac
+
+  # Only check tag refs matching v[0-9]*.
+  case "$remoteref" in
+    refs/tags/v[0-9]*)
+      TAG="$(basename "$remoteref")"
+      echo "[pre-push] checking release guard for tag $TAG ..."
+      if ! node "$REPO_ROOT/apps/desktop/scripts/check-release.mjs" "$TAG"; then
+        echo "[pre-push] ABORTED: fix the mismatches above, then push again."
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+exit 0
