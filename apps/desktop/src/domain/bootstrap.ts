@@ -13,6 +13,7 @@
 import type { ServiceRegistry } from '../platform/services/registry';
 import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId, CommandServiceId } from '../platform/services/ids';
 import { PRODUCT_TAGLINE, DELETE_WARNING_ADDENDUM } from './product';
+import { showClientErase } from './clientEraseState';
 
 export function domainBootstrap(registry: ServiceRegistry): void {
   const productConfig = registry.get(ProductConfigServiceId);
@@ -106,6 +107,68 @@ export function domainBootstrap(registry: ServiceRegistry): void {
     'ru-soam-practice.lifecycle.setDischarged',
     'Set Stage: Discharged',
     (ctx: unknown) => setPatientStage(ctx, 'discharged'),
+    { category: 'Practice' },
+  );
+
+  // Edit client record — opens the create/edit form in edit-mode for this client.
+  // PHI never enters Bundle Host: resolves the bundle's `form` view URL and opens
+  // it as an editor (the form binds record.patient itself via the view bridge).
+  // Mirrors how the roster opens views (request.openEditor → platform.views.resolve
+  // → editor.open), but driven from a renderer-domain context-menu command.
+  commands.register(
+    'ru-soam-practice.record.edit',
+    'Edit Client Record…',
+    async (ctx: unknown) => {
+      const clientId = (ctx as Record<string, unknown>)?.clientId;
+      if (typeof clientId !== 'string' || clientId.length === 0) {
+        console.warn('[practice] edit: missing or invalid clientId in ctx', ctx);
+        return;
+      }
+      const views = await window.soam.bindCapability('platform.views', '1.0');
+      try {
+        const res = (await views.call('resolve', 'ru-soam-practice', 'form')) as {
+          found?: boolean;
+          url?: string;
+        };
+        if (res?.found && res.url) {
+          registry.get(EditorServiceId).open(res.url + '?id=' + clientId, {
+            title: 'Edit Client',
+            entityId: clientId,
+          });
+        } else {
+          console.error('[practice] edit: form view not found');
+        }
+      } catch (err) {
+        console.error('[practice] edit failed:', err);
+      } finally {
+        views.dispose();
+      }
+    },
+    { category: 'Practice' },
+  );
+
+  // Erase client record — DPDP right-to-erasure.
+  // PHI never enters Bundle Host: command shows a renderer-level confirmation
+  // dialog (ClientEraseDialog); actual deletes execute in FP-Host via store.write.
+  commands.register(
+    'ru-soam-practice.record.erase',
+    'Erase Client Record…',
+    (ctx: unknown) => {
+      const c = ctx as Record<string, unknown>;
+      const clientId = c?.clientId;
+      const displayName = c?.displayName;
+      if (typeof clientId !== 'string' || clientId.length === 0) {
+        console.warn('[practice] erase: missing clientId in ctx', ctx);
+        return;
+      }
+      // displayName may be absent when triggered from context-menu (only clientId
+      // is in the menu ctx). If absent, fall back to a generic label so the
+      // typed-confirmation still works (user types what they see).
+      const name = typeof displayName === 'string' && displayName.length > 0
+        ? displayName
+        : 'this client';
+      showClientErase(clientId, name);
+    },
     { category: 'Practice' },
   );
 

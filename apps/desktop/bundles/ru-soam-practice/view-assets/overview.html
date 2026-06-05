@@ -357,6 +357,7 @@
         font-size: 9px;
         color: var(--color-fg-muted);
       }
+
       .ov-badges {
         display: flex;
         flex-direction: column;
@@ -895,7 +896,8 @@
         idDiv.appendChild(subDiv);
         idDiv.appendChild(problemsDiv);
 
-        var badges = el('div', 'ov-badges');
+        var badgesCol = el('div', 'ov-badges');
+
         var badgeData = [
           { icon: 'scroll-text', text: 'AD active' },
           { icon: 'circle-check', text: 'Capacity intact' },
@@ -904,12 +906,12 @@
         badgeData.forEach(function (b) {
           var badge = el('span', 'ov-badge ok');
           badge.innerHTML = icon(b.icon, 12) + ' ' + b.text;
-          badges.appendChild(badge);
+          badgesCol.appendChild(badge);
         });
 
         header.appendChild(avatar);
         header.appendChild(idDiv);
-        header.appendChild(badges);
+        header.appendChild(badgesCol);
         return header;
       }
 

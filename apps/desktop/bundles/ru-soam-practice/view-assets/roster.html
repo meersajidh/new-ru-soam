@@ -947,12 +947,14 @@
             if (!row) return;
             e.preventDefault();
             var clientId = row.getAttribute('data-id');
+            var patient = _roster.find(function (p) { return p.id === clientId; });
+            var displayName = patient ? (patient.displayName || '') : '';
             if (window.soamView && window.soamView.requestContextMenu) {
               window.soamView.requestContextMenu(
                 'ru-soam-practice/roster/context',
                 e.clientX,
                 e.clientY,
-                { clientId: clientId }
+                { clientId: clientId, displayName: displayName }
               );
             }
           });

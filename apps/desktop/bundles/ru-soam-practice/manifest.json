@@ -92,9 +92,11 @@
     ],
     "menus": {
       "ru-soam-practice/roster/context": [
+        { "command": "ru-soam-practice.record.edit",        "group": "0_open@1" },
         { "command": "ru-soam-practice.roster.setActive",   "group": "1_status@1" },
         { "command": "ru-soam-practice.roster.setInactive", "group": "1_status@2" },
         { "command": "ru-soam-practice.roster.archive",     "group": "9_danger@1" },
+        { "command": "ru-soam-practice.record.erase",       "group": "9_danger@2" },
         { "title": "Set Stage", "submenu": "ru-soam-practice/stage/submenu", "group": "2_stage@1" }
       ],
       "ru-soam-practice/stage/submenu": [

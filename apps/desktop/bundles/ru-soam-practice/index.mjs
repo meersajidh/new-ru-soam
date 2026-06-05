@@ -5,7 +5,15 @@
 //
 // Consumes store.query@1.0 for all SQL reads and store.write@1.0 for all SQL
 // writes. Row→record mapping is plain JS (no TypeScript, no platform imports
-// — only what ctx provides).
+// — only what ctx provides + this bundle's own manifest).
+
+import manifest from './manifest.json' with { type: 'json' };
+
+// Owned adjunct tables = every owned table except the `patients` parent. Their PK
+// is patient_id (FK child of patients.id). Derived from the manifest so the erase
+// cascade auto-covers tables added in future phases — no "remember to extend a
+// list" trap. `patients` is deleted last (FK order).
+const OWNED_ADJUNCT_TABLES = (manifest.ownedTables ?? []).filter((t) => t !== 'patients');
 
 // ── Lifecycle stage definitions (static domain data, no SQL) ─────────────────
 // Copied from electron/main/domain/lifecycle-stages.ts — same values, no import.
@@ -322,6 +330,52 @@ export function activate(ctx) {
           throw new Error('record.patient.setStage: lifecycle row disappeared after write: ' + id);
         }
         return mapLifecycle(lcRows[0]);
+      }
+
+      case 'erase': {
+        // DPDP right-to-erasure (irreversible hard delete).
+        // Delete order: adjunct children (by patient_id) BEFORE patients parent (by id)
+        // to satisfy the FK constraint enforced by SQLite's PRAGMA foreign_keys.
+        // OWNED_ADJUNCT_TABLES is derived from the manifest (see module top) so this
+        // cascade auto-covers every owned table — adding a Phase-2+ table needs no edit here.
+        const id = args[0];
+        if (typeof id !== 'string' || id.length === 0) {
+          throw new Error('record.patient.erase: id must be a non-empty string');
+        }
+
+        // Existence check — no audit tag (avoid spurious viewed event before erasure).
+        const existRows = await storeQuery.call('run', ['patient.get', { id }]);
+        if (!existRows.length) {
+          throw notFound('record.patient.erase: patient not found: ' + id);
+        }
+
+        // Delete adjunct tables (children) first, then the parent.
+        for (const table of OWNED_ADJUNCT_TABLES) {
+          await storeWrite.call('delete', [
+            table,
+            id,
+            {
+              event: 'record.patient.erased',
+              recordType: table,
+              recordId: id,
+              detail: { table },
+            },
+          ]);
+        }
+
+        // Delete parent row — canonical erasure audit event.
+        await storeWrite.call('delete', [
+          'patients',
+          id,
+          {
+            event: 'record.patient.erased',
+            recordType: 'patient',
+            recordId: id,
+            detail: { table: 'patients', dpdp: true },
+          },
+        ]);
+
+        return { erased: id };
       }
 
       case 'updateProfile': {

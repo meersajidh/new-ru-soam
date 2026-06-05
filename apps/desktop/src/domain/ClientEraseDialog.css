@@ -1,0 +1,51 @@
+@reference "../styles/theme.css";
+
+/* ── Client Erase Dialog ───────────────────────────────────────────────────── */
+
+.client-erase-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.client-erase-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-error) 14%, transparent);
+  color: var(--color-error);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.client-erase-title {
+  @apply text-base font-semibold text-fg-primary;
+  margin: 0;
+}
+
+.client-erase-warning {
+  background: color-mix(in srgb, var(--color-error) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-error) 28%, transparent);
+  @apply rounded-md;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.client-erase-warning-headline {
+  @apply text-sm font-semibold text-error;
+  margin: 0;
+}
+
+.client-erase-warning-body {
+  @apply text-sm text-fg-secondary;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.client-erase-warning-body strong {
+  @apply text-fg-primary font-semibold;
+}

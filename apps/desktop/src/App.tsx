@@ -7,6 +7,7 @@ import { boot } from './workbench/boot';
 import { mountStoreEventsBridge } from './platform/data/store-events-bridge';
 // ADR-106 composition seam — the ONLY base file permitted to import src/domain/**.
 import { domainBootstrap } from './domain/bootstrap';
+import ClientEraseDialog from './domain/ClientEraseDialog';
 
 export default function App() {
   const [registry] = useState(() => {
@@ -32,6 +33,10 @@ export default function App() {
     <ServiceRegistryProvider registry={registry}>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} context={{ queryClient }} />
+        {/* Domain-level dialogs mounted at composition root (ADR-106 seam).
+            ClientEraseDialog renders only when showClientErase() is called from
+            the ru-soam-practice.record.erase renderer-domain command. */}
+        <ClientEraseDialog />
       </QueryClientProvider>
     </ServiceRegistryProvider>
   );
