@@ -9,17 +9,29 @@ default:
 dev-desktop:
     @cd apps/desktop && pnpm run dev
 
-# Inspect a workspace local-store DB (dev only). Examples:
+# Inspect a workspace DB (dev only). Examples:
 #   just dev-db --list
 #   just dev-db meersh --info
 #   just dev-db meersh --tables
+#   just dev-db meersh --sql "SELECT * FROM prefs"
+#   just dev-db meersh --protected --info
+#   just dev-db meersh --protected --tables
+#   RU_SOAM_DEV_PASSPHRASE=mypass just dev-db meersh --protected --tables
+# NOTE: a quoted multi-word --sql "…" canNOT go through this recipe — just splits
+# {{args}} on spaces and truncates the query. Use `dev-db-sql` / `dev-db-psql`.
 dev-db *args:
     @cd apps/desktop && pnpm exec electron --no-sandbox scripts/dev-localstore.mjs {{args}}
 
-# Run a read-only SQL query against a workspace DB (dev only). Quote the query:
+# Run a read-only SQL query against a workspace OPERATIONAL DB (dev only). Quote the query:
 #   just dev-db-sql meersh "SELECT * FROM prefs"
 dev-db-sql name query:
     @cd apps/desktop && pnpm exec electron --no-sandbox scripts/dev-localstore.mjs {{name}} --sql "{{query}}"
+
+# Run a read-only SQL query against a workspace PROTECTED (PHI) DB (dev only).
+# Needs the passphrase — pass via env to avoid shell-history leak:
+#   export RU_SOAM_DEV_PASSPHRASE='…' && just dev-db-psql meersh "SELECT id, given_name, status FROM patients"
+dev-db-psql name query:
+    @cd apps/desktop && pnpm exec electron --no-sandbox scripts/dev-localstore.mjs {{name}} --protected --sql "{{query}}"
 
 # Build packaged release (.deb on Linux, .exe on Windows)
 build-desktop:
