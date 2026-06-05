@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "entry": "index.mjs",
   "activationEvents": ["lazy"],
+  "residency": "protected",
   "capabilities": [
     { "name": "record.patient.query", "version": "1.0", "phi": true, "kind": "query" },
     { "name": "record.patient", "version": "1.0", "phi": true, "kind": "command" }

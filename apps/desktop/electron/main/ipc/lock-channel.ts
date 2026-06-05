@@ -26,7 +26,7 @@ import { startAutoLock } from '../lock/auto-lock.js';
 import type { AutoLockHandle } from '../lock/auto-lock.js';
 import { workspaceRegistry } from '../workspace/registry.js';
 import { ensureLocalStoreDbKey } from '../credentials/db-key.js';
-import { localStoreManager } from '../local-store/index.js';
+import { localStoreManager, ensureProtectedStoreKey, hasProtectedSets } from '../local-store/index.js';
 import { auditService } from '../audit/index.js';
 import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol.js';
 import type {
@@ -71,18 +71,49 @@ function emitWorkspaceChanged(getWindow: GetWindow): void {
   });
 }
 
+/**
+ * Open the protected store for `workspaceId` if (and only if):
+ *   1. At least one registered MigrationSet declares `protected` residency, AND
+ *   2. The LockService has a live in-memory KEK (workspace is unlocked).
+ *
+ * Generates the per-workspace cipher key on first call (ensureProtectedStoreKey
+ * writes `protected-store.key.json`); subsequent calls unwrap the existing key.
+ * Idempotent: if the protected store is already open for this workspace, no-op.
+ *
+ * Caller must ensure `svc.kekHandle()` is non-null before calling (i.e. only
+ * call this after a successful unlock / setup-acknowledge / dev-unlock).
+ * (O452 / ADR-302 §"Residency split", ADR-307 §"Protected-store key in the hierarchy")
+ */
+export function openProtectedStoreIfNeeded(workspaceId: string, svc: LockService): void {
+  if (!hasProtectedSets()) return;
+  // Already open for this workspace — skip the KEK-unwrap entirely so we don't
+  // materialise a fresh copy of the protected cipher key needlessly.
+  if (localStoreManager.protectedCurrent()?.workspaceId() === workspaceId) return;
+  const kek = svc.kekHandle();
+  if (kek === null) return; // Not unlocked — do not open.
+  const key = ensureProtectedStoreKey(workspaceId, kek);
+  // key is zeroed by LocalStore.open()'s finally block — do not touch it after this call.
+  localStoreManager.openProtectedFor(workspaceId, key);
+}
+
 export function installLockChannel(
   getWindow: GetWindow,
   getActiveLockService: GetActiveLockService,
   setActiveLockService: SetActiveLockService,
   autoLockHandleRef: AutoLockHandleRef,
 ): void {
-  // Emit lock state changes to renderer whenever active service fires
+  // Emit lock state changes to renderer whenever active service fires.
+  // Also close the protected store whenever the workspace becomes locked.
   // We subscribe lazily in setActive; initial subscription done here
   // for the service that already exists at install time.
   const initialSvc = getActiveLockService();
   if (initialSvc) {
-    initialSvc.onDidChange(() => emitLockChanged(getWindow, getActiveLockService));
+    initialSvc.onDidChange((state) => {
+      emitLockChanged(getWindow, getActiveLockService);
+      if (state.locked) {
+        localStoreManager.closeProtected();
+      }
+    });
   }
 
   // ── soam:lock:state ────────────────────────────────────────────────────────
@@ -103,6 +134,7 @@ export function installLockChannel(
     if (result.ok) {
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
+        openProtectedStoreIfNeeded(workspaceId, svc);
         const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
         auditService.emit({
           event: 'workspace.unlock',
@@ -126,6 +158,7 @@ export function installLockChannel(
     if (result.ok) {
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
+        openProtectedStoreIfNeeded(workspaceId, svc);
         const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
         auditService.emit({
           event: 'workspace.recovery.used',
@@ -231,6 +264,7 @@ export function installLockChannel(
     if (result.ok) {
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
+        openProtectedStoreIfNeeded(workspaceId, svc);
         const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
         auditService.emit({
           event: 'workspace.setup.complete',
@@ -274,8 +308,13 @@ export function installLockChannel(
     const newSvc = new LockService(workspaceId);
     setActiveLockService(newSvc);
 
-    // Subscribe new service to lock-changed events
-    newSvc.onDidChange(() => emitLockChanged(getWindow, getActiveLockService));
+    // Subscribe new service to lock-changed events; also close protected store on lock.
+    newSvc.onDidChange((state) => {
+      emitLockChanged(getWindow, getActiveLockService);
+      if (state.locked) {
+        localStoreManager.closeProtected();
+      }
+    });
 
     // Phase 10b: always provision db-key regardless of lock.json state.
     // Setup-pending workspaces need a key too — the store is opened before

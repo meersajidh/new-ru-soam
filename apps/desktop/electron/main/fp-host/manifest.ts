@@ -163,6 +163,14 @@ export interface BundleManifest {
   readonly queryTemplates?: ReadonlyArray<QueryTemplateManifestEntry>;
   /** Declared capability dependencies (rung F / O445). */
   readonly dependencies?: BundleDependencies;
+  /**
+   * Physical store residency for this bundle's migrations, ownedTables, and
+   * queryTemplates (O452 / ADR-302 §"Residency split").
+   * `'operational'` (default): always-open store (prefs, settings, audit).
+   * `'protected'`: KEK-gated store, opened on unlock and closed on relock.
+   * Base never inspects *what* a domain keeps there — the domain opts in here.
+   */
+  readonly residency?: 'operational' | 'protected';
 }
 
 export interface DiscoveredBundle {
@@ -729,6 +737,18 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
     dependencies = { capabilities: depCaps };
   }
 
+  // ── residency (optional) ──────────────────────────────────────────────────
+  let residency: 'operational' | 'protected' | undefined;
+  if (m.residency !== undefined) {
+    if (m.residency !== 'operational' && m.residency !== 'protected') {
+      throw new ManifestError(
+        manifestPath,
+        '`residency` must be "operational" or "protected" if present',
+      );
+    }
+    residency = m.residency as 'operational' | 'protected';
+  }
+
   return {
     id: m.id,
     version: m.version,
@@ -748,6 +768,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
     migrations: migrations,
     queryTemplates: queryTemplates,
     dependencies: dependencies,
+    residency: residency,
   };
 }
 

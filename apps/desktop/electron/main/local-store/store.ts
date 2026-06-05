@@ -27,8 +27,9 @@ import { createHash } from 'crypto';
 import { unlinkSync } from 'fs';
 import Database from 'better-sqlite3';
 import type DatabaseT from 'better-sqlite3';
-import { localStoreDbPath } from './paths.js';
+import { localStoreDbPath, protectedStoreDbPath } from './paths.js';
 import { runMigrations } from './migrations.js';
+import type { StoreResidency } from './migrations.js';
 import type { StoreChangedPayload } from '../../shared/ipc-protocol.js';
 import type { AuditEntry, AuditRow } from '../audit/audit-types.js';
 
@@ -60,14 +61,14 @@ export interface PrefRow {
  * V8 heap until GC. This is an accepted residue for Phase 10b (Main process,
  * OS-keychain-backed key, no untrusted code in this trust zone).
  */
-function openEncryptedDb(dbPath: string, key: Buffer): DatabaseT.Database {
+function openEncryptedDb(dbPath: string, key: Buffer, residency: StoreResidency): DatabaseT.Database {
   const db = new Database(dbPath);
   // Cipher key must be applied before any other operation.
   // Hex form: key = "x'<64 hex chars>'" for a raw 32-byte key.
   db.pragma(`key = "x'${key.toString('hex')}'"`);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
-  runMigrations(db);
+  runMigrations(db, residency);
   return db;
 }
 
@@ -82,24 +83,30 @@ export class LocalStore {
 
   /**
    * Open (or create) the encrypted DB for `workspaceId`. Runs pending
-   * migrations. Safe to call when already open for same workspaceId (no-op).
-   * Throws if asked to open a different workspace without `close()` first.
+   * migrations for the given `residency`. Safe to call when already open for
+   * same workspaceId (no-op). Throws if asked to open a different workspace
+   * without `close()` first.
+   *
+   * `residency` defaults to `'operational'` for back-compat.
+   * The protected store uses `protectedStoreDbPath` instead of `localStoreDbPath`.
    *
    * If the DB is plaintext (Phase 10a leftover) or corrupt, it is deleted and
    * recreated encrypted — a single console.warn is emitted.
    */
-  open(workspaceId: string, key: Buffer): void {
+  open(workspaceId: string, key: Buffer, residency: StoreResidency = 'operational'): void {
     if (this._db !== null) {
       if (this._workspaceId === workspaceId) return;
       throw new Error(
         `LocalStore.open(${workspaceId}) refused: already open for ${this._workspaceId}`,
       );
     }
-    const dbPath = localStoreDbPath(workspaceId);
+    const dbPath = residency === 'protected'
+      ? protectedStoreDbPath(workspaceId)
+      : localStoreDbPath(workspaceId);
     let db: DatabaseT.Database | undefined;
     try {
       try {
-        db = openEncryptedDb(dbPath, key);
+        db = openEncryptedDb(dbPath, key, residency);
         // Verify the key worked — integrity_check returns 'ok' on a properly
         // keyed DB. On a plaintext DB the pragma will return a garbage string
         // (because it's reading ciphertext as page data) or throw.
@@ -114,8 +121,8 @@ export class LocalStore {
           try { db.close(); } catch { /* ignore */ }
         }
         try { unlinkSync(dbPath); } catch { /* file may not exist */ }
-        console.warn('[local-store] plaintext DB detected — recreated encrypted', { workspaceId });
-        db = openEncryptedDb(dbPath, key);
+        console.warn('[local-store] plaintext DB detected — recreated encrypted', { workspaceId, residency });
+        db = openEncryptedDb(dbPath, key, residency);
       }
       this._db = db;
       this._workspaceId = workspaceId;

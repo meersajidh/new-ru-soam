@@ -33,6 +33,7 @@ export function registerBundleMigrations(discovered: ReadonlyArray<DiscoveredBun
     registerMigrationSet({
       owner: manifest.id,
       ownedTables: manifest.ownedTables ?? [],
+      residency: manifest.residency ?? 'operational',
       migrations: manifest.migrations.map((entry) => ({
         version: entry.version,
         description: entry.description,
@@ -59,8 +60,9 @@ export function registerBundleQueryTemplates(discovered: ReadonlyArray<Discovere
     const { manifest } = bundle;
     if (!manifest.queryTemplates || manifest.queryTemplates.length === 0) continue;
 
+    const residency = manifest.residency ?? 'operational';
     for (const qt of manifest.queryTemplates) {
-      registerQueryTemplate({ id: qt.id, sql: qt.sql });
+      registerQueryTemplate({ id: qt.id, sql: qt.sql, residency });
     }
   }
 }

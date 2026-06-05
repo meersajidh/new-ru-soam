@@ -29,7 +29,7 @@ import { registerCapability } from '../capability/registry.js';
 import type { CallerIdentity } from '../capability/registry.js';
 import { CapErr } from '../../shared/ipc-protocol.js';
 import { localStoreManager } from './index.js';
-import { tableOwner } from './migrations.js';
+import { tableOwner, tableResidency } from './migrations.js';
 import { auditService } from '../audit/index.js';
 import type { AuditEventKind } from '../audit/audit-types.js';
 
@@ -115,13 +115,30 @@ export interface AuditTag {
 
 // ── Store / DB helpers ────────────────────────────────────────────────────────
 
-function requireStore() {
-  const store = localStoreManager.current();
-  if (!store) throw notFound('store.write: no active workspace');
+/**
+ * Resolve the correct store for `table` based on its declared residency.
+ * Returns `protectedCurrent()` when the table lives in the protected store;
+ * `current()` for operational tables. Throws `cap.not_found` if the chosen
+ * store is null/closed (defensive — the PHI gate already blocks calls while
+ * locked, but the protected store may genuinely be absent for non-PHI tables).
+ * (O452 / ADR-302 §"Residency split")
+ */
+function requireStoreForTable(table: string) {
+  const residency = tableResidency(table);
+  const store = residency === 'protected'
+    ? localStoreManager.protectedCurrent()
+    : localStoreManager.current();
+  if (!store) {
+    throw notFound(
+      residency === 'protected'
+        ? 'store.write: protected store not open (workspace locked?)'
+        : 'store.write: no active workspace',
+    );
+  }
   return store;
 }
 
-function requireDb(store: ReturnType<typeof requireStore>) {
+function requireDb(store: ReturnType<typeof requireStoreForTable>) {
   const db = store.rawDb();
   if (!db) throw notFound('store.write: store not open');
   return db;
@@ -299,7 +316,7 @@ export function registerStoreWriteCapability(): void {
           enforceOwnership(owner, caller, table);
           enforceAudit(audit);
 
-          const store = requireStore();
+          const store = requireStoreForTable(table);
           const db = requireDb(store);
           const workspaceId = store.workspaceId()!;
           const meta = getTableMeta(db, table);
@@ -327,7 +344,7 @@ export function registerStoreWriteCapability(): void {
           enforceOwnership(owner, caller, table);
           enforceAudit(audit);
 
-          const store = requireStore();
+          const store = requireStoreForTable(table);
           const db = requireDb(store);
           const workspaceId = store.workspaceId()!;
           const meta = getTableMeta(db, table);
@@ -353,7 +370,7 @@ export function registerStoreWriteCapability(): void {
           enforceOwnership(owner, caller, table);
           enforceAudit(audit);
 
-          const store = requireStore();
+          const store = requireStoreForTable(table);
           const db = requireDb(store);
           const workspaceId = store.workspaceId()!;
           const meta = getTableMeta(db, table);

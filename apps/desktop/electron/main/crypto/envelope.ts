@@ -73,6 +73,17 @@ export function buildKekWrapAad(
 }
 
 /**
+ * Canonical-JSON AAD for the protected-store cipher key envelope (ADR-307 / O452).
+ * Separate from `buildKekWrapAad` to preserve subsystem boundaries —
+ * the protected store is a distinct base subsystem that merely consumes the KEK.
+ * Keys sorted: purpose, workspaceId.
+ */
+export function buildProtectedStoreKeyAad(workspaceId: string): Buffer {
+  const obj = { purpose: 'protected-store-key', workspaceId };
+  return Buffer.from(canonicalJson(obj), 'utf8');
+}
+
+/**
  * Deterministic JSON with sorted keys and no whitespace.
  * Primitive values only (no arrays of objects etc.) — sufficient for our AAD needs.
  * Exported for use by `workspace/identity.ts`.

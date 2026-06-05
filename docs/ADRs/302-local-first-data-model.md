@@ -73,6 +73,23 @@ The exact wrapper choice (`better-sqlite3-multi-cipher`, a SQLCipher binding, or
 
 At-rest encryption protects the database file. ADR-303 covers per-record envelope encryption (DEK wrapped by KEK) used for cloud-bound ciphertext. The two are layered: every Clinical row is wrapped in its envelope **and** sits inside the encrypted database file. Operational rows are not envelope-encrypted but still benefit from the at-rest layer.
 
+#### Residency split — the Local Store is two stores (Amended 2026-06-05, O452)
+
+_Amended 2026-06-05 (O452):_ the original "one Local Store" model held only Operational data (prefs). Once Clinical PHI landed in the same file (ADR-505/506 patient tables), the store's at-rest posture became insufficient: its key (`local-store-db-key`) is `raw` in the OS keychain (deliberate per ADR-307 O307f, so Main can open prefs **before** unlock), and the file is **never closed on lock** (Operational data must stay readable while locked). Net result before this amendment: PHI-at-rest was protected by the OS keyring **only** — the passphrase/KEK added zero at-rest protection for PHI, and locking the app did not gate it.
+
+The Local Store is therefore split by **residency class**, mechanically realised as two physical SQLite databases per workspace:
+
+| Residency | Holds | Key | Open while locked? |
+|-----------|-------|-----|--------------------|
+| **`operational`** (default) | Operational data (prefs, workspace settings, the audit ledger) | `local-store-db-key`, `raw` in keychain (O307f unchanged) | Yes — bootstrap + audit need it |
+| **`protected`** | Clinical PHI | random per-workspace key, **KEK-wrapped** (ADR-307) | **No** — opened on unlock, closed on relock/auto-lock |
+
+Mapping to the two data classes is fixed: **Clinical → `protected`**, **Operational → `operational`**. The `protected` store is opened only while the workspace is unlocked (its key is unwrappable only with the in-memory KEK), so locking the app genuinely gates PHI at rest, and same-user code reading a locked/cold workspace cannot decrypt PHI.
+
+**Base/domain boundary (ADR-106).** The two-store mechanism and the residency classes are **base** — base provides a generic "KEK-gated protected store" with no knowledge of *what* a domain keeps there. The decision that a particular table holds PHI and therefore needs `protected` residency is a **domain** declaration: a bundle's manifest tags its owned tables `residency: 'protected'`. Base never names "PHI". A domain with no such need declares nothing and gets only the `operational` store; the `protected` store and its KEK-wrapped key are **provisioned lazily**, only when at least one active migration set declares `protected` residency.
+
+**Audit ledger stays `operational`.** The `audit_log` table remains in the `operational` store so it is readable and appendable while locked, and so a PHI write (which emits an audit entry) does not require the audit ledger to be in the locked store. This holds the existing invariant that **audit metadata is PHI-free** (record identifiers are opaque UUIDs; event/detail fields carry no clinical content — see ADR-502 / §Audit classification). A bundle must not place PHI in an audit `detail` field.
+
 ### Renderer view
 
 The Renderer does not see store boundaries. It binds capabilities; capabilities resolve to Local Store reads (always) and writes (always; sync happens behind the scenes). The Renderer is ignorant of the Cloud Backend's existence (ADR-103).
@@ -121,3 +138,4 @@ Audit records — who accessed what PHI, when — may themselves carry sensitive
 - **O23** — Operational sync conflict-resolution mechanism (CRDT, OT, snapshotted last-write-wins, custom). Trade-offs depend on collaboration semantics needed for clinic-level features.
 - **O24** — PHI export/import flow shape (ADR-301's "dedicated document sharing flow"). May be absorbed into ADR-303's envelope mechanics or live as a separate flow.
 - **O25** — Operational side-door enforcement policy. Depends on user terms-of-service and consent framing. Re-open when those decisions land.
+- **O452** — PHI-at-rest residency split (this amendment). Core mechanism (`protected` store + KEK-wrapped key + close-on-lock) lands as slice O452-A; dev-tooling inspection of the `protected` store (O452-B), KEK-rotation re-wrap of its key (O26), prod migration of existing PHI out of the `operational` DB, and per-table PHI granularity are deferred. Key hierarchy + storage layout for the protected-store key live in ADR-307.

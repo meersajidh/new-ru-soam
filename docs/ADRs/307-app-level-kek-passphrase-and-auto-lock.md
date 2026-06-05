@@ -155,7 +155,7 @@ When-clauses on PHI-bearing UI gate on `!workspace.kekLocked && workspace.setupC
 | Platform insider | Same | None within model |
 | Disk seizure (powered-off device) | SQLCipher whole-DB encryption (key in OS keychain, unreachable when device off or different OS user) + envelope layer | None within model |
 | Walk-up attacker on unlocked OS session | Passphrase gate + inactivity auto-lock + lock-on-suspend + lock-on-screen-lock | Window left in `unlocked` state during the configured idle window |
-| Malware under same OS user | Partial: raw keychain entries (e.g. `local-store-db-key`) are readable; KEK memory-only and absent when locked. Other keychain credentials follow the per-cred-type policy below | If app is running and unlocked, plaintext is reachable. Out of scope for MVP |
+| Malware under same OS user | Partial: raw keychain entries (e.g. `local-store-db-key`) are readable, but that key now opens only the **`operational`** store (no PHI — O452). PHI lives in the `protected` store, whose key is KEK-wrapped and unwrappable only while unlocked; on a locked/cold workspace the PHI store is closed and undecryptable. KEK memory-only and absent when locked | If app is running and **unlocked**, PHI plaintext is reachable (the unlocked window). Out of scope for MVP |
 | Walk-up attacker uses unlocked app to act through non-PHI keychain credentials (cloud session, KMS, third-party API key) | Per-cred-type policy: high-walk-up-impact credentials are **KEK-wrapped** in the keychain (see §Keychain credential walk-up policy below). Walk-up on a locked workspace = unusable cred | Walk-up during the unlocked window remains exposed (same as PHI) |
 | Forgotten passphrase | Recovery-code unwrap → forced passphrase reset | None within model |
 | Lost device, has recovery code | Recovery-code path on new device | None within model |
@@ -213,6 +213,33 @@ $userData/
 - `meta.json` is pre-unlock readable (non-PHI; populates the picker UI in Phase 9c).
 - `identity.envelope` is post-unlock only; the email is operational data per ADR-501 but accumulated emails on a shared device = informational disclosure → keep behind the KEK.
 - Credential store keys are now workspaceId-namespaced. Each workspace has its own `local-store-db-key`, ensuring per-workspace SQLCipher isolation in Phase 10.
+
+#### Protected-store key in the hierarchy (Amended 2026-06-05, O452)
+
+_Amended 2026-06-05 (O452):_ ADR-302 splits the Local Store into an `operational` database (key `local-store-db-key`, `raw` — see §"Keychain credential walk-up policy") and a **`protected` database** that holds Clinical PHI and is opened only while the workspace is unlocked. The `protected` store's key joins the KEK hierarchy:
+
+- **Material:** a random 256-bit key, generated once per workspace, used as the whole-DB cipher key for `protected-store.db`.
+- **At rest:** **KEK-wrapped** with the frozen envelope shape (AES-GCM-KW, §"Algorithms"), AAD bound to `{ purpose: 'protected-store-key', workspaceId }`. The wrapped key is written to a per-workspace file `protected-store.key.json`. It is **never** stored in the keychain (raw or otherwise) and never written plaintext.
+- **Why a dedicated file, not `lock.json`:** `lock.json` is owned by the lock/KEK subsystem (this ADR). The protected store is a separate base subsystem (ADR-302) that merely *consumes* the in-memory KEK to wrap/unwrap its own key. Keeping the wrapped key in its own artifact preserves that subsystem boundary and lets the protected store be provisioned lazily (the file exists only for workspaces whose active bundles declare `protected`-residency tables).
+- **Lifecycle:**
+  - *Setup* (`setupAcknowledge`, KEK first created): if a `protected`-residency table is registered, generate the protected-store key, wrap under KEK, write `protected-store.key.json`.
+  - *Unlock / recovery-unlock* (KEK in memory): unwrap → open `protected-store.db` (running its migrations on first open) → key buffer zeroed after the cipher pragma is applied.
+  - *Relock / auto-lock / sign-out / set-active* (KEK zeroed): close `protected-store.db` and drop its handle.
+  - *Boot:* the active workspace is locked, so `protected-store.db` is **not** opened until first unlock.
+- **Passphrase change does NOT re-wrap the protected-store key.** The KEK is stable across passphrase change (the passphrase wraps the KEK, not the data), so `changePassphrase` and recovery-unlock both yield the same KEK and unwrap the same protected-store key. Only **KEK rotation (O26)** re-wraps it — added to the rotation procedure's set of `kek-wrapped` artifacts.
+
+Storage layout gains one per-workspace file:
+
+```
+$userData/workspaces/<uuid>/
+├── lock.json
+├── lock-attempts.json
+├── meta.json
+├── identity.envelope
+├── protected-store.key.json     KEK-wrapped 256-bit cipher key for protected-store.db (O452; present only when a protected-residency table is declared)
+├── local-store.db               operational store (prefs, settings, audit_log) — raw-keyed, open while locked
+└── protected-store.db           protected store (Clinical PHI) — KEK-wrapped key, closed on lock
+```
 
 ### Dev-workspace auto-provision
 
@@ -276,6 +303,7 @@ This is not a threat-model relaxation — it is a developer-iteration affordance
 - **O307c** — Passphrase strength policy hardening. zxcvbn `score < 3` block ships in Phase 9. Revisit after first clinical user feedback — may tighten to `< 4`, may add length-vs-score blended scoring, may add common-clinical-password blacklist.
 - **O307d** — Hardware-bound passphrase derivation (Secure Enclave on macOS, TPM-assisted Argon2id on Windows, hardware-keyed unlock on Linux where available). Optional later hardening. Cross-references ADR-304 O31. Biometric-shortcut UX (TouchID / Hello) lives here too.
 - **O307e** — Audit-event catalogue for lock / unlock / setup / passphrase-change / recovery-code-use. Emit-points named in this ADR; ledger wiring lives with ADR-502 in Phase 10.
-- **O307f** — Per-keychain-credential walk-up policy (`raw` vs `kek-wrapped`). Default for any new high-walk-up-impact credential is `kek-wrapped` per §"Keychain credential walk-up policy". Per-cred decisions recorded as the credential types land: `cloud-session-token` (Phase 11), `kms-credentials` (Phase 9.5+ per O307a), `third-party-api-key` (post-Phase-13). `local-store-db-key` is `raw` and stays raw (bootstrap chicken-and-egg). KEK rotation procedure (O26) re-wraps every `kek-wrapped` entry.
+- **O307f** — Per-keychain-credential walk-up policy (`raw` vs `kek-wrapped`). Default for any new high-walk-up-impact credential is `kek-wrapped` per §"Keychain credential walk-up policy". Per-cred decisions recorded as the credential types land: `cloud-session-token` (Phase 11), `kms-credentials` (Phase 9.5+ per O307a), `third-party-api-key` (post-Phase-13). `local-store-db-key` is `raw` and stays raw (bootstrap chicken-and-egg) — but as of O452 it keys **only the `operational` store** (prefs/settings/audit, no PHI); a walk-up reader of it can no longer reach PHI. The PHI `protected` store's cipher key is **KEK-wrapped** in `protected-store.key.json` (not the keychain — see §"Protected-store key in the hierarchy"). KEK rotation procedure (O26) re-wraps every `kek-wrapped` entry **and** the protected-store key.
+- **O452** — PHI-at-rest split: `protected` store + KEK-wrapped per-workspace cipher key, opened on unlock and closed on relock. Key hierarchy + storage layout amended above (§"Protected-store key in the hierarchy"); data-class mapping and the base/domain residency boundary live in ADR-302 (this ADR owns the key, ADR-302 owns the store). Slice O452-A = core mechanism; deferred: O452-B dev-tooling inspection of the protected store (needs passphrase→KEK→unwrap), O26 rotation re-wrap, prod PHI migration out of the operational DB.
 - **O307g** — Real Google OAuth integration. Phase 9 ships a mocked dialog returning `{ email, googleId: "mock-<uuid>" }`. Real OAuth flow (PKCE, refresh tokens, session-token storage per `cloud-session-token` credential type) lands alongside cloud sync transport in Phase 11/12.
 - **O307h** — Nickname global-uniqueness check. Cloud-side; Phase 9 ships length-only validation (4-64 chars). Server-side check lands when the cloud account record is real (Phase 11+). Migration plan for pre-existing duplicate nicknames captured at landing: server rejects on first sync attempt → user prompted to rename.

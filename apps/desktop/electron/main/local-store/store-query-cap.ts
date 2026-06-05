@@ -31,12 +31,18 @@ import { CapErr } from '../../shared/ipc-protocol.js';
 import { localStoreManager } from './index.js';
 import { auditService } from '../audit/index.js';
 import type { AuditTag } from './store-write-cap.js';
+import type { StoreResidency } from './migrations.js';
 
 // ── Query template registry ───────────────────────────────────────────────────
 
 export interface QueryTemplate {
   readonly id: string;
   readonly sql: string;
+  /**
+   * Which physical store this template reads from (O452 / ADR-302 §"Residency split").
+   * Defaults to `'operational'` when absent.
+   */
+  readonly residency?: StoreResidency;
 }
 
 const _templates = new Map<string, QueryTemplate>();
@@ -90,15 +96,28 @@ function validationErr(msg: string): Error {
   return Object.assign(new Error(msg), { code: CapErr.HandlerThrew });
 }
 
-// ── Store / DB helpers (mirror store-write-cap) ───────────────────────────────
+// ── Store / DB helpers ────────────────────────────────────────────────────────
 
-function requireStore() {
-  const store = localStoreManager.current();
-  if (!store) throw notFound('store.query: no active workspace');
+/**
+ * Resolve the correct store for a template based on its declared residency.
+ * Throws `cap.not_found` if the chosen store is null/closed (defensive).
+ * (O452 / ADR-302 §"Residency split")
+ */
+function requireStoreForTemplate(residency: StoreResidency = 'operational') {
+  const store = residency === 'protected'
+    ? localStoreManager.protectedCurrent()
+    : localStoreManager.current();
+  if (!store) {
+    throw notFound(
+      residency === 'protected'
+        ? 'store.query: protected store not open (workspace locked?)'
+        : 'store.query: no active workspace',
+    );
+  }
   return store;
 }
 
-function requireDb(store: ReturnType<typeof requireStore>) {
+function requireDb(store: ReturnType<typeof requireStoreForTemplate>) {
   const db = store.rawDb();
   if (!db) throw notFound('store.query: store not open');
   return db;
@@ -164,7 +183,7 @@ export function registerStoreQueryCapability(): void {
             throw notFound(`store.query: unknown template: ${templateId}`);
           }
 
-          const store = requireStore();
+          const store = requireStoreForTemplate(template.residency);
           const db = requireDb(store);
           const workspaceId = store.workspaceId()!;
 
