@@ -7,6 +7,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-06-05
+
+### Added
+
+- Practice (early preview): a client roster and per-client record overview. Marked as work-in-progress; data is local-only.
+
+### Changed
+
+- Internal: records now persist through an ownership-scoped local store with PHI held in a separate encrypted database.
+
 ## [0.1.5] - 2026-05-26
 
 ### Added
