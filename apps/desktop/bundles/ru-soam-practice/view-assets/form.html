@@ -344,6 +344,29 @@
               </div>
             </div>
           </div>
+
+          <div class="divider"></div>
+
+          <div class="field-row">
+            <div class="field-group full">
+              <label for="f-language">Preferred language</label>
+              <input type="text" id="f-language" name="preferredLanguage" placeholder="e.g. Marathi, Hindi, English" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group full">
+              <label for="f-diagnosis">Diagnosis / problem list</label>
+              <input type="text" id="f-diagnosis" name="diagnosis" placeholder="e.g. F33.2 Recurrent depressive disorder, severe" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group full">
+              <label for="f-meds">Medication awareness</label>
+              <input type="text" id="f-meds" name="medicationAwareness" placeholder="e.g. Sertraline 100 mg OD" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
         </form>
 
         <div id="form-actions">
@@ -364,6 +387,7 @@
         var _isCreate = !_clientId || _clientId === 'new';
         var _proxy = null;       // record.patient (command) proxy
         var _queryProxy = null;  // record.patient.query proxy (edit mode only)
+        var _profile = null;     // loaded profile (edit mode)
         var _saving = false;
         var _statusTimer = null;
 
@@ -382,6 +406,9 @@
         var elEmail      = document.getElementById('f-email');
         var elDob        = document.getElementById('f-dob');
         var elStatus     = document.getElementById('f-status');
+        var elLanguage   = document.getElementById('f-language');
+        var elDiagnosis  = document.getElementById('f-diagnosis');
+        var elMeds       = document.getElementById('f-meds');
         var elSaveStatus = document.getElementById('save-status');
         var elBtnSave    = document.getElementById('btn-save');
         var elBtnLabel   = document.getElementById('btn-save-label');
@@ -450,6 +477,12 @@
           elBtnLabel.textContent = 'Save Changes';
         }
 
+        function populateProfileFields(profile) {
+          elLanguage.value  = (profile && profile.preferredLanguage)  || '';
+          elDiagnosis.value = (profile && profile.diagnosis)          || '';
+          elMeds.value      = (profile && profile.medicationAwareness)|| '';
+        }
+
         function onFormInput() {
           if (_isCreate) {
             var g = elGiven.value.trim();
@@ -478,6 +511,10 @@
           clearSaveStatus();
           setSaving(true);
 
+          var preferredLanguage   = elLanguage.value.trim();
+          var diagnosis           = elDiagnosis.value.trim();
+          var medicationAwareness = elMeds.value.trim();
+
           if (_isCreate) {
             var input = { givenName: givenName, status: status };
             if (familyName)   input.familyName   = familyName;
@@ -485,9 +522,21 @@
             if (contactEmail) input.contactEmail = contactEmail;
             if (dob)          input.dob          = dob;
 
-            _proxy.call('create', input).then(function () {
+            _proxy.call('create', input).then(function (newRec) {
+              var newId = newRec && newRec.id;
+              // Write profile fields if any were entered.
+              var profilePatch = {};
+              if (preferredLanguage)   profilePatch.preferredLanguage   = preferredLanguage;
+              if (diagnosis)           profilePatch.diagnosis           = diagnosis;
+              if (medicationAwareness) profilePatch.medicationAwareness = medicationAwareness;
+              var hasProfile = Object.keys(profilePatch).length > 0;
+              if (newId && hasProfile) {
+                return _proxy.call('updateProfile', newId, profilePatch).then(function () {
+                  setSaving(false);
+                  window.soamView.requestClose();
+                });
+              }
               setSaving(false);
-              // Close this tab — roster will refresh via store.changed.
               window.soamView.requestClose();
             }).catch(function (err) {
               setSaving(false);
@@ -508,9 +557,29 @@
               status:       status
             };
 
-            _proxy.call('update', _clientId, patch).then(function (rec) {
+            // Send the (possibly empty) trimmed value, NOT `|| null`, for changed
+            // fields — updateProfile's update branch skips null but writes ''
+            // (COALESCE-merge), so clearing a field must send '' to actually clear.
+            var profilePatch2 = {};
+            if (preferredLanguage   !== ((_profile && _profile.preferredLanguage)   || '')) {
+              profilePatch2.preferredLanguage = preferredLanguage;
+            }
+            if (diagnosis           !== ((_profile && _profile.diagnosis)           || '')) {
+              profilePatch2.diagnosis = diagnosis;
+            }
+            if (medicationAwareness !== ((_profile && _profile.medicationAwareness) || '')) {
+              profilePatch2.medicationAwareness = medicationAwareness;
+            }
+
+            var updateDemo = _proxy.call('update', _clientId, patch);
+            var updateProf = Object.keys(profilePatch2).length > 0
+              ? _proxy.call('updateProfile', _clientId, profilePatch2)
+              : Promise.resolve(null);
+
+            Promise.all([updateDemo, updateProf]).then(function (results) {
               setSaving(false);
-              if (rec) { populateForm(rec); }
+              if (results[0]) { populateForm(results[0]); }
+              if (results[1]) { _profile = results[1]; populateProfileFields(_profile); }
               showSaveStatus('Saved.', 'ok');
             }).catch(function (err) {
               setSaving(false);
@@ -575,13 +644,20 @@
               Promise.all([bindCmd, bindQuery]).then(function (proxies) {
                 _proxy      = proxies[0];
                 _queryProxy = proxies[1];
-                return _queryProxy.call('get', _clientId);
-              }).then(function (rec) {
+                return Promise.all([
+                  _queryProxy.call('get', _clientId),
+                  _queryProxy.call('getProfile', _clientId),
+                ]);
+              }).then(function (results) {
+                var rec     = results[0];
+                var profile = results[1];
                 if (!rec) {
                   elNotFound.classList.add('visible');
                   return;
                 }
+                _profile = profile;
                 populateForm(rec);
+                populateProfileFields(_profile);
                 elPage.style.display = '';
               }).catch(function (err) {
                 if (isLockedError(err)) {

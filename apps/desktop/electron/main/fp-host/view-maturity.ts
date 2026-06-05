@@ -127,7 +127,7 @@ export const VIEW_MATURITY_SOURCE = `(function () {
    *
    * -- aspects.html --
    *   section-risk         : hardcoded static risk facts → wip (Risk aspect Phase 4)
-   *   section-profile      : real getProfile with mock fallbacks → wip (profile read, no edit)
+   *   section-profile      : real getProfile + edit via updateProfile → concrete (Phase 1)
    *
    * -- projections.html (Notes view) --
    *   notes-view           : MOCK_NOTES, no real Sessions cap → mock
@@ -151,7 +151,7 @@ export const VIEW_MATURITY_SOURCE = `(function () {
     'lens-attention-panel':'wip',
     /* aspects */
     'section-risk':        'wip',
-    'section-profile':     'wip',
+    'section-profile':     'concrete',
     /* projections */
     'notes-view':          'mock',
   };

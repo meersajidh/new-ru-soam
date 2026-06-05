@@ -690,13 +690,6 @@
           { name: 'Sertraline 100 mg OD', meta: 'External prescriber · Dr. A. Kulkarni (Psychiatrist)' },
           { name: 'Clonazepam 0.25 mg PRN', meta: 'External prescriber · Dr. A. Kulkarni' },
         ],
-        // Profile fallbacks (used when real profile has null fields)
-        fallbackDiagnosis: [
-          { label: 'Recurrent depressive disorder, severe', code: 'F33.2', primary: true },
-          { label: 'Panic disorder', code: 'F41.0', primary: false },
-        ],
-        fallbackLanguage: 'Marathi',
-        fallbackMeds: 'Sertraline 100 mg · Clonazepam PRN',
         // Timeline events
         timeline: [
           { when: 'Thu 04 Jun', iconName: 'calendar-clock', tone: 'accent', title: 'Upcoming — Tele-session 11:00', body: 'Session prep ready.' },
@@ -709,12 +702,13 @@
       };
 
       /* ── State ──────────────────────────────────────────────────── */
-      var _proxy    = null;
-      var _clientId = null;
-      var _record   = null;  // PatientRecord (real)
-      var _profile  = null;  // PatientProfile | null (real)
-      var _density  = 'dense';
-      var _riskOpen = false;
+      var _proxy     = null;
+      var _clientId  = null;
+      var _record    = null;  // PatientRecord (real)
+      var _profile   = null;  // PatientProfile | null (real)
+      var _lifecycle = null;  // PatientLifecycle | null (real)
+      var _density   = 'dense';
+      var _riskOpen  = false;
 
       /* ── Elements ───────────────────────────────────────────────── */
       var elBridgeWait = document.getElementById('bridge-wait');
@@ -851,23 +845,28 @@
       function buildHeader() {
         var rec = _record;
         var profile = _profile;
+        var lifecycle = _lifecycle;
         var age = computeAge(rec.dob);
 
-        // Identity sub-line — age from real dob, rest from mock or profile
-        var lang = (profile && profile.preferredLanguage) ? profile.preferredLanguage : MOCK.fallbackLanguage;
+        // Identity sub-line — real dob + real language or nothing
+        var lang = (profile && profile.preferredLanguage) ? profile.preferredLanguage : null;
         var identityParts = [];
-        if (age !== null) identityParts.push(age + ' · Pune · ' + lang + ' (preferred)');
-        else identityParts.push('Pune · ' + lang + ' (preferred)');
-        var identityLine = identityParts.join(' ');
+        if (age !== null) identityParts.push(String(age));
+        if (lang) identityParts.push(lang + ' (preferred)');
+        var identityLine = identityParts.join(' · ');
 
-        // Diagnosis chips — real profile.diagnosis string parsed, else mock
+        // Diagnosis chips — real profile.diagnosis or none (no mock)
         var diagChips;
         if (profile && profile.diagnosis) {
-          // Simple string — render as single chip
-          diagChips = [{ label: profile.diagnosis, code: '', primary: true }];
+          diagChips = [{ label: profile.diagnosis, primary: true }];
         } else {
-          diagChips = MOCK.fallbackDiagnosis;
+          diagChips = [];
         }
+
+        // Lifecycle stage chip — real or none
+        var stageLabel = lifecycle && lifecycle.stage
+          ? lifecycle.stage.replace(/_/g, ' ')
+          : null;
 
         var header = el('header', 'ov-header');
         header.setAttribute('data-maturity-id', 'overview-header');
@@ -880,15 +879,18 @@
         nameH1.textContent = rec.displayName;
         var subDiv = txt('div', 'ov-id-sub', identityLine);
         var problemsDiv = el('div', 'ov-problems');
+
+        // Stage chip first (if present)
+        if (stageLabel) {
+          var stageChip = txt('span', 'ov-chip', stageLabel);
+          problemsDiv.appendChild(stageChip);
+        }
+        // Diagnosis chips
         diagChips.forEach(function (chip) {
-          var chipEl = el('span', 'ov-chip' + (chip.primary ? ' is-primary' : ''));
-          chipEl.textContent = chip.label;
-          if (chip.code) {
-            var codeEl = txt('span', 'ov-chip-code', ' ' + chip.code);
-            chipEl.appendChild(codeEl);
-          }
+          var chipEl = txt('span', 'ov-chip' + (chip.primary ? ' is-primary' : ''), chip.label);
           problemsDiv.appendChild(chipEl);
         });
+
         idDiv.appendChild(nameH1);
         idDiv.appendChild(subDiv);
         idDiv.appendChild(problemsDiv);
@@ -1087,21 +1089,21 @@
         var circleWrap = buildCircleMini();
         aside.appendChild(circleWrap);
 
-        // Meds / language from real profile or mock
+        // Meds / language from real profile only; omit if absent
         var profile = _profile;
         var medText = profile && profile.medicationAwareness
           ? profile.medicationAwareness
-          : MOCK.fallbackMeds;
+          : null;
         var langText = profile && profile.preferredLanguage
           ? profile.preferredLanguage + ' (preferred)'
-          : MOCK.fallbackLanguage + ' (preferred)';
+          : null;
 
-        var medFact = el('div', 'tl-fact');
-        medFact.innerHTML = icon('pill', 12) + ' ' + medText;
-        var langFact = el('div', 'tl-fact');
-        langFact.innerHTML = icon('languages', 12) + ' ' + langText;
-        aside.appendChild(medFact);
-        aside.appendChild(langFact);
+        var medFact = medText ? el('div', 'tl-fact') : null;
+        if (medFact) medFact.innerHTML = icon('pill', 12) + ' ' + medText;
+        var langFact = langText ? el('div', 'tl-fact') : null;
+        if (langFact) langFact.innerHTML = icon('languages', 12) + ' ' + langText;
+        if (medFact) aside.appendChild(medFact);
+        if (langFact) aside.appendChild(langFact);
 
         wrap.appendChild(aside);
         return wrap;
@@ -1299,9 +1301,11 @@
         Promise.all([
           _proxy.call('get', _clientId),
           _proxy.call('getProfile', _clientId),
+          _proxy.call('getLifecycle', _clientId),
         ]).then(function (results) {
           var rec = results[0];
           var profile = results[1];
+          var lifecycle = results[2];
 
           if (!rec) {
             showError('Client not found: ' + _clientId);
@@ -1309,6 +1313,7 @@
           }
           _record = rec;
           _profile = profile;
+          _lifecycle = lifecycle;
           renderOverview();
         }).catch(function (err) {
           if (isLockedError(err)) {
@@ -1378,7 +1383,7 @@
         });
 
         soamView.events.onStoreChange(function (payload) {
-          if (payload && (payload.table === 'patients' || payload.table === 'patient_profile')) {
+          if (payload && (payload.table === 'patients' || payload.table === 'patient_profile' || payload.table === 'patient_lifecycle')) {
             loadAndRender();
           }
         });

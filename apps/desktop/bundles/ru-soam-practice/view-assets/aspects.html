@@ -255,30 +255,101 @@
         border-color: var(--color-fg-muted);
       }
 
-      /* ── Profile section ────────────────────────────────────────── */
+      /* ── Profile section ────────────────────────────────────────────────────────────────────────────── */
       .kv { display: flex; flex-direction: column; gap: 8px; }
       .kv-row { display: flex; align-items: baseline; gap: 8px; font-size: 11px; }
       .kv-label { color: var(--color-fg-muted); flex: 0 0 90px; font-size: 10.5px; }
       .kv-value { color: var(--color-fg-secondary); flex: 1 1 auto; }
-      .diag-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
-      .diag-row {
-        display: flex;
-        align-items: baseline;
-        gap: 6px;
-        font-size: 11px;
-        color: var(--color-fg-secondary);
+      .kv-value.is-empty { color: var(--color-fg-muted); font-style: italic; }
+      .note-subtle { font-size: 10px; color: var(--color-fg-muted); margin-top: 6px; }
+
+      /* ── Profile edit form ─────────────────────────────────────────────────────────────────── */
+      #profile-edit-form {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--color-border);
       }
-      .diag-code {
-        font-family: var(--font-mono);
-        font-size: 9px;
+      #profile-edit-form.is-open { display: flex; }
+      .pe-field { display: flex; flex-direction: column; gap: 3px; }
+      .pe-label {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
         color: var(--color-fg-muted);
       }
-      .diag-primary { color: var(--color-fg-primary); font-weight: 500; }
-      .med-list { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
-      .med-row { display: flex; flex-direction: column; gap: 1px; }
-      .med-name { font-size: 11px; color: var(--color-fg-secondary); }
-      .med-meta { font-size: 10px; color: var(--color-fg-muted); }
-      .note-subtle { font-size: 10px; color: var(--color-fg-muted); margin-top: 6px; }
+      .pe-input {
+        width: 100%;
+        padding: 5px 8px;
+        font-size: 11px;
+        font-family: var(--font-sans);
+        background: var(--color-surface-base, #111);
+        color: var(--color-fg-primary);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        outline: none;
+        transition: border-color var(--transition);
+      }
+      .pe-input:focus { border-color: var(--color-border-focus); }
+      .pe-actions {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-top: 2px;
+      }
+      .pe-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10.5px;
+        font-weight: 500;
+        font-family: var(--font-sans);
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        background: transparent;
+        color: var(--color-fg-secondary);
+        cursor: pointer;
+        transition: background var(--transition), color var(--transition);
+      }
+      .pe-btn:hover { background: var(--color-surface-active); color: var(--color-fg-primary); }
+      .pe-btn.primary {
+        background: var(--color-accent);
+        color: var(--color-accent-fg, #1c1c1e);
+        border-color: transparent;
+      }
+      .pe-btn.primary:hover { background: var(--color-success); }
+      .pe-btn.primary:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+      .pe-save-msg {
+        font-size: 10px;
+        flex: 1;
+        opacity: 0;
+        transition: opacity var(--transition);
+      }
+      .pe-save-msg.visible { opacity: 1; }
+      .pe-save-msg.ok { color: var(--color-success); }
+      .pe-save-msg.err { color: var(--color-error); }
+
+      /* ── Edit button on section header ───────────────────────────────────────────────── */
+      .section-edit-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: var(--radius-sm);
+        border: none;
+        background: transparent;
+        color: var(--color-fg-muted);
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background var(--transition), color var(--transition);
+      }
+      .section-edit-btn:hover { background: var(--color-surface-active); color: var(--color-fg-secondary); }
+      .section-edit-btn.is-active { color: var(--color-accent); }
     </style>
   </head>
   <body>
@@ -348,17 +419,40 @@
           </div>
         </section>
 
-        <!-- Profile (real data when available, mock otherwise) -->
+        <!-- Profile (real data, editable inline) -->
         <section class="section" id="section-profile" data-maturity-id="section-profile">
           <header class="section-header" id="sh-profile" tabindex="0" role="button" aria-expanded="true">
             <span class="section-caret is-open" data-codicon="chevron-right" data-size="12"></span>
             <span data-codicon="person" data-size="13"></span>
             <span class="section-title">Profile</span>
             <span class="section-source">PRACTICE</span>
+            <button class="section-edit-btn" id="btn-profile-edit" type="button" title="Edit profile" aria-label="Edit profile" tabindex="0">
+              <span data-codicon="edit" data-size="12"></span>
+            </button>
           </header>
           <div class="section-body is-open" id="sb-profile">
             <div class="kv" id="profile-kv">
               <!-- populated by JS -->
+            </div>
+            <!-- Inline edit form (toggled by edit button) -->
+            <div id="profile-edit-form">
+              <div class="pe-field">
+                <label class="pe-label" for="pe-language">Preferred language</label>
+                <input class="pe-input" id="pe-language" type="text" placeholder="e.g. Marathi" autocomplete="off" spellcheck="false" />
+              </div>
+              <div class="pe-field">
+                <label class="pe-label" for="pe-diagnosis">Diagnosis / problem list</label>
+                <input class="pe-input" id="pe-diagnosis" type="text" placeholder="e.g. F33.2 Recurrent depressive disorder" autocomplete="off" spellcheck="false" />
+              </div>
+              <div class="pe-field">
+                <label class="pe-label" for="pe-meds">Medication awareness</label>
+                <input class="pe-input" id="pe-meds" type="text" placeholder="e.g. Sertraline 100 mg OD" autocomplete="off" spellcheck="false" />
+              </div>
+              <div class="pe-actions">
+                <button class="pe-btn primary" id="btn-pe-save" type="button">Save</button>
+                <button class="pe-btn" id="btn-pe-cancel" type="button">Cancel</button>
+                <span class="pe-save-msg" id="pe-save-msg" role="status" aria-live="polite"></span>
+              </div>
             </div>
           </div>
         </section>
@@ -369,24 +463,15 @@
     (function () {
       'use strict';
 
-      /* ── Mock fallbacks ─────────────────────────────────────────── */
-      var MOCK = {
-        diagnosis: [
-          { label: 'Recurrent depressive disorder, severe', code: 'F33.2', primary: true },
-          { label: 'Panic disorder', code: 'F41.0', primary: false },
-        ],
-        language: 'Marathi',
-        meds: [
-          { name: 'Sertraline 100 mg OD', meta: 'External prescriber · Dr. A. Kulkarni (Psychiatrist)' },
-          { name: 'Clonazepam 0.25 mg PRN', meta: 'External prescriber · Dr. A. Kulkarni' },
-        ],
-      };
-
       /* ── State ──────────────────────────────────────────────────── */
-      var _proxy    = null;
-      var _clientId = null;
-      var _record   = null;
-      var _profile  = null;
+      var _queryProxy = null;  // record.patient.query
+      var _cmdProxy   = null;  // record.patient (command)
+      var _clientId   = null;
+      var _record     = null;
+      var _profile    = null;
+      var _editOpen   = false;
+      var _editSaving = false;
+      var _editMsgTimer = null;
 
       /* ── Elements ───────────────────────────────────────────────── */
       var elBridgeWait    = document.getElementById('bridge-wait');
@@ -398,6 +483,14 @@
       var elIdSub         = document.getElementById('id-sub');
       var elRiskAlertBar  = document.getElementById('risk-alert-bar');
       var elProfileKv     = document.getElementById('profile-kv');
+      var elEditForm      = document.getElementById('profile-edit-form');
+      var elEditBtn       = document.getElementById('btn-profile-edit');
+      var elPeLang        = document.getElementById('pe-language');
+      var elPeDiag        = document.getElementById('pe-diagnosis');
+      var elPeMeds        = document.getElementById('pe-meds');
+      var elPeSave        = document.getElementById('btn-pe-save');
+      var elPeCancel      = document.getElementById('btn-pe-cancel');
+      var elPeMsg         = document.getElementById('pe-save-msg');
 
       /* ── Helpers ────────────────────────────────────────────────── */
       function showError(msg) {
@@ -449,7 +542,9 @@
         var header = document.getElementById(headerId);
         var body   = document.getElementById(bodyId);
         if (!header || !body) return;
-        function toggle() {
+        function toggle(e) {
+          // Do not toggle if click was on the edit button.
+          if (elEditBtn && (e.target === elEditBtn || elEditBtn.contains(e.target))) return;
           var open = body.classList.contains('is-open');
           body.classList.toggle('is-open', !open);
           var caret = header.querySelector('.section-caret');
@@ -458,7 +553,7 @@
         }
         header.addEventListener('click', toggle);
         header.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(e); }
         });
       }
 
@@ -477,48 +572,28 @@
         var profile = _profile;
         var frag = document.createDocumentFragment();
 
-        // Language
-        var lang = (profile && profile.preferredLanguage) ? profile.preferredLanguage : MOCK.language;
+        // Language — real or "Not recorded"
+        var lang = (profile && profile.preferredLanguage) ? profile.preferredLanguage + ' (preferred)' : null;
         var langRow = el('div', 'kv-row');
         langRow.appendChild(txt('span', 'kv-label', 'Language'));
-        langRow.appendChild(txt('span', 'kv-value', lang + ' (preferred)'));
+        var langVal = txt('span', lang ? 'kv-value' : 'kv-value is-empty', lang || 'Not recorded');
+        langRow.appendChild(langVal);
         frag.appendChild(langRow);
 
-        // Diagnosis
-        var diagLabel = txt('span', 'kv-label', 'Diagnosis');
+        // Diagnosis — real or "Not recorded"
+        var diagText = (profile && profile.diagnosis) ? profile.diagnosis : null;
         var diagRow = el('div', 'kv-row');
-        diagRow.appendChild(diagLabel);
-        var diagList = el('div', 'diag-list');
-        var diagSrc = (profile && profile.diagnosis)
-          ? [{ label: profile.diagnosis, code: '', primary: true }]
-          : MOCK.diagnosis;
-        diagSrc.forEach(function (d) {
-          var row = el('div', 'diag-row' + (d.primary ? ' diag-primary' : ''));
-          row.appendChild(txt('span', null, d.label));
-          if (d.code) row.appendChild(txt('span', 'diag-code', d.code));
-          diagList.appendChild(row);
-        });
-        diagRow.appendChild(diagList);
+        diagRow.appendChild(txt('span', 'kv-label', 'Diagnosis'));
+        var diagVal = txt('span', diagText ? 'kv-value' : 'kv-value is-empty', diagText || 'Not recorded');
+        diagRow.appendChild(diagVal);
         frag.appendChild(diagRow);
 
-        // Medication awareness
-        var medsLabel = txt('span', 'kv-label', 'Medications');
+        // Medication awareness — real or "Not recorded"
+        var medsText = (profile && profile.medicationAwareness) ? profile.medicationAwareness : null;
         var medsRow = el('div', 'kv-row');
-        medsRow.appendChild(medsLabel);
-        var medsSrc;
-        if (profile && profile.medicationAwareness) {
-          medsSrc = [{ name: profile.medicationAwareness, meta: '' }];
-        } else {
-          medsSrc = MOCK.meds;
-        }
-        var medList = el('div', 'med-list');
-        medsSrc.forEach(function (m) {
-          var row = el('div', 'med-row');
-          row.appendChild(txt('span', 'med-name', m.name));
-          if (m.meta) row.appendChild(txt('span', 'med-meta', m.meta));
-          medList.appendChild(row);
-        });
-        medsRow.appendChild(medList);
+        medsRow.appendChild(txt('span', 'kv-label', 'Medications'));
+        var medsVal = txt('span', medsText ? 'kv-value' : 'kv-value is-empty', medsText || 'Not recorded');
+        medsRow.appendChild(medsVal);
         frag.appendChild(medsRow);
 
         var note = txt('p', 'note-subtle', 'Medication awareness only — not a prescribing workflow.');
@@ -541,12 +616,75 @@
         renderProfile();
       }
 
+      /* ── Inline edit ────────────────────────────────────────────── */
+      function openEdit() {
+        _editOpen = true;
+        elEditBtn.classList.add('is-active');
+        elPeLang.value = (_profile && _profile.preferredLanguage)   || '';
+        elPeDiag.value = (_profile && _profile.diagnosis)           || '';
+        elPeMeds.value = (_profile && _profile.medicationAwareness) || '';
+        elEditForm.classList.add('is-open');
+        elPeLang.focus();
+      }
+
+      function closeEdit() {
+        _editOpen = false;
+        elEditBtn.classList.remove('is-active');
+        elEditForm.classList.remove('is-open');
+        clearTimeout(_editMsgTimer);
+        elPeMsg.className = 'pe-save-msg';
+        elPeMsg.textContent = '';
+      }
+
+      function showEditMsg(msg, kind) {
+        clearTimeout(_editMsgTimer);
+        elPeMsg.textContent = msg;
+        elPeMsg.className = 'pe-save-msg visible ' + (kind || '');
+        if (kind === 'ok') {
+          _editMsgTimer = setTimeout(function () {
+            closeEdit();
+          }, 1200);
+        }
+      }
+
+      function onEditSave() {
+        if (_editSaving || !_cmdProxy || !_clientId) return;
+        var lang  = elPeLang.value.trim();
+        var diag  = elPeDiag.value.trim();
+        var meds  = elPeMeds.value.trim();
+        // Send empty string (not null) for blanked fields so the upsert WRITES
+        // the clear — updateProfile's update branch skips null (COALESCE-merge)
+        // but writes '' (non-null), so a cleared field actually clears.
+        var patch = {
+          preferredLanguage:   lang,
+          diagnosis:           diag,
+          medicationAwareness: meds,
+        };
+        _editSaving = true;
+        elPeSave.disabled = true;
+        _cmdProxy.call('updateProfile', _clientId, patch).then(function (updated) {
+          _editSaving = false;
+          elPeSave.disabled = false;
+          _profile = updated;
+          renderProfile();
+          showEditMsg('Saved.', 'ok');
+        }).catch(function (err) {
+          _editSaving = false;
+          elPeSave.disabled = false;
+          if (isLockedError(err)) {
+            showEditMsg('Workspace locked.', 'err');
+          } else {
+            showEditMsg('Save failed: ' + (err && err.message), 'err');
+          }
+        });
+      }
+
       /* ── Load data ──────────────────────────────────────────────── */
       function loadAndRender() {
-        if (!_proxy || !_clientId) return;
+        if (!_queryProxy || !_clientId) return;
         Promise.all([
-          _proxy.call('get', _clientId),
-          _proxy.call('getProfile', _clientId),
+          _queryProxy.call('get', _clientId),
+          _queryProxy.call('getProfile', _clientId),
         ]).then(function (results) {
           var rec     = results[0];
           var profile = results[1];
@@ -566,12 +704,17 @@
       // Shared bridge ref for context handler.
       var _soamView = null;
 
-      function ensureProxyAndRender() {
+      function ensureProxiesAndRender() {
         if (!_clientId || _clientId === 'new') return;
-        if (_proxy) { loadAndRender(); return; }
+        if (_queryProxy && _cmdProxy) { loadAndRender(); return; }
         if (!_soamView) return;
-        _soamView.bindQuery('record.patient.query', '1.0').then(function (proxy) {
-          _proxy = proxy;
+        var bindQ = _queryProxy ? Promise.resolve(_queryProxy)
+          : _soamView.bindQuery('record.patient.query', '1.0');
+        var bindC = _cmdProxy ? Promise.resolve(_cmdProxy)
+          : _soamView.bindCommand('record.patient', '1.0');
+        Promise.all([bindQ, bindC]).then(function (proxies) {
+          _queryProxy = proxies[0];
+          _cmdProxy   = proxies[1];
           loadAndRender();
         }).catch(function (err) {
           if (isLockedError(err)) {
@@ -598,7 +741,8 @@
           if (!newId) { _clientId = null; return; }
           if (newId !== _clientId) {
             _clientId = newId;
-            ensureProxyAndRender();
+            if (_editOpen) closeEdit();
+            ensureProxiesAndRender();
           }
         }
       });
@@ -621,11 +765,19 @@
         bindToggle('sh-risk',    'sb-risk');
         bindToggle('sh-profile', 'sb-profile');
 
+        // Edit button — stop propagation so section-header toggle doesn't fire.
+        elEditBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (_editOpen) { closeEdit(); } else { openEdit(); }
+        });
+        elPeSave.addEventListener('click', onEditSave);
+        elPeCancel.addEventListener('click', function () { closeEdit(); });
+
         // Do NOT read id from location.search — id arrives via context/activate message.
 
         soamView.events.onActivate(function () {
-          // If _clientId already set by context handler, ensure proxy + render.
-          ensureProxyAndRender();
+          // If _clientId already set by context handler, ensure proxies + render.
+          ensureProxiesAndRender();
         });
 
         soamView.events.onStoreChange(function (payload) {
