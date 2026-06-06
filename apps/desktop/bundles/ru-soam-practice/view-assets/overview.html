@@ -703,15 +703,17 @@
       };
 
       /* ── State ──────────────────────────────────────────────────── */
-      var _proxy     = null;
-      var _clientId  = null;
-      var _record    = null;  // PatientRecord (real)
-      var _profile   = null;  // PatientProfile | null (real)
-      var _lifecycle = null;  // PatientLifecycle | null (real)
-      var _circle    = null;  // PatientCircleMember[] | null (real)
-      var _consent   = null;  // PatientConsentState | null (real)
-      var _density   = 'dense';
-      var _riskOpen  = false;
+      var _proxy      = null;
+      var _clientId   = null;
+      var _record     = null;  // PatientRecord (real)
+      var _profile    = null;  // PatientProfile | null (real)
+      var _lifecycle  = null;  // PatientLifecycle | null (real)
+      var _circle     = null;  // PatientCircleMember[] | null (real)
+      var _consent    = null;  // PatientConsentState | null (real)
+      var _riskEvents = null;  // PatientRiskEvent[] | null (real, P4)
+      var _safetyPlan = null;  // PatientSafetyPlan | null (real, P4)
+      var _density    = 'dense';
+      var _riskOpen   = false;
 
       /* ── Elements ───────────────────────────────────────────────── */
       var elBridgeWait = document.getElementById('bridge-wait');
@@ -768,9 +770,70 @@
         return e;
       }
 
-      /* ── Risk banner ────────────────────────────────────────────── */
+      /* ── Risk banner helpers ────────────────────────────────────── */
+      var RISK_SEV_CONCERN = new Set(['elevated', 'critical']);
+
+      var CAPACITY_LABELS_OV = {
+        'intact':     'Capacity intact',
+        'diminished': 'Capacity diminished',
+        'lacks':      'Lacks capacity',
+        'unassessed': 'Capacity unassessed',
+      };
+
+      function relDateOv(ts) {
+        if (!ts) return '';
+        var d = new Date(ts);
+        var now = new Date();
+        var days = Math.floor((now - d) / 86400000);
+        if (days === 0) return 'today';
+        if (days === 1) return 'yesterday';
+        if (days < 7)  return days + 'd ago';
+        if (days < 31) return Math.floor(days / 7) + 'w ago';
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      }
+
+      function getRiskActiveConcern() {
+        if (_consent && _consent.confidentialityExceptionActive) return 's23';
+        if (_safetyPlan && _safetyPlan.status === 'active') return 'plan';
+        if (_riskEvents && _riskEvents.length > 0) {
+          if (_riskEvents[0].severity && RISK_SEV_CONCERN.has(_riskEvents[0].severity)) return 'event';
+        }
+        return null;
+      }
+
+      /* ── Risk banner (real, conditional) ───────────────────────── */
       function buildRiskBanner() {
-        var r = MOCK.risk;
+        var concern = getRiskActiveConcern();
+        if (!concern) return null;  // No active concern — omit banner.
+
+        var latestEvent = (_riskEvents && _riskEvents.length > 0) ? _riskEvents[0] : null;
+        var s23Active   = _consent && _consent.confidentialityExceptionActive;
+        var planActive  = _safetyPlan && _safetyPlan.status === 'active';
+
+        // Headline.
+        var headline;
+        if (s23Active) {
+          headline = 'MHA §23 confidentiality exception is active';
+        } else if (planActive && latestEvent) {
+          headline = (latestEvent.summary && latestEvent.summary.indexOf('|') === -1)
+            ? latestEvent.summary
+            : 'Safety plan active — risk event noted';
+        } else if (latestEvent) {
+          headline = latestEvent.summary || ('Risk event: ' + latestEvent.kind);
+        } else {
+          headline = 'Safety plan active';
+        }
+
+        // Meta line.
+        var capLabel = (_consent && _consent.capacityStatus)
+          ? (CAPACITY_LABELS_OV[_consent.capacityStatus] || _consent.capacityStatus)
+          : 'Capacity unassessed';
+        var s23Label = s23Active ? 'MHA §23 INVOKED' : 'MHA §23 not invoked';
+        var metaParts = [];
+        if (latestEvent) metaParts.push('Noted ' + relDateOv(latestEvent.occurredAt));
+        metaParts.push(capLabel);
+        metaParts.push(s23Label);
+
         var wrap = el('div', 'risk-banner');
         wrap.setAttribute('data-maturity-id', 'risk-banner');
 
@@ -780,11 +843,10 @@
         bar.appendChild(ico);
 
         var textDiv = el('div', 'risk-banner-text');
-        var headline = txt('span', 'risk-banner-headline', r.headline);
-        var meta = txt('span', 'risk-banner-meta',
-          'Noted ' + r.noted + ' · ' + r.capacity + ' · ' + r.s23);
-        textDiv.appendChild(headline);
-        textDiv.appendChild(meta);
+        var headlineEl = txt('span', 'risk-banner-headline', headline);
+        var metaEl = txt('span', 'risk-banner-meta', metaParts.join(' · '));
+        textDiv.appendChild(headlineEl);
+        textDiv.appendChild(metaEl);
         bar.appendChild(textDiv);
 
         var cmds = el('div', 'risk-banner-cmds');
@@ -792,8 +854,18 @@
         var safetyBtn = el('button', 'cmd-btn ghost');
         safetyBtn.innerHTML = icon('shield', 12) + ' Safety plan';
         safetyBtn.type = 'button';
+        safetyBtn.addEventListener('click', function () {
+          if (_clientId && window.soamView) {
+            window.soamView.openInEditor('safety-plan', {
+              query: 'id=' + encodeURIComponent(_clientId),
+              title: 'Safety Plan',
+              entityId: _clientId,
+            });
+          }
+        });
         cmds.appendChild(safetyBtn);
 
+        // Details expand button.
         var detailBtn = el('button', 'cmd-btn ghost');
         detailBtn.innerHTML = icon('chevron-right', 12) + ' <span class="aspect-caret" id="risk-caret"></span><span id="risk-detail-label">Details</span>';
         detailBtn.type = 'button';
@@ -802,16 +874,17 @@
         bar.appendChild(cmds);
         wrap.appendChild(bar);
 
-        // Detail panel
+        // Expand detail showing up to 5 recent risk events.
         var detail = el('div', 'risk-banner-detail');
         detail.style.display = 'none';
         var itemsList = el('ul', 'risk-items');
-        r.items.forEach(function (item) {
+        var eventsToShow = (_riskEvents || []).slice(0, 5);
+        eventsToShow.forEach(function (ev) {
           var li = el('li', 'risk-item');
           var dot = el('span', 'risk-item-dot');
-          var labelSpan = el('span', null, null);
-          labelSpan.textContent = item.label;
-          var whenSpan = el('span', 'risk-item-when', item.when);
+          var labelSpan = document.createElement('span');
+          labelSpan.textContent = ev.summary || ev.kind;
+          var whenSpan = txt('span', 'risk-item-when', relDateOv(ev.occurredAt));
           li.appendChild(dot);
           li.appendChild(labelSpan);
           li.appendChild(whenSpan);
@@ -820,26 +893,19 @@
         detail.appendChild(itemsList);
         wrap.appendChild(detail);
 
-        // Toggle
-        detailBtn.addEventListener('click', function () {
+        // Toggle.
+        function toggleDetail(e) {
+          if (safetyBtn.contains(e.target)) return;
           _riskOpen = !_riskOpen;
           detail.style.display = _riskOpen ? '' : 'none';
           var caret = document.getElementById('risk-caret');
           var label = document.getElementById('risk-detail-label');
           if (caret) caret.className = 'aspect-caret' + (_riskOpen ? ' is-open' : '');
           if (label) label.textContent = _riskOpen ? 'Less' : 'Details';
-        });
-        bar.addEventListener('click', function (e) {
-          if (e.target === detailBtn || detailBtn.contains(e.target)) return;
-          if (e.target === safetyBtn || safetyBtn.contains(e.target)) return;
-          _riskOpen = !_riskOpen;
-          detail.style.display = _riskOpen ? '' : 'none';
-          var caret = document.getElementById('risk-caret');
-          var label = document.getElementById('risk-detail-label');
-          if (caret) caret.className = 'aspect-caret' + (_riskOpen ? ' is-open' : '');
-          if (label) label.textContent = _riskOpen ? 'Less' : 'Details';
-        });
+        }
+        detailBtn.addEventListener('click', toggleDetail);
         bar.style.cursor = 'pointer';
+        bar.addEventListener('click', toggleDetail);
 
         return wrap;
       }
@@ -1245,8 +1311,10 @@
 
         var inner = document.createDocumentFragment();
 
-        // Risk banner (always shown, treatment='both')
-        inner.appendChild(buildRiskBanner());
+        // Risk banner — real conditional (only when active concern exists).
+        _riskOpen = false;
+        var banner = buildRiskBanner();
+        if (banner) inner.appendChild(banner);
 
         // Header (real identity data)
         inner.appendChild(buildHeader());
@@ -1356,22 +1424,28 @@
           _proxy.call('getLifecycle', _clientId),
           _proxy.call('getCircle', _clientId),
           _proxy.call('getConsentState', _clientId),
+          _proxy.call('listRiskEvents', _clientId),
+          _proxy.call('getSafetyPlan', _clientId),
         ]).then(function (results) {
-          var rec       = results[0];
-          var profile   = results[1];
-          var lifecycle = results[2];
-          var circle    = results[3];
-          var consent   = results[4];
+          var rec        = results[0];
+          var profile    = results[1];
+          var lifecycle  = results[2];
+          var circle     = results[3];
+          var consent    = results[4];
+          var riskEvents = results[5];
+          var safetyPlan = results[6];
 
           if (!rec) {
             showError('Client not found: ' + _clientId);
             return;
           }
-          _record    = rec;
-          _profile   = profile;
-          _lifecycle = lifecycle;
-          _circle    = circle;
-          _consent   = consent;
+          _record     = rec;
+          _profile    = profile;
+          _lifecycle  = lifecycle;
+          _circle     = circle;
+          _consent    = consent;
+          _riskEvents = riskEvents;
+          _safetyPlan = safetyPlan;
           renderOverview();
         }).catch(function (err) {
           if (isLockedError(err)) {
@@ -1429,6 +1503,7 @@
         elBridgeWait.style.display = 'none';
         elRoot.style.display = '';
         _soamView = soamView;
+        window.soamView = soamView;  // expose for buildRiskBanner safety-plan button
 
         initDensitySwitcher();
 
@@ -1446,7 +1521,9 @@
             payload.table === 'patient_profile' ||
             payload.table === 'patient_lifecycle' ||
             payload.table === 'patient_circle_member' ||
-            payload.table === 'patient_consent_state'
+            payload.table === 'patient_consent_state' ||
+            payload.table === 'patient_risk_event' ||
+            payload.table === 'patient_safety_plan'
           )) {
             loadAndRender();
           }

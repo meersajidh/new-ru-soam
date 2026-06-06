@@ -416,6 +416,17 @@ The prototype (`Overview.jsx` `RiskBanner`, `_check5.png`) settles the long-open
 **Residual (still O419):** the safety-plan editor field set + the §23 confirmation UX — bounded;
 designed at the start of build Phase 4.
 
+**RESOLVED 2026-06-06 (P4 built — O460).** Residual closed: (a) **safety-plan** = India-adapted
+Stanley-Brown 7-field `patient_safety_plan` (warning_signs · coping · social_settings · help_contacts
+[NR-as-primary, MHA §14] · professional_agencies [**Tele-MANAS 14416** seeded] · means_restriction
+[pesticide/ligature/family-held custody — verified India's leading means] · reasons_for_living) +
+status + shared_with_nr, as an owned writable editor tab (`safety-plan.html`). (b) **§23 flow** =
+reasoned in-aspect confirm: `toggleException(active, {ground, disclosedTo, reason})` where `ground` ∈
+the bounded MHA-2017-§23 exception enum (`harm_to_others`·`threat_to_life`·`nr_duty`·`professional_care`·
+`authority_order`), honoring "only such information as is necessary"; flips the consent flag **and**
+writes a `s23_disclosure` `patient_risk_event`. **PHI invariant verified:** reason/disclosedTo + risk
+summaries + plan text live only in row columns; audit detail is enum-only (full-ledger scan = zero PHI).
+
 ### A4.2 Overview is a dashboard of pointers, with three view modes
 
 Nothing is authored in the Overview; every tile is a triage pointer (glanceable in ~5 s). The

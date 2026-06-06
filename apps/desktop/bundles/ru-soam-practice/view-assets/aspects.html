@@ -435,6 +435,29 @@
       }
       #consent-edit-form.is-open { display: flex; }
 
+      /* ── Risk severity dot colors ──────────────────────────────────────── */
+      .risk-dot.sev-info     { background: var(--color-fg-muted); }
+      .risk-dot.sev-concern  { background: var(--color-warning); }
+      .risk-dot.sev-elevated { background: var(--color-error); }
+      .risk-dot.sev-critical { background: #e0193a; box-shadow: 0 0 4px #e0193a88; }
+      .risk-empty {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        font-style: italic;
+        padding: 4px 0 8px;
+      }
+
+      /* ── Inline risk forms ──────────────────────────────────────────────── */
+      .risk-inline-form {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--color-border);
+      }
+      .risk-inline-form.is-open { display: flex; }
+
       /* ── Edit button on section header ───────────────────────────────────────────────── */
       .section-edit-btn {
         display: inline-flex;
@@ -489,34 +512,106 @@
             <span class="section-source">PRACTICE</span>
           </header>
           <div class="section-body is-open" id="sb-risk">
+            <!-- Facts row: Capacity · §23 state · NR -->
             <div class="risk-facts" id="risk-facts">
-              <div class="risk-fact">
-                <span data-codicon="pass" data-size="12"></span>
-                Capacity intact
+              <!-- populated by JS -->
+            </div>
+
+            <!-- Risk events list -->
+            <ul class="risk-items" id="risk-items">
+              <!-- populated by JS -->
+            </ul>
+
+            <!-- Primary actions -->
+            <div class="risk-actions" id="risk-actions">
+              <button class="action-btn" id="btn-safety-plan" type="button">
+                <span data-codicon="shield" data-size="11"></span>
+                Open safety plan
+              </button>
+              <button class="action-btn" id="btn-s23-toggle" type="button">
+                <span data-codicon="law" data-size="11"></span>
+                <span id="s23-btn-label">Log §23 disclosure</span>
+              </button>
+              <button class="action-btn" id="btn-add-risk" type="button">
+                <span data-codicon="add" data-size="11"></span>
+                Add risk event
+              </button>
+            </div>
+
+            <!-- §23 inline form -->
+            <div class="risk-inline-form" id="s23-form">
+              <div class="pe-field">
+                <label class="pe-label" for="s23-ground">Statutory ground <span style="color:var(--color-error)">*</span></label>
+                <select class="pe-input" id="s23-ground">
+                  <option value="">— select —</option>
+                  <option value="harm_to_others">Harm to others</option>
+                  <option value="threat_to_life">Threat to life</option>
+                  <option value="nr_duty">NR duty</option>
+                  <option value="professional_care">Professional care duty</option>
+                  <option value="authority_order">Authority order</option>
+                </select>
               </div>
-              <div class="risk-fact">
-                <span data-codicon="shield" data-size="12"></span>
-                NR engaged — R. Deshpande
+              <div class="pe-field" id="s23-disclosed-field">
+                <label class="pe-label" for="s23-disclosed">Disclosed to</label>
+                <input class="pe-input" id="s23-disclosed" type="text" placeholder="Name / organisation" autocomplete="off" spellcheck="false" />
               </div>
-              <div class="risk-fact">
-                <span data-codicon="edit" data-size="12"></span>
-                MHA §23 exception not currently invoked
+              <div class="pe-field" id="s23-reason-field">
+                <label class="pe-label" for="s23-reason">Reason / notes</label>
+                <textarea class="pe-input" id="s23-reason" rows="2" placeholder="Clinical rationale for disclosure"></textarea>
+              </div>
+              <div class="pe-actions">
+                <button class="pe-btn primary" id="btn-s23-confirm" type="button">Confirm</button>
+                <button class="pe-btn" id="btn-s23-cancel" type="button">Cancel</button>
+                <span class="pe-save-msg" id="s23-msg" role="status" aria-live="polite"></span>
               </div>
             </div>
-            <ul class="risk-items" id="risk-items">
-              <li class="risk-item"><span class="risk-dot"></span><span>Passive SI, no plan or intent</span><span class="risk-when">Session 28 May</span></li>
-              <li class="risk-item"><span class="risk-dot"></span><span>Safety plan agreed &amp; shared with NR</span><span class="risk-when">28 May</span></li>
-              <li class="risk-item"><span class="risk-dot"></span><span>Means restriction discussed</span><span class="risk-when">28 May</span></li>
-            </ul>
-            <div class="risk-actions">
-              <button class="action-btn" type="button">
-                <span data-codicon="shield" data-size="11"></span>
-                Safety plan
-              </button>
-              <button class="action-btn" type="button">
-                <span data-codicon="note" data-size="11"></span>
-                Log §23 disclosure
-              </button>
+
+            <!-- Capacity quick-set -->
+            <div class="pe-field" id="capacity-field" style="margin-top:10px;display:none;">
+              <label class="pe-label" for="cap-select">Capacity</label>
+              <select class="pe-input" id="cap-select" style="max-width:180px;">
+                <option value="">— unchanged —</option>
+                <option value="intact">Intact</option>
+                <option value="diminished">Diminished</option>
+                <option value="lacks">Lacks capacity</option>
+                <option value="unassessed">Unassessed</option>
+              </select>
+            </div>
+
+            <!-- Add risk event form -->
+            <div class="risk-inline-form" id="risk-add-form">
+              <div class="pe-field">
+                <label class="pe-label" for="re-kind">Event type <span style="color:var(--color-error)">*</span></label>
+                <select class="pe-input" id="re-kind">
+                  <option value="si">Suicidal ideation (SI)</option>
+                  <option value="self_harm">Self-harm</option>
+                  <option value="harm_to_others">Harm to others</option>
+                  <option value="means_restriction">Means restriction</option>
+                  <option value="safety_plan_review">Safety plan review</option>
+                  <option value="s23_disclosure">§23 disclosure</option>
+                  <option value="capacity_change">Capacity change</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="pe-field">
+                <label class="pe-label" for="re-severity">Severity</label>
+                <select class="pe-input" id="re-severity">
+                  <option value="">— none —</option>
+                  <option value="info">Info</option>
+                  <option value="concern">Concern</option>
+                  <option value="elevated">Elevated</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+              <div class="pe-field">
+                <label class="pe-label" for="re-summary">Summary (clinical notes)</label>
+                <textarea class="pe-input" id="re-summary" rows="3" placeholder="Brief clinical note — stored PHI, not in audit"></textarea>
+              </div>
+              <div class="pe-actions">
+                <button class="pe-btn primary" id="btn-re-save" type="button">Add event</button>
+                <button class="pe-btn" id="btn-re-cancel" type="button">Cancel</button>
+                <span class="pe-save-msg" id="re-msg" role="status" aria-live="polite"></span>
+              </div>
             </div>
           </div>
         </section>
@@ -673,6 +768,8 @@
       var _profile    = null;
       var _circle     = null;  // array of circle members
       var _consent    = null;  // consent state or null
+      var _riskEvents = null;  // array of risk events
+      var _safetyPlan = null;  // safety plan or null
       var _editOpen   = false;
       var _editSaving = false;
       var _editMsgTimer = null;
@@ -684,6 +781,14 @@
       var _consentEditOpen   = false;
       var _consentEditSaving = false;
       var _consentEditMsgTimer = null;
+      // Risk §23 form state
+      var _s23FormOpen   = false;
+      var _s23Saving     = false;
+      var _s23MsgTimer   = null;
+      // Risk add-event form state
+      var _reFormOpen    = false;
+      var _reSaving      = false;
+      var _reMsgTimer    = null;
 
       /* ── Elements ───────────────────────────────────────────────── */
       var elBridgeWait    = document.getElementById('bridge-wait');
@@ -694,6 +799,8 @@
       var elIdName        = document.getElementById('id-name');
       var elIdSub         = document.getElementById('id-sub');
       var elRiskAlertBar  = document.getElementById('risk-alert-bar');
+      var elRiskFacts     = document.getElementById('risk-facts');
+      var elRiskItems     = document.getElementById('risk-items');
       var elProfileKv     = document.getElementById('profile-kv');
       var elEditForm      = document.getElementById('profile-edit-form');
       var elEditBtn       = document.getElementById('btn-profile-edit');
@@ -843,10 +950,271 @@
         elProfileKv.appendChild(frag);
       }
 
+      /* ── Relative date helper ───────────────────────────────────── */
+      function relDate(ts) {
+        if (!ts) return '';
+        var d = new Date(ts);
+        var now = new Date();
+        var diff = now - d; // ms
+        var days = Math.floor(diff / 86400000);
+        if (days === 0) return 'Today';
+        if (days === 1) return 'Yesterday';
+        if (days < 7)  return days + 'd ago';
+        if (days < 31) return Math.floor(days / 7) + 'w ago';
+        // Full short date
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      }
+
       /* ── Alert bar ──────────────────────────────────────────────── */
+      var SEV_CONCERN_SET = new Set(['elevated', 'critical']);
+
+      function hasActiveConcern() {
+        if (_consent && _consent.confidentialityExceptionActive) return true;
+        if (_safetyPlan && _safetyPlan.status === 'active') return true;
+        if (_riskEvents && _riskEvents.length > 0) {
+          var sev = _riskEvents[0].severity;
+          if (sev && SEV_CONCERN_SET.has(sev)) return true;
+        }
+        return false;
+      }
+
       function renderRiskAlert() {
-        // Phase A: always show the mock risk alert (real risk schema deferred).
-        elRiskAlertBar.style.display = '';
+        elRiskAlertBar.style.display = hasActiveConcern() ? '' : 'none';
+      }
+
+      /* ── Risk facts row ─────────────────────────────────────────── */
+      var CAPACITY_LABELS = {
+        'intact':     'Capacity intact',
+        'diminished': 'Capacity diminished',
+        'lacks':      'Lacks capacity',
+        'unassessed': 'Capacity unassessed',
+      };
+
+      function renderRiskFacts() {
+        elRiskFacts.innerHTML = '';
+        var frag = document.createDocumentFragment();
+
+        // Capacity
+        var capText = (_consent && _consent.capacityStatus)
+          ? (CAPACITY_LABELS[_consent.capacityStatus] || _consent.capacityStatus)
+          : 'Capacity unassessed';
+        var capDiv = el('div', 'risk-fact');
+        capDiv.appendChild(txt('span', null, capText));
+        frag.appendChild(capDiv);
+
+        // §23 state
+        var s23Active = _consent && _consent.confidentialityExceptionActive;
+        var s23Div = el('div', 'risk-fact');
+        s23Div.style.color = s23Active ? 'var(--color-error)' : '';
+        s23Div.textContent = s23Active ? 'MHA §23 exception INVOKED' : 'MHA §23 not invoked';
+        frag.appendChild(s23Div);
+
+        // Primary NR
+        var nr = null;
+        if (_circle && _circle.length > 0) {
+          for (var i = 0; i < _circle.length; i++) {
+            if (_circle[i].isPrimaryNr) { nr = _circle[i]; break; }
+          }
+        }
+        var nrDiv = el('div', 'risk-fact');
+        nrDiv.textContent = nr ? ('NR: ' + nr.displayName) : 'No NR set';
+        frag.appendChild(nrDiv);
+
+        elRiskFacts.appendChild(frag);
+      }
+
+      /* ── Risk events list ───────────────────────────────────────── */
+      var SEV_CLASS = {
+        'info':     'sev-info',
+        'concern':  'sev-concern',
+        'elevated': 'sev-elevated',
+        'critical': 'sev-critical',
+      };
+
+      function renderRiskItems() {
+        elRiskItems.innerHTML = '';
+        var events = _riskEvents;
+        if (!events || events.length === 0) {
+          var empty = el('li', null);
+          empty.innerHTML = '<span class="risk-empty">No risk events logged.</span>';
+          elRiskItems.appendChild(empty);
+          return;
+        }
+        events.forEach(function (ev) {
+          var li = el('li', 'risk-item');
+          var dot = el('span', 'risk-dot ' + (SEV_CLASS[ev.severity] || ''));
+          li.appendChild(dot);
+          var text = el('span', null);
+          text.textContent = ev.summary || ev.kind;
+          li.appendChild(text);
+          var when = el('span', 'risk-when');
+          when.textContent = relDate(ev.occurredAt);
+          li.appendChild(when);
+          elRiskItems.appendChild(li);
+        });
+      }
+
+      /* ── §23 toggle button label ────────────────────────────────── */
+      function updateS23BtnLabel() {
+        var s23Active = _consent && _consent.confidentialityExceptionActive;
+        var lbl = document.getElementById('s23-btn-label');
+        if (lbl) lbl.textContent = s23Active ? 'Revoke §23' : 'Log §23 disclosure';
+        // Show/hide ground + disclosed-to fields based on current §23 state.
+        var groundField = document.getElementById('s23-ground').parentElement;
+        var disclosedField = document.getElementById('s23-disclosed-field');
+        if (groundField) groundField.style.display = s23Active ? 'none' : '';
+        if (disclosedField) disclosedField.style.display = s23Active ? 'none' : '';
+      }
+
+      /* ── §23 form handlers ──────────────────────────────────────── */
+      function openS23Form() {
+        _s23FormOpen = true;
+        var s23Active = _consent && _consent.confidentialityExceptionActive;
+        // Show/hide fields.
+        var groundRow = document.getElementById('s23-ground') ? document.getElementById('s23-ground').closest('.pe-field') : null;
+        var disclosedRow = document.getElementById('s23-disclosed-field');
+        if (groundRow) groundRow.style.display = s23Active ? 'none' : '';
+        if (disclosedRow) disclosedRow.style.display = s23Active ? 'none' : '';
+        document.getElementById('s23-ground').value = '';
+        document.getElementById('s23-disclosed').value = '';
+        document.getElementById('s23-reason').value = '';
+        document.getElementById('s23-form').classList.add('is-open');
+      }
+
+      function closeS23Form() {
+        _s23FormOpen = false;
+        document.getElementById('s23-form').classList.remove('is-open');
+        clearTimeout(_s23MsgTimer);
+        var msgEl = document.getElementById('s23-msg');
+        if (msgEl) { msgEl.className = 'pe-save-msg'; msgEl.textContent = ''; }
+      }
+
+      function showS23Msg(msg, kind) {
+        clearTimeout(_s23MsgTimer);
+        var msgEl = document.getElementById('s23-msg');
+        if (!msgEl) return;
+        msgEl.textContent = msg;
+        msgEl.className = 'pe-save-msg visible ' + (kind || '');
+        if (kind === 'ok') {
+          _s23MsgTimer = setTimeout(function () { closeS23Form(); }, 1200);
+        }
+      }
+
+      function onS23Confirm() {
+        if (_s23Saving || !_cmdProxy || !_clientId) return;
+        var s23Active = _consent && _consent.confidentialityExceptionActive;
+        var invoking = !s23Active;
+        var payload = {};
+        if (invoking) {
+          var ground = document.getElementById('s23-ground').value;
+          if (!ground) { showS23Msg('Select a statutory ground.', 'err'); return; }
+          payload.ground      = ground;
+          payload.disclosedTo = document.getElementById('s23-disclosed').value.trim() || '';
+          payload.reason      = document.getElementById('s23-reason').value.trim() || '';
+        } else {
+          payload.reason = document.getElementById('s23-reason').value.trim() || '';
+        }
+        _s23Saving = true;
+        document.getElementById('btn-s23-confirm').disabled = true;
+        _cmdProxy.call('toggleException', _clientId, invoking, payload).then(function (result) {
+          _s23Saving = false;
+          document.getElementById('btn-s23-confirm').disabled = false;
+          _consent    = result.consent;
+          // Prepend new risk event to list.
+          if (_riskEvents) {
+            _riskEvents.unshift(result.event);
+          } else {
+            _riskEvents = [result.event];
+          }
+          renderRiskFacts();
+          renderRiskItems();
+          renderRiskAlert();
+          updateS23BtnLabel();
+          showS23Msg('Saved.', 'ok');
+        }).catch(function (err) {
+          _s23Saving = false;
+          document.getElementById('btn-s23-confirm').disabled = false;
+          if (isLockedError(err)) {
+            showS23Msg('Workspace locked.', 'err');
+          } else {
+            showS23Msg('Failed: ' + (err && err.message), 'err');
+          }
+        });
+      }
+
+      /* ── Capacity quick-set ─────────────────────────────────────── */
+      function onCapacityChange(newStatus) {
+        if (!newStatus || !_cmdProxy || !_clientId) return;
+        _cmdProxy.call('setCapacity', _clientId, newStatus).then(function (updated) {
+          _consent = updated;
+          document.getElementById('cap-select').value = '';
+          renderRiskFacts();
+          renderRiskAlert();
+        }).catch(function (err) {
+          if (isLockedError(err)) {
+            showLocked('Workspace locked.');
+          } else {
+            showError('Capacity update failed: ' + (err && err.message));
+          }
+        });
+      }
+
+      /* ── Add risk event form ────────────────────────────────────── */
+      function openRiskAddForm() {
+        _reFormOpen = true;
+        document.getElementById('re-kind').value    = 'si';
+        document.getElementById('re-severity').value = '';
+        document.getElementById('re-summary').value  = '';
+        document.getElementById('risk-add-form').classList.add('is-open');
+      }
+
+      function closeRiskAddForm() {
+        _reFormOpen = false;
+        document.getElementById('risk-add-form').classList.remove('is-open');
+        clearTimeout(_reMsgTimer);
+        var msgEl = document.getElementById('re-msg');
+        if (msgEl) { msgEl.className = 'pe-save-msg'; msgEl.textContent = ''; }
+      }
+
+      function showReMsg(msg, kind) {
+        clearTimeout(_reMsgTimer);
+        var msgEl = document.getElementById('re-msg');
+        if (!msgEl) return;
+        msgEl.textContent = msg;
+        msgEl.className = 'pe-save-msg visible ' + (kind || '');
+        if (kind === 'ok') {
+          _reMsgTimer = setTimeout(function () { closeRiskAddForm(); }, 1200);
+        }
+      }
+
+      function onRiskEventSave() {
+        if (_reSaving || !_cmdProxy || !_clientId) return;
+        var kind     = document.getElementById('re-kind').value;
+        var severity = document.getElementById('re-severity').value || null;
+        var summary  = document.getElementById('re-summary').value.trim() || null;
+        _reSaving = true;
+        document.getElementById('btn-re-save').disabled = true;
+        _cmdProxy.call('addRiskEvent', _clientId, { kind: kind, severity: severity, summary: summary })
+          .then(function (newEvent) {
+            _reSaving = false;
+            document.getElementById('btn-re-save').disabled = false;
+            if (_riskEvents) {
+              _riskEvents.unshift(newEvent);
+            } else {
+              _riskEvents = [newEvent];
+            }
+            renderRiskItems();
+            renderRiskAlert();
+            showReMsg('Added.', 'ok');
+          }).catch(function (err) {
+            _reSaving = false;
+            document.getElementById('btn-re-save').disabled = false;
+            if (isLockedError(err)) {
+              showReMsg('Workspace locked.', 'err');
+            } else {
+              showReMsg('Failed: ' + (err && err.message), 'err');
+            }
+          });
       }
 
       /* ── Circle kind label ──────────────────────────────────────── */
@@ -1109,7 +1477,18 @@
       /* ── Full render ────────────────────────────────────────────── */
       function renderAll() {
         renderIdentity();
+        renderRiskFacts();
+        renderRiskItems();
         renderRiskAlert();
+        updateS23BtnLabel();
+        // Show capacity field after data load.
+        var capField = document.getElementById('capacity-field');
+        if (capField) {
+          capField.style.display = '';
+          // Reflect current capacity in select.
+          var capSel = document.getElementById('cap-select');
+          if (capSel) capSel.value = '';
+        }
         renderProfile();
         renderCircle();
         renderConsent();
@@ -1186,16 +1565,22 @@
           _queryProxy.call('getProfile', _clientId),
           _queryProxy.call('getCircle', _clientId),
           _queryProxy.call('getConsentState', _clientId),
+          _queryProxy.call('listRiskEvents', _clientId),
+          _queryProxy.call('getSafetyPlan', _clientId),
         ]).then(function (results) {
-          var rec     = results[0];
-          var profile = results[1];
-          var circle  = results[2];
-          var consent = results[3];
+          var rec        = results[0];
+          var profile    = results[1];
+          var circle     = results[2];
+          var consent    = results[3];
+          var riskEvents = results[4];
+          var safetyPlan = results[5];
           if (!rec) { showError('Client not found: ' + _clientId); return; }
-          _record  = rec;
-          _profile = profile;
-          _circle  = circle;
-          _consent = consent;
+          _record     = rec;
+          _profile    = profile;
+          _circle     = circle;
+          _consent    = consent;
+          _riskEvents = riskEvents;
+          _safetyPlan = safetyPlan;
           renderAll();
         }).catch(function (err) {
           if (isLockedError(err)) {
@@ -1249,6 +1634,8 @@
             if (_editOpen) closeEdit();
             if (_circleAddOpen) closeCircleAdd();
             if (_consentEditOpen) closeConsentEdit();
+            if (_s23FormOpen) closeS23Form();
+            if (_reFormOpen) closeRiskAddForm();
             ensureProxiesAndRender();
           }
         }
@@ -1273,6 +1660,35 @@
         bindToggle('sh-profile',  'sb-profile',  'btn-profile-edit');
         bindToggle('sh-circle',   'sb-circle',   'btn-circle-edit');
         bindToggle('sh-consent',  'sb-consent',  'btn-consent-edit');
+
+        // Risk: Open safety plan.
+        document.getElementById('btn-safety-plan').addEventListener('click', function () {
+          if (!_clientId || !soamView) return;
+          soamView.openInEditor('safety-plan', {
+            query: 'id=' + encodeURIComponent(_clientId),
+            title: 'Safety Plan',
+            entityId: _clientId,
+          });
+        });
+
+        // Risk: §23 toggle.
+        document.getElementById('btn-s23-toggle').addEventListener('click', function () {
+          if (_s23FormOpen) { closeS23Form(); } else { openS23Form(); }
+        });
+        document.getElementById('btn-s23-confirm').addEventListener('click', onS23Confirm);
+        document.getElementById('btn-s23-cancel').addEventListener('click', function () { closeS23Form(); });
+
+        // Risk: Add risk event.
+        document.getElementById('btn-add-risk').addEventListener('click', function () {
+          if (_reFormOpen) { closeRiskAddForm(); } else { openRiskAddForm(); }
+        });
+        document.getElementById('btn-re-save').addEventListener('click', onRiskEventSave);
+        document.getElementById('btn-re-cancel').addEventListener('click', function () { closeRiskAddForm(); });
+
+        // Capacity quick-set.
+        document.getElementById('cap-select').addEventListener('change', function () {
+          onCapacityChange(this.value);
+        });
 
         // Profile edit button — stop propagation so section-header toggle doesn't fire.
         elEditBtn.addEventListener('click', function (e) {
@@ -1310,7 +1726,9 @@
             payload.table === 'patients' ||
             payload.table === 'patient_profile' ||
             payload.table === 'patient_circle_member' ||
-            payload.table === 'patient_consent_state'
+            payload.table === 'patient_consent_state' ||
+            payload.table === 'patient_risk_event' ||
+            payload.table === 'patient_safety_plan'
           )) {
             loadAndRender();
           }

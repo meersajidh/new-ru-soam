@@ -32,7 +32,12 @@ export type AuditEventKind =
   // ADR-505 Amendment 3: lifecycle stage transitions
   | 'record.patient.lifecycle.changed'
   // DPDP right-to-erasure (hard delete of all owned tables for a patient)
-  | 'record.patient.erased';
+  | 'record.patient.erased'
+  // ADR-505 P4: Risk/Safety — clinical keystone
+  | 'record.patient.risk.added'
+  | 'record.patient.capacity.changed'
+  | 'record.patient.s23.changed'
+  | 'record.patient.safetyplan.updated';
 
 /**
  * Arbitrary detail attached to an audit entry.

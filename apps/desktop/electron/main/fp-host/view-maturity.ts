@@ -115,7 +115,7 @@ export const VIEW_MATURITY_SOURCE = `(function () {
    *   card-payment         : Billing projection → mock
    *   card-circle          : Practice owned, static mock data → wip (People/Circle not yet real)
    *   overview-header      : real record.patient data (get + getProfile) → concrete
-   *   risk-banner          : hardcoded MOCK.risk → wip (Risk aspect not built yet)
+   *   risk-banner          : real conditional banner (P4) → concrete
    *   glance-row           : projection mini-stats (Schedule+Sessions+Assessments+Billing) → mock
    *   timeline-wrap        : fully static MOCK.timeline → mock
    *
@@ -126,8 +126,11 @@ export const VIEW_MATURITY_SOURCE = `(function () {
    *   lens-attention-panel : lifecycle model (not yet built) → wip
    *
    * -- aspects.html --
-   *   section-risk         : hardcoded static risk facts → wip (Risk aspect Phase 4)
+   *   section-risk         : real Risk/Safety aspect (P4) → concrete
    *   section-profile      : real getProfile + edit via updateProfile → concrete (Phase 1)
+   *
+   * -- safety-plan.html --
+   *   safety-plan-editor   : real getSafetyPlan + setSafetyPlan (P4) → concrete
    *
    * -- projections.html (Notes view) --
    *   notes-view           : MOCK_NOTES, no real Sessions cap → mock
@@ -141,7 +144,7 @@ export const VIEW_MATURITY_SOURCE = `(function () {
     'card-payment':        'mock',
     'card-circle':         'wip',
     'overview-header':     'concrete',
-    'risk-banner':         'wip',
+    'risk-banner':         'concrete',
     'glance-row':          'mock',
     'timeline-wrap':       'mock',
     /* roster */
@@ -150,7 +153,9 @@ export const VIEW_MATURITY_SOURCE = `(function () {
     'lens-agenda-panel':   'mock',
     'lens-attention-panel':'wip',
     /* aspects */
-    'section-risk':        'wip',
+    'section-risk':        'concrete',
+    /* safety-plan */
+    'safety-plan-editor':  'concrete',
     'section-profile':     'concrete',
     /* projections */
     'notes-view':          'mock',

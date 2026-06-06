@@ -13,9 +13,10 @@
     { "id": "form", "path": "form.html" },
     { "id": "overview", "path": "overview.html" },
     { "id": "aspects", "path": "aspects.html" },
-    { "id": "projections", "path": "projections.html" }
+    { "id": "projections", "path": "projections.html" },
+    { "id": "safety-plan", "path": "safety-plan.html" }
   ],
-  "ownedTables": ["patients", "patient_profile", "patient_lifecycle", "patient_circle_member", "patient_consent_state"],
+  "ownedTables": ["patients", "patient_profile", "patient_lifecycle", "patient_circle_member", "patient_consent_state", "patient_risk_event", "patient_safety_plan"],
   "migrations": [
     {
       "version": 1,
@@ -41,6 +42,16 @@
       "version": 5,
       "description": "Practice: patient_consent_state table (ADR-505 P2)",
       "sql": "CREATE TABLE IF NOT EXISTS patient_consent_state (\n  patient_id                       TEXT PRIMARY KEY REFERENCES patients(id),\n  advance_directive_status         TEXT,\n  advance_directive_document_id    TEXT,\n  informed_consent_status          TEXT,\n  tele_consent_mode                TEXT,\n  capacity_status                  TEXT,\n  confidentiality_exception_active INTEGER NOT NULL DEFAULT 0,\n  updated_at                       INTEGER NOT NULL\n);"
+    },
+    {
+      "version": 6,
+      "description": "Practice P4: patient_risk_event table (ADR-505 Am4)",
+      "sql": "CREATE TABLE IF NOT EXISTS patient_risk_event (\n  id             TEXT PRIMARY KEY,\n  patient_id     TEXT NOT NULL REFERENCES patients(id),\n  kind           TEXT NOT NULL,\n  severity       TEXT,\n  occurred_at    INTEGER NOT NULL,\n  summary        TEXT,\n  audit_event_id INTEGER\n);\nCREATE INDEX IF NOT EXISTS idx_risk_patient ON patient_risk_event(patient_id, occurred_at DESC);"
+    },
+    {
+      "version": 7,
+      "description": "Practice P4: patient_safety_plan table (ADR-505 Am4)",
+      "sql": "CREATE TABLE IF NOT EXISTS patient_safety_plan (\n  patient_id               TEXT PRIMARY KEY REFERENCES patients(id),\n  status                   TEXT NOT NULL DEFAULT 'none',\n  warning_signs            TEXT,\n  coping_strategies        TEXT,\n  social_settings_contacts TEXT,\n  help_contacts            TEXT,\n  professional_agencies    TEXT,\n  means_restriction        TEXT,\n  reasons_for_living       TEXT,\n  shared_with_nr           INTEGER NOT NULL DEFAULT 0,\n  updated_at               INTEGER NOT NULL\n);"
     }
   ],
   "queryTemplates": [
@@ -71,6 +82,14 @@
     {
       "id": "patient.getConsentState",
       "sql": "SELECT patient_id, advance_directive_status, advance_directive_document_id,\n       informed_consent_status, tele_consent_mode, capacity_status,\n       confidentiality_exception_active, updated_at\nFROM patient_consent_state WHERE patient_id = @id"
+    },
+    {
+      "id": "patient.listRiskEvents",
+      "sql": "SELECT id, patient_id, kind, severity, occurred_at, summary\nFROM patient_risk_event\nWHERE patient_id = @id\nORDER BY occurred_at DESC\nLIMIT 50"
+    },
+    {
+      "id": "patient.getSafetyPlan",
+      "sql": "SELECT patient_id, status, warning_signs, coping_strategies,\n       social_settings_contacts, help_contacts, professional_agencies,\n       means_restriction, reasons_for_living, shared_with_nr, updated_at\nFROM patient_safety_plan WHERE patient_id = @id"
     }
   ],
   "dependencies": {

@@ -33,6 +33,19 @@ const VALID_STATUSES = new Set(['active', 'inactive', 'archived']);
 
 const VALID_CIRCLE_KINDS = new Set(['nominated_rep', 'caregiver', 'family', 'emergency_contact']);
 
+// ── Risk / Safety domain vocab (ADR-505 Am4, ADR-506 §G) ─────────────────────
+
+const VALID_RISK_KINDS = new Set([
+  'si', 'self_harm', 'harm_to_others', 'means_restriction',
+  'safety_plan_review', 's23_disclosure', 'capacity_change', 'other',
+]);
+const VALID_SEVERITY = new Set(['info', 'concern', 'elevated', 'critical']);
+const VALID_CAPACITY = new Set(['intact', 'diminished', 'lacks', 'unassessed']);
+const VALID_S23_GROUNDS = new Set([
+  'harm_to_others', 'threat_to_life', 'nr_duty', 'professional_care', 'authority_order',
+]);
+const VALID_PLAN_STATUS = new Set(['none', 'active', 'under_review']);
+
 // ── Row → record mappers (reproduce record-patient-cap.ts field-by-field) ─────
 
 function deriveDisplayName(given, family) {
@@ -107,6 +120,33 @@ function mapConsentState(row) {
     teleConsentMode: row.tele_consent_mode,
     capacityStatus: row.capacity_status,
     confidentialityExceptionActive: !!row.confidentiality_exception_active,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapRiskEvent(row) {
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    kind: row.kind,
+    severity: row.severity,
+    occurredAt: row.occurred_at,
+    summary: row.summary,
+  };
+}
+
+function mapSafetyPlan(row) {
+  return {
+    patientId: row.patient_id,
+    status: row.status,
+    warningSigns: row.warning_signs,
+    copingStrategies: row.coping_strategies,
+    socialSettingsContacts: row.social_settings_contacts,
+    helpContacts: row.help_contacts,
+    professionalAgencies: row.professional_agencies,
+    meansRestriction: row.means_restriction,
+    reasonsForLiving: row.reasons_for_living,
+    sharedWithNr: !!row.shared_with_nr,
     updatedAt: row.updated_at,
   };
 }
@@ -194,6 +234,26 @@ export function activate(ctx) {
           { event: 'record.patient.viewed', recordType: 'patient_consent_state', recordId: clientId },
         ]);
         return rows.length > 0 ? mapConsentState(rows[0]) : null;
+      }
+
+      case 'listRiskEvents': {
+        const clientId = args[0];
+        const rows = await storeQuery.call('run', [
+          'patient.listRiskEvents',
+          { id: clientId },
+          { event: 'record.patient.viewed', recordType: 'patient_risk_event', recordId: clientId },
+        ]);
+        return rows.map(mapRiskEvent);
+      }
+
+      case 'getSafetyPlan': {
+        const clientId = args[0];
+        const rows = await storeQuery.call('run', [
+          'patient.getSafetyPlan',
+          { id: clientId },
+          { event: 'record.patient.viewed', recordType: 'patient_safety_plan', recordId: clientId },
+        ]);
+        return rows.length > 0 ? mapSafetyPlan(rows[0]) : null;
       }
 
       default:
@@ -790,6 +850,312 @@ export function activate(ctx) {
           throw new Error('record.patient.setConsentState: row disappeared after write: ' + clientId);
         }
         return mapConsentState(updConsentRows[0]);
+      }
+
+      case 'addRiskEvent': {
+        const clientId = args[0];
+        const input = args[1];
+        if (typeof clientId !== 'string') {
+          throw new Error('record.patient.addRiskEvent: clientId must be a string');
+        }
+        if (!input || typeof input !== 'object') {
+          throw new Error('record.patient.addRiskEvent: input must be an object');
+        }
+        if (!input.kind || !VALID_RISK_KINDS.has(input.kind)) {
+          throw new Error('record.patient.addRiskEvent: invalid kind: ' + String(input.kind));
+        }
+        if (input.severity !== undefined && input.severity !== null && !VALID_SEVERITY.has(input.severity)) {
+          throw new Error('record.patient.addRiskEvent: invalid severity: ' + String(input.severity));
+        }
+
+        // Patient existence check — no audit tag.
+        const existRowsRisk = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        if (!existRowsRisk.length) {
+          throw notFound('record.patient.addRiskEvent: patient not found: ' + clientId);
+        }
+
+        const eventId = globalThis.crypto.randomUUID();
+        const occurredAt = (typeof input.occurredAt === 'number') ? input.occurredAt : Date.now();
+        const riskRow = {
+          id: eventId,
+          patient_id: clientId,
+          kind: input.kind,
+          severity: input.severity ?? null,
+          occurred_at: occurredAt,
+          // summary is PHI — stored in DB, NEVER in audit detail
+          summary: input.summary != null ? String(input.summary) : null,
+          audit_event_id: null,
+        };
+
+        await storeWrite.call('insert', [
+          'patient_risk_event',
+          riskRow,
+          {
+            event: 'record.patient.risk.added',
+            recordType: 'patient_risk_event',
+            recordId: eventId,
+            detail: { kind: input.kind, severity: input.severity ?? null },
+          },
+        ]);
+
+        return mapRiskEvent(riskRow);
+      }
+
+      case 'setCapacity': {
+        const clientId = args[0];
+        const status = args[1];
+        if (typeof clientId !== 'string') {
+          throw new Error('record.patient.setCapacity: clientId must be a string');
+        }
+        if (typeof status !== 'string' || !VALID_CAPACITY.has(status)) {
+          throw new Error('record.patient.setCapacity: invalid status: ' + String(status));
+        }
+
+        // Patient existence check — no audit tag.
+        const existRowsCap = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        if (!existRowsCap.length) {
+          throw notFound('record.patient.setCapacity: patient not found: ' + clientId);
+        }
+
+        const nowCap = Date.now();
+        const consentRowsCap = await storeQuery.call('run', ['patient.getConsentState', { id: clientId }]);
+
+        if (consentRowsCap.length > 0) {
+          await storeWrite.call('update', [
+            'patient_consent_state',
+            clientId,
+            { capacity_status: status, updated_at: nowCap },
+            {
+              event: 'record.patient.capacity.changed',
+              recordType: 'patient_consent_state',
+              recordId: clientId,
+              detail: { status },
+            },
+          ]);
+        } else {
+          await storeWrite.call('insert', [
+            'patient_consent_state',
+            {
+              patient_id: clientId,
+              advance_directive_status: null,
+              advance_directive_document_id: null,
+              informed_consent_status: null,
+              tele_consent_mode: null,
+              capacity_status: status,
+              confidentiality_exception_active: 0,
+              updated_at: nowCap,
+            },
+            {
+              event: 'record.patient.capacity.changed',
+              recordType: 'patient_consent_state',
+              recordId: clientId,
+              detail: { status },
+            },
+          ]);
+        }
+
+        // Read-back.
+        const updCapRows = await storeQuery.call('run', ['patient.getConsentState', { id: clientId }]);
+        if (!updCapRows.length) {
+          throw new Error('record.patient.setCapacity: row disappeared after write: ' + clientId);
+        }
+        return mapConsentState(updCapRows[0]);
+      }
+
+      case 'toggleException': {
+        const clientId = args[0];
+        const active = args[1];
+        const payload = args[2] || {};
+        if (typeof clientId !== 'string') {
+          throw new Error('record.patient.toggleException: clientId must be a string');
+        }
+        const flag = active ? 1 : 0;
+
+        if (active) {
+          if (!payload.ground || !VALID_S23_GROUNDS.has(payload.ground)) {
+            throw new Error('record.patient.toggleException: invalid or missing ground: ' + String(payload.ground));
+          }
+        }
+
+        // Patient existence check — no audit tag.
+        const existRowsS23 = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        if (!existRowsS23.length) {
+          throw notFound('record.patient.toggleException: patient not found: ' + clientId);
+        }
+
+        const nowS23 = Date.now();
+        const consentRowsS23 = await storeQuery.call('run', ['patient.getConsentState', { id: clientId }]);
+
+        if (consentRowsS23.length > 0) {
+          await storeWrite.call('update', [
+            'patient_consent_state',
+            clientId,
+            { confidentiality_exception_active: flag, updated_at: nowS23 },
+            {
+              event: 'record.patient.s23.changed',
+              recordType: 'patient_consent_state',
+              recordId: clientId,
+              detail: { action: active ? 'invoke' : 'revoke', ground: active ? payload.ground : null },
+            },
+          ]);
+        } else {
+          await storeWrite.call('insert', [
+            'patient_consent_state',
+            {
+              patient_id: clientId,
+              advance_directive_status: null,
+              advance_directive_document_id: null,
+              informed_consent_status: null,
+              tele_consent_mode: null,
+              capacity_status: null,
+              confidentiality_exception_active: flag,
+              updated_at: nowS23,
+            },
+            {
+              event: 'record.patient.s23.changed',
+              recordType: 'patient_consent_state',
+              recordId: clientId,
+              detail: { action: active ? 'invoke' : 'revoke', ground: active ? payload.ground : null },
+            },
+          ]);
+        }
+
+        // Insert a risk event for the §23 toggle.
+        // summary is PHI (ground + disclosedTo + reason) — stored in DB only.
+        const s23EventId = globalThis.crypto.randomUUID();
+        const s23Summary = (payload.ground || '') + '|' + (payload.disclosedTo || '') + '|' + (payload.reason || '');
+        const s23RiskRow = {
+          id: s23EventId,
+          patient_id: clientId,
+          kind: 's23_disclosure',
+          severity: 'elevated',
+          occurred_at: nowS23,
+          summary: s23Summary,
+          audit_event_id: null,
+        };
+        await storeWrite.call('insert', [
+          'patient_risk_event',
+          s23RiskRow,
+          {
+            event: 'record.patient.risk.added',
+            recordType: 'patient_risk_event',
+            recordId: s23EventId,
+            // ground is enum — allowed; disclosedTo + reason are PHI — omitted
+            detail: { kind: 's23_disclosure' },
+          },
+        ]);
+
+        // Read-back consent.
+        const updS23Rows = await storeQuery.call('run', ['patient.getConsentState', { id: clientId }]);
+        if (!updS23Rows.length) {
+          throw new Error('record.patient.toggleException: consent row disappeared after write: ' + clientId);
+        }
+        return { consent: mapConsentState(updS23Rows[0]), event: mapRiskEvent(s23RiskRow) };
+      }
+
+      case 'setSafetyPlan': {
+        const clientId = args[0];
+        const patch = args[1];
+        if (typeof clientId !== 'string') {
+          throw new Error('record.patient.setSafetyPlan: clientId must be a string');
+        }
+        if (!patch || typeof patch !== 'object') {
+          throw new Error('record.patient.setSafetyPlan: patch must be an object');
+        }
+        if (patch.status !== undefined && !VALID_PLAN_STATUS.has(patch.status)) {
+          throw new Error('record.patient.setSafetyPlan: invalid status: ' + String(patch.status));
+        }
+
+        // Patient existence check — no audit tag.
+        const existRowsSP = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        if (!existRowsSP.length) {
+          throw notFound('record.patient.setSafetyPlan: patient not found: ' + clientId);
+        }
+
+        const nowSP = Date.now();
+        // camelCase → snake_case mapping for text fields (PHI — only in DB, never in audit).
+        const SP_COL_MAP = {
+          warningSigns:            'warning_signs',
+          copingStrategies:        'coping_strategies',
+          socialSettingsContacts:  'social_settings_contacts',
+          helpContacts:            'help_contacts',
+          professionalAgencies:    'professional_agencies',
+          meansRestriction:        'means_restriction',
+          reasonsForLiving:        'reasons_for_living',
+        };
+
+        const spRows = await storeQuery.call('run', ['patient.getSafetyPlan', { id: clientId }]);
+
+        if (spRows.length > 0) {
+          // Update: only provided keys; '' and null both write (clear semantics).
+          const patchColsSP = { updated_at: nowSP };
+          if (Object.prototype.hasOwnProperty.call(patch, 'status')) {
+            patchColsSP.status = patch.status;
+          }
+          if (Object.prototype.hasOwnProperty.call(patch, 'sharedWithNr')) {
+            patchColsSP.shared_with_nr = patch.sharedWithNr ? 1 : 0;
+          }
+          for (const [camel, snake] of Object.entries(SP_COL_MAP)) {
+            if (Object.prototype.hasOwnProperty.call(patch, camel)) {
+              const val = patch[camel];
+              if (val !== null && val !== undefined && typeof val !== 'string') {
+                throw new Error('record.patient.setSafetyPlan: ' + camel + ' must be a string or null');
+              }
+              patchColsSP[snake] = val !== undefined ? val : null;
+            }
+          }
+          await storeWrite.call('update', [
+            'patient_safety_plan',
+            clientId,
+            patchColsSP,
+            {
+              event: 'record.patient.safetyplan.updated',
+              recordType: 'patient_safety_plan',
+              recordId: clientId,
+              // No PHI in detail — plan text is PHI.
+            },
+          ]);
+        } else {
+          // Insert full row; absent text fields default null; status defaults 'none'.
+          const spInsertRow = {
+            patient_id: clientId,
+            status: patch.status ?? 'none',
+            warning_signs: null,
+            coping_strategies: null,
+            social_settings_contacts: null,
+            help_contacts: null,
+            professional_agencies: null,
+            means_restriction: null,
+            reasons_for_living: null,
+            shared_with_nr: patch.sharedWithNr ? 1 : 0,
+            updated_at: nowSP,
+          };
+          for (const [camel, snake] of Object.entries(SP_COL_MAP)) {
+            if (Object.prototype.hasOwnProperty.call(patch, camel)) {
+              const val = patch[camel];
+              if (val !== null && val !== undefined && typeof val !== 'string') {
+                throw new Error('record.patient.setSafetyPlan: ' + camel + ' must be a string or null');
+              }
+              spInsertRow[snake] = val !== undefined ? val : null;
+            }
+          }
+          await storeWrite.call('insert', [
+            'patient_safety_plan',
+            spInsertRow,
+            {
+              event: 'record.patient.safetyplan.updated',
+              recordType: 'patient_safety_plan',
+              recordId: clientId,
+            },
+          ]);
+        }
+
+        // Read-back.
+        const updSPRows = await storeQuery.call('run', ['patient.getSafetyPlan', { id: clientId }]);
+        if (!updSPRows.length) {
+          throw new Error('record.patient.setSafetyPlan: row disappeared after write: ' + clientId);
+        }
+        return mapSafetyPlan(updSPRows[0]);
       }
 
       default:
