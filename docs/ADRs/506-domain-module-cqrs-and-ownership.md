@@ -124,6 +124,20 @@ Main exposes generic persistence, not domain handlers. To stay safe it is:
 - **Not a raw-SQL surface.** Writes are **parameterized CRUD primitives** on owned tables;
   reads are **pre-declared, load-validated query templates**. A First-Party-Host bundle
   never ships arbitrary SQL into Main.
+  - **Increment (2026-06-06, P2 — O459).** The write verb set grew from PK-keyed only
+    (`insert`/`update`/`delete` by single PK) to add **predicate-scoped** `deleteWhere` /
+    `updateWhere`. These take a **`where` object = equality-AND only** (`{col: scalar}` →
+    `WHERE c1=? AND c2=?`; no operators/OR — adding them would grow a query language on the
+    PHI surface). Keys are PRAGMA-validated columns, values must be `string|number`
+    (parameterized). The table stays an **explicit arg** so the ownership gate is unchanged
+    and trivial. **Blast-radius guard:** an empty/absent predicate is rejected
+    (`cap.handler_threw`) — a whereless `DELETE`/`UPDATE` can never execute. Audit `recordId`
+    is **caller-supplied** (no single PK to derive); `store.changed` emits a coarse
+    table-level signal (multi-row ops have no id list; consumers filter by table). Needed
+    because P2+ child tables (`patient_circle_member`, and future `patient_risk_event` /
+    `patient_document` / `patient_overlay`) have their own `id` PK + `patient_id` FK, so the
+    erase cascade and the NR-demote invariant require targeting by FK, not PK. Base stays
+    domain-free (ADR-106) — the bundle supplies the column name; base never names `patient_id`.
 
 ### 7. Preload command/query bridge split (CQRS at the ABI)
 

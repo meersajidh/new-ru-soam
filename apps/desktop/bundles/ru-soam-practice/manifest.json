@@ -15,7 +15,7 @@
     { "id": "aspects", "path": "aspects.html" },
     { "id": "projections", "path": "projections.html" }
   ],
-  "ownedTables": ["patients", "patient_profile", "patient_lifecycle"],
+  "ownedTables": ["patients", "patient_profile", "patient_lifecycle", "patient_circle_member", "patient_consent_state"],
   "migrations": [
     {
       "version": 1,
@@ -31,6 +31,16 @@
       "version": 3,
       "description": "Practice: patient_lifecycle stage table (ADR-505 Am3)",
       "sql": "CREATE TABLE IF NOT EXISTS patient_lifecycle (\n  patient_id       TEXT PRIMARY KEY REFERENCES patients(id),\n  stage            TEXT NOT NULL,\n  stage_updated_at INTEGER NOT NULL,\n  stage_reason     TEXT\n);\nINSERT OR IGNORE INTO patient_lifecycle (patient_id, stage, stage_updated_at)\nSELECT id, 'active', (strftime('%s','now') * 1000) FROM patients;"
+    },
+    {
+      "version": 4,
+      "description": "Practice: patient_circle_member table (ADR-505 P2)",
+      "sql": "CREATE TABLE IF NOT EXISTS patient_circle_member (\n  id            TEXT PRIMARY KEY,\n  patient_id    TEXT NOT NULL REFERENCES patients(id),\n  kind          TEXT NOT NULL,\n  display_name  TEXT NOT NULL,\n  relationship  TEXT,\n  phone         TEXT,\n  email         TEXT,\n  is_primary_nr INTEGER NOT NULL DEFAULT 0\n);\nCREATE INDEX IF NOT EXISTS idx_circle_patient ON patient_circle_member(patient_id);"
+    },
+    {
+      "version": 5,
+      "description": "Practice: patient_consent_state table (ADR-505 P2)",
+      "sql": "CREATE TABLE IF NOT EXISTS patient_consent_state (\n  patient_id                       TEXT PRIMARY KEY REFERENCES patients(id),\n  advance_directive_status         TEXT,\n  advance_directive_document_id    TEXT,\n  informed_consent_status          TEXT,\n  tele_consent_mode                TEXT,\n  capacity_status                  TEXT,\n  confidentiality_exception_active INTEGER NOT NULL DEFAULT 0,\n  updated_at                       INTEGER NOT NULL\n);"
     }
   ],
   "queryTemplates": [
@@ -49,6 +59,18 @@
     {
       "id": "patient.getLifecycle",
       "sql": "SELECT patient_id, stage, stage_updated_at, stage_reason\nFROM patient_lifecycle WHERE patient_id = @id"
+    },
+    {
+      "id": "patient.getCircle",
+      "sql": "SELECT id, patient_id, kind, display_name, relationship, phone, email, is_primary_nr\nFROM patient_circle_member WHERE patient_id = @id\nORDER BY is_primary_nr DESC, display_name ASC"
+    },
+    {
+      "id": "patient.getCircleMember",
+      "sql": "SELECT id, patient_id, kind, display_name, relationship, phone, email, is_primary_nr\nFROM patient_circle_member WHERE id = @id"
+    },
+    {
+      "id": "patient.getConsentState",
+      "sql": "SELECT patient_id, advance_directive_status, advance_directive_document_id,\n       informed_consent_status, tele_consent_mode, capacity_status,\n       confidentiality_exception_active, updated_at\nFROM patient_consent_state WHERE patient_id = @id"
     }
   ],
   "dependencies": {

@@ -243,6 +243,45 @@ function doDelete(
   return { changes: result.changes };
 }
 
+function doDeleteWhere(
+  db: DatabaseT.Database,
+  table: string,
+  where: Record<string, string | number>,
+  meta: TableMeta,
+): { changes: number } {
+  const whereCols = Object.keys(where);
+  validateColumns(meta, whereCols, 'where predicate');
+  const whereClauses = whereCols.map((c) => `${c} = ?`).join(' AND ');
+  const whereValues = whereCols.map((c) => where[c]);
+  const stmt = db.prepare(`DELETE FROM ${table} WHERE ${whereClauses}`);
+  const result = stmt.run(...whereValues) as { changes: number };
+  return { changes: result.changes };
+}
+
+function doUpdateWhere(
+  db: DatabaseT.Database,
+  table: string,
+  where: Record<string, string | number>,
+  patch: Record<string, unknown>,
+  meta: TableMeta,
+): { changes: number } {
+  const patchCols = Object.keys(patch);
+  if (patchCols.length === 0) {
+    // No-op: empty patch.
+    return { changes: 0 };
+  }
+  const whereCols = Object.keys(where);
+  validateColumns(meta, patchCols, 'update patch');
+  validateColumns(meta, whereCols, 'where predicate');
+  const setClauses = patchCols.map((c) => `${c} = ?`).join(', ');
+  const whereClauses = whereCols.map((c) => `${c} = ?`).join(' AND ');
+  const patchValues = patchCols.map((c) => patch[c]);
+  const whereValues = whereCols.map((c) => where[c]);
+  const stmt = db.prepare(`UPDATE ${table} SET ${setClauses} WHERE ${whereClauses}`);
+  const result = stmt.run(...patchValues, ...whereValues) as { changes: number };
+  return { changes: result.changes };
+}
+
 // ── Argument parsing helpers ──────────────────────────────────────────────────
 
 function parseInsertArgs(args: ReadonlyArray<unknown>): {
@@ -295,6 +334,64 @@ function parseDeleteArgs(args: ReadonlyArray<unknown>): {
     throw validationErr('store.write.delete: audit must be a plain object');
   }
   return { table, pkValue, audit: audit as AuditTag };
+}
+
+/** Validate where object: must be non-empty, plain object; values must be string|number only. */
+function validateWherePredicate(
+  where: unknown,
+  context: string,
+): Record<string, string | number> {
+  if (!where || typeof where !== 'object' || Array.isArray(where)) {
+    throw validationErr(`store.write.${context}: where must be a plain object`);
+  }
+  const keys = Object.keys(where as object);
+  if (keys.length === 0) {
+    throw validationErr(
+      `store.write.${context}: where predicate must not be empty (blast-radius guard)`,
+    );
+  }
+  const typed = where as Record<string, unknown>;
+  for (const k of keys) {
+    const v = typed[k];
+    if (typeof v !== 'string' && typeof v !== 'number') {
+      throw validationErr(
+        `store.write.${context}: where value for column '${k}' must be string or number (got ${typeof v})`,
+      );
+    }
+  }
+  return typed as Record<string, string | number>;
+}
+
+function parseDeleteWhereArgs(args: ReadonlyArray<unknown>): {
+  table: string;
+  where: Record<string, string | number>;
+  audit: AuditTag;
+} {
+  const [table, whereRaw, audit] = args;
+  if (typeof table !== 'string') throw validationErr('store.write.deleteWhere: table must be a string');
+  const where = validateWherePredicate(whereRaw, 'deleteWhere');
+  if (!audit || typeof audit !== 'object' || Array.isArray(audit)) {
+    throw validationErr('store.write.deleteWhere: audit must be a plain object');
+  }
+  return { table, where, audit: audit as AuditTag };
+}
+
+function parseUpdateWhereArgs(args: ReadonlyArray<unknown>): {
+  table: string;
+  where: Record<string, string | number>;
+  patch: Record<string, unknown>;
+  audit: AuditTag;
+} {
+  const [table, whereRaw, patch, audit] = args;
+  if (typeof table !== 'string') throw validationErr('store.write.updateWhere: table must be a string');
+  const where = validateWherePredicate(whereRaw, 'updateWhere');
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+    throw validationErr('store.write.updateWhere: patch must be a plain object');
+  }
+  if (!audit || typeof audit !== 'object' || Array.isArray(audit)) {
+    throw validationErr('store.write.updateWhere: audit must be a plain object');
+  }
+  return { table, where, patch: patch as Record<string, unknown>, audit: audit as AuditTag };
 }
 
 // ── Capability registration ───────────────────────────────────────────────────
@@ -382,6 +479,60 @@ export function registerStoreWriteCapability(): void {
             event: audit.event as AuditEventKind,
             entityId: workspaceId,
             recordId: String(pkValue),
+            recordType: audit.recordType,
+            detail: audit.detail as Record<string, string | number | boolean> | undefined,
+            principal: caller?.bundleId ?? 'system',
+          });
+
+          return result;
+        }
+
+        case 'deleteWhere': {
+          const { table, where, audit } = parseDeleteWhereArgs(args);
+          const owner = enforceTable(table);
+          enforceOwnership(owner, caller, table);
+          enforceAudit(audit);
+
+          const store = requireStoreForTable(table);
+          const db = requireDb(store);
+          const workspaceId = store.workspaceId()!;
+          const meta = getTableMeta(db, table);
+
+          const result = doDeleteWhere(db, table, where, meta);
+
+          // Coarse emit — multi-row delete has no single pk; pass empty id array.
+          store.emitTableChange(table, 'delete', []);
+          auditService.emit({
+            event: audit.event as AuditEventKind,
+            entityId: workspaceId,
+            recordId: audit.recordId !== undefined ? String(audit.recordId) : undefined,
+            recordType: audit.recordType,
+            detail: audit.detail as Record<string, string | number | boolean> | undefined,
+            principal: caller?.bundleId ?? 'system',
+          });
+
+          return result;
+        }
+
+        case 'updateWhere': {
+          const { table, where, patch, audit } = parseUpdateWhereArgs(args);
+          const owner = enforceTable(table);
+          enforceOwnership(owner, caller, table);
+          enforceAudit(audit);
+
+          const store = requireStoreForTable(table);
+          const db = requireDb(store);
+          const workspaceId = store.workspaceId()!;
+          const meta = getTableMeta(db, table);
+
+          const result = doUpdateWhere(db, table, where, patch, meta);
+
+          // Coarse emit — multi-row update has no single pk; pass empty id array.
+          store.emitTableChange(table, 'set', []);
+          auditService.emit({
+            event: audit.event as AuditEventKind,
+            entityId: workspaceId,
+            recordId: audit.recordId !== undefined ? String(audit.recordId) : undefined,
             recordType: audit.recordType,
             detail: audit.detail as Record<string, string | number | boolean> | undefined,
             principal: caller?.bundleId ?? 'system',

@@ -29,6 +29,10 @@ const LIFECYCLE_STAGES = [
 const VALID_STAGES = new Set(LIFECYCLE_STAGES.map((s) => s.id));
 const VALID_STATUSES = new Set(['active', 'inactive', 'archived']);
 
+// ── Circle / Consent domain vocab (ADR-506 §G — validate in host) ────────────
+
+const VALID_CIRCLE_KINDS = new Set(['nominated_rep', 'caregiver', 'family', 'emergency_contact']);
+
 // ── Row → record mappers (reproduce record-patient-cap.ts field-by-field) ─────
 
 function deriveDisplayName(given, family) {
@@ -78,6 +82,32 @@ function mapLifecycle(row) {
     stage: row.stage,
     stageUpdatedAt: row.stage_updated_at,
     stageReason: row.stage_reason,
+  };
+}
+
+function mapCircleMember(row) {
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    kind: row.kind,
+    displayName: row.display_name,
+    relationship: row.relationship,
+    phone: row.phone,
+    email: row.email,
+    isPrimaryNr: !!row.is_primary_nr,
+  };
+}
+
+function mapConsentState(row) {
+  return {
+    patientId: row.patient_id,
+    advanceDirectiveStatus: row.advance_directive_status,
+    advanceDirectiveDocumentId: row.advance_directive_document_id,
+    informedConsentStatus: row.informed_consent_status,
+    teleConsentMode: row.tele_consent_mode,
+    capacityStatus: row.capacity_status,
+    confidentialityExceptionActive: !!row.confidentiality_exception_active,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -144,6 +174,26 @@ export function activate(ctx) {
       case 'listLifecycleStages': {
         // Static data — no SQL. Return a copy to prevent mutation.
         return LIFECYCLE_STAGES.map((s) => ({ id: s.id, label: s.label }));
+      }
+
+      case 'getCircle': {
+        const clientId = args[0];
+        const rows = await storeQuery.call('run', [
+          'patient.getCircle',
+          { id: clientId },
+          { event: 'record.patient.viewed', recordType: 'patient_circle_member', recordId: clientId },
+        ]);
+        return rows.map(mapCircleMember);
+      }
+
+      case 'getConsentState': {
+        const clientId = args[0];
+        const rows = await storeQuery.call('run', [
+          'patient.getConsentState',
+          { id: clientId },
+          { event: 'record.patient.viewed', recordType: 'patient_consent_state', recordId: clientId },
+        ]);
+        return rows.length > 0 ? mapConsentState(rows[0]) : null;
       }
 
       default:
@@ -350,10 +400,12 @@ export function activate(ctx) {
         }
 
         // Delete adjunct tables (children) first, then the parent.
+        // deleteWhere correctly handles both multi-row tables (patient_circle_member)
+        // and PK=patient_id tables (profile/lifecycle/consent) uniformly.
         for (const table of OWNED_ADJUNCT_TABLES) {
-          await storeWrite.call('delete', [
+          await storeWrite.call('deleteWhere', [
             table,
-            id,
+            { patient_id: id },
             {
               event: 'record.patient.erased',
               recordType: table,
@@ -438,6 +490,306 @@ export function activate(ctx) {
           throw new Error('record.patient.updateProfile: row disappeared after write: ' + id);
         }
         return mapProfile(updRows[0]);
+      }
+
+      case 'addCircleMember': {
+        const clientId = args[0];
+        const input = args[1];
+        if (typeof clientId !== 'string') {
+          throw new Error('record.patient.addCircleMember: clientId must be a string');
+        }
+        if (!input || typeof input !== 'object') {
+          throw new Error('record.patient.addCircleMember: input must be an object');
+        }
+        if (!input.kind || !VALID_CIRCLE_KINDS.has(input.kind)) {
+          throw new Error('record.patient.addCircleMember: invalid kind: ' + String(input.kind));
+        }
+        if (!input.displayName || String(input.displayName).trim().length === 0) {
+          throw new Error('record.patient.addCircleMember: displayName is required');
+        }
+
+        // Patient existence check — no audit tag.
+        const existRowsAdd = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        if (!existRowsAdd.length) {
+          throw notFound('record.patient.addCircleMember: patient not found: ' + clientId);
+        }
+
+        const memberId = globalThis.crypto.randomUUID();
+        const isPrimaryNr = input.isPrimaryNr ? 1 : 0;
+
+        // If new member is primary NR, demote all existing primary NR members first.
+        if (isPrimaryNr) {
+          await storeWrite.call('updateWhere', [
+            'patient_circle_member',
+            { patient_id: clientId },
+            { is_primary_nr: 0 },
+            {
+              event: 'record.patient.circle.nr.changed',
+              recordType: 'patient_circle_member',
+              recordId: clientId,
+            },
+          ]);
+        }
+
+        await storeWrite.call('insert', [
+          'patient_circle_member',
+          {
+            id: memberId,
+            patient_id: clientId,
+            kind: input.kind,
+            display_name: String(input.displayName).trim(),
+            relationship: input.relationship != null ? String(input.relationship) : null,
+            phone: input.phone != null ? String(input.phone) : null,
+            email: input.email != null ? String(input.email) : null,
+            is_primary_nr: isPrimaryNr,
+          },
+          {
+            event: 'record.patient.circle.added',
+            recordType: 'patient_circle_member',
+            recordId: memberId,
+            detail: { kind: input.kind },
+          },
+        ]);
+
+        // Build return value from known fields — no read-back needed.
+        return mapCircleMember({
+          id: memberId,
+          patient_id: clientId,
+          kind: input.kind,
+          display_name: String(input.displayName).trim(),
+          relationship: input.relationship != null ? String(input.relationship) : null,
+          phone: input.phone != null ? String(input.phone) : null,
+          email: input.email != null ? String(input.email) : null,
+          is_primary_nr: isPrimaryNr,
+        });
+      }
+
+      case 'updateCircleMember': {
+        const memberId = args[0];
+        const patch = args[1];
+        if (typeof memberId !== 'string') {
+          throw new Error('record.patient.updateCircleMember: memberId must be a string');
+        }
+        if (!patch || typeof patch !== 'object') {
+          throw new Error('record.patient.updateCircleMember: patch must be an object');
+        }
+
+        // Existence check via getCircleMember query.
+        const memberRows = await storeQuery.call('run', ['patient.getCircleMember', { id: memberId }]);
+        if (!memberRows.length) {
+          throw notFound('record.patient.updateCircleMember: member not found: ' + memberId);
+        }
+
+        // Build patch: only contact/identity fields; isPrimaryNr not settable here.
+        const patchCols = {};
+        if (patch.kind !== undefined) {
+          if (!VALID_CIRCLE_KINDS.has(patch.kind)) {
+            throw new Error('record.patient.updateCircleMember: invalid kind: ' + String(patch.kind));
+          }
+          patchCols.kind = patch.kind;
+        }
+        if (patch.displayName !== undefined) {
+          if (String(patch.displayName).trim().length === 0) {
+            throw new Error('record.patient.updateCircleMember: displayName must not be empty');
+          }
+          patchCols.display_name = String(patch.displayName).trim();
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'relationship')) {
+          patchCols.relationship = patch.relationship != null ? String(patch.relationship) : null;
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'phone')) {
+          patchCols.phone = patch.phone != null ? String(patch.phone) : null;
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'email')) {
+          patchCols.email = patch.email != null ? String(patch.email) : null;
+        }
+
+        await storeWrite.call('update', [
+          'patient_circle_member',
+          memberId,
+          patchCols,
+          {
+            event: 'record.patient.circle.updated',
+            recordType: 'patient_circle_member',
+            recordId: memberId,
+          },
+        ]);
+
+        // Read-back.
+        const updMemberRows = await storeQuery.call('run', ['patient.getCircleMember', { id: memberId }]);
+        if (!updMemberRows.length) {
+          throw new Error('record.patient.updateCircleMember: row disappeared after write: ' + memberId);
+        }
+        return mapCircleMember(updMemberRows[0]);
+      }
+
+      case 'setNR': {
+        const clientId = args[0];
+        const nrMemberId = args[1]; // string to promote, or null/'' to clear
+        if (typeof clientId !== 'string') {
+          throw new Error('record.patient.setNR: clientId must be a string');
+        }
+
+        // Patient existence check — no audit tag.
+        const existRowsNR = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        if (!existRowsNR.length) {
+          throw notFound('record.patient.setNR: patient not found: ' + clientId);
+        }
+
+        // Validate the target member BEFORE any write — a failed cross-patient
+        // guard must be a no-op. Demoting first would clear this patient's existing
+        // NR even on a rejected call. Atomicity order: validate → demote-all → promote.
+        const promoteId = nrMemberId && typeof nrMemberId === 'string' ? nrMemberId : null;
+        if (promoteId) {
+          const nrMemberRows = await storeQuery.call('run', ['patient.getCircleMember', { id: promoteId }]);
+          if (!nrMemberRows.length) {
+            throw notFound('record.patient.setNR: member not found: ' + promoteId);
+          }
+          if (nrMemberRows[0].patient_id !== clientId) {
+            throw Object.assign(
+              new Error('record.patient.setNR: member does not belong to this patient'),
+              { code: 'cap.denied' },
+            );
+          }
+        }
+
+        // Demote all existing primary NR members.
+        await storeWrite.call('updateWhere', [
+          'patient_circle_member',
+          { patient_id: clientId },
+          { is_primary_nr: 0 },
+          {
+            event: 'record.patient.circle.nr.changed',
+            recordType: 'patient_circle_member',
+            recordId: clientId,
+            detail: { cleared: true },
+          },
+        ]);
+
+        // Promote the validated member if provided.
+        if (promoteId) {
+          await storeWrite.call('update', [
+            'patient_circle_member',
+            promoteId,
+            { is_primary_nr: 1 },
+            {
+              event: 'record.patient.circle.nr.changed',
+              recordType: 'patient_circle_member',
+              recordId: clientId,
+              detail: { memberId: promoteId },
+            },
+          ]);
+        }
+
+        // Return the updated circle so view can re-render.
+        const circleRows = await storeQuery.call('run', [
+          'patient.getCircle',
+          { id: clientId },
+          { event: 'record.patient.viewed', recordType: 'patient_circle_member', recordId: clientId },
+        ]);
+        return circleRows.map(mapCircleMember);
+      }
+
+      case 'setConsentState': {
+        const clientId = args[0];
+        const patch = args[1];
+        if (typeof clientId !== 'string') {
+          throw new Error('record.patient.setConsentState: clientId must be a string');
+        }
+        if (!patch || typeof patch !== 'object') {
+          throw new Error('record.patient.setConsentState: patch must be an object');
+        }
+
+        // Patient existence check — no audit tag.
+        const existRowsConsent = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        if (!existRowsConsent.length) {
+          throw notFound('record.patient.setConsentState: patient not found: ' + clientId);
+        }
+
+        const now = Date.now();
+
+        // Map camelCase patch keys → snake_case DB columns.
+        const CONSENT_COL_MAP = {
+          advanceDirectiveStatus:          'advance_directive_status',
+          advanceDirectiveDocumentId:      'advance_directive_document_id',
+          informedConsentStatus:           'informed_consent_status',
+          teleConsentMode:                 'tele_consent_mode',
+          capacityStatus:                  'capacity_status',
+          confidentialityExceptionActive:  'confidentiality_exception_active',
+        };
+
+        // Existing row check — no audit.
+        const consentRows = await storeQuery.call('run', ['patient.getConsentState', { id: clientId }]);
+
+        if (consentRows.length > 0) {
+          // Update: only provided keys (including '' and null — clear semantics).
+          const patchCols = { updated_at: now };
+          for (const [camel, snake] of Object.entries(CONSENT_COL_MAP)) {
+            if (Object.prototype.hasOwnProperty.call(patch, camel)) {
+              if (camel === 'confidentialityExceptionActive') {
+                patchCols[snake] = patch[camel] ? 1 : 0;
+              } else {
+                // Type-validate: must be string or null.
+                const val = patch[camel];
+                if (val !== null && val !== undefined && typeof val !== 'string') {
+                  throw new Error('record.patient.setConsentState: ' + camel + ' must be a string or null');
+                }
+                patchCols[snake] = val !== undefined ? val : null;
+              }
+            }
+          }
+          await storeWrite.call('update', [
+            'patient_consent_state',
+            clientId,
+            patchCols,
+            {
+              event: 'record.patient.consent.updated',
+              recordType: 'patient_consent_state',
+              recordId: clientId,
+            },
+          ]);
+        } else {
+          // Insert full row with nulls for absent fields.
+          const row = {
+            patient_id: clientId,
+            advance_directive_status: null,
+            advance_directive_document_id: null,
+            informed_consent_status: null,
+            tele_consent_mode: null,
+            capacity_status: null,
+            confidentiality_exception_active: 0,
+            updated_at: now,
+          };
+          for (const [camel, snake] of Object.entries(CONSENT_COL_MAP)) {
+            if (Object.prototype.hasOwnProperty.call(patch, camel)) {
+              if (camel === 'confidentialityExceptionActive') {
+                row[snake] = patch[camel] ? 1 : 0;
+              } else {
+                const val = patch[camel];
+                if (val !== null && val !== undefined && typeof val !== 'string') {
+                  throw new Error('record.patient.setConsentState: ' + camel + ' must be a string or null');
+                }
+                row[snake] = val !== undefined ? val : null;
+              }
+            }
+          }
+          await storeWrite.call('insert', [
+            'patient_consent_state',
+            row,
+            {
+              event: 'record.patient.consent.updated',
+              recordType: 'patient_consent_state',
+              recordId: clientId,
+            },
+          ]);
+        }
+
+        // Read-back.
+        const updConsentRows = await storeQuery.call('run', ['patient.getConsentState', { id: clientId }]);
+        if (!updConsentRows.length) {
+          throw new Error('record.patient.setConsentState: row disappeared after write: ' + clientId);
+        }
+        return mapConsentState(updConsentRows[0]);
       }
 
       default:

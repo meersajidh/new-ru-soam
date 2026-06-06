@@ -708,6 +708,8 @@
       var _record    = null;  // PatientRecord (real)
       var _profile   = null;  // PatientProfile | null (real)
       var _lifecycle = null;  // PatientLifecycle | null (real)
+      var _circle    = null;  // PatientCircleMember[] | null (real)
+      var _consent   = null;  // PatientConsentState | null (real)
       var _density   = 'dense';
       var _riskOpen  = false;
 
@@ -898,16 +900,28 @@
 
         var badgesCol = el('div', 'ov-badges');
 
-        var badgeData = [
-          { icon: 'scroll-text', text: 'AD active' },
-          { icon: 'circle-check', text: 'Capacity intact' },
-          { icon: 'video', text: 'Tele-consent' },
-        ];
-        badgeData.forEach(function (b) {
-          var badge = el('span', 'ov-badge ok');
-          badge.innerHTML = icon(b.icon, 12) + ' ' + b.text;
-          badgesCol.appendChild(badge);
-        });
+        // Real consent badges (from _consent) — only render when data present.
+        var consent = _consent;
+        if (consent) {
+          if (consent.advanceDirectiveStatus) {
+            var adBadge = el('span', 'ov-badge ok');
+            adBadge.setAttribute('data-maturity-id', 'badge-advance-directive');
+            adBadge.innerHTML = icon('scroll-text', 12) + ' AD: ' + consent.advanceDirectiveStatus;
+            badgesCol.appendChild(adBadge);
+          }
+          if (consent.capacityStatus) {
+            var capBadge = el('span', 'ov-badge ok');
+            capBadge.setAttribute('data-maturity-id', 'badge-capacity');
+            capBadge.innerHTML = icon('circle-check', 12) + ' ' + consent.capacityStatus;
+            badgesCol.appendChild(capBadge);
+          }
+          if (consent.teleConsentMode) {
+            var teleBadge = el('span', 'ov-badge ok');
+            teleBadge.setAttribute('data-maturity-id', 'badge-tele-consent');
+            teleBadge.innerHTML = icon('video', 12) + ' Tele: ' + consent.teleConsentMode;
+            badgesCol.appendChild(teleBadge);
+          }
+        }
 
         header.appendChild(avatar);
         header.appendChild(idDiv);
@@ -1172,20 +1186,56 @@
         return wrap;
       }
 
+      var CIRCLE_KIND_LABELS = {
+        'nominated_rep':    'Nominated Rep',
+        'caregiver':        'Caregiver',
+        'family':           'Family',
+        'emergency_contact':'Emergency Contact',
+      };
+
       function buildCircleMini() {
+        var circle = _circle;
         var ul = el('ul', 'circle-mini');
-        MOCK.circle.forEach(function (m) {
+        ul.setAttribute('data-maturity-id', 'card-circle-mini');
+
+        if (!circle || circle.length === 0) {
+          var empty = el('li', null, null);
+          empty.appendChild(txt('span', 'aspect-meta', 'No circle members recorded.'));
+          ul.appendChild(empty);
+          return ul;
+        }
+
+        // Show primary NR first (already sorted by is_primary_nr DESC from query),
+        // then up to 2 more members, then a count if more exist.
+        var shown = circle.slice(0, 3);
+        var more  = circle.length - shown.length;
+
+        shown.forEach(function (m) {
+          var iconName = (m.kind === 'nominated_rep') ? 'shield' : 'user-round';
           var li = el('li');
-          li.innerHTML = icon(m.iconName, 13);
+          li.innerHTML = icon(iconName, 13);
           var textSpan = el('span');
           var bold = el('b', null, null);
-          bold.textContent = m.role;
+          var kindLabel = CIRCLE_KIND_LABELS[m.kind] || m.kind;
+          bold.textContent = kindLabel;
+          if (m.isPrimaryNr) {
+            bold.textContent += ' (NR)';
+          }
           textSpan.appendChild(bold);
-          textSpan.appendChild(document.createTextNode(' — ' + m.name + ' '));
-          textSpan.appendChild(txt('span', 'aspect-meta', '· ' + m.rel));
+          textSpan.appendChild(document.createTextNode(' — ' + m.displayName));
+          if (m.relationship) {
+            textSpan.appendChild(txt('span', 'aspect-meta', ' · ' + m.relationship));
+          }
           li.appendChild(textSpan);
           ul.appendChild(li);
         });
+
+        if (more > 0) {
+          var moreLi = el('li', null, null);
+          moreLi.appendChild(txt('span', 'aspect-meta', '+' + more + ' more'));
+          ul.appendChild(moreLi);
+        }
+
         return ul;
       }
 
@@ -1304,18 +1354,24 @@
           _proxy.call('get', _clientId),
           _proxy.call('getProfile', _clientId),
           _proxy.call('getLifecycle', _clientId),
+          _proxy.call('getCircle', _clientId),
+          _proxy.call('getConsentState', _clientId),
         ]).then(function (results) {
-          var rec = results[0];
-          var profile = results[1];
+          var rec       = results[0];
+          var profile   = results[1];
           var lifecycle = results[2];
+          var circle    = results[3];
+          var consent   = results[4];
 
           if (!rec) {
             showError('Client not found: ' + _clientId);
             return;
           }
-          _record = rec;
-          _profile = profile;
+          _record    = rec;
+          _profile   = profile;
           _lifecycle = lifecycle;
+          _circle    = circle;
+          _consent   = consent;
           renderOverview();
         }).catch(function (err) {
           if (isLockedError(err)) {
@@ -1385,7 +1441,13 @@
         });
 
         soamView.events.onStoreChange(function (payload) {
-          if (payload && (payload.table === 'patients' || payload.table === 'patient_profile' || payload.table === 'patient_lifecycle')) {
+          if (payload && (
+            payload.table === 'patients' ||
+            payload.table === 'patient_profile' ||
+            payload.table === 'patient_lifecycle' ||
+            payload.table === 'patient_circle_member' ||
+            payload.table === 'patient_consent_state'
+          )) {
             loadAndRender();
           }
         });
