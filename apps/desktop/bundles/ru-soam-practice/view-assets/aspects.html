@@ -8,37 +8,47 @@
     />
     <title>Client Aspects</title>
     <style>
-
       /* ── Reset ──────────────────────────────────────────────────── */
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      button { font: inherit; color: inherit; cursor: pointer; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+      }
 
       /* ── Design tokens (overridden via postMessage) ─────────────── */
       :root {
         color-scheme: light dark;
         --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
-        --color-surface-base:     #161618;
-        --color-surface-panel:    #1c1c1f;
+        --color-surface-base: #161618;
+        --color-surface-panel: #1c1c1f;
         --color-surface-elevated: #232326;
-        --color-surface-active:   #2a2d26;
-        --color-fg-primary:   #f2f2f7;
+        --color-surface-active: #2a2d26;
+        --color-fg-primary: #f2f2f7;
         --color-fg-secondary: #aeaeb2;
-        --color-fg-muted:     #636366;
-        --color-border:       #3a3a3c;
+        --color-fg-muted: #636366;
+        --color-border: #3a3a3c;
         --color-border-focus: #5ac85a;
-        --color-accent:         #5ac85a;
-        --color-accent-fg:      #1c1c1e;
+        --color-accent: #5ac85a;
+        --color-accent-fg: #1c1c1e;
         --color-success: #5ac85a;
         --color-warning: #f4a623;
-        --color-error:   #e05252;
+        --color-error: #e05252;
         --radius-sm: 4px;
         --radius-md: 7px;
         --transition: 130ms ease;
       }
 
       /* ── Base ───────────────────────────────────────────────────── */
-      html, body {
+      html,
+      body {
         height: 100%;
         overflow: hidden;
         font-family: var(--font-sans);
@@ -71,13 +81,18 @@
       }
       .spinner {
         display: inline-block;
-        width: 11px; height: 11px;
+        width: 11px;
+        height: 11px;
         border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
         border-top-color: currentColor;
         border-radius: 50%;
         animation: spin 0.7s linear infinite;
       }
-      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
       /* ── Status bar ─────────────────────────────────────────────── */
       #status-bar {
@@ -89,7 +104,9 @@
         display: none;
         flex-shrink: 0;
       }
-      #status-bar.visible { display: block; }
+      #status-bar.visible {
+        display: block;
+      }
       #status-bar.is-locked {
         background: color-mix(in srgb, var(--color-warning) 9%, transparent);
         color: var(--color-warning);
@@ -107,7 +124,8 @@
       }
       .id-avatar {
         flex: 0 0 auto;
-        width: 32px; height: 32px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         background: var(--color-accent);
         color: var(--color-accent-fg);
@@ -118,7 +136,9 @@
         justify-content: center;
         letter-spacing: -0.01em;
       }
-      .id-text { min-width: 0; }
+      .id-text {
+        min-width: 0;
+      }
       .id-name {
         font-size: 13px;
         font-weight: 600;
@@ -152,26 +172,29 @@
         display: flex;
         align-items: center;
         gap: 7px;
-        padding: 9px 12px;
+        padding: 3px 12px;
         cursor: pointer;
         user-select: none;
-        background: transparent;
+        /* background-color: var(--color-surface-panel); */
+        background: color-mix(in srgb, var(--color-surface-panel) 50%, transparent);
         transition: background var(--transition);
       }
       .section-header:hover {
-        background: color-mix(in srgb, var(--color-fg-muted) 6%, transparent);
+        background: color-mix(in srgb, var(--color-fg-muted) 25%, transparent);
       }
       .section-caret {
         flex: 0 0 auto;
         transition: transform 120ms ease;
         color: var(--color-fg-muted);
       }
-      .section-caret.is-open { transform: rotate(90deg); }
+      .section-caret.is-open {
+        transform: rotate(90deg);
+      }
       .section-title {
         flex: 1 1 auto;
         font-size: 11.5px;
-        font-weight: 600;
-        color: var(--color-fg-primary);
+        font-weight: 800;
+        color: var(--color-bg-primary);
       }
       .section-source {
         font-size: 9px;
@@ -188,7 +211,9 @@
         padding: 10px 12px 14px;
         display: none;
       }
-      .section-body.is-open { display: block; }
+      .section-body.is-open {
+        display: block;
+      }
 
       /* ── Risk section ───────────────────────────────────────────── */
       .risk-alert-bar {
@@ -203,7 +228,12 @@
         color: var(--color-error);
         flex-shrink: 0;
       }
-      .risk-facts { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+      .risk-facts {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 10px;
+      }
       .risk-fact {
         display: flex;
         align-items: center;
@@ -211,7 +241,13 @@
         font-size: 11px;
         color: var(--color-fg-secondary);
       }
-      .risk-items { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+      .risk-items {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
       .risk-item {
         display: flex;
         align-items: flex-start;
@@ -221,7 +257,8 @@
       }
       .risk-dot {
         flex: 0 0 auto;
-        width: 5px; height: 5px;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         background: var(--color-error);
         margin-top: 5px;
@@ -233,7 +270,11 @@
         margin-left: 3px;
         white-space: nowrap;
       }
-      .risk-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+      .risk-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
       .action-btn {
         display: inline-flex;
         align-items: center;
@@ -247,7 +288,9 @@
         padding: 4px 9px;
         cursor: pointer;
         font-family: var(--font-sans);
-        transition: background var(--transition), color var(--transition);
+        transition:
+          background var(--transition),
+          color var(--transition);
       }
       .action-btn:hover {
         background: var(--color-surface-active);
@@ -256,12 +299,35 @@
       }
 
       /* ── Profile section ────────────────────────────────────────────────────────────────────────────── */
-      .kv { display: flex; flex-direction: column; gap: 8px; }
-      .kv-row { display: flex; align-items: baseline; gap: 8px; font-size: 11px; }
-      .kv-label { color: var(--color-fg-muted); flex: 0 0 90px; font-size: 10.5px; }
-      .kv-value { color: var(--color-fg-secondary); flex: 1 1 auto; }
-      .kv-value.is-empty { color: var(--color-fg-muted); font-style: italic; }
-      .note-subtle { font-size: 10px; color: var(--color-fg-muted); margin-top: 6px; }
+      .kv {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .kv-row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        font-size: 11px;
+      }
+      .kv-label {
+        color: var(--color-fg-muted);
+        flex: 0 0 90px;
+        font-size: 10.5px;
+      }
+      .kv-value {
+        color: var(--color-fg-secondary);
+        flex: 1 1 auto;
+      }
+      .kv-value.is-empty {
+        color: var(--color-fg-muted);
+        font-style: italic;
+      }
+      .note-subtle {
+        font-size: 10px;
+        color: var(--color-fg-muted);
+        margin-top: 6px;
+      }
 
       /* ── Profile edit form ─────────────────────────────────────────────────────────────────── */
       #profile-edit-form {
@@ -272,8 +338,14 @@
         padding-top: 10px;
         border-top: 1px solid var(--color-border);
       }
-      #profile-edit-form.is-open { display: flex; }
-      .pe-field { display: flex; flex-direction: column; gap: 3px; }
+      #profile-edit-form.is-open {
+        display: flex;
+      }
+      .pe-field {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
       .pe-label {
         font-size: 10px;
         font-weight: 600;
@@ -293,7 +365,9 @@
         outline: none;
         transition: border-color var(--transition);
       }
-      .pe-input:focus { border-color: var(--color-border-focus); }
+      .pe-input:focus {
+        border-color: var(--color-border-focus);
+      }
       .pe-actions {
         display: flex;
         gap: 6px;
@@ -313,28 +387,49 @@
         background: transparent;
         color: var(--color-fg-secondary);
         cursor: pointer;
-        transition: background var(--transition), color var(--transition);
+        transition:
+          background var(--transition),
+          color var(--transition);
       }
-      .pe-btn:hover { background: var(--color-surface-active); color: var(--color-fg-primary); }
+      .pe-btn:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
       .pe-btn.primary {
         background: var(--color-accent);
         color: var(--color-accent-fg, #1c1c1e);
         border-color: transparent;
       }
-      .pe-btn.primary:hover { background: var(--color-success); }
-      .pe-btn.primary:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+      .pe-btn.primary:hover {
+        background: var(--color-success);
+      }
+      .pe-btn.primary:disabled {
+        opacity: 0.45;
+        cursor: default;
+        pointer-events: none;
+      }
       .pe-save-msg {
         font-size: 10px;
         flex: 1;
         opacity: 0;
         transition: opacity var(--transition);
       }
-      .pe-save-msg.visible { opacity: 1; }
-      .pe-save-msg.ok { color: var(--color-success); }
-      .pe-save-msg.err { color: var(--color-error); }
+      .pe-save-msg.visible {
+        opacity: 1;
+      }
+      .pe-save-msg.ok {
+        color: var(--color-success);
+      }
+      .pe-save-msg.err {
+        color: var(--color-error);
+      }
 
       /* ── Circle member list ───────────────────────────────────────────────────── */
-      .circle-list { display: flex; flex-direction: column; gap: 8px; }
+      .circle-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
       .circle-member {
         background: var(--color-surface-base, #111);
         border: 1px solid var(--color-border);
@@ -390,9 +485,14 @@
         background: transparent;
         color: var(--color-fg-secondary);
         cursor: pointer;
-        transition: background var(--transition), color var(--transition);
+        transition:
+          background var(--transition),
+          color var(--transition);
       }
-      .circle-action-btn:hover { background: var(--color-surface-active); color: var(--color-fg-primary); }
+      .circle-action-btn:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
       .circle-empty {
         font-size: 11px;
         color: var(--color-fg-muted);
@@ -409,10 +509,16 @@
         padding-top: 10px;
         border-top: 1px solid var(--color-border);
       }
-      #circle-add-form.is-open { display: flex; }
+      #circle-add-form.is-open {
+        display: flex;
+      }
 
       /* ── Consent section ─────────────────────────────────────────────────── */
-      .consent-kv { display: flex; flex-direction: column; gap: 6px; }
+      .consent-kv {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
       .consent-flag-row {
         display: flex;
         align-items: center;
@@ -433,13 +539,24 @@
         padding-top: 10px;
         border-top: 1px solid var(--color-border);
       }
-      #consent-edit-form.is-open { display: flex; }
+      #consent-edit-form.is-open {
+        display: flex;
+      }
 
       /* ── Risk severity dot colors ──────────────────────────────────────── */
-      .risk-dot.sev-info     { background: var(--color-fg-muted); }
-      .risk-dot.sev-concern  { background: var(--color-warning); }
-      .risk-dot.sev-elevated { background: var(--color-error); }
-      .risk-dot.sev-critical { background: #e0193a; box-shadow: 0 0 4px #e0193a88; }
+      .risk-dot.sev-info {
+        background: var(--color-fg-muted);
+      }
+      .risk-dot.sev-concern {
+        background: var(--color-warning);
+      }
+      .risk-dot.sev-elevated {
+        background: var(--color-error);
+      }
+      .risk-dot.sev-critical {
+        background: #e0193a;
+        box-shadow: 0 0 4px #e0193a88;
+      }
       .risk-empty {
         font-size: 11px;
         color: var(--color-fg-muted);
@@ -456,7 +573,9 @@
         padding-top: 10px;
         border-top: 1px solid var(--color-border);
       }
-      .risk-inline-form.is-open { display: flex; }
+      .risk-inline-form.is-open {
+        display: flex;
+      }
 
       /* ── Edit button on section header ───────────────────────────────────────────────── */
       .section-edit-btn {
@@ -471,10 +590,17 @@
         color: var(--color-fg-muted);
         cursor: pointer;
         flex-shrink: 0;
-        transition: background var(--transition), color var(--transition);
+        transition:
+          background var(--transition),
+          color var(--transition);
       }
-      .section-edit-btn:hover { background: var(--color-surface-active); color: var(--color-fg-secondary); }
-      .section-edit-btn.is-active { color: var(--color-accent); }
+      .section-edit-btn:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-secondary);
+      }
+      .section-edit-btn.is-active {
+        color: var(--color-accent);
+      }
     </style>
   </head>
   <body>
@@ -484,11 +610,11 @@
       Loading…
     </div>
 
-    <div id="root" style="display:none">
+    <div id="root" style="display: none">
       <div id="status-bar" role="alert"></div>
 
       <!-- Client identity strip -->
-      <div id="identity-strip" style="display:none">
+      <div id="identity-strip" style="display: none">
         <div class="id-avatar" id="id-avatar">?</div>
         <div class="id-text">
           <div class="id-name" id="id-name">—</div>
@@ -499,13 +625,19 @@
       <!-- Sections -->
       <div id="aspects-scroll">
         <!-- Risk / Safety (always shown first) -->
-        <div id="risk-alert-bar" class="risk-alert-bar" style="display:none">
+        <div id="risk-alert-bar" class="risk-alert-bar" style="display: none">
           <span data-codicon="shield" data-size="13"></span>
           Risk / Safety — active concern
         </div>
 
         <section class="section" id="section-risk" data-maturity-id="section-risk">
-          <header class="section-header" id="sh-risk" tabindex="0" role="button" aria-expanded="true">
+          <header
+            class="section-header"
+            id="sh-risk"
+            tabindex="0"
+            role="button"
+            aria-expanded="true"
+          >
             <span class="section-caret is-open" data-codicon="chevron-right" data-size="12"></span>
             <span data-codicon="shield" data-size="13"></span>
             <span class="section-title">Risk / Safety</span>
@@ -541,7 +673,9 @@
             <!-- §23 inline form -->
             <div class="risk-inline-form" id="s23-form">
               <div class="pe-field">
-                <label class="pe-label" for="s23-ground">Statutory ground <span style="color:var(--color-error)">*</span></label>
+                <label class="pe-label" for="s23-ground"
+                  >Statutory ground <span style="color: var(--color-error)">*</span></label
+                >
                 <select class="pe-input" id="s23-ground">
                   <option value="">— select —</option>
                   <option value="harm_to_others">Harm to others</option>
@@ -553,11 +687,23 @@
               </div>
               <div class="pe-field" id="s23-disclosed-field">
                 <label class="pe-label" for="s23-disclosed">Disclosed to</label>
-                <input class="pe-input" id="s23-disclosed" type="text" placeholder="Name / organisation" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="s23-disclosed"
+                  type="text"
+                  placeholder="Name / organisation"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="pe-field" id="s23-reason-field">
                 <label class="pe-label" for="s23-reason">Reason / notes</label>
-                <textarea class="pe-input" id="s23-reason" rows="2" placeholder="Clinical rationale for disclosure"></textarea>
+                <textarea
+                  class="pe-input"
+                  id="s23-reason"
+                  rows="2"
+                  placeholder="Clinical rationale for disclosure"
+                ></textarea>
               </div>
               <div class="pe-actions">
                 <button class="pe-btn primary" id="btn-s23-confirm" type="button">Confirm</button>
@@ -567,9 +713,9 @@
             </div>
 
             <!-- Capacity quick-set -->
-            <div class="pe-field" id="capacity-field" style="margin-top:10px;display:none;">
+            <div class="pe-field" id="capacity-field" style="margin-top: 10px; display: none">
               <label class="pe-label" for="cap-select">Capacity</label>
-              <select class="pe-input" id="cap-select" style="max-width:180px;">
+              <select class="pe-input" id="cap-select" style="max-width: 180px">
                 <option value="">— unchanged —</option>
                 <option value="intact">Intact</option>
                 <option value="diminished">Diminished</option>
@@ -581,7 +727,9 @@
             <!-- Add risk event form -->
             <div class="risk-inline-form" id="risk-add-form">
               <div class="pe-field">
-                <label class="pe-label" for="re-kind">Event type <span style="color:var(--color-error)">*</span></label>
+                <label class="pe-label" for="re-kind"
+                  >Event type <span style="color: var(--color-error)">*</span></label
+                >
                 <select class="pe-input" id="re-kind">
                   <option value="si">Suicidal ideation (SI)</option>
                   <option value="self_harm">Self-harm</option>
@@ -605,7 +753,12 @@
               </div>
               <div class="pe-field">
                 <label class="pe-label" for="re-summary">Summary (clinical notes)</label>
-                <textarea class="pe-input" id="re-summary" rows="3" placeholder="Brief clinical note — stored PHI, not in audit"></textarea>
+                <textarea
+                  class="pe-input"
+                  id="re-summary"
+                  rows="3"
+                  placeholder="Brief clinical note — stored PHI, not in audit"
+                ></textarea>
               </div>
               <div class="pe-actions">
                 <button class="pe-btn primary" id="btn-re-save" type="button">Add event</button>
@@ -618,12 +771,25 @@
 
         <!-- Profile (real data, editable inline) -->
         <section class="section" id="section-profile" data-maturity-id="section-profile">
-          <header class="section-header" id="sh-profile" tabindex="0" role="button" aria-expanded="true">
+          <header
+            class="section-header"
+            id="sh-profile"
+            tabindex="0"
+            role="button"
+            aria-expanded="true"
+          >
             <span class="section-caret is-open" data-codicon="chevron-right" data-size="12"></span>
             <span data-codicon="person" data-size="13"></span>
             <span class="section-title">Profile</span>
             <span class="section-source">PRACTICE</span>
-            <button class="section-edit-btn" id="btn-profile-edit" type="button" title="Edit profile" aria-label="Edit profile" tabindex="0">
+            <button
+              class="section-edit-btn"
+              id="btn-profile-edit"
+              type="button"
+              title="Edit profile"
+              aria-label="Edit profile"
+              tabindex="0"
+            >
               <span data-codicon="edit" data-size="12"></span>
             </button>
           </header>
@@ -635,15 +801,36 @@
             <div id="profile-edit-form">
               <div class="pe-field">
                 <label class="pe-label" for="pe-language">Preferred language</label>
-                <input class="pe-input" id="pe-language" type="text" placeholder="e.g. Marathi" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="pe-language"
+                  type="text"
+                  placeholder="e.g. Marathi"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="pe-field">
                 <label class="pe-label" for="pe-diagnosis">Diagnosis / problem list</label>
-                <input class="pe-input" id="pe-diagnosis" type="text" placeholder="e.g. F33.2 Recurrent depressive disorder" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="pe-diagnosis"
+                  type="text"
+                  placeholder="e.g. F33.2 Recurrent depressive disorder"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="pe-field">
                 <label class="pe-label" for="pe-meds">Medication awareness</label>
-                <input class="pe-input" id="pe-meds" type="text" placeholder="e.g. Sertraline 100 mg OD" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="pe-meds"
+                  type="text"
+                  placeholder="e.g. Sertraline 100 mg OD"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="pe-actions">
                 <button class="pe-btn primary" id="btn-pe-save" type="button">Save</button>
@@ -655,12 +842,25 @@
         </section>
         <!-- People / Circle -->
         <section class="section" id="section-circle">
-          <header class="section-header" id="sh-circle" tabindex="0" role="button" aria-expanded="false">
+          <header
+            class="section-header"
+            id="sh-circle"
+            tabindex="0"
+            role="button"
+            aria-expanded="false"
+          >
             <span class="section-caret" data-codicon="chevron-right" data-size="12"></span>
             <span data-codicon="organization" data-size="13"></span>
             <span class="section-title">People / Circle</span>
             <span class="section-source">PRACTICE</span>
-            <button class="section-edit-btn" id="btn-circle-edit" type="button" title="Add circle member" aria-label="Add circle member" tabindex="0">
+            <button
+              class="section-edit-btn"
+              id="btn-circle-edit"
+              type="button"
+              title="Add circle member"
+              aria-label="Add circle member"
+              tabindex="0"
+            >
               <span data-codicon="add" data-size="12"></span>
             </button>
           </header>
@@ -680,24 +880,68 @@
                 </select>
               </div>
               <div class="pe-field">
-                <label class="pe-label" for="ca-name">Display name <span style="color:var(--color-error)">*</span></label>
-                <input class="pe-input" id="ca-name" type="text" placeholder="Full name" autocomplete="off" spellcheck="false" />
+                <label class="pe-label" for="ca-name"
+                  >Display name <span style="color: var(--color-error)">*</span></label
+                >
+                <input
+                  class="pe-input"
+                  id="ca-name"
+                  type="text"
+                  placeholder="Full name"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="pe-field">
                 <label class="pe-label" for="ca-relationship">Relationship</label>
-                <input class="pe-input" id="ca-relationship" type="text" placeholder="e.g. Spouse" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="ca-relationship"
+                  type="text"
+                  placeholder="e.g. Spouse"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="pe-field">
                 <label class="pe-label" for="ca-phone">Phone</label>
-                <input class="pe-input" id="ca-phone" type="text" placeholder="e.g. +91 98765 43210" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="ca-phone"
+                  type="text"
+                  placeholder="e.g. +91 98765 43210"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="pe-field">
                 <label class="pe-label" for="ca-email">Email</label>
-                <input class="pe-input" id="ca-email" type="email" placeholder="e.g. name@example.com" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="ca-email"
+                  type="email"
+                  placeholder="e.g. name@example.com"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
-              <div class="pe-field" style="flex-direction:row;align-items:center;gap:8px;">
-                <input type="checkbox" id="ca-isnr" style="accent-color:var(--color-accent);width:14px;height:14px;" />
-                <label class="pe-label" for="ca-isnr" style="text-transform:none;font-size:11px;font-weight:400;color:var(--color-fg-secondary);">Set as Nominated Representative (primary contact)</label>
+              <div class="pe-field" style="flex-direction: row; align-items: center; gap: 8px">
+                <input
+                  type="checkbox"
+                  id="ca-isnr"
+                  style="accent-color: var(--color-accent); width: 14px; height: 14px"
+                />
+                <label
+                  class="pe-label"
+                  for="ca-isnr"
+                  style="
+                    text-transform: none;
+                    font-size: 11px;
+                    font-weight: 400;
+                    color: var(--color-fg-secondary);
+                  "
+                  >Set as Nominated Representative (primary contact)</label
+                >
               </div>
               <div class="pe-actions">
                 <button class="pe-btn primary" id="btn-ca-save" type="button">Add Member</button>
@@ -710,12 +954,25 @@
 
         <!-- Consent & Legal -->
         <section class="section" id="section-consent">
-          <header class="section-header" id="sh-consent" tabindex="0" role="button" aria-expanded="false">
+          <header
+            class="section-header"
+            id="sh-consent"
+            tabindex="0"
+            role="button"
+            aria-expanded="false"
+          >
             <span class="section-caret" data-codicon="chevron-right" data-size="12"></span>
             <span data-codicon="law" data-size="13"></span>
             <span class="section-title">Consent &amp; Legal</span>
             <span class="section-source">PRACTICE</span>
-            <button class="section-edit-btn" id="btn-consent-edit" type="button" title="Edit consent &amp; legal" aria-label="Edit consent &amp; legal" tabindex="0">
+            <button
+              class="section-edit-btn"
+              id="btn-consent-edit"
+              type="button"
+              title="Edit consent &amp; legal"
+              aria-label="Edit consent &amp; legal"
+              tabindex="0"
+            >
               <span data-codicon="edit" data-size="12"></span>
             </button>
           </header>
@@ -727,23 +984,65 @@
             <div id="consent-edit-form">
               <div class="pe-field">
                 <label class="pe-label" for="ce-ad-status">Advance directive status</label>
-                <input class="pe-input" id="ce-ad-status" type="text" placeholder="e.g. Active, Filed, None" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="ce-ad-status"
+                  type="text"
+                  placeholder="e.g. Active, Filed, None"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="pe-field">
                 <label class="pe-label" for="ce-consent-status">Informed consent status</label>
-                <input class="pe-input" id="ce-consent-status" type="text" placeholder="e.g. Signed, Verbal, Pending" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="ce-consent-status"
+                  type="text"
+                  placeholder="e.g. Signed, Verbal, Pending"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="pe-field">
                 <label class="pe-label" for="ce-tele-mode">Tele-consent mode</label>
-                <input class="pe-input" id="ce-tele-mode" type="text" placeholder="e.g. Video, Audio-only, None" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="ce-tele-mode"
+                  type="text"
+                  placeholder="e.g. Video, Audio-only, None"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
               <div class="pe-field">
                 <label class="pe-label" for="ce-capacity">Capacity status</label>
-                <input class="pe-input" id="ce-capacity" type="text" placeholder="e.g. Intact, Under review, Impaired" autocomplete="off" spellcheck="false" />
+                <input
+                  class="pe-input"
+                  id="ce-capacity"
+                  type="text"
+                  placeholder="e.g. Intact, Under review, Impaired"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
               </div>
-              <div class="pe-field" style="flex-direction:row;align-items:center;gap:8px;">
-                <input type="checkbox" id="ce-s23" style="accent-color:var(--color-warning);width:14px;height:14px;" />
-                <label class="pe-label" for="ce-s23" style="text-transform:none;font-size:11px;font-weight:400;color:var(--color-fg-secondary);">MHA §23 confidentiality exception currently active</label>
+              <div class="pe-field" style="flex-direction: row; align-items: center; gap: 8px">
+                <input
+                  type="checkbox"
+                  id="ce-s23"
+                  style="accent-color: var(--color-warning); width: 14px; height: 14px"
+                />
+                <label
+                  class="pe-label"
+                  for="ce-s23"
+                  style="
+                    text-transform: none;
+                    font-size: 11px;
+                    font-weight: 400;
+                    color: var(--color-fg-secondary);
+                  "
+                  >MHA §23 confidentiality exception currently active</label
+                >
               </div>
               <div class="pe-actions">
                 <button class="pe-btn primary" id="btn-ce-save" type="button">Save</button>
@@ -753,989 +1052,1113 @@
             </div>
           </div>
         </section>
-      </div><!-- /aspects-scroll -->
-    </div><!-- /root -->
+      </div>
+      <!-- /aspects-scroll -->
+    </div>
+    <!-- /root -->
 
     <script>
-    (function () {
-      'use strict';
+      (function () {
+        'use strict';
 
-      /* ── State ──────────────────────────────────────────────────── */
-      var _queryProxy = null;  // record.patient.query
-      var _cmdProxy   = null;  // record.patient (command)
-      var _clientId   = null;
-      var _record     = null;
-      var _profile    = null;
-      var _circle     = null;  // array of circle members
-      var _consent    = null;  // consent state or null
-      var _riskEvents = null;  // array of risk events
-      var _safetyPlan = null;  // safety plan or null
-      var _editOpen   = false;
-      var _editSaving = false;
-      var _editMsgTimer = null;
-      // Circle add form state
-      var _circleAddOpen   = false;
-      var _circleAddSaving = false;
-      var _circleAddMsgTimer = null;
-      // Consent edit form state
-      var _consentEditOpen   = false;
-      var _consentEditSaving = false;
-      var _consentEditMsgTimer = null;
-      // Risk §23 form state
-      var _s23FormOpen   = false;
-      var _s23Saving     = false;
-      var _s23MsgTimer   = null;
-      // Risk add-event form state
-      var _reFormOpen    = false;
-      var _reSaving      = false;
-      var _reMsgTimer    = null;
+        /* ── State ──────────────────────────────────────────────────── */
+        var _queryProxy = null; // record.patient.query
+        var _cmdProxy = null; // record.patient (command)
+        var _clientId = null;
+        var _record = null;
+        var _profile = null;
+        var _circle = null; // array of circle members
+        var _consent = null; // consent state or null
+        var _riskEvents = null; // array of risk events
+        var _safetyPlan = null; // safety plan or null
+        var _editOpen = false;
+        var _editSaving = false;
+        var _editMsgTimer = null;
+        // Circle add form state
+        var _circleAddOpen = false;
+        var _circleAddSaving = false;
+        var _circleAddMsgTimer = null;
+        // Consent edit form state
+        var _consentEditOpen = false;
+        var _consentEditSaving = false;
+        var _consentEditMsgTimer = null;
+        // Risk §23 form state
+        var _s23FormOpen = false;
+        var _s23Saving = false;
+        var _s23MsgTimer = null;
+        // Risk add-event form state
+        var _reFormOpen = false;
+        var _reSaving = false;
+        var _reMsgTimer = null;
 
-      /* ── Elements ───────────────────────────────────────────────── */
-      var elBridgeWait    = document.getElementById('bridge-wait');
-      var elRoot          = document.getElementById('root');
-      var elStatusBar     = document.getElementById('status-bar');
-      var elIdentityStrip = document.getElementById('identity-strip');
-      var elIdAvatar      = document.getElementById('id-avatar');
-      var elIdName        = document.getElementById('id-name');
-      var elIdSub         = document.getElementById('id-sub');
-      var elRiskAlertBar  = document.getElementById('risk-alert-bar');
-      var elRiskFacts     = document.getElementById('risk-facts');
-      var elRiskItems     = document.getElementById('risk-items');
-      var elProfileKv     = document.getElementById('profile-kv');
-      var elEditForm      = document.getElementById('profile-edit-form');
-      var elEditBtn       = document.getElementById('btn-profile-edit');
-      var elPeLang        = document.getElementById('pe-language');
-      var elPeDiag        = document.getElementById('pe-diagnosis');
-      var elPeMeds        = document.getElementById('pe-meds');
-      var elPeSave        = document.getElementById('btn-pe-save');
-      var elPeCancel      = document.getElementById('btn-pe-cancel');
-      var elPeMsg         = document.getElementById('pe-save-msg');
+        /* ── Elements ───────────────────────────────────────────────── */
+        var elBridgeWait = document.getElementById('bridge-wait');
+        var elRoot = document.getElementById('root');
+        var elStatusBar = document.getElementById('status-bar');
+        var elIdentityStrip = document.getElementById('identity-strip');
+        var elIdAvatar = document.getElementById('id-avatar');
+        var elIdName = document.getElementById('id-name');
+        var elIdSub = document.getElementById('id-sub');
+        var elRiskAlertBar = document.getElementById('risk-alert-bar');
+        var elRiskFacts = document.getElementById('risk-facts');
+        var elRiskItems = document.getElementById('risk-items');
+        var elProfileKv = document.getElementById('profile-kv');
+        var elEditForm = document.getElementById('profile-edit-form');
+        var elEditBtn = document.getElementById('btn-profile-edit');
+        var elPeLang = document.getElementById('pe-language');
+        var elPeDiag = document.getElementById('pe-diagnosis');
+        var elPeMeds = document.getElementById('pe-meds');
+        var elPeSave = document.getElementById('btn-pe-save');
+        var elPeCancel = document.getElementById('btn-pe-cancel');
+        var elPeMsg = document.getElementById('pe-save-msg');
 
-      // Circle elements
-      var elCircleList      = document.getElementById('circle-list');
-      var elCircleEditBtn   = document.getElementById('btn-circle-edit');
-      var elCircleAddForm   = document.getElementById('circle-add-form');
-      var elCaKind          = document.getElementById('ca-kind');
-      var elCaName          = document.getElementById('ca-name');
-      var elCaRelationship  = document.getElementById('ca-relationship');
-      var elCaPhone         = document.getElementById('ca-phone');
-      var elCaEmail         = document.getElementById('ca-email');
-      var elCaIsNR          = document.getElementById('ca-isnr');
-      var elCaSave          = document.getElementById('btn-ca-save');
-      var elCaCancel        = document.getElementById('btn-ca-cancel');
-      var elCaMsg           = document.getElementById('ca-save-msg');
+        // Circle elements
+        var elCircleList = document.getElementById('circle-list');
+        var elCircleEditBtn = document.getElementById('btn-circle-edit');
+        var elCircleAddForm = document.getElementById('circle-add-form');
+        var elCaKind = document.getElementById('ca-kind');
+        var elCaName = document.getElementById('ca-name');
+        var elCaRelationship = document.getElementById('ca-relationship');
+        var elCaPhone = document.getElementById('ca-phone');
+        var elCaEmail = document.getElementById('ca-email');
+        var elCaIsNR = document.getElementById('ca-isnr');
+        var elCaSave = document.getElementById('btn-ca-save');
+        var elCaCancel = document.getElementById('btn-ca-cancel');
+        var elCaMsg = document.getElementById('ca-save-msg');
 
-      // Consent elements
-      var elConsentKv        = document.getElementById('consent-kv');
-      var elConsentEditBtn   = document.getElementById('btn-consent-edit');
-      var elConsentEditForm  = document.getElementById('consent-edit-form');
-      var elCeAdStatus       = document.getElementById('ce-ad-status');
-      var elCeConsentStatus  = document.getElementById('ce-consent-status');
-      var elCeTeleMode       = document.getElementById('ce-tele-mode');
-      var elCeCapacity       = document.getElementById('ce-capacity');
-      var elCeS23            = document.getElementById('ce-s23');
-      var elCeSave           = document.getElementById('btn-ce-save');
-      var elCeCancel         = document.getElementById('btn-ce-cancel');
-      var elCeMsg            = document.getElementById('ce-save-msg');
+        // Consent elements
+        var elConsentKv = document.getElementById('consent-kv');
+        var elConsentEditBtn = document.getElementById('btn-consent-edit');
+        var elConsentEditForm = document.getElementById('consent-edit-form');
+        var elCeAdStatus = document.getElementById('ce-ad-status');
+        var elCeConsentStatus = document.getElementById('ce-consent-status');
+        var elCeTeleMode = document.getElementById('ce-tele-mode');
+        var elCeCapacity = document.getElementById('ce-capacity');
+        var elCeS23 = document.getElementById('ce-s23');
+        var elCeSave = document.getElementById('btn-ce-save');
+        var elCeCancel = document.getElementById('btn-ce-cancel');
+        var elCeMsg = document.getElementById('ce-save-msg');
 
-      /* ── Helpers ────────────────────────────────────────────────── */
-      function showError(msg) {
-        elStatusBar.textContent = msg;
-        elStatusBar.className = 'visible';
-      }
-      function showLocked(msg) {
-        elStatusBar.textContent = msg;
-        elStatusBar.className = 'visible is-locked';
-      }
-      function isLockedError(err) {
-        return err && (err.code === 'cap.locked' ||
-          (err.message && err.message.indexOf('cap.locked') !== -1));
-      }
-      function computeAge(dob) {
-        if (!dob) return null;
-        try {
-          var birth = new Date(dob);
-          if (isNaN(birth.getTime())) return null;
+        /* ── Helpers ────────────────────────────────────────────────── */
+        function showError(msg) {
+          elStatusBar.textContent = msg;
+          elStatusBar.className = 'visible';
+        }
+        function showLocked(msg) {
+          elStatusBar.textContent = msg;
+          elStatusBar.className = 'visible is-locked';
+        }
+        function isLockedError(err) {
+          return (
+            err &&
+            (err.code === 'cap.locked' || (err.message && err.message.indexOf('cap.locked') !== -1))
+          );
+        }
+        function computeAge(dob) {
+          if (!dob) return null;
+          try {
+            var birth = new Date(dob);
+            if (isNaN(birth.getTime())) return null;
+            var now = new Date();
+            var age = now.getFullYear() - birth.getFullYear();
+            var m = now.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+            return age >= 0 ? age : null;
+          } catch (e) {
+            return null;
+          }
+        }
+        function initials(rec) {
+          var g = (rec.givenName || '').trim();
+          var f = (rec.familyName || '').trim();
+          var a = '';
+          if (g) a += g[0].toUpperCase();
+          if (f) a += f[0].toUpperCase();
+          return a || '?';
+        }
+        function el(tag, cls) {
+          var e = document.createElement(tag);
+          if (cls) e.className = cls;
+          return e;
+        }
+        function txt(tag, cls, content) {
+          var e = document.createElement(tag);
+          if (cls) e.className = cls;
+          e.textContent = content;
+          return e;
+        }
+
+        /* ── Section toggle ─────────────────────────────────────────── */
+        function bindToggle(headerId, bodyId, editBtnId) {
+          var header = document.getElementById(headerId);
+          var body = document.getElementById(bodyId);
+          var editBtn = editBtnId ? document.getElementById(editBtnId) : null;
+          if (!header || !body) return;
+          function toggle(e) {
+            // Do not toggle if click was on the section edit button.
+            if (editBtn && (e.target === editBtn || editBtn.contains(e.target))) return;
+            var open = body.classList.contains('is-open');
+            body.classList.toggle('is-open', !open);
+            var caret = header.querySelector('.section-caret');
+            if (caret) caret.classList.toggle('is-open', !open);
+            header.setAttribute('aria-expanded', String(!open));
+          }
+          header.addEventListener('click', toggle);
+          header.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggle(e);
+            }
+          });
+        }
+
+        /* ── Identity strip render ──────────────────────────────────── */
+        function renderIdentity() {
+          var rec = _record;
+          elIdAvatar.textContent = initials(rec);
+          elIdName.textContent =
+            rec.displayName || ((rec.givenName || '') + ' ' + (rec.familyName || '')).trim();
+          var age = computeAge(rec.dob);
+          elIdSub.textContent = age !== null ? 'age ' + age : rec.id;
+          elIdentityStrip.style.display = '';
+        }
+
+        /* ── Profile section render ─────────────────────────────────── */
+        function renderProfile() {
+          var profile = _profile;
+          var frag = document.createDocumentFragment();
+
+          // Language — real or "Not recorded"
+          var lang =
+            profile && profile.preferredLanguage
+              ? profile.preferredLanguage + ' (preferred)'
+              : null;
+          var langRow = el('div', 'kv-row');
+          langRow.appendChild(txt('span', 'kv-label', 'Language'));
+          var langVal = txt(
+            'span',
+            lang ? 'kv-value' : 'kv-value is-empty',
+            lang || 'Not recorded',
+          );
+          langRow.appendChild(langVal);
+          frag.appendChild(langRow);
+
+          // Diagnosis — real or "Not recorded"
+          var diagText = profile && profile.diagnosis ? profile.diagnosis : null;
+          var diagRow = el('div', 'kv-row');
+          diagRow.appendChild(txt('span', 'kv-label', 'Diagnosis'));
+          var diagVal = txt(
+            'span',
+            diagText ? 'kv-value' : 'kv-value is-empty',
+            diagText || 'Not recorded',
+          );
+          diagRow.appendChild(diagVal);
+          frag.appendChild(diagRow);
+
+          // Medication awareness — real or "Not recorded"
+          var medsText =
+            profile && profile.medicationAwareness ? profile.medicationAwareness : null;
+          var medsRow = el('div', 'kv-row');
+          medsRow.appendChild(txt('span', 'kv-label', 'Medications'));
+          var medsVal = txt(
+            'span',
+            medsText ? 'kv-value' : 'kv-value is-empty',
+            medsText || 'Not recorded',
+          );
+          medsRow.appendChild(medsVal);
+          frag.appendChild(medsRow);
+
+          var note = txt(
+            'p',
+            'note-subtle',
+            'Medication awareness only — not a prescribing workflow.',
+          );
+          frag.appendChild(note);
+
+          elProfileKv.innerHTML = '';
+          elProfileKv.appendChild(frag);
+        }
+
+        /* ── Relative date helper ───────────────────────────────────── */
+        function relDate(ts) {
+          if (!ts) return '';
+          var d = new Date(ts);
           var now = new Date();
-          var age = now.getFullYear() - birth.getFullYear();
-          var m = now.getMonth() - birth.getMonth();
-          if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
-          return age >= 0 ? age : null;
-        } catch (e) { return null; }
-      }
-      function initials(rec) {
-        var g = (rec.givenName || '').trim();
-        var f = (rec.familyName || '').trim();
-        var a = '';
-        if (g) a += g[0].toUpperCase();
-        if (f) a += f[0].toUpperCase();
-        return a || '?';
-      }
-      function el(tag, cls) {
-        var e = document.createElement(tag);
-        if (cls) e.className = cls;
-        return e;
-      }
-      function txt(tag, cls, content) {
-        var e = document.createElement(tag);
-        if (cls) e.className = cls;
-        e.textContent = content;
-        return e;
-      }
-
-      /* ── Section toggle ─────────────────────────────────────────── */
-      function bindToggle(headerId, bodyId, editBtnId) {
-        var header  = document.getElementById(headerId);
-        var body    = document.getElementById(bodyId);
-        var editBtn = editBtnId ? document.getElementById(editBtnId) : null;
-        if (!header || !body) return;
-        function toggle(e) {
-          // Do not toggle if click was on the section edit button.
-          if (editBtn && (e.target === editBtn || editBtn.contains(e.target))) return;
-          var open = body.classList.contains('is-open');
-          body.classList.toggle('is-open', !open);
-          var caret = header.querySelector('.section-caret');
-          if (caret) caret.classList.toggle('is-open', !open);
-          header.setAttribute('aria-expanded', String(!open));
+          var diff = now - d; // ms
+          var days = Math.floor(diff / 86400000);
+          if (days === 0) return 'Today';
+          if (days === 1) return 'Yesterday';
+          if (days < 7) return days + 'd ago';
+          if (days < 31) return Math.floor(days / 7) + 'w ago';
+          // Full short date
+          return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
         }
-        header.addEventListener('click', toggle);
-        header.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(e); }
-        });
-      }
 
-      /* ── Identity strip render ──────────────────────────────────── */
-      function renderIdentity() {
-        var rec = _record;
-        elIdAvatar.textContent = initials(rec);
-        elIdName.textContent = rec.displayName || ((rec.givenName || '') + ' ' + (rec.familyName || '')).trim();
-        var age = computeAge(rec.dob);
-        elIdSub.textContent = age !== null ? 'age ' + age : rec.id;
-        elIdentityStrip.style.display = '';
-      }
+        /* ── Alert bar ──────────────────────────────────────────────── */
+        var SEV_CONCERN_SET = new Set(['elevated', 'critical']);
 
-      /* ── Profile section render ─────────────────────────────────── */
-      function renderProfile() {
-        var profile = _profile;
-        var frag = document.createDocumentFragment();
-
-        // Language — real or "Not recorded"
-        var lang = (profile && profile.preferredLanguage) ? profile.preferredLanguage + ' (preferred)' : null;
-        var langRow = el('div', 'kv-row');
-        langRow.appendChild(txt('span', 'kv-label', 'Language'));
-        var langVal = txt('span', lang ? 'kv-value' : 'kv-value is-empty', lang || 'Not recorded');
-        langRow.appendChild(langVal);
-        frag.appendChild(langRow);
-
-        // Diagnosis — real or "Not recorded"
-        var diagText = (profile && profile.diagnosis) ? profile.diagnosis : null;
-        var diagRow = el('div', 'kv-row');
-        diagRow.appendChild(txt('span', 'kv-label', 'Diagnosis'));
-        var diagVal = txt('span', diagText ? 'kv-value' : 'kv-value is-empty', diagText || 'Not recorded');
-        diagRow.appendChild(diagVal);
-        frag.appendChild(diagRow);
-
-        // Medication awareness — real or "Not recorded"
-        var medsText = (profile && profile.medicationAwareness) ? profile.medicationAwareness : null;
-        var medsRow = el('div', 'kv-row');
-        medsRow.appendChild(txt('span', 'kv-label', 'Medications'));
-        var medsVal = txt('span', medsText ? 'kv-value' : 'kv-value is-empty', medsText || 'Not recorded');
-        medsRow.appendChild(medsVal);
-        frag.appendChild(medsRow);
-
-        var note = txt('p', 'note-subtle', 'Medication awareness only — not a prescribing workflow.');
-        frag.appendChild(note);
-
-        elProfileKv.innerHTML = '';
-        elProfileKv.appendChild(frag);
-      }
-
-      /* ── Relative date helper ───────────────────────────────────── */
-      function relDate(ts) {
-        if (!ts) return '';
-        var d = new Date(ts);
-        var now = new Date();
-        var diff = now - d; // ms
-        var days = Math.floor(diff / 86400000);
-        if (days === 0) return 'Today';
-        if (days === 1) return 'Yesterday';
-        if (days < 7)  return days + 'd ago';
-        if (days < 31) return Math.floor(days / 7) + 'w ago';
-        // Full short date
-        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-      }
-
-      /* ── Alert bar ──────────────────────────────────────────────── */
-      var SEV_CONCERN_SET = new Set(['elevated', 'critical']);
-
-      function hasActiveConcern() {
-        if (_consent && _consent.confidentialityExceptionActive) return true;
-        if (_safetyPlan && _safetyPlan.status === 'active') return true;
-        if (_riskEvents && _riskEvents.length > 0) {
-          var sev = _riskEvents[0].severity;
-          if (sev && SEV_CONCERN_SET.has(sev)) return true;
+        function hasActiveConcern() {
+          if (_consent && _consent.confidentialityExceptionActive) return true;
+          if (_safetyPlan && _safetyPlan.status === 'active') return true;
+          if (_riskEvents && _riskEvents.length > 0) {
+            var sev = _riskEvents[0].severity;
+            if (sev && SEV_CONCERN_SET.has(sev)) return true;
+          }
+          return false;
         }
-        return false;
-      }
 
-      function renderRiskAlert() {
-        elRiskAlertBar.style.display = hasActiveConcern() ? '' : 'none';
-      }
+        function renderRiskAlert() {
+          elRiskAlertBar.style.display = hasActiveConcern() ? '' : 'none';
+        }
 
-      /* ── Risk facts row ─────────────────────────────────────────── */
-      var CAPACITY_LABELS = {
-        'intact':     'Capacity intact',
-        'diminished': 'Capacity diminished',
-        'lacks':      'Lacks capacity',
-        'unassessed': 'Capacity unassessed',
-      };
+        /* ── Risk facts row ─────────────────────────────────────────── */
+        var CAPACITY_LABELS = {
+          intact: 'Capacity intact',
+          diminished: 'Capacity diminished',
+          lacks: 'Lacks capacity',
+          unassessed: 'Capacity unassessed',
+        };
 
-      function renderRiskFacts() {
-        elRiskFacts.innerHTML = '';
-        var frag = document.createDocumentFragment();
+        function renderRiskFacts() {
+          elRiskFacts.innerHTML = '';
+          var frag = document.createDocumentFragment();
 
-        // Capacity
-        var capText = (_consent && _consent.capacityStatus)
-          ? (CAPACITY_LABELS[_consent.capacityStatus] || _consent.capacityStatus)
-          : 'Capacity unassessed';
-        var capDiv = el('div', 'risk-fact');
-        capDiv.appendChild(txt('span', null, capText));
-        frag.appendChild(capDiv);
+          // Capacity
+          var capText =
+            _consent && _consent.capacityStatus
+              ? CAPACITY_LABELS[_consent.capacityStatus] || _consent.capacityStatus
+              : 'Capacity unassessed';
+          var capDiv = el('div', 'risk-fact');
+          capDiv.appendChild(txt('span', null, capText));
+          frag.appendChild(capDiv);
 
-        // §23 state
-        var s23Active = _consent && _consent.confidentialityExceptionActive;
-        var s23Div = el('div', 'risk-fact');
-        s23Div.style.color = s23Active ? 'var(--color-error)' : '';
-        s23Div.textContent = s23Active ? 'MHA §23 exception INVOKED' : 'MHA §23 not invoked';
-        frag.appendChild(s23Div);
+          // §23 state
+          var s23Active = _consent && _consent.confidentialityExceptionActive;
+          var s23Div = el('div', 'risk-fact');
+          s23Div.style.color = s23Active ? 'var(--color-error)' : '';
+          s23Div.textContent = s23Active ? 'MHA §23 exception INVOKED' : 'MHA §23 not invoked';
+          frag.appendChild(s23Div);
 
-        // Primary NR
-        var nr = null;
-        if (_circle && _circle.length > 0) {
-          for (var i = 0; i < _circle.length; i++) {
-            if (_circle[i].isPrimaryNr) { nr = _circle[i]; break; }
+          // Primary NR
+          var nr = null;
+          if (_circle && _circle.length > 0) {
+            for (var i = 0; i < _circle.length; i++) {
+              if (_circle[i].isPrimaryNr) {
+                nr = _circle[i];
+                break;
+              }
+            }
+          }
+          var nrDiv = el('div', 'risk-fact');
+          nrDiv.textContent = nr ? 'NR: ' + nr.displayName : 'No NR set';
+          frag.appendChild(nrDiv);
+
+          elRiskFacts.appendChild(frag);
+        }
+
+        /* ── Risk events list ───────────────────────────────────────── */
+        var SEV_CLASS = {
+          info: 'sev-info',
+          concern: 'sev-concern',
+          elevated: 'sev-elevated',
+          critical: 'sev-critical',
+        };
+
+        function renderRiskItems() {
+          elRiskItems.innerHTML = '';
+          var events = _riskEvents;
+          if (!events || events.length === 0) {
+            var empty = el('li', null);
+            empty.innerHTML = '<span class="risk-empty">No risk events logged.</span>';
+            elRiskItems.appendChild(empty);
+            return;
+          }
+          events.forEach(function (ev) {
+            var li = el('li', 'risk-item');
+            var dot = el('span', 'risk-dot ' + (SEV_CLASS[ev.severity] || ''));
+            li.appendChild(dot);
+            var text = el('span', null);
+            text.textContent = ev.summary || ev.kind;
+            li.appendChild(text);
+            var when = el('span', 'risk-when');
+            when.textContent = relDate(ev.occurredAt);
+            li.appendChild(when);
+            elRiskItems.appendChild(li);
+          });
+        }
+
+        /* ── §23 toggle button label ────────────────────────────────── */
+        function updateS23BtnLabel() {
+          var s23Active = _consent && _consent.confidentialityExceptionActive;
+          var lbl = document.getElementById('s23-btn-label');
+          if (lbl) lbl.textContent = s23Active ? 'Revoke §23' : 'Log §23 disclosure';
+          // Show/hide ground + disclosed-to fields based on current §23 state.
+          var groundField = document.getElementById('s23-ground').parentElement;
+          var disclosedField = document.getElementById('s23-disclosed-field');
+          if (groundField) groundField.style.display = s23Active ? 'none' : '';
+          if (disclosedField) disclosedField.style.display = s23Active ? 'none' : '';
+        }
+
+        /* ── §23 form handlers ──────────────────────────────────────── */
+        function openS23Form() {
+          _s23FormOpen = true;
+          var s23Active = _consent && _consent.confidentialityExceptionActive;
+          // Show/hide fields.
+          var groundRow = document.getElementById('s23-ground')
+            ? document.getElementById('s23-ground').closest('.pe-field')
+            : null;
+          var disclosedRow = document.getElementById('s23-disclosed-field');
+          if (groundRow) groundRow.style.display = s23Active ? 'none' : '';
+          if (disclosedRow) disclosedRow.style.display = s23Active ? 'none' : '';
+          document.getElementById('s23-ground').value = '';
+          document.getElementById('s23-disclosed').value = '';
+          document.getElementById('s23-reason').value = '';
+          document.getElementById('s23-form').classList.add('is-open');
+        }
+
+        function closeS23Form() {
+          _s23FormOpen = false;
+          document.getElementById('s23-form').classList.remove('is-open');
+          clearTimeout(_s23MsgTimer);
+          var msgEl = document.getElementById('s23-msg');
+          if (msgEl) {
+            msgEl.className = 'pe-save-msg';
+            msgEl.textContent = '';
           }
         }
-        var nrDiv = el('div', 'risk-fact');
-        nrDiv.textContent = nr ? ('NR: ' + nr.displayName) : 'No NR set';
-        frag.appendChild(nrDiv);
 
-        elRiskFacts.appendChild(frag);
-      }
-
-      /* ── Risk events list ───────────────────────────────────────── */
-      var SEV_CLASS = {
-        'info':     'sev-info',
-        'concern':  'sev-concern',
-        'elevated': 'sev-elevated',
-        'critical': 'sev-critical',
-      };
-
-      function renderRiskItems() {
-        elRiskItems.innerHTML = '';
-        var events = _riskEvents;
-        if (!events || events.length === 0) {
-          var empty = el('li', null);
-          empty.innerHTML = '<span class="risk-empty">No risk events logged.</span>';
-          elRiskItems.appendChild(empty);
-          return;
+        function showS23Msg(msg, kind) {
+          clearTimeout(_s23MsgTimer);
+          var msgEl = document.getElementById('s23-msg');
+          if (!msgEl) return;
+          msgEl.textContent = msg;
+          msgEl.className = 'pe-save-msg visible ' + (kind || '');
+          if (kind === 'ok') {
+            _s23MsgTimer = setTimeout(function () {
+              closeS23Form();
+            }, 1200);
+          }
         }
-        events.forEach(function (ev) {
-          var li = el('li', 'risk-item');
-          var dot = el('span', 'risk-dot ' + (SEV_CLASS[ev.severity] || ''));
-          li.appendChild(dot);
-          var text = el('span', null);
-          text.textContent = ev.summary || ev.kind;
-          li.appendChild(text);
-          var when = el('span', 'risk-when');
-          when.textContent = relDate(ev.occurredAt);
-          li.appendChild(when);
-          elRiskItems.appendChild(li);
-        });
-      }
 
-      /* ── §23 toggle button label ────────────────────────────────── */
-      function updateS23BtnLabel() {
-        var s23Active = _consent && _consent.confidentialityExceptionActive;
-        var lbl = document.getElementById('s23-btn-label');
-        if (lbl) lbl.textContent = s23Active ? 'Revoke §23' : 'Log §23 disclosure';
-        // Show/hide ground + disclosed-to fields based on current §23 state.
-        var groundField = document.getElementById('s23-ground').parentElement;
-        var disclosedField = document.getElementById('s23-disclosed-field');
-        if (groundField) groundField.style.display = s23Active ? 'none' : '';
-        if (disclosedField) disclosedField.style.display = s23Active ? 'none' : '';
-      }
-
-      /* ── §23 form handlers ──────────────────────────────────────── */
-      function openS23Form() {
-        _s23FormOpen = true;
-        var s23Active = _consent && _consent.confidentialityExceptionActive;
-        // Show/hide fields.
-        var groundRow = document.getElementById('s23-ground') ? document.getElementById('s23-ground').closest('.pe-field') : null;
-        var disclosedRow = document.getElementById('s23-disclosed-field');
-        if (groundRow) groundRow.style.display = s23Active ? 'none' : '';
-        if (disclosedRow) disclosedRow.style.display = s23Active ? 'none' : '';
-        document.getElementById('s23-ground').value = '';
-        document.getElementById('s23-disclosed').value = '';
-        document.getElementById('s23-reason').value = '';
-        document.getElementById('s23-form').classList.add('is-open');
-      }
-
-      function closeS23Form() {
-        _s23FormOpen = false;
-        document.getElementById('s23-form').classList.remove('is-open');
-        clearTimeout(_s23MsgTimer);
-        var msgEl = document.getElementById('s23-msg');
-        if (msgEl) { msgEl.className = 'pe-save-msg'; msgEl.textContent = ''; }
-      }
-
-      function showS23Msg(msg, kind) {
-        clearTimeout(_s23MsgTimer);
-        var msgEl = document.getElementById('s23-msg');
-        if (!msgEl) return;
-        msgEl.textContent = msg;
-        msgEl.className = 'pe-save-msg visible ' + (kind || '');
-        if (kind === 'ok') {
-          _s23MsgTimer = setTimeout(function () { closeS23Form(); }, 1200);
-        }
-      }
-
-      function onS23Confirm() {
-        if (_s23Saving || !_cmdProxy || !_clientId) return;
-        var s23Active = _consent && _consent.confidentialityExceptionActive;
-        var invoking = !s23Active;
-        var payload = {};
-        if (invoking) {
-          var ground = document.getElementById('s23-ground').value;
-          if (!ground) { showS23Msg('Select a statutory ground.', 'err'); return; }
-          payload.ground      = ground;
-          payload.disclosedTo = document.getElementById('s23-disclosed').value.trim() || '';
-          payload.reason      = document.getElementById('s23-reason').value.trim() || '';
-        } else {
-          payload.reason = document.getElementById('s23-reason').value.trim() || '';
-        }
-        _s23Saving = true;
-        document.getElementById('btn-s23-confirm').disabled = true;
-        _cmdProxy.call('toggleException', _clientId, invoking, payload).then(function (result) {
-          _s23Saving = false;
-          document.getElementById('btn-s23-confirm').disabled = false;
-          _consent    = result.consent;
-          // Prepend new risk event to list.
-          if (_riskEvents) {
-            _riskEvents.unshift(result.event);
+        function onS23Confirm() {
+          if (_s23Saving || !_cmdProxy || !_clientId) return;
+          var s23Active = _consent && _consent.confidentialityExceptionActive;
+          var invoking = !s23Active;
+          var payload = {};
+          if (invoking) {
+            var ground = document.getElementById('s23-ground').value;
+            if (!ground) {
+              showS23Msg('Select a statutory ground.', 'err');
+              return;
+            }
+            payload.ground = ground;
+            payload.disclosedTo = document.getElementById('s23-disclosed').value.trim() || '';
+            payload.reason = document.getElementById('s23-reason').value.trim() || '';
           } else {
-            _riskEvents = [result.event];
+            payload.reason = document.getElementById('s23-reason').value.trim() || '';
           }
+          _s23Saving = true;
+          document.getElementById('btn-s23-confirm').disabled = true;
+          _cmdProxy
+            .call('toggleException', _clientId, invoking, payload)
+            .then(function (result) {
+              _s23Saving = false;
+              document.getElementById('btn-s23-confirm').disabled = false;
+              _consent = result.consent;
+              // Prepend new risk event to list.
+              if (_riskEvents) {
+                _riskEvents.unshift(result.event);
+              } else {
+                _riskEvents = [result.event];
+              }
+              renderRiskFacts();
+              renderRiskItems();
+              renderRiskAlert();
+              updateS23BtnLabel();
+              showS23Msg('Saved.', 'ok');
+            })
+            .catch(function (err) {
+              _s23Saving = false;
+              document.getElementById('btn-s23-confirm').disabled = false;
+              if (isLockedError(err)) {
+                showS23Msg('Workspace locked.', 'err');
+              } else {
+                showS23Msg('Failed: ' + (err && err.message), 'err');
+              }
+            });
+        }
+
+        /* ── Capacity quick-set ─────────────────────────────────────── */
+        function onCapacityChange(newStatus) {
+          if (!newStatus || !_cmdProxy || !_clientId) return;
+          _cmdProxy
+            .call('setCapacity', _clientId, newStatus)
+            .then(function (updated) {
+              _consent = updated;
+              document.getElementById('cap-select').value = '';
+              renderRiskFacts();
+              renderRiskAlert();
+            })
+            .catch(function (err) {
+              if (isLockedError(err)) {
+                showLocked('Workspace locked.');
+              } else {
+                showError('Capacity update failed: ' + (err && err.message));
+              }
+            });
+        }
+
+        /* ── Add risk event form ────────────────────────────────────── */
+        function openRiskAddForm() {
+          _reFormOpen = true;
+          document.getElementById('re-kind').value = 'si';
+          document.getElementById('re-severity').value = '';
+          document.getElementById('re-summary').value = '';
+          document.getElementById('risk-add-form').classList.add('is-open');
+        }
+
+        function closeRiskAddForm() {
+          _reFormOpen = false;
+          document.getElementById('risk-add-form').classList.remove('is-open');
+          clearTimeout(_reMsgTimer);
+          var msgEl = document.getElementById('re-msg');
+          if (msgEl) {
+            msgEl.className = 'pe-save-msg';
+            msgEl.textContent = '';
+          }
+        }
+
+        function showReMsg(msg, kind) {
+          clearTimeout(_reMsgTimer);
+          var msgEl = document.getElementById('re-msg');
+          if (!msgEl) return;
+          msgEl.textContent = msg;
+          msgEl.className = 'pe-save-msg visible ' + (kind || '');
+          if (kind === 'ok') {
+            _reMsgTimer = setTimeout(function () {
+              closeRiskAddForm();
+            }, 1200);
+          }
+        }
+
+        function onRiskEventSave() {
+          if (_reSaving || !_cmdProxy || !_clientId) return;
+          var kind = document.getElementById('re-kind').value;
+          var severity = document.getElementById('re-severity').value || null;
+          var summary = document.getElementById('re-summary').value.trim() || null;
+          _reSaving = true;
+          document.getElementById('btn-re-save').disabled = true;
+          _cmdProxy
+            .call('addRiskEvent', _clientId, { kind: kind, severity: severity, summary: summary })
+            .then(function (newEvent) {
+              _reSaving = false;
+              document.getElementById('btn-re-save').disabled = false;
+              if (_riskEvents) {
+                _riskEvents.unshift(newEvent);
+              } else {
+                _riskEvents = [newEvent];
+              }
+              renderRiskItems();
+              renderRiskAlert();
+              showReMsg('Added.', 'ok');
+            })
+            .catch(function (err) {
+              _reSaving = false;
+              document.getElementById('btn-re-save').disabled = false;
+              if (isLockedError(err)) {
+                showReMsg('Workspace locked.', 'err');
+              } else {
+                showReMsg('Failed: ' + (err && err.message), 'err');
+              }
+            });
+        }
+
+        /* ── Circle kind label ──────────────────────────────────────── */
+        var KIND_LABELS = {
+          nominated_rep: 'Nominated Rep',
+          caregiver: 'Caregiver',
+          family: 'Family',
+          emergency_contact: 'Emergency Contact',
+        };
+
+        /* ── Circle section render ──────────────────────────────────── */
+        function renderCircle() {
+          var circle = _circle;
+          elCircleList.innerHTML = '';
+          if (!circle || circle.length === 0) {
+            var empty = document.createElement('div');
+            empty.className = 'circle-empty';
+            empty.textContent = 'No circle members recorded.';
+            elCircleList.appendChild(empty);
+            return;
+          }
+
+          circle.forEach(function (member) {
+            var item = document.createElement('div');
+            item.className = 'circle-member';
+
+            var row = document.createElement('div');
+            row.className = 'circle-member-row';
+
+            var nameSpan = document.createElement('span');
+            nameSpan.className = 'circle-member-name';
+            nameSpan.textContent = member.displayName;
+            row.appendChild(nameSpan);
+
+            var kindSpan = document.createElement('span');
+            kindSpan.className = 'circle-member-kind';
+            kindSpan.textContent = KIND_LABELS[member.kind] || member.kind;
+            row.appendChild(kindSpan);
+
+            if (member.isPrimaryNr) {
+              var nrBadge = document.createElement('span');
+              nrBadge.className = 'circle-nr-badge';
+              nrBadge.textContent = 'NR';
+              row.appendChild(nrBadge);
+            }
+
+            item.appendChild(row);
+
+            var meta = [];
+            if (member.relationship) meta.push(member.relationship);
+            if (member.phone) meta.push(member.phone);
+            if (member.email) meta.push(member.email);
+            if (meta.length > 0) {
+              var metaDiv = document.createElement('div');
+              metaDiv.className = 'circle-member-meta';
+              metaDiv.textContent = meta.join(' · ');
+              item.appendChild(metaDiv);
+            }
+
+            var actions = document.createElement('div');
+            actions.className = 'circle-member-actions';
+
+            if (!member.isPrimaryNr) {
+              var nrBtn = document.createElement('button');
+              nrBtn.className = 'circle-action-btn';
+              nrBtn.type = 'button';
+              nrBtn.textContent = 'Set as NR';
+              (function (m) {
+                nrBtn.addEventListener('click', function () {
+                  onSetNR(m.id);
+                });
+              })(member);
+              actions.appendChild(nrBtn);
+            }
+
+            item.appendChild(actions);
+            elCircleList.appendChild(item);
+          });
+        }
+
+        /* ── Set NR handler ─────────────────────────────────────────── */
+        function onSetNR(memberId) {
+          if (!_cmdProxy || !_clientId) return;
+          _cmdProxy
+            .call('setNR', _clientId, memberId)
+            .then(function (updatedCircle) {
+              _circle = updatedCircle;
+              renderCircle();
+            })
+            .catch(function (err) {
+              if (isLockedError(err)) {
+                showLocked('Workspace locked.');
+              } else {
+                showError('Set NR failed: ' + (err && err.message));
+              }
+            });
+        }
+
+        /* ── Circle add form ────────────────────────────────────────── */
+        function openCircleAdd() {
+          _circleAddOpen = true;
+          elCircleEditBtn.classList.add('is-active');
+          elCaKind.value = 'nominated_rep';
+          elCaName.value = '';
+          elCaRelationship.value = '';
+          elCaPhone.value = '';
+          elCaEmail.value = '';
+          elCaIsNR.checked = false;
+          elCircleAddForm.classList.add('is-open');
+          elCaName.focus();
+        }
+
+        function closeCircleAdd() {
+          _circleAddOpen = false;
+          elCircleEditBtn.classList.remove('is-active');
+          elCircleAddForm.classList.remove('is-open');
+          clearTimeout(_circleAddMsgTimer);
+          elCaMsg.className = 'pe-save-msg';
+          elCaMsg.textContent = '';
+        }
+
+        function showCircleAddMsg(msg, kind) {
+          clearTimeout(_circleAddMsgTimer);
+          elCaMsg.textContent = msg;
+          elCaMsg.className = 'pe-save-msg visible ' + (kind || '');
+          if (kind === 'ok') {
+            _circleAddMsgTimer = setTimeout(function () {
+              closeCircleAdd();
+            }, 1200);
+          }
+        }
+
+        function onCircleAddSave() {
+          if (_circleAddSaving || !_cmdProxy || !_clientId) return;
+          var displayName = elCaName.value.trim();
+          if (!displayName) {
+            showCircleAddMsg('Display name is required.', 'err');
+            return;
+          }
+          var input = {
+            kind: elCaKind.value,
+            displayName: displayName,
+            relationship: elCaRelationship.value.trim() || null,
+            phone: elCaPhone.value.trim() || null,
+            email: elCaEmail.value.trim() || null,
+            isPrimaryNr: elCaIsNR.checked,
+          };
+          _circleAddSaving = true;
+          elCaSave.disabled = true;
+          _cmdProxy
+            .call('addCircleMember', _clientId, input)
+            .then(function () {
+              _circleAddSaving = false;
+              elCaSave.disabled = false;
+              showCircleAddMsg('Added.', 'ok');
+              // Reload circle from store.
+              _queryProxy.call('getCircle', _clientId).then(function (circle) {
+                _circle = circle;
+                renderCircle();
+              });
+            })
+            .catch(function (err) {
+              _circleAddSaving = false;
+              elCaSave.disabled = false;
+              if (isLockedError(err)) {
+                showCircleAddMsg('Workspace locked.', 'err');
+              } else {
+                showCircleAddMsg('Failed: ' + (err && err.message), 'err');
+              }
+            });
+        }
+
+        /* ── Consent section render ──────────────────────────────────── */
+        function renderConsent() {
+          var consent = _consent;
+          var frag = document.createDocumentFragment();
+
+          var fields = [
+            { label: 'Advance directive', value: consent && consent.advanceDirectiveStatus },
+            { label: 'Informed consent', value: consent && consent.informedConsentStatus },
+            { label: 'Tele-consent', value: consent && consent.teleConsentMode },
+            { label: 'Capacity status', value: consent && consent.capacityStatus },
+          ];
+
+          fields.forEach(function (f) {
+            var row = document.createElement('div');
+            row.className = 'kv-row';
+            var label = document.createElement('span');
+            label.className = 'kv-label';
+            label.textContent = f.label;
+            var val = document.createElement('span');
+            val.className = f.value ? 'kv-value' : 'kv-value is-empty';
+            val.textContent = f.value || 'Not recorded';
+            row.appendChild(label);
+            row.appendChild(val);
+            frag.appendChild(row);
+          });
+
+          // §23 flag
+          if (consent && consent.confidentialityExceptionActive) {
+            var flagRow = document.createElement('div');
+            flagRow.className = 'consent-flag-row';
+            flagRow.textContent = 'MHA §23 confidentiality exception — currently active';
+            frag.appendChild(flagRow);
+          }
+
+          elConsentKv.innerHTML = '';
+          elConsentKv.appendChild(frag);
+        }
+
+        /* ── Consent edit form ────────────────────────────────────────── */
+        function openConsentEdit() {
+          _consentEditOpen = true;
+          elConsentEditBtn.classList.add('is-active');
+          var c = _consent;
+          elCeAdStatus.value = (c && c.advanceDirectiveStatus) || '';
+          elCeConsentStatus.value = (c && c.informedConsentStatus) || '';
+          elCeTeleMode.value = (c && c.teleConsentMode) || '';
+          elCeCapacity.value = (c && c.capacityStatus) || '';
+          elCeS23.checked = !!(c && c.confidentialityExceptionActive);
+          elConsentEditForm.classList.add('is-open');
+          elCeAdStatus.focus();
+        }
+
+        function closeConsentEdit() {
+          _consentEditOpen = false;
+          elConsentEditBtn.classList.remove('is-active');
+          elConsentEditForm.classList.remove('is-open');
+          clearTimeout(_consentEditMsgTimer);
+          elCeMsg.className = 'pe-save-msg';
+          elCeMsg.textContent = '';
+        }
+
+        function showConsentEditMsg(msg, kind) {
+          clearTimeout(_consentEditMsgTimer);
+          elCeMsg.textContent = msg;
+          elCeMsg.className = 'pe-save-msg visible ' + (kind || '');
+          if (kind === 'ok') {
+            _consentEditMsgTimer = setTimeout(function () {
+              closeConsentEdit();
+            }, 1200);
+          }
+        }
+
+        function onConsentEditSave() {
+          if (_consentEditSaving || !_cmdProxy || !_clientId) return;
+          var patch = {
+            advanceDirectiveStatus: elCeAdStatus.value.trim() || null,
+            informedConsentStatus: elCeConsentStatus.value.trim() || null,
+            teleConsentMode: elCeTeleMode.value.trim() || null,
+            capacityStatus: elCeCapacity.value.trim() || null,
+            confidentialityExceptionActive: elCeS23.checked,
+          };
+          _consentEditSaving = true;
+          elCeSave.disabled = true;
+          _cmdProxy
+            .call('setConsentState', _clientId, patch)
+            .then(function (updated) {
+              _consentEditSaving = false;
+              elCeSave.disabled = false;
+              _consent = updated;
+              renderConsent();
+              showConsentEditMsg('Saved.', 'ok');
+            })
+            .catch(function (err) {
+              _consentEditSaving = false;
+              elCeSave.disabled = false;
+              if (isLockedError(err)) {
+                showConsentEditMsg('Workspace locked.', 'err');
+              } else {
+                showConsentEditMsg('Save failed: ' + (err && err.message), 'err');
+              }
+            });
+        }
+
+        /* ── Full render ────────────────────────────────────────────── */
+        function renderAll() {
+          renderIdentity();
           renderRiskFacts();
           renderRiskItems();
           renderRiskAlert();
           updateS23BtnLabel();
-          showS23Msg('Saved.', 'ok');
-        }).catch(function (err) {
-          _s23Saving = false;
-          document.getElementById('btn-s23-confirm').disabled = false;
-          if (isLockedError(err)) {
-            showS23Msg('Workspace locked.', 'err');
-          } else {
-            showS23Msg('Failed: ' + (err && err.message), 'err');
+          // Show capacity field after data load.
+          var capField = document.getElementById('capacity-field');
+          if (capField) {
+            capField.style.display = '';
+            // Reflect current capacity in select.
+            var capSel = document.getElementById('cap-select');
+            if (capSel) capSel.value = '';
           }
-        });
-      }
-
-      /* ── Capacity quick-set ─────────────────────────────────────── */
-      function onCapacityChange(newStatus) {
-        if (!newStatus || !_cmdProxy || !_clientId) return;
-        _cmdProxy.call('setCapacity', _clientId, newStatus).then(function (updated) {
-          _consent = updated;
-          document.getElementById('cap-select').value = '';
-          renderRiskFacts();
-          renderRiskAlert();
-        }).catch(function (err) {
-          if (isLockedError(err)) {
-            showLocked('Workspace locked.');
-          } else {
-            showError('Capacity update failed: ' + (err && err.message));
-          }
-        });
-      }
-
-      /* ── Add risk event form ────────────────────────────────────── */
-      function openRiskAddForm() {
-        _reFormOpen = true;
-        document.getElementById('re-kind').value    = 'si';
-        document.getElementById('re-severity').value = '';
-        document.getElementById('re-summary').value  = '';
-        document.getElementById('risk-add-form').classList.add('is-open');
-      }
-
-      function closeRiskAddForm() {
-        _reFormOpen = false;
-        document.getElementById('risk-add-form').classList.remove('is-open');
-        clearTimeout(_reMsgTimer);
-        var msgEl = document.getElementById('re-msg');
-        if (msgEl) { msgEl.className = 'pe-save-msg'; msgEl.textContent = ''; }
-      }
-
-      function showReMsg(msg, kind) {
-        clearTimeout(_reMsgTimer);
-        var msgEl = document.getElementById('re-msg');
-        if (!msgEl) return;
-        msgEl.textContent = msg;
-        msgEl.className = 'pe-save-msg visible ' + (kind || '');
-        if (kind === 'ok') {
-          _reMsgTimer = setTimeout(function () { closeRiskAddForm(); }, 1200);
-        }
-      }
-
-      function onRiskEventSave() {
-        if (_reSaving || !_cmdProxy || !_clientId) return;
-        var kind     = document.getElementById('re-kind').value;
-        var severity = document.getElementById('re-severity').value || null;
-        var summary  = document.getElementById('re-summary').value.trim() || null;
-        _reSaving = true;
-        document.getElementById('btn-re-save').disabled = true;
-        _cmdProxy.call('addRiskEvent', _clientId, { kind: kind, severity: severity, summary: summary })
-          .then(function (newEvent) {
-            _reSaving = false;
-            document.getElementById('btn-re-save').disabled = false;
-            if (_riskEvents) {
-              _riskEvents.unshift(newEvent);
-            } else {
-              _riskEvents = [newEvent];
-            }
-            renderRiskItems();
-            renderRiskAlert();
-            showReMsg('Added.', 'ok');
-          }).catch(function (err) {
-            _reSaving = false;
-            document.getElementById('btn-re-save').disabled = false;
-            if (isLockedError(err)) {
-              showReMsg('Workspace locked.', 'err');
-            } else {
-              showReMsg('Failed: ' + (err && err.message), 'err');
-            }
-          });
-      }
-
-      /* ── Circle kind label ──────────────────────────────────────── */
-      var KIND_LABELS = {
-        'nominated_rep':    'Nominated Rep',
-        'caregiver':        'Caregiver',
-        'family':           'Family',
-        'emergency_contact':'Emergency Contact',
-      };
-
-      /* ── Circle section render ──────────────────────────────────── */
-      function renderCircle() {
-        var circle = _circle;
-        elCircleList.innerHTML = '';
-        if (!circle || circle.length === 0) {
-          var empty = document.createElement('div');
-          empty.className = 'circle-empty';
-          empty.textContent = 'No circle members recorded.';
-          elCircleList.appendChild(empty);
-          return;
-        }
-
-        circle.forEach(function (member) {
-          var item = document.createElement('div');
-          item.className = 'circle-member';
-
-          var row = document.createElement('div');
-          row.className = 'circle-member-row';
-
-          var nameSpan = document.createElement('span');
-          nameSpan.className = 'circle-member-name';
-          nameSpan.textContent = member.displayName;
-          row.appendChild(nameSpan);
-
-          var kindSpan = document.createElement('span');
-          kindSpan.className = 'circle-member-kind';
-          kindSpan.textContent = KIND_LABELS[member.kind] || member.kind;
-          row.appendChild(kindSpan);
-
-          if (member.isPrimaryNr) {
-            var nrBadge = document.createElement('span');
-            nrBadge.className = 'circle-nr-badge';
-            nrBadge.textContent = 'NR';
-            row.appendChild(nrBadge);
-          }
-
-          item.appendChild(row);
-
-          var meta = [];
-          if (member.relationship) meta.push(member.relationship);
-          if (member.phone) meta.push(member.phone);
-          if (member.email) meta.push(member.email);
-          if (meta.length > 0) {
-            var metaDiv = document.createElement('div');
-            metaDiv.className = 'circle-member-meta';
-            metaDiv.textContent = meta.join(' · ');
-            item.appendChild(metaDiv);
-          }
-
-          var actions = document.createElement('div');
-          actions.className = 'circle-member-actions';
-
-          if (!member.isPrimaryNr) {
-            var nrBtn = document.createElement('button');
-            nrBtn.className = 'circle-action-btn';
-            nrBtn.type = 'button';
-            nrBtn.textContent = 'Set as NR';
-            (function (m) {
-              nrBtn.addEventListener('click', function () {
-                onSetNR(m.id);
-              });
-            })(member);
-            actions.appendChild(nrBtn);
-          }
-
-          item.appendChild(actions);
-          elCircleList.appendChild(item);
-        });
-      }
-
-      /* ── Set NR handler ─────────────────────────────────────────── */
-      function onSetNR(memberId) {
-        if (!_cmdProxy || !_clientId) return;
-        _cmdProxy.call('setNR', _clientId, memberId).then(function (updatedCircle) {
-          _circle = updatedCircle;
-          renderCircle();
-        }).catch(function (err) {
-          if (isLockedError(err)) {
-            showLocked('Workspace locked.');
-          } else {
-            showError('Set NR failed: ' + (err && err.message));
-          }
-        });
-      }
-
-      /* ── Circle add form ────────────────────────────────────────── */
-      function openCircleAdd() {
-        _circleAddOpen = true;
-        elCircleEditBtn.classList.add('is-active');
-        elCaKind.value = 'nominated_rep';
-        elCaName.value = '';
-        elCaRelationship.value = '';
-        elCaPhone.value = '';
-        elCaEmail.value = '';
-        elCaIsNR.checked = false;
-        elCircleAddForm.classList.add('is-open');
-        elCaName.focus();
-      }
-
-      function closeCircleAdd() {
-        _circleAddOpen = false;
-        elCircleEditBtn.classList.remove('is-active');
-        elCircleAddForm.classList.remove('is-open');
-        clearTimeout(_circleAddMsgTimer);
-        elCaMsg.className = 'pe-save-msg';
-        elCaMsg.textContent = '';
-      }
-
-      function showCircleAddMsg(msg, kind) {
-        clearTimeout(_circleAddMsgTimer);
-        elCaMsg.textContent = msg;
-        elCaMsg.className = 'pe-save-msg visible ' + (kind || '');
-        if (kind === 'ok') {
-          _circleAddMsgTimer = setTimeout(function () { closeCircleAdd(); }, 1200);
-        }
-      }
-
-      function onCircleAddSave() {
-        if (_circleAddSaving || !_cmdProxy || !_clientId) return;
-        var displayName = elCaName.value.trim();
-        if (!displayName) { showCircleAddMsg('Display name is required.', 'err'); return; }
-        var input = {
-          kind:         elCaKind.value,
-          displayName:  displayName,
-          relationship: elCaRelationship.value.trim() || null,
-          phone:        elCaPhone.value.trim() || null,
-          email:        elCaEmail.value.trim() || null,
-          isPrimaryNr:  elCaIsNR.checked,
-        };
-        _circleAddSaving = true;
-        elCaSave.disabled = true;
-        _cmdProxy.call('addCircleMember', _clientId, input).then(function () {
-          _circleAddSaving = false;
-          elCaSave.disabled = false;
-          showCircleAddMsg('Added.', 'ok');
-          // Reload circle from store.
-          _queryProxy.call('getCircle', _clientId).then(function (circle) {
-            _circle = circle;
-            renderCircle();
-          });
-        }).catch(function (err) {
-          _circleAddSaving = false;
-          elCaSave.disabled = false;
-          if (isLockedError(err)) {
-            showCircleAddMsg('Workspace locked.', 'err');
-          } else {
-            showCircleAddMsg('Failed: ' + (err && err.message), 'err');
-          }
-        });
-      }
-
-      /* ── Consent section render ──────────────────────────────────── */
-      function renderConsent() {
-        var consent = _consent;
-        var frag = document.createDocumentFragment();
-
-        var fields = [
-          { label: 'Advance directive', value: consent && consent.advanceDirectiveStatus },
-          { label: 'Informed consent',  value: consent && consent.informedConsentStatus },
-          { label: 'Tele-consent',      value: consent && consent.teleConsentMode },
-          { label: 'Capacity status',   value: consent && consent.capacityStatus },
-        ];
-
-        fields.forEach(function (f) {
-          var row = document.createElement('div');
-          row.className = 'kv-row';
-          var label = document.createElement('span');
-          label.className = 'kv-label';
-          label.textContent = f.label;
-          var val = document.createElement('span');
-          val.className = f.value ? 'kv-value' : 'kv-value is-empty';
-          val.textContent = f.value || 'Not recorded';
-          row.appendChild(label);
-          row.appendChild(val);
-          frag.appendChild(row);
-        });
-
-        // §23 flag
-        if (consent && consent.confidentialityExceptionActive) {
-          var flagRow = document.createElement('div');
-          flagRow.className = 'consent-flag-row';
-          flagRow.textContent = 'MHA §23 confidentiality exception — currently active';
-          frag.appendChild(flagRow);
-        }
-
-        elConsentKv.innerHTML = '';
-        elConsentKv.appendChild(frag);
-      }
-
-      /* ── Consent edit form ────────────────────────────────────────── */
-      function openConsentEdit() {
-        _consentEditOpen = true;
-        elConsentEditBtn.classList.add('is-active');
-        var c = _consent;
-        elCeAdStatus.value      = (c && c.advanceDirectiveStatus)  || '';
-        elCeConsentStatus.value = (c && c.informedConsentStatus)   || '';
-        elCeTeleMode.value      = (c && c.teleConsentMode)         || '';
-        elCeCapacity.value      = (c && c.capacityStatus)          || '';
-        elCeS23.checked         = !!(c && c.confidentialityExceptionActive);
-        elConsentEditForm.classList.add('is-open');
-        elCeAdStatus.focus();
-      }
-
-      function closeConsentEdit() {
-        _consentEditOpen = false;
-        elConsentEditBtn.classList.remove('is-active');
-        elConsentEditForm.classList.remove('is-open');
-        clearTimeout(_consentEditMsgTimer);
-        elCeMsg.className = 'pe-save-msg';
-        elCeMsg.textContent = '';
-      }
-
-      function showConsentEditMsg(msg, kind) {
-        clearTimeout(_consentEditMsgTimer);
-        elCeMsg.textContent = msg;
-        elCeMsg.className = 'pe-save-msg visible ' + (kind || '');
-        if (kind === 'ok') {
-          _consentEditMsgTimer = setTimeout(function () { closeConsentEdit(); }, 1200);
-        }
-      }
-
-      function onConsentEditSave() {
-        if (_consentEditSaving || !_cmdProxy || !_clientId) return;
-        var patch = {
-          advanceDirectiveStatus:         elCeAdStatus.value.trim() || null,
-          informedConsentStatus:          elCeConsentStatus.value.trim() || null,
-          teleConsentMode:                elCeTeleMode.value.trim() || null,
-          capacityStatus:                 elCeCapacity.value.trim() || null,
-          confidentialityExceptionActive: elCeS23.checked,
-        };
-        _consentEditSaving = true;
-        elCeSave.disabled = true;
-        _cmdProxy.call('setConsentState', _clientId, patch).then(function (updated) {
-          _consentEditSaving = false;
-          elCeSave.disabled = false;
-          _consent = updated;
-          renderConsent();
-          showConsentEditMsg('Saved.', 'ok');
-        }).catch(function (err) {
-          _consentEditSaving = false;
-          elCeSave.disabled = false;
-          if (isLockedError(err)) {
-            showConsentEditMsg('Workspace locked.', 'err');
-          } else {
-            showConsentEditMsg('Save failed: ' + (err && err.message), 'err');
-          }
-        });
-      }
-
-      /* ── Full render ────────────────────────────────────────────── */
-      function renderAll() {
-        renderIdentity();
-        renderRiskFacts();
-        renderRiskItems();
-        renderRiskAlert();
-        updateS23BtnLabel();
-        // Show capacity field after data load.
-        var capField = document.getElementById('capacity-field');
-        if (capField) {
-          capField.style.display = '';
-          // Reflect current capacity in select.
-          var capSel = document.getElementById('cap-select');
-          if (capSel) capSel.value = '';
-        }
-        renderProfile();
-        renderCircle();
-        renderConsent();
-      }
-
-      /* ── Inline edit ────────────────────────────────────────────── */
-      function openEdit() {
-        _editOpen = true;
-        elEditBtn.classList.add('is-active');
-        elPeLang.value = (_profile && _profile.preferredLanguage)   || '';
-        elPeDiag.value = (_profile && _profile.diagnosis)           || '';
-        elPeMeds.value = (_profile && _profile.medicationAwareness) || '';
-        elEditForm.classList.add('is-open');
-        elPeLang.focus();
-      }
-
-      function closeEdit() {
-        _editOpen = false;
-        elEditBtn.classList.remove('is-active');
-        elEditForm.classList.remove('is-open');
-        clearTimeout(_editMsgTimer);
-        elPeMsg.className = 'pe-save-msg';
-        elPeMsg.textContent = '';
-      }
-
-      function showEditMsg(msg, kind) {
-        clearTimeout(_editMsgTimer);
-        elPeMsg.textContent = msg;
-        elPeMsg.className = 'pe-save-msg visible ' + (kind || '');
-        if (kind === 'ok') {
-          _editMsgTimer = setTimeout(function () {
-            closeEdit();
-          }, 1200);
-        }
-      }
-
-      function onEditSave() {
-        if (_editSaving || !_cmdProxy || !_clientId) return;
-        var lang  = elPeLang.value.trim();
-        var diag  = elPeDiag.value.trim();
-        var meds  = elPeMeds.value.trim();
-        // Send empty string (not null) for blanked fields so the upsert WRITES
-        // the clear — updateProfile's update branch skips null (COALESCE-merge)
-        // but writes '' (non-null), so a cleared field actually clears.
-        var patch = {
-          preferredLanguage:   lang,
-          diagnosis:           diag,
-          medicationAwareness: meds,
-        };
-        _editSaving = true;
-        elPeSave.disabled = true;
-        _cmdProxy.call('updateProfile', _clientId, patch).then(function (updated) {
-          _editSaving = false;
-          elPeSave.disabled = false;
-          _profile = updated;
           renderProfile();
-          showEditMsg('Saved.', 'ok');
-        }).catch(function (err) {
-          _editSaving = false;
-          elPeSave.disabled = false;
-          if (isLockedError(err)) {
-            showEditMsg('Workspace locked.', 'err');
-          } else {
-            showEditMsg('Save failed: ' + (err && err.message), 'err');
-          }
-        });
-      }
-
-      /* ── Load data ──────────────────────────────────────────────── */
-      function loadAndRender() {
-        if (!_queryProxy || !_clientId) return;
-        Promise.all([
-          _queryProxy.call('get', _clientId),
-          _queryProxy.call('getProfile', _clientId),
-          _queryProxy.call('getCircle', _clientId),
-          _queryProxy.call('getConsentState', _clientId),
-          _queryProxy.call('listRiskEvents', _clientId),
-          _queryProxy.call('getSafetyPlan', _clientId),
-        ]).then(function (results) {
-          var rec        = results[0];
-          var profile    = results[1];
-          var circle     = results[2];
-          var consent    = results[3];
-          var riskEvents = results[4];
-          var safetyPlan = results[5];
-          if (!rec) { showError('Client not found: ' + _clientId); return; }
-          _record     = rec;
-          _profile    = profile;
-          _circle     = circle;
-          _consent    = consent;
-          _riskEvents = riskEvents;
-          _safetyPlan = safetyPlan;
-          renderAll();
-        }).catch(function (err) {
-          if (isLockedError(err)) {
-            showLocked('Workspace locked — unlock to view client.');
-          } else {
-            showError('Failed to load: ' + (err && err.message));
-          }
-        });
-      }
-
-      // Shared bridge ref for context handler.
-      var _soamView = null;
-
-      function ensureProxiesAndRender() {
-        if (!_clientId || _clientId === 'new') return;
-        if (_queryProxy && _cmdProxy) { loadAndRender(); return; }
-        if (!_soamView) return;
-        var bindQ = _queryProxy ? Promise.resolve(_queryProxy)
-          : _soamView.bindQuery('record.patient.query', '1.0');
-        var bindC = _cmdProxy ? Promise.resolve(_cmdProxy)
-          : _soamView.bindCommand('record.patient', '1.0');
-        Promise.all([bindQ, bindC]).then(function (proxies) {
-          _queryProxy = proxies[0];
-          _cmdProxy   = proxies[1];
-          loadAndRender();
-        }).catch(function (err) {
-          if (isLockedError(err)) {
-            showLocked('Workspace locked.');
-          } else {
-            showError('Bridge error: ' + (err && err.message));
-          }
-        });
-      }
-
-      /* ── Message handler (theme + context) ─────────────────────── */
-      window.addEventListener('message', function (e) {
-        var d = e.data;
-        if (!d || d.__soamView !== true) return;
-        if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
-          var root = document.documentElement;
-          Object.keys(d.theme).forEach(function (k) {
-            root.style.setProperty(k, d.theme[k]);
-          });
+          renderCircle();
+          renderConsent();
         }
-        // context message: entityId pushed by BundleViewIframe on client switch.
-        if (d.kind === 'context') {
-          var newId = d.entityId || null;
-          if (!newId) { _clientId = null; return; }
-          if (newId !== _clientId) {
-            _clientId = newId;
-            if (_editOpen) closeEdit();
-            if (_circleAddOpen) closeCircleAdd();
-            if (_consentEditOpen) closeConsentEdit();
-            if (_s23FormOpen) closeS23Form();
-            if (_reFormOpen) closeRiskAddForm();
-            ensureProxiesAndRender();
+
+        /* ── Inline edit ────────────────────────────────────────────── */
+        function openEdit() {
+          _editOpen = true;
+          elEditBtn.classList.add('is-active');
+          elPeLang.value = (_profile && _profile.preferredLanguage) || '';
+          elPeDiag.value = (_profile && _profile.diagnosis) || '';
+          elPeMeds.value = (_profile && _profile.medicationAwareness) || '';
+          elEditForm.classList.add('is-open');
+          elPeLang.focus();
+        }
+
+        function closeEdit() {
+          _editOpen = false;
+          elEditBtn.classList.remove('is-active');
+          elEditForm.classList.remove('is-open');
+          clearTimeout(_editMsgTimer);
+          elPeMsg.className = 'pe-save-msg';
+          elPeMsg.textContent = '';
+        }
+
+        function showEditMsg(msg, kind) {
+          clearTimeout(_editMsgTimer);
+          elPeMsg.textContent = msg;
+          elPeMsg.className = 'pe-save-msg visible ' + (kind || '');
+          if (kind === 'ok') {
+            _editMsgTimer = setTimeout(function () {
+              closeEdit();
+            }, 1200);
           }
         }
-      });
 
-      /* ── Bridge await ───────────────────────────────────────────── */
-      function awaitBridge() {
-        return new Promise(function (resolve) {
-          if (window.soamView) return resolve(window.soamView);
-          var iv = setInterval(function () {
-            if (window.soamView) { clearInterval(iv); resolve(window.soamView); }
-          }, 25);
-        });
-      }
+        function onEditSave() {
+          if (_editSaving || !_cmdProxy || !_clientId) return;
+          var lang = elPeLang.value.trim();
+          var diag = elPeDiag.value.trim();
+          var meds = elPeMeds.value.trim();
+          // Send empty string (not null) for blanked fields so the upsert WRITES
+          // the clear — updateProfile's update branch skips null (COALESCE-merge)
+          // but writes '' (non-null), so a cleared field actually clears.
+          var patch = {
+            preferredLanguage: lang,
+            diagnosis: diag,
+            medicationAwareness: meds,
+          };
+          _editSaving = true;
+          elPeSave.disabled = true;
+          _cmdProxy
+            .call('updateProfile', _clientId, patch)
+            .then(function (updated) {
+              _editSaving = false;
+              elPeSave.disabled = false;
+              _profile = updated;
+              renderProfile();
+              showEditMsg('Saved.', 'ok');
+            })
+            .catch(function (err) {
+              _editSaving = false;
+              elPeSave.disabled = false;
+              if (isLockedError(err)) {
+                showEditMsg('Workspace locked.', 'err');
+              } else {
+                showEditMsg('Save failed: ' + (err && err.message), 'err');
+              }
+            });
+        }
 
-      awaitBridge().then(function (soamView) {
-        elBridgeWait.style.display = 'none';
-        elRoot.style.display = '';
-        _soamView = soamView;
+        /* ── Load data ──────────────────────────────────────────────── */
+        function loadAndRender() {
+          if (!_queryProxy || !_clientId) return;
+          Promise.all([
+            _queryProxy.call('get', _clientId),
+            _queryProxy.call('getProfile', _clientId),
+            _queryProxy.call('getCircle', _clientId),
+            _queryProxy.call('getConsentState', _clientId),
+            _queryProxy.call('listRiskEvents', _clientId),
+            _queryProxy.call('getSafetyPlan', _clientId),
+          ])
+            .then(function (results) {
+              var rec = results[0];
+              var profile = results[1];
+              var circle = results[2];
+              var consent = results[3];
+              var riskEvents = results[4];
+              var safetyPlan = results[5];
+              if (!rec) {
+                showError('Client not found: ' + _clientId);
+                return;
+              }
+              _record = rec;
+              _profile = profile;
+              _circle = circle;
+              _consent = consent;
+              _riskEvents = riskEvents;
+              _safetyPlan = safetyPlan;
+              renderAll();
+            })
+            .catch(function (err) {
+              if (isLockedError(err)) {
+                showLocked('Workspace locked — unlock to view client.');
+              } else {
+                showError('Failed to load: ' + (err && err.message));
+              }
+            });
+        }
 
-        bindToggle('sh-risk',     'sb-risk');
-        bindToggle('sh-profile',  'sb-profile',  'btn-profile-edit');
-        bindToggle('sh-circle',   'sb-circle',   'btn-circle-edit');
-        bindToggle('sh-consent',  'sb-consent',  'btn-consent-edit');
+        // Shared bridge ref for context handler.
+        var _soamView = null;
 
-        // Risk: Open safety plan.
-        document.getElementById('btn-safety-plan').addEventListener('click', function () {
-          if (!_clientId || !soamView) return;
-          soamView.openInEditor('safety-plan', {
-            query: 'id=' + encodeURIComponent(_clientId),
-            title: 'Safety Plan',
-            entityId: _clientId,
-          });
-        });
-
-        // Risk: §23 toggle.
-        document.getElementById('btn-s23-toggle').addEventListener('click', function () {
-          if (_s23FormOpen) { closeS23Form(); } else { openS23Form(); }
-        });
-        document.getElementById('btn-s23-confirm').addEventListener('click', onS23Confirm);
-        document.getElementById('btn-s23-cancel').addEventListener('click', function () { closeS23Form(); });
-
-        // Risk: Add risk event.
-        document.getElementById('btn-add-risk').addEventListener('click', function () {
-          if (_reFormOpen) { closeRiskAddForm(); } else { openRiskAddForm(); }
-        });
-        document.getElementById('btn-re-save').addEventListener('click', onRiskEventSave);
-        document.getElementById('btn-re-cancel').addEventListener('click', function () { closeRiskAddForm(); });
-
-        // Capacity quick-set.
-        document.getElementById('cap-select').addEventListener('change', function () {
-          onCapacityChange(this.value);
-        });
-
-        // Profile edit button — stop propagation so section-header toggle doesn't fire.
-        elEditBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          if (_editOpen) { closeEdit(); } else { openEdit(); }
-        });
-        elPeSave.addEventListener('click', onEditSave);
-        elPeCancel.addEventListener('click', function () { closeEdit(); });
-
-        // Circle add button.
-        elCircleEditBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          if (_circleAddOpen) { closeCircleAdd(); } else { openCircleAdd(); }
-        });
-        elCaSave.addEventListener('click', onCircleAddSave);
-        elCaCancel.addEventListener('click', function () { closeCircleAdd(); });
-
-        // Consent edit button.
-        elConsentEditBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          if (_consentEditOpen) { closeConsentEdit(); } else { openConsentEdit(); }
-        });
-        elCeSave.addEventListener('click', onConsentEditSave);
-        elCeCancel.addEventListener('click', function () { closeConsentEdit(); });
-
-        // Do NOT read id from location.search — id arrives via context/activate message.
-
-        soamView.events.onActivate(function () {
-          // If _clientId already set by context handler, ensure proxies + render.
-          ensureProxiesAndRender();
-        });
-
-        soamView.events.onStoreChange(function (payload) {
-          if (payload && (
-            payload.table === 'patients' ||
-            payload.table === 'patient_profile' ||
-            payload.table === 'patient_circle_member' ||
-            payload.table === 'patient_consent_state' ||
-            payload.table === 'patient_risk_event' ||
-            payload.table === 'patient_safety_plan'
-          )) {
+        function ensureProxiesAndRender() {
+          if (!_clientId || _clientId === 'new') return;
+          if (_queryProxy && _cmdProxy) {
             loadAndRender();
+            return;
+          }
+          if (!_soamView) return;
+          var bindQ = _queryProxy
+            ? Promise.resolve(_queryProxy)
+            : _soamView.bindQuery('record.patient.query', '1.0');
+          var bindC = _cmdProxy
+            ? Promise.resolve(_cmdProxy)
+            : _soamView.bindCommand('record.patient', '1.0');
+          Promise.all([bindQ, bindC])
+            .then(function (proxies) {
+              _queryProxy = proxies[0];
+              _cmdProxy = proxies[1];
+              loadAndRender();
+            })
+            .catch(function (err) {
+              if (isLockedError(err)) {
+                showLocked('Workspace locked.');
+              } else {
+                showError('Bridge error: ' + (err && err.message));
+              }
+            });
+        }
+
+        /* ── Message handler (theme + context) ─────────────────────── */
+        window.addEventListener('message', function (e) {
+          var d = e.data;
+          if (!d || d.__soamView !== true) return;
+          if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
+            var root = document.documentElement;
+            Object.keys(d.theme).forEach(function (k) {
+              root.style.setProperty(k, d.theme[k]);
+            });
+          }
+          // context message: entityId pushed by BundleViewIframe on client switch.
+          if (d.kind === 'context') {
+            var newId = d.entityId || null;
+            if (!newId) {
+              _clientId = null;
+              return;
+            }
+            if (newId !== _clientId) {
+              _clientId = newId;
+              if (_editOpen) closeEdit();
+              if (_circleAddOpen) closeCircleAdd();
+              if (_consentEditOpen) closeConsentEdit();
+              if (_s23FormOpen) closeS23Form();
+              if (_reFormOpen) closeRiskAddForm();
+              ensureProxiesAndRender();
+            }
           }
         });
-      });
 
-    })();
+        /* ── Bridge await ───────────────────────────────────────────── */
+        function awaitBridge() {
+          return new Promise(function (resolve) {
+            if (window.soamView) return resolve(window.soamView);
+            var iv = setInterval(function () {
+              if (window.soamView) {
+                clearInterval(iv);
+                resolve(window.soamView);
+              }
+            }, 25);
+          });
+        }
+
+        awaitBridge().then(function (soamView) {
+          elBridgeWait.style.display = 'none';
+          elRoot.style.display = '';
+          _soamView = soamView;
+
+          bindToggle('sh-risk', 'sb-risk');
+          bindToggle('sh-profile', 'sb-profile', 'btn-profile-edit');
+          bindToggle('sh-circle', 'sb-circle', 'btn-circle-edit');
+          bindToggle('sh-consent', 'sb-consent', 'btn-consent-edit');
+
+          // Risk: Open safety plan.
+          document.getElementById('btn-safety-plan').addEventListener('click', function () {
+            if (!_clientId || !soamView) return;
+            soamView.openInEditor('safety-plan', {
+              query: 'id=' + encodeURIComponent(_clientId),
+              title: 'Safety Plan',
+              entityId: _clientId,
+            });
+          });
+
+          // Risk: §23 toggle.
+          document.getElementById('btn-s23-toggle').addEventListener('click', function () {
+            if (_s23FormOpen) {
+              closeS23Form();
+            } else {
+              openS23Form();
+            }
+          });
+          document.getElementById('btn-s23-confirm').addEventListener('click', onS23Confirm);
+          document.getElementById('btn-s23-cancel').addEventListener('click', function () {
+            closeS23Form();
+          });
+
+          // Risk: Add risk event.
+          document.getElementById('btn-add-risk').addEventListener('click', function () {
+            if (_reFormOpen) {
+              closeRiskAddForm();
+            } else {
+              openRiskAddForm();
+            }
+          });
+          document.getElementById('btn-re-save').addEventListener('click', onRiskEventSave);
+          document.getElementById('btn-re-cancel').addEventListener('click', function () {
+            closeRiskAddForm();
+          });
+
+          // Capacity quick-set.
+          document.getElementById('cap-select').addEventListener('change', function () {
+            onCapacityChange(this.value);
+          });
+
+          // Profile edit button — stop propagation so section-header toggle doesn't fire.
+          elEditBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (_editOpen) {
+              closeEdit();
+            } else {
+              openEdit();
+            }
+          });
+          elPeSave.addEventListener('click', onEditSave);
+          elPeCancel.addEventListener('click', function () {
+            closeEdit();
+          });
+
+          // Circle add button.
+          elCircleEditBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (_circleAddOpen) {
+              closeCircleAdd();
+            } else {
+              openCircleAdd();
+            }
+          });
+          elCaSave.addEventListener('click', onCircleAddSave);
+          elCaCancel.addEventListener('click', function () {
+            closeCircleAdd();
+          });
+
+          // Consent edit button.
+          elConsentEditBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (_consentEditOpen) {
+              closeConsentEdit();
+            } else {
+              openConsentEdit();
+            }
+          });
+          elCeSave.addEventListener('click', onConsentEditSave);
+          elCeCancel.addEventListener('click', function () {
+            closeConsentEdit();
+          });
+
+          // Do NOT read id from location.search — id arrives via context/activate message.
+
+          soamView.events.onActivate(function () {
+            // If _clientId already set by context handler, ensure proxies + render.
+            ensureProxiesAndRender();
+          });
+
+          soamView.events.onStoreChange(function (payload) {
+            if (
+              payload &&
+              (payload.table === 'patients' ||
+                payload.table === 'patient_profile' ||
+                payload.table === 'patient_circle_member' ||
+                payload.table === 'patient_consent_state' ||
+                payload.table === 'patient_risk_event' ||
+                payload.table === 'patient_safety_plan')
+            ) {
+              loadAndRender();
+            }
+          });
+        });
+      })();
     </script>
   </body>
 </html>

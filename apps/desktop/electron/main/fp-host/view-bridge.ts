@@ -29,6 +29,21 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
   var themeSnapshot = {};
   var resolvedReady;
   var ready = new Promise(function (r) { resolvedReady = r; });
+  // Buffer the latest 'context' message and replay it once the DOM is parsed.
+  // The bridge listener is injected right after <head>, so it reliably catches
+  // the parent's handshake 'context'. A view's OWN message listener is in its
+  // body script, which the HTML parser may not have reached yet — for large view
+  // documents the parser can yield between the head bridge and the body script,
+  // so the handshake 'context' is dispatched and dropped before the view listens.
+  // 'context' is replayed on DOMContentLoaded (when the body script, and thus the
+  // view's listener, is guaranteed registered) so every view receives it. Mirrors
+  // the 'activate' replay (isActive) — without this, single-record views silently
+  // never receive their entity id because no second 'context' push ever follows.
+  var lastContextMsg = null;
+  var contextReplayScheduled = false;
+  function replayContext() {
+    if (lastContextMsg) window.dispatchEvent(new MessageEvent('message', { data: lastContextMsg }));
+  }
 
   function send(msg) {
     try { window.parent.postMessage(msg, '*'); }
@@ -69,6 +84,16 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
         applyTheme(themeSnapshot);
         if (typeof m.maturityHighlight === 'boolean') {
           document.body.classList.toggle('maturity-highlight', m.maturityHighlight);
+        }
+        break;
+      case 'context':
+        // Buffer for replay. The view's own listener handles the live message;
+        // if it isn't registered yet (parser still in <head>/mid-parse), replay
+        // the latest value on DOMContentLoaded so the view never misses its id.
+        lastContextMsg = m;
+        if (document.readyState === 'loading' && !contextReplayScheduled) {
+          contextReplayScheduled = true;
+          document.addEventListener('DOMContentLoaded', replayContext);
         }
         break;
       case 'store.changed':
