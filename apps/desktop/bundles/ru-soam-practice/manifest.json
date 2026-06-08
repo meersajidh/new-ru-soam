@@ -16,7 +16,7 @@
     { "id": "projections", "path": "projections.html" },
     { "id": "safety-plan", "path": "safety-plan.html" }
   ],
-  "ownedTables": ["patients", "patient_profile", "patient_lifecycle", "patient_circle_member", "patient_consent_state", "patient_risk_event", "patient_safety_plan"],
+  "ownedTables": ["patients", "patient_profile", "patient_lifecycle", "patient_circle_member", "patient_consent_state", "patient_risk_event", "patient_safety_plan", "patient_document"],
   "migrations": [
     {
       "version": 1,
@@ -52,6 +52,11 @@
       "version": 7,
       "description": "Practice P4: patient_safety_plan table (ADR-505 Am4)",
       "sql": "CREATE TABLE IF NOT EXISTS patient_safety_plan (\n  patient_id               TEXT PRIMARY KEY REFERENCES patients(id),\n  status                   TEXT NOT NULL DEFAULT 'none',\n  warning_signs            TEXT,\n  coping_strategies        TEXT,\n  social_settings_contacts TEXT,\n  help_contacts            TEXT,\n  professional_agencies    TEXT,\n  means_restriction        TEXT,\n  reasons_for_living       TEXT,\n  shared_with_nr           INTEGER NOT NULL DEFAULT 0,\n  updated_at               INTEGER NOT NULL\n);"
+    },
+    {
+      "version": 8,
+      "description": "Practice P3: patient_document table — protected blob-backed (O454/ADR-505 P3)",
+      "sql": "CREATE TABLE IF NOT EXISTS patient_document (\n  id            TEXT PRIMARY KEY,\n  patient_id    TEXT NOT NULL REFERENCES patients(id),\n  kind          TEXT NOT NULL DEFAULT 'document',\n  title         TEXT NOT NULL,\n  storage_ref   TEXT NOT NULL,\n  mime_type     TEXT,\n  sha256        TEXT,\n  linked_kind   TEXT,\n  linked_id     TEXT,\n  created_at    INTEGER NOT NULL\n);\nCREATE INDEX IF NOT EXISTS idx_document_patient ON patient_document(patient_id, created_at DESC);"
     }
   ],
   "queryTemplates": [
@@ -90,10 +95,14 @@
     {
       "id": "patient.getSafetyPlan",
       "sql": "SELECT patient_id, status, warning_signs, coping_strategies,\n       social_settings_contacts, help_contacts, professional_agencies,\n       means_restriction, reasons_for_living, shared_with_nr, updated_at\nFROM patient_safety_plan WHERE patient_id = @id"
+    },
+    {
+      "id": "patient.listDocuments",
+      "sql": "SELECT id, patient_id, kind, title, storage_ref, mime_type, sha256, linked_kind, linked_id, created_at FROM patient_document WHERE patient_id = @id ORDER BY created_at DESC"
     }
   ],
   "dependencies": {
-    "capabilities": ["store.write@1.0", "store.query@1.0"]
+    "capabilities": ["store.write@1.0", "store.query@1.0", "blob.write@1.0"]
   },
   "contributes": {
     "activityBar.items": [

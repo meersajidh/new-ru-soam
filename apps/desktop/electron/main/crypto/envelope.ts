@@ -84,6 +84,17 @@ export function buildProtectedStoreKeyAad(workspaceId: string): Buffer {
 }
 
 /**
+ * Canonical-JSON AAD for the protected-blobs cipher key envelope (ADR-307 / O454).
+ * Separate purpose string from the store-key AAD so the two keys cannot be
+ * cross-substituted even if they share the same KEK.
+ * Keys sorted: purpose, workspaceId.
+ */
+export function buildProtectedBlobsKeyAad(workspaceId: string): Buffer {
+  const obj = { purpose: 'protected-blobs-key', workspaceId };
+  return Buffer.from(canonicalJson(obj), 'utf8');
+}
+
+/**
  * Deterministic JSON with sorted keys and no whitespace.
  * Primitive values only (no arrays of objects etc.) — sufficient for our AAD needs.
  * Exported for use by `workspace/identity.ts`.

@@ -135,6 +135,21 @@ function mapRiskEvent(row) {
   };
 }
 
+function mapDocument(row) {
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    kind: row.kind,
+    title: row.title,
+    storageRef: row.storage_ref,
+    mimeType: row.mime_type,
+    sha256: row.sha256,
+    linkedKind: row.linked_kind,
+    linkedId: row.linked_id,
+    createdAt: row.created_at,
+  };
+}
+
 function mapSafetyPlan(row) {
   return {
     patientId: row.patient_id,
@@ -157,6 +172,13 @@ function notFound(message) {
   return Object.assign(new Error(message), { code: 'cap.not_found' });
 }
 
+function parseBlobId(storageRef) {
+  if (typeof storageRef !== 'string' || !storageRef.startsWith('blob:')) {
+    throw new Error('parseBlobId: storageRef does not start with blob: ' + String(storageRef));
+  }
+  return storageRef.slice('blob:'.length);
+}
+
 // ── Capability handler ────────────────────────────────────────────────────────
 
 export function activate(ctx) {
@@ -164,6 +186,8 @@ export function activate(ctx) {
   const storeQuery = ctx.bindCapability('store.query', '1.0');
   // Bind store.write@1.0 — FP-Host consumer channel (O449 rung-0, rung D2).
   const storeWrite = ctx.bindCapability('store.write', '1.0');
+  // Bind blob.write@1.0 — protected blob store (O454 / ADR-302 P3).
+  const blobWrite = ctx.bindCapability('blob.write', '1.0');
 
   // ── record.patient.query (read cap, rung D1) ───────────────────────────────
 
@@ -254,6 +278,16 @@ export function activate(ctx) {
           { event: 'record.patient.viewed', recordType: 'patient_safety_plan', recordId: clientId },
         ]);
         return rows.length > 0 ? mapSafetyPlan(rows[0]) : null;
+      }
+
+      case 'listDocuments': {
+        const clientId = args[0];
+        const rows = await storeQuery.call('run', [
+          'patient.listDocuments',
+          { id: clientId },
+          { event: 'record.patient.viewed', recordType: 'patient_document', recordId: clientId },
+        ]);
+        return rows.map(mapDocument);
       }
 
       default:
@@ -457,6 +491,22 @@ export function activate(ctx) {
         const existRows = await storeQuery.call('run', ['patient.get', { id }]);
         if (!existRows.length) {
           throw notFound('record.patient.erase: patient not found: ' + id);
+        }
+
+        // Unlink blob files for this patient's documents BEFORE the row cascade.
+        // The DB deleteWhere loop below deletes the patient_document rows; if we
+        // unlinked after, a crash between row-delete and unlink would orphan files.
+        // Each unlink is wrapped so a single failure cannot abort the full erasure.
+        const docRowsErase = await storeQuery.call('run', ['patient.listDocuments', { id }]);
+        for (const docRow of docRowsErase) {
+          try {
+            const blobId = parseBlobId(docRow.storage_ref);
+            await blobWrite.call('delete', [blobId]);
+          } catch (unlinkErr) {
+            // Log but do not rethrow — DPDP erasure must complete even if a blob
+            // file is already missing or the store is partially closed.
+            console.error('record.patient.erase: blob unlink failed (continuing):', unlinkErr);
+          }
         }
 
         // Delete adjunct tables (children) first, then the parent.
@@ -1158,6 +1208,104 @@ export function activate(ctx) {
         return mapSafetyPlan(updSPRows[0]);
       }
 
+      case 'attachDocument': {
+        const clientId = args[0];
+        const input = args[1];
+        if (typeof clientId !== 'string' || clientId.length === 0) {
+          throw new Error('record.patient.attachDocument: clientId must be a non-empty string');
+        }
+        if (!input || typeof input !== 'object') {
+          throw new Error('record.patient.attachDocument: input must be an object');
+        }
+        if (!input.fileName || String(input.fileName).trim().length === 0) {
+          throw new Error('record.patient.attachDocument: fileName must be a non-empty string');
+        }
+        if (!input.base64 || String(input.base64).length === 0) {
+          throw new Error('record.patient.attachDocument: base64 must be a non-empty string');
+        }
+
+        // Decode base64 → Buffer (Node process; Buffer is available in FP-Host).
+        const buffer = Buffer.from(String(input.base64), 'base64');
+        if (buffer.length === 0) {
+          throw new Error('record.patient.attachDocument: base64 decoded to empty buffer');
+        }
+
+        // Patient existence check — no audit tag.
+        const existRowsDoc = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        if (!existRowsDoc.length) {
+          throw notFound('record.patient.attachDocument: patient not found: ' + clientId);
+        }
+
+        // Write encrypted blob — returns { id, sha256, size }.
+        const { id: blobId, sha256, size } = await blobWrite.call('put', [buffer]);
+
+        const docRow = {
+          id: globalThis.crypto.randomUUID(),
+          patient_id: clientId,
+          kind: 'document',
+          title: String(input.fileName).trim(),
+          storage_ref: 'blob:' + blobId,
+          mime_type: input.mimeType != null ? String(input.mimeType) : null,
+          sha256,
+          linked_kind: null,
+          linked_id: null,
+          created_at: Date.now(),
+        };
+
+        await storeWrite.call('insert', [
+          'patient_document',
+          docRow,
+          {
+            event: 'record.patient.document.attached',
+            recordType: 'patient_document',
+            recordId: docRow.id,
+            // fileName/title is PHI-adjacent — NEVER in audit detail.
+            // Omit mime_type when null (ledger detail = string|number|boolean only).
+            detail: docRow.mime_type != null ? { mime_type: docRow.mime_type, size } : { size },
+          },
+        ]);
+
+        return mapDocument(docRow);
+      }
+
+      case 'removeDocument': {
+        const clientId = args[0];
+        const docId = args[1];
+        if (typeof clientId !== 'string' || clientId.length === 0) {
+          throw new Error('record.patient.removeDocument: clientId must be a non-empty string');
+        }
+        if (typeof docId !== 'string' || docId.length === 0) {
+          throw new Error('record.patient.removeDocument: docId must be a non-empty string');
+        }
+
+        // Look up document via list (no audit tag on the read).
+        const docRows = await storeQuery.call('run', ['patient.listDocuments', { id: clientId }]);
+        const docRow = docRows.find(function (r) { return r.id === docId; });
+
+        // Not found OR cross-patient guard.
+        if (!docRow || docRow.patient_id !== clientId) {
+          throw notFound('record.patient.removeDocument: document not found: ' + docId);
+        }
+
+        const blobId = parseBlobId(docRow.storage_ref);
+
+        // Delete DB row first, then unlink blob (blob-first would be inconsistent on crash).
+        await storeWrite.call('delete', [
+          'patient_document',
+          docId,
+          {
+            event: 'record.patient.document.removed',
+            recordType: 'patient_document',
+            recordId: docId,
+          },
+        ]);
+
+        // Unlink the blob file after row is gone.
+        await blobWrite.call('delete', [blobId]);
+
+        return { removed: docId };
+      }
+
       default:
         throw new Error('record.patient: unknown method ' + method);
     }
@@ -1167,6 +1315,7 @@ export function activate(ctx) {
     dispose() {
       storeQuery.dispose();
       storeWrite.dispose();
+      blobWrite.dispose();
     },
   };
 }

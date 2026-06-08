@@ -37,7 +37,13 @@ export type AuditEventKind =
   | 'record.patient.risk.added'
   | 'record.patient.capacity.changed'
   | 'record.patient.s23.changed'
-  | 'record.patient.safetyplan.updated';
+  | 'record.patient.safetyplan.updated'
+  // ADR-505 P3: Documents (protected blob-backed)
+  | 'record.patient.document.attached'
+  | 'record.patient.document.removed'
+  // O454: protected blob store base events
+  | 'blob.put'
+  | 'blob.delete';
 
 /**
  * Arbitrary detail attached to an audit entry.

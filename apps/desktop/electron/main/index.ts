@@ -24,6 +24,7 @@ import { registerPrefsCapability } from './capability/prefs';
 import { registerAuditCapability } from './capability/audit-cap';
 import { registerStoreWriteCapability } from './local-store/store-write-cap';
 import { registerStoreQueryCapability } from './local-store/store-query-cap';
+import { registerBlobCapabilities } from './local-store/blob-cap';
 import { registerPlatformAuthCapability } from './capability/platform-auth';
 import { isOAuthConfigured } from './auth/oauth.js';
 import { localStoreManager } from './local-store/index';
@@ -218,6 +219,7 @@ app.whenReady().then(() => {
   registerAuditCapability();
   registerStoreWriteCapability();
   registerStoreQueryCapability();
+  registerBlobCapabilities();
 
   // O446 rung-C store.write self-check (dev-only, ADR-506 §6).
   // Runs AFTER registerStoreWriteCapability() so the cap is registered when invoked.

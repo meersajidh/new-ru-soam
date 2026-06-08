@@ -36,3 +36,21 @@ export function protectedStoreDbPath(workspaceId: string): string {
 export function protectedStoreKeyPath(workspaceId: string): string {
   return path.join(workspaceDir(workspaceId), 'protected-store.key.json');
 }
+
+/**
+ * Returns the absolute path to the protected-blobs directory for a workspace
+ * (O454 / ADR-302 §"Protected blob store"). Encrypted blob files live here,
+ * one file per blob, named by UUID.
+ */
+export function protectedBlobsDir(workspaceId: string): string {
+  return path.join(workspaceDir(workspaceId), 'protected-blobs');
+}
+
+/**
+ * Returns the absolute path to the KEK-wrapped cipher key for the protected
+ * blobs store (O454 / ADR-307 §"Sibling protected-blobs key").
+ * Present only after the first blob write on an unlocked workspace.
+ */
+export function protectedBlobsKeyPath(workspaceId: string): string {
+  return path.join(workspaceDir(workspaceId), 'protected-blobs.key.json');
+}

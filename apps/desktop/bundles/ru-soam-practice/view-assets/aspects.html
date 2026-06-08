@@ -601,6 +601,69 @@
       .section-edit-btn.is-active {
         color: var(--color-accent);
       }
+
+      /* ── Documents section ──────────────────────────────────────── */
+      .doc-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .doc-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        background: var(--color-surface-base, #111);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        padding: 6px 9px;
+      }
+      .doc-icon {
+        flex: 0 0 auto;
+        color: var(--color-fg-muted);
+        margin-top: 1px;
+      }
+      .doc-info {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .doc-title {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .doc-meta {
+        font-size: 10px;
+        font-family: var(--font-mono);
+        color: var(--color-fg-muted);
+        margin-top: 1px;
+      }
+      .doc-remove-btn {
+        flex: 0 0 auto;
+        font-size: 10px;
+        font-weight: 500;
+        font-family: var(--font-sans);
+        padding: 2px 7px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        background: transparent;
+        color: var(--color-fg-muted);
+        cursor: pointer;
+        transition: background var(--transition), color var(--transition);
+      }
+      .doc-remove-btn:hover {
+        background: color-mix(in srgb, var(--color-error) 12%, transparent);
+        color: var(--color-error);
+        border-color: color-mix(in srgb, var(--color-error) 30%, var(--color-border));
+      }
+      .doc-empty {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        font-style: italic;
+        padding: 4px 0;
+      }
     </style>
   </head>
   <body>
@@ -1052,6 +1115,59 @@
             </div>
           </div>
         </section>
+        <!-- Documents (P3) -->
+        <section class="section" id="section-documents" data-maturity-id="section-documents">
+          <header
+            class="section-header"
+            id="sh-documents"
+            tabindex="0"
+            role="button"
+            aria-expanded="false"
+          >
+            <span class="section-caret" data-codicon="chevron-right" data-size="12"></span>
+            <span data-codicon="file" data-size="13"></span>
+            <span class="section-title">Documents</span>
+            <span class="section-source">PRACTICE</span>
+          </header>
+          <div class="section-body" id="sb-documents">
+            <!-- Document list -->
+            <div class="doc-list" id="doc-list">
+              <!-- populated by JS -->
+            </div>
+            <!-- Upload form -->
+            <div id="doc-upload-form" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--color-border);">
+              <div class="pe-field" style="margin-bottom:6px;">
+                <label class="pe-label" for="doc-file-input">Attach file</label>
+                <div style="display:flex;gap:6px;align-items:center;margin-top:3px;">
+                  <label
+                    class="pe-btn"
+                    for="doc-file-input"
+                    style="cursor:pointer;"
+                    id="doc-file-label"
+                  >
+                    <span data-codicon="file-add" data-size="11"></span>
+                    Choose file
+                  </label>
+                  <span id="doc-file-name" style="font-size:10.5px;color:var(--color-fg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;"></span>
+                  <input
+                    type="file"
+                    id="doc-file-input"
+                    style="display:none;"
+                    accept="*/*"
+                  />
+                </div>
+              </div>
+              <div id="doc-size-err" style="display:none;font-size:10.5px;color:var(--color-error);margin-bottom:6px;"></div>
+              <div class="pe-actions">
+                <button class="pe-btn primary" id="btn-doc-upload" type="button" disabled>
+                  <span data-codicon="cloud-upload" data-size="11"></span>
+                  Attach
+                </button>
+                <span class="pe-save-msg" id="doc-upload-msg" role="status" aria-live="polite"></span>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
       <!-- /aspects-scroll -->
     </div>
@@ -1090,6 +1206,11 @@
         var _reFormOpen = false;
         var _reSaving = false;
         var _reMsgTimer = null;
+        // Documents state
+        var _documents = null; // array of documents or null
+        var _docUploadFile = null; // File object chosen by user
+        var _docUploading = false;
+        var _docUploadMsgTimer = null;
 
         /* ── Elements ───────────────────────────────────────────────── */
         var elBridgeWait = document.getElementById('bridge-wait');
@@ -1139,6 +1260,14 @@
         var elCeCancel = document.getElementById('btn-ce-cancel');
         var elCeMsg = document.getElementById('ce-save-msg');
 
+        // Documents elements
+        var elDocList = document.getElementById('doc-list');
+        var elDocFileInput = document.getElementById('doc-file-input');
+        var elDocFileName = document.getElementById('doc-file-name');
+        var elDocSizeErr = document.getElementById('doc-size-err');
+        var elBtnDocUpload = document.getElementById('btn-doc-upload');
+        var elDocUploadMsg = document.getElementById('doc-upload-msg');
+
         /* ── Helpers ────────────────────────────────────────────────── */
         function showError(msg) {
           elStatusBar.textContent = msg;
@@ -1186,6 +1315,19 @@
           if (cls) e.className = cls;
           e.textContent = content;
           return e;
+        }
+
+        /* ── Codicon helper (for dynamically-rendered nodes) ───────── */
+        function applyCodeicons(root) {
+          var els = (root || document).querySelectorAll('[data-codicon]');
+          for (var i = 0; i < els.length; i++) {
+            var e = els[i];
+            var name = e.getAttribute('data-codicon');
+            var size = parseInt(e.getAttribute('data-size') || '13', 10);
+            if (window.codicon) {
+              e.innerHTML = window.codicon(name, size);
+            }
+          }
         }
 
         /* ── Section toggle ─────────────────────────────────────────── */
@@ -1846,6 +1988,175 @@
             });
         }
 
+        /* ── Documents section render ───────────────────────────────── */
+        var DOC_MAX_BYTES = 25 * 1024 * 1024;
+
+        function fmtSize(bytes) {
+          if (bytes == null) return '';
+          if (bytes < 1024) return bytes + ' B';
+          if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+          return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function renderDocuments() {
+          elDocList.innerHTML = '';
+          var docs = _documents;
+          if (!docs || docs.length === 0) {
+            var empty = document.createElement('div');
+            empty.className = 'doc-empty';
+            empty.textContent = 'No documents.';
+            elDocList.appendChild(empty);
+            return;
+          }
+          docs.forEach(function (doc) {
+            var item = document.createElement('div');
+            item.className = 'doc-item';
+
+            var iconSpan = document.createElement('span');
+            iconSpan.className = 'doc-icon';
+            iconSpan.setAttribute('data-codicon', 'file');
+            iconSpan.setAttribute('data-size', '12');
+            item.appendChild(iconSpan);
+
+            var info = document.createElement('div');
+            info.className = 'doc-info';
+
+            var title = document.createElement('div');
+            title.className = 'doc-title';
+            title.textContent = doc.title;
+            info.appendChild(title);
+
+            var meta = [];
+            if (doc.mimeType) meta.push(doc.mimeType);
+            if (doc.createdAt) {
+              meta.push(relDate(doc.createdAt));
+            }
+            if (meta.length > 0) {
+              var metaDiv = document.createElement('div');
+              metaDiv.className = 'doc-meta';
+              metaDiv.textContent = meta.join(' · ');
+              info.appendChild(metaDiv);
+            }
+
+            item.appendChild(info);
+
+            var removeBtn = document.createElement('button');
+            removeBtn.className = 'doc-remove-btn';
+            removeBtn.type = 'button';
+            removeBtn.textContent = 'Remove';
+            (function (d) {
+              removeBtn.addEventListener('click', function () {
+                onDocRemove(d.id);
+              });
+            })(doc);
+            item.appendChild(removeBtn);
+
+            elDocList.appendChild(item);
+          });
+          // Apply codicons in newly rendered items.
+          applyCodeicons(elDocList);
+        }
+
+        /* ── Document upload msg helper ─────────────────────────────── */
+        function showDocUploadMsg(msg, kind) {
+          clearTimeout(_docUploadMsgTimer);
+          elDocUploadMsg.textContent = msg;
+          elDocUploadMsg.className = 'pe-save-msg visible ' + (kind || '');
+          if (kind === 'ok') {
+            _docUploadMsgTimer = setTimeout(function () {
+              elDocUploadMsg.className = 'pe-save-msg';
+              elDocUploadMsg.textContent = '';
+            }, 2000);
+          }
+        }
+
+        /* ── Document remove handler ─────────────────────────────────── */
+        function onDocRemove(docId) {
+          if (!_cmdProxy || !_clientId) return;
+          var proxy = _cmdProxy;
+          var clientId = _clientId;
+          proxy
+            .call('removeDocument', clientId, docId)
+            .then(function () {
+              // Reload list.
+              return _queryProxy.call('listDocuments', clientId);
+            })
+            .then(function (docs) {
+              _documents = docs;
+              renderDocuments();
+            })
+            .catch(function (err) {
+              if (isLockedError(err)) {
+                showLocked('Workspace locked.');
+              } else {
+                showError('Remove failed: ' + (err && err.message));
+              }
+            });
+        }
+
+        /* ── Document upload handler ─────────────────────────────────── */
+        function onDocUpload() {
+          if (_docUploading || !_cmdProxy || !_clientId || !_docUploadFile) return;
+          var file = _docUploadFile;
+          var clientId = _clientId;
+
+          // Client-side size guard (25 MiB).
+          if (file.size > DOC_MAX_BYTES) {
+            elDocSizeErr.textContent = 'File too large (max 25 MB).';
+            elDocSizeErr.style.display = '';
+            return;
+          }
+          elDocSizeErr.style.display = 'none';
+
+          _docUploading = true;
+          elBtnDocUpload.disabled = true;
+          showDocUploadMsg('Uploading…', '');
+
+          var reader = new FileReader();
+          reader.onload = function (e) {
+            var dataUrl = e.target.result;
+            // Strip data:<mime>;base64, prefix.
+            var commaIdx = dataUrl.indexOf(',');
+            var base64 = commaIdx >= 0 ? dataUrl.slice(commaIdx + 1) : dataUrl;
+
+            var proxy = _cmdProxy;
+            proxy
+              .call('attachDocument', clientId, {
+                fileName: file.name,
+                mimeType: file.type || null,
+                base64: base64,
+              })
+              .then(function () {
+                _docUploading = false;
+                elBtnDocUpload.disabled = true; // keep disabled until new file chosen
+                _docUploadFile = null;
+                elDocFileName.textContent = '';
+                elDocFileInput.value = '';
+                showDocUploadMsg('Attached.', 'ok');
+                return _queryProxy.call('listDocuments', clientId);
+              })
+              .then(function (docs) {
+                _documents = docs;
+                renderDocuments();
+              })
+              .catch(function (err) {
+                _docUploading = false;
+                elBtnDocUpload.disabled = false;
+                if (isLockedError(err)) {
+                  showDocUploadMsg('Workspace locked.', 'err');
+                } else {
+                  showDocUploadMsg('Upload failed: ' + (err && err.message), 'err');
+                }
+              });
+          };
+          reader.onerror = function () {
+            _docUploading = false;
+            elBtnDocUpload.disabled = false;
+            showDocUploadMsg('Could not read file.', 'err');
+          };
+          reader.readAsDataURL(file);
+        }
+
         /* ── Full render ────────────────────────────────────────────── */
         function renderAll() {
           renderIdentity();
@@ -1864,6 +2175,7 @@
           renderProfile();
           renderCircle();
           renderConsent();
+          renderDocuments();
         }
 
         /* ── Inline edit ────────────────────────────────────────────── */
@@ -1942,6 +2254,7 @@
             _queryProxy.call('getConsentState', _clientId),
             _queryProxy.call('listRiskEvents', _clientId),
             _queryProxy.call('getSafetyPlan', _clientId),
+            _queryProxy.call('listDocuments', _clientId),
           ])
             .then(function (results) {
               var rec = results[0];
@@ -1950,6 +2263,7 @@
               var consent = results[3];
               var riskEvents = results[4];
               var safetyPlan = results[5];
+              var documents = results[6];
               if (!rec) {
                 showError('Client not found: ' + _clientId);
                 return;
@@ -1960,6 +2274,7 @@
               _consent = consent;
               _riskEvents = riskEvents;
               _safetyPlan = safetyPlan;
+              _documents = documents;
               renderAll();
             })
             .catch(function (err) {
@@ -2026,6 +2341,12 @@
               if (_consentEditOpen) closeConsentEdit();
               if (_s23FormOpen) closeS23Form();
               if (_reFormOpen) closeRiskAddForm();
+              // Reset document upload state for new client.
+              _docUploadFile = null;
+              elDocFileName.textContent = '';
+              elDocFileInput.value = '';
+              elDocSizeErr.style.display = 'none';
+              elBtnDocUpload.disabled = true;
               ensureProxiesAndRender();
             }
           }
@@ -2053,6 +2374,7 @@
           bindToggle('sh-profile', 'sb-profile', 'btn-profile-edit');
           bindToggle('sh-circle', 'sb-circle', 'btn-circle-edit');
           bindToggle('sh-consent', 'sb-consent', 'btn-consent-edit');
+          bindToggle('sh-documents', 'sb-documents');
 
           // Risk: Open safety plan.
           document.getElementById('btn-safety-plan').addEventListener('click', function () {
@@ -2137,6 +2459,31 @@
             closeConsentEdit();
           });
 
+          // Documents: file input change → enable Attach button + show name.
+          elDocFileInput.addEventListener('change', function () {
+            var file = elDocFileInput.files && elDocFileInput.files[0];
+            if (!file) {
+              _docUploadFile = null;
+              elDocFileName.textContent = '';
+              elBtnDocUpload.disabled = true;
+              elDocSizeErr.style.display = 'none';
+              return;
+            }
+            _docUploadFile = file;
+            elDocFileName.textContent = file.name;
+            elDocSizeErr.style.display = 'none';
+            if (file.size > DOC_MAX_BYTES) {
+              elDocSizeErr.textContent = 'File too large (max 25 MB).';
+              elDocSizeErr.style.display = '';
+              elBtnDocUpload.disabled = true;
+            } else {
+              elBtnDocUpload.disabled = false;
+            }
+          });
+
+          // Documents: Attach button click.
+          elBtnDocUpload.addEventListener('click', onDocUpload);
+
           // Do NOT read id from location.search — id arrives via context/activate message.
 
           soamView.events.onActivate(function () {
@@ -2152,7 +2499,8 @@
                 payload.table === 'patient_circle_member' ||
                 payload.table === 'patient_consent_state' ||
                 payload.table === 'patient_risk_event' ||
-                payload.table === 'patient_safety_plan')
+                payload.table === 'patient_safety_plan' ||
+                payload.table === 'patient_document')
             ) {
               loadAndRender();
             }

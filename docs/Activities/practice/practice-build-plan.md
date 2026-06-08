@@ -81,16 +81,26 @@ demographic record.
 
 ## Phase 3 — Documents
 
+**Status: BUILT 2026-06-08** (compile+lint+node-check green, code-reviewed; runtime
+CDP verify pending workspace unlock). Lean protected blob store (O454) + `patient_document`
++ `attachDocument`/`removeDocument`/`listDocuments` + Documents aspect (attach/list/remove)
++ erase-cascade blob unlink. **Viewing deferred → O462** (decrypt-to-memory render, in the
+right Activity context).
+
 **Goal:** per-client PHI files attached and viewable.
 
 - Table: `patient_document`. Commands: `attachDocument`, `removeDocument`.
 - **Documents** aspect (file list) + inline upload from Consent & Legal; missing
   required docs surface as Attention items (Phase 5).
-- ⚠️ **Infra dependency:** O452 delivered a protected *DB*; encrypted *file/blob* at
-  rest does **not** exist yet. Decide: protected blob store vs bytes-in-DB
-  (**O-BLOBSTORE**). **P3 may slip behind P4** if infra not ready.
+- **Infra (decided — O454 resolved, lean protected blob store):** base `blob.put`/`get`/`delete`
+  capability over encrypted files in `$workspace/protected-blobs/<id>` (single per-workspace
+  KEK-wrapped key `protected-blobs.key.json`, close-on-lock via the existing lock seam, lazy-provisioned).
+  `patient_document.storage_ref = blob:<id>`. **P3 build prereq = stand up the blob store**
+  (sibling key + lock wiring + `blob.*` cap), then the document commands/aspect on top. Erase (O457):
+  `removeDocument` + patient-erase must unlink blobs via `blob.delete` (DB cascade is rows-only).
+  Full envelope (per-object DEK + streaming) deferred → O461. Detail: ADR-302 §"Protected blob store" + ADR-307.
 
-**Depends on:** Phase 2; protected blob store. **Info:** ⚠️ infra gap. **Ships:**
+**Depends on:** Phase 2; lean protected blob store (O454, infra ready to build). **Ships:**
 document handling.
 
 ---
@@ -167,9 +177,9 @@ P6 (projections) ── parallel/rolling, each needs its owner (O197)
 
 ## Decisions to make (tracked, not blocking)
 
-1. **O-BLOBSTORE** — protected blob store vs bytes-in-DB (gates P3 ordering).
+1. ~~**O-BLOBSTORE** — protected blob store vs bytes-in-DB~~ **DECIDED 2026-06-08 → O454: lean protected blob store** (encrypted files, single KEK-wrapped key, close-on-lock). Full envelope deferred → O461. P3 unblocked, no longer slips behind P4.
 2. **A1 / O421** — confirm Billing as an Activity, else Payment card stays Mock.
-3. **P4 residual** — safety-plan fields + §23 UX (O419).
+3. ~~**P4 residual** — safety-plan fields + §23 UX (O419).~~ **DONE 2026-06-06 → O460** (P4 built + verified).
 4. **Attention default landing** (P5 UX call).
 
 ## Open-item ledger for this plan

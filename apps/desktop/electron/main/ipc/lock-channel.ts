@@ -27,6 +27,8 @@ import type { AutoLockHandle } from '../lock/auto-lock.js';
 import { workspaceRegistry } from '../workspace/registry.js';
 import { ensureLocalStoreDbKey } from '../credentials/db-key.js';
 import { localStoreManager, ensureProtectedStoreKey, hasProtectedSets } from '../local-store/index.js';
+import { protectedBlobsManager } from '../local-store/protected-blobs.js';
+import { ensureProtectedBlobsKey } from '../local-store/protected-blobs-key.js';
 import { auditService } from '../audit/index.js';
 import { SOAM_EVENT_CHANNEL } from '../../shared/ipc-protocol.js';
 import type {
@@ -86,14 +88,23 @@ function emitWorkspaceChanged(getWindow: GetWindow): void {
  */
 export function openProtectedStoreIfNeeded(workspaceId: string, svc: LockService): void {
   if (!hasProtectedSets()) return;
-  // Already open for this workspace — skip the KEK-unwrap entirely so we don't
-  // materialise a fresh copy of the protected cipher key needlessly.
-  if (localStoreManager.protectedCurrent()?.workspaceId() === workspaceId) return;
   const kek = svc.kekHandle();
   if (kek === null) return; // Not unlocked — do not open.
-  const key = ensureProtectedStoreKey(workspaceId, kek);
-  // key is zeroed by LocalStore.open()'s finally block — do not touch it after this call.
-  localStoreManager.openProtectedFor(workspaceId, key);
+
+  // Protected SQLite store — skip if already open for this workspace.
+  if (localStoreManager.protectedCurrent()?.workspaceId() !== workspaceId) {
+    const key = ensureProtectedStoreKey(workspaceId, kek);
+    // key is zeroed by LocalStore.open()'s finally block — do not touch it after this call.
+    localStoreManager.openProtectedFor(workspaceId, key);
+  }
+
+  // Protected blob store — open under the same KEK/gate.
+  // (O454 / ADR-307 §"Sibling protected-blobs key")
+  if (protectedBlobsManager.current()?.workspaceId !== workspaceId) {
+    const blobKey = ensureProtectedBlobsKey(workspaceId, kek);
+    // blobKey is held in memory by protectedBlobsManager; zeroed on close().
+    protectedBlobsManager.open(workspaceId, blobKey);
+  }
 }
 
 export function installLockChannel(
@@ -112,6 +123,7 @@ export function installLockChannel(
       emitLockChanged(getWindow, getActiveLockService);
       if (state.locked) {
         localStoreManager.closeProtected();
+        protectedBlobsManager.close();
       }
     });
   }
@@ -308,11 +320,12 @@ export function installLockChannel(
     const newSvc = new LockService(workspaceId);
     setActiveLockService(newSvc);
 
-    // Subscribe new service to lock-changed events; also close protected store on lock.
+    // Subscribe new service to lock-changed events; also close protected stores on lock.
     newSvc.onDidChange((state) => {
       emitLockChanged(getWindow, getActiveLockService);
       if (state.locked) {
         localStoreManager.closeProtected();
+        protectedBlobsManager.close();
       }
     });
 
@@ -376,6 +389,8 @@ export function installLockChannel(
     // before the next sign-in (otherwise the next openFor() could race
     // a half-released handle and surface SQLITE_BUSY).
     localStoreManager.closeActive();
+    // Also close the protected blob store (zeroes the in-memory key).
+    protectedBlobsManager.close();
 
     // Clear active pointer
     workspaceRegistry.setActive(null);
@@ -419,8 +434,10 @@ export function installLockChannel(
         return { ok: false, code: 'nickname-mismatch' } satisfies DeleteWorkspaceResult;
       }
 
-      // e. Close SQLite handle FIRST (open handle blocks dir removal on Windows)
+      // e. Close SQLite handle FIRST (open handle blocks dir removal on Windows).
+      //    Also close the protected blob store (zeroes the in-memory blob key).
       localStoreManager.closeActive();
+      protectedBlobsManager.close();
 
       // f. Dispose LockService + cancel auto-lock
       svc.relock();
