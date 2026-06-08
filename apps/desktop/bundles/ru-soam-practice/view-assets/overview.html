@@ -730,9 +730,9 @@
         elStatusBar.textContent = msg;
         elStatusBar.className = 'visible is-locked';
       }
+      // Shared impl in the injected window.__viewBoot (view-bootstrap.ts).
       function isLockedError(err) {
-        return err && (err.code === 'cap.locked' ||
-          (err.message && err.message.indexOf('cap.locked') !== -1));
+        return window.__viewBoot.isLockedError(err);
       }
 
       function computeAge(dob) {
@@ -1393,26 +1393,13 @@
       }
 
       /* ── Bridge + load ──────────────────────────────────────────── */
+      // Shared impls in the injected window.__viewBoot (view-bootstrap.ts).
       function parseQuery(search) {
-        var q = (search || '').replace(/^\?/, '');
-        var params = {};
-        q.split('&').forEach(function (pair) {
-          var idx = pair.indexOf('=');
-          if (idx < 0) return;
-          var k = decodeURIComponent(pair.slice(0, idx));
-          var v = decodeURIComponent(pair.slice(idx + 1));
-          params[k] = v;
-        });
-        return params;
+        return window.__viewBoot.parseQuery(search);
       }
 
       function awaitBridge() {
-        return new Promise(function (resolve) {
-          if (window.soamView) return resolve(window.soamView);
-          var iv = setInterval(function () {
-            if (window.soamView) { clearInterval(iv); resolve(window.soamView); }
-          }, 25);
-        });
+        return window.__viewBoot.awaitBridge();
       }
 
       function loadAndRender() {
@@ -1478,12 +1465,7 @@
       window.addEventListener('message', function (e) {
         var d = e.data;
         if (!d || d.__soamView !== true) return;
-        if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
-          var root = document.documentElement;
-          Object.keys(d.theme).forEach(function (k) {
-            root.style.setProperty(k, d.theme[k]);
-          });
-        }
+        window.__viewBoot.applyTheme(d);
         // context message: entityId pushed by BundleViewIframe on client switch.
         if (d.kind === 'context') {
           var newId = d.entityId || null;

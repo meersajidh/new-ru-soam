@@ -730,9 +730,9 @@
           elStatusMsg.classList.remove('visible');
           elStatusMsg.textContent = '';
         }
+        // Shared impl in the injected window.__viewBoot (view-bootstrap.ts).
         function isLockedError(err) {
-          return err && (err.code === 'cap.locked' ||
-            (err.message && err.message.indexOf('cap.locked') !== -1));
+          return window.__viewBoot.isLockedError(err);
         }
 
         /* ── Lens switcher ───────────────────────────────── */
@@ -1157,24 +1157,15 @@
         }
 
         /* ── Bridge ──────────────────────────────────────── */
+        // Shared impl in the injected window.__viewBoot (view-bootstrap.ts).
         function awaitBridge() {
-          return new Promise(function (resolve) {
-            if (window.soamView) return resolve(window.soamView);
-            var iv = setInterval(function () {
-              if (window.soamView) { clearInterval(iv); resolve(window.soamView); }
-            }, 25);
-          });
+          return window.__viewBoot.awaitBridge();
         }
 
         window.addEventListener('message', function (e) {
           var d = e.data;
           if (!d || d.__soamView !== true) return;
-          if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
-            var root = document.documentElement;
-            Object.keys(d.theme).forEach(function (k) {
-              root.style.setProperty(k, d.theme[k]);
-            });
-          }
+          window.__viewBoot.applyTheme(d);
         });
 
         awaitBridge().then(function (soamView) {

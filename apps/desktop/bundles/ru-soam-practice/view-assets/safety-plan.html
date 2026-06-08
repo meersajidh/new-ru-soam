@@ -314,13 +314,12 @@
         elStatusBar.textContent = msg;
         elStatusBar.className = 'visible is-locked';
       }
+      // Shared impls in the injected window.__viewBoot (view-bootstrap.ts).
       function isLockedError(err) {
-        return err && (err.code === 'cap.locked' ||
-          (err.message && err.message.indexOf('cap.locked') !== -1));
+        return window.__viewBoot.isLockedError(err);
       }
       function isNotFoundError(err) {
-        return err && (err.code === 'cap.not_found' ||
-          (err.message && err.message.indexOf('cap.not_found') !== -1));
+        return window.__viewBoot.isNotFoundError(err);
       }
 
       /* ── Build form ─────────────────────────────────────────────── */
@@ -495,16 +494,9 @@
         applyCodeicons(elCard);
       }
 
+      // Shared impl in the injected window.__viewBoot (view-bootstrap.ts).
       function applyCodeicons(root) {
-        var els = (root || document).querySelectorAll('[data-codicon]');
-        for (var i = 0; i < els.length; i++) {
-          var e = els[i];
-          var name = e.getAttribute('data-codicon');
-          var size = parseInt(e.getAttribute('data-size') || '13', 10);
-          if (window.codicon) {
-            e.innerHTML = window.codicon(name, size);
-          }
-        }
+        return window.__viewBoot.applyCodicons(root);
       }
 
       /* ── Save handler ───────────────────────────────────────────── */
@@ -606,39 +598,22 @@
       }
 
       /* ── Parse query string ─────────────────────────────────────── */
+      // Shared impl in the injected window.__viewBoot (view-bootstrap.ts).
       function parseQuery(search) {
-        var q = (search || '').replace(/^\?/, '');
-        var params = {};
-        q.split('&').forEach(function (pair) {
-          var idx = pair.indexOf('=');
-          if (idx < 0) return;
-          var k = decodeURIComponent(pair.slice(0, idx));
-          var v = decodeURIComponent(pair.slice(idx + 1));
-          params[k] = v;
-        });
-        return params;
+        return window.__viewBoot.parseQuery(search);
       }
 
       /* ── Message handler (theme) ────────────────────────────────── */
       window.addEventListener('message', function (e) {
         var d = e.data;
         if (!d || d.__soamView !== true) return;
-        if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
-          var root = document.documentElement;
-          Object.keys(d.theme).forEach(function (k) {
-            root.style.setProperty(k, d.theme[k]);
-          });
-        }
+        window.__viewBoot.applyTheme(d);
       });
 
       /* ── Bridge await ───────────────────────────────────────────── */
+      // Shared impl in the injected window.__viewBoot (view-bootstrap.ts).
       function awaitBridge() {
-        return new Promise(function (resolve) {
-          if (window.soamView) return resolve(window.soamView);
-          var iv = setInterval(function () {
-            if (window.soamView) { clearInterval(iv); resolve(window.soamView); }
-          }, 25);
-        });
+        return window.__viewBoot.awaitBridge();
       }
 
       awaitBridge().then(function (soamView) {

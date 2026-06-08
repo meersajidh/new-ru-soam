@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { net, protocol } from 'electron';
 import type { DiscoveredBundle } from './manifest';
 import { VIEW_BRIDGE_SOURCE } from './view-bridge';
+import { VIEW_BOOTSTRAP_SOURCE } from './view-bootstrap';
 import { VIEW_CODICONS_SOURCE } from './view-codicons';
 import { VIEW_FONTS_SOURCE } from './view-fonts';
 import { VIEW_MATURITY_CSS, VIEW_MATURITY_SOURCE } from './view-maturity';
@@ -101,16 +102,20 @@ function injectBridgeAndCsp(html: string): string {
   const maturityCssTag = `<style>${VIEW_MATURITY_CSS}</style>`;
   const bridgeTag = `<script>${VIEW_BRIDGE_SOURCE}</script>`;
   const codiconsTag = `<script>${VIEW_CODICONS_SOURCE}</script>`;
+  // Shared view bootstrap (awaitBridge/isLockedError/parseQuery/applyTheme/
+  // applyCodicons) — injected after codicons so window.codicon exists.
+  const bootstrapTag = `<script>${VIEW_BOOTSTRAP_SOURCE}</script>`;
   const maturityTag = `<script>${VIEW_MATURITY_SOURCE}</script>`;
   const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${VIEW_CSP}">`;
   const headOpen = /<head\b[^>]*>/i;
   if (headOpen.test(html)) {
     return html.replace(
       headOpen,
-      (m) => `${m}\n${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${maturityTag}`,
+      (m) =>
+        `${m}\n${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${bootstrapTag}\n${maturityTag}`,
     );
   }
-  return `${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${maturityTag}\n${html}`;
+  return `${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${bootstrapTag}\n${maturityTag}\n${html}`;
 }
 
 function withinRoot(root: string, target: string): boolean {

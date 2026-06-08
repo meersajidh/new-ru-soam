@@ -194,7 +194,7 @@
         flex: 1 1 auto;
         font-size: 11.5px;
         font-weight: 800;
-        color: var(--color-bg-primary);
+        color: var(--color-fg-primary);
       }
       .section-source {
         font-size: 9px;
@@ -1277,11 +1277,9 @@
           elStatusBar.textContent = msg;
           elStatusBar.className = 'visible is-locked';
         }
+        // Shared impl in the injected window.__viewBoot (view-bootstrap.ts).
         function isLockedError(err) {
-          return (
-            err &&
-            (err.code === 'cap.locked' || (err.message && err.message.indexOf('cap.locked') !== -1))
-          );
+          return window.__viewBoot.isLockedError(err);
         }
         function computeAge(dob) {
           if (!dob) return null;
@@ -1318,16 +1316,9 @@
         }
 
         /* ── Codicon helper (for dynamically-rendered nodes) ───────── */
+        // Shared impl in the injected window.__viewBoot (view-bootstrap.ts).
         function applyCodeicons(root) {
-          var els = (root || document).querySelectorAll('[data-codicon]');
-          for (var i = 0; i < els.length; i++) {
-            var e = els[i];
-            var name = e.getAttribute('data-codicon');
-            var size = parseInt(e.getAttribute('data-size') || '13', 10);
-            if (window.codicon) {
-              e.innerHTML = window.codicon(name, size);
-            }
-          }
+          return window.__viewBoot.applyCodicons(root);
         }
 
         /* ── Section toggle ─────────────────────────────────────────── */
@@ -1347,10 +1338,12 @@
           }
           header.addEventListener('click', toggle);
           header.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              toggle(e);
-            }
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            // Let the nested edit button handle its own keyboard activation —
+            // do NOT preventDefault on its bubbled key event (would swallow it).
+            if (editBtn && (e.target === editBtn || editBtn.contains(e.target))) return;
+            e.preventDefault();
+            toggle(e);
           });
         }
 
@@ -1868,8 +1861,10 @@
               _circleAddSaving = false;
               elCaSave.disabled = false;
               showCircleAddMsg('Added.', 'ok');
-              // Reload circle from store.
-              _queryProxy.call('getCircle', _clientId).then(function (circle) {
+              // Reload circle from store. Return the promise into the chain so a
+              // reload failure surfaces (via the outer .catch) instead of becoming
+              // an unhandled rejection with the list left stale.
+              return _queryProxy.call('getCircle', _clientId).then(function (circle) {
                 _circle = circle;
                 renderCircle();
               });
@@ -2321,12 +2316,7 @@
         window.addEventListener('message', function (e) {
           var d = e.data;
           if (!d || d.__soamView !== true) return;
-          if ((d.kind === 'init' || d.kind === 'theme') && d.theme) {
-            var root = document.documentElement;
-            Object.keys(d.theme).forEach(function (k) {
-              root.style.setProperty(k, d.theme[k]);
-            });
-          }
+          window.__viewBoot.applyTheme(d);
           // context message: entityId pushed by BundleViewIframe on client switch.
           if (d.kind === 'context') {
             var newId = d.entityId || null;
@@ -2353,16 +2343,9 @@
         });
 
         /* ── Bridge await ───────────────────────────────────────────── */
+        // Shared impl in the injected window.__viewBoot (view-bootstrap.ts).
         function awaitBridge() {
-          return new Promise(function (resolve) {
-            if (window.soamView) return resolve(window.soamView);
-            var iv = setInterval(function () {
-              if (window.soamView) {
-                clearInterval(iv);
-                resolve(window.soamView);
-              }
-            }, 25);
-          });
+          return window.__viewBoot.awaitBridge();
         }
 
         awaitBridge().then(function (soamView) {
