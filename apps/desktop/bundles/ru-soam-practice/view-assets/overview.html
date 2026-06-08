@@ -1405,6 +1405,10 @@
       function loadAndRender() {
         if (!_proxy || !_clientId) return;
 
+        // Guard against a stale response: the client can switch (context
+        // message) while these calls are in flight; drop results for a client
+        // we're no longer showing so a slow load can't clobber the new one.
+        var reqId = _clientId;
         Promise.all([
           _proxy.call('get', _clientId),
           _proxy.call('getProfile', _clientId),
@@ -1414,6 +1418,7 @@
           _proxy.call('listRiskEvents', _clientId),
           _proxy.call('getSafetyPlan', _clientId),
         ]).then(function (results) {
+          if (_clientId !== reqId) return;
           var rec        = results[0];
           var profile    = results[1];
           var lifecycle  = results[2];

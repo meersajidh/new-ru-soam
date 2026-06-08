@@ -1187,25 +1187,15 @@
         var _consent = null; // consent state or null
         var _riskEvents = null; // array of risk events
         var _safetyPlan = null; // safety plan or null
-        var _editOpen = false;
         var _editSaving = false;
-        var _editMsgTimer = null;
         // Circle add form state
-        var _circleAddOpen = false;
         var _circleAddSaving = false;
-        var _circleAddMsgTimer = null;
         // Consent edit form state
-        var _consentEditOpen = false;
         var _consentEditSaving = false;
-        var _consentEditMsgTimer = null;
         // Risk §23 form state
-        var _s23FormOpen = false;
         var _s23Saving = false;
-        var _s23MsgTimer = null;
         // Risk add-event form state
-        var _reFormOpen = false;
         var _reSaving = false;
-        var _reMsgTimer = null;
         // Documents state
         var _documents = null; // array of documents or null
         var _docUploadFile = null; // File object chosen by user
@@ -1267,6 +1257,45 @@
         var elDocSizeErr = document.getElementById('doc-size-err');
         var elBtnDocUpload = document.getElementById('btn-doc-upload');
         var elDocUploadMsg = document.getElementById('doc-upload-msg');
+
+        /* ── Overlay factory ────────────────────────────────────────── */
+        function makeOverlay(cfg) {
+          // cfg: { form, msg, btn (optional), autoCloseMs (optional, default 1200) }
+          var _open = false;
+          var _timer = null;
+          var autoMs = cfg.autoCloseMs !== undefined ? cfg.autoCloseMs : 1200;
+          function close() {
+            _open = false;
+            if (cfg.btn) cfg.btn.classList.remove('is-active');
+            cfg.form.classList.remove('is-open');
+            clearTimeout(_timer);
+            cfg.msg.className = 'pe-save-msg';
+            cfg.msg.textContent = '';
+          }
+          function showMsg(msg, kind) {
+            clearTimeout(_timer);
+            cfg.msg.textContent = msg;
+            cfg.msg.className = 'pe-save-msg visible ' + (kind || '');
+            if (kind === 'ok') {
+              _timer = setTimeout(function () { close(); }, autoMs);
+            }
+          }
+          function open(populate) {
+            _open = true;
+            if (cfg.btn) cfg.btn.classList.add('is-active');
+            cfg.form.classList.add('is-open');
+            if (populate) populate();
+          }
+          function isOpen() { return _open; }
+          return { open: open, close: close, showMsg: showMsg, isOpen: isOpen };
+        }
+
+        /* ── Overlay instances (created after el* refs are assigned) ── */
+        var ovProfile = makeOverlay({ form: document.getElementById('profile-edit-form'), msg: document.getElementById('pe-save-msg'), btn: document.getElementById('btn-profile-edit') });
+        var ovCircleAdd = makeOverlay({ form: document.getElementById('circle-add-form'), msg: document.getElementById('ca-save-msg'), btn: document.getElementById('btn-circle-edit') });
+        var ovConsent = makeOverlay({ form: document.getElementById('consent-edit-form'), msg: document.getElementById('ce-save-msg'), btn: document.getElementById('btn-consent-edit') });
+        var ovS23 = makeOverlay({ form: document.getElementById('s23-form'), msg: document.getElementById('s23-msg') });
+        var ovRiskEvent = makeOverlay({ form: document.getElementById('risk-add-form'), msg: document.getElementById('re-msg') });
 
         /* ── Helpers ────────────────────────────────────────────────── */
         function showError(msg) {
@@ -1536,44 +1565,22 @@
 
         /* ── §23 form handlers ──────────────────────────────────────── */
         function openS23Form() {
-          _s23FormOpen = true;
-          var s23Active = _consent && _consent.confidentialityExceptionActive;
-          // Show/hide fields.
-          var groundRow = document.getElementById('s23-ground')
-            ? document.getElementById('s23-ground').closest('.pe-field')
-            : null;
-          var disclosedRow = document.getElementById('s23-disclosed-field');
-          if (groundRow) groundRow.style.display = s23Active ? 'none' : '';
-          if (disclosedRow) disclosedRow.style.display = s23Active ? 'none' : '';
-          document.getElementById('s23-ground').value = '';
-          document.getElementById('s23-disclosed').value = '';
-          document.getElementById('s23-reason').value = '';
-          document.getElementById('s23-form').classList.add('is-open');
+          ovS23.open(function () {
+            var s23Active = _consent && _consent.confidentialityExceptionActive;
+            // Show/hide fields.
+            var groundRow = document.getElementById('s23-ground')
+              ? document.getElementById('s23-ground').closest('.pe-field')
+              : null;
+            var disclosedRow = document.getElementById('s23-disclosed-field');
+            if (groundRow) groundRow.style.display = s23Active ? 'none' : '';
+            if (disclosedRow) disclosedRow.style.display = s23Active ? 'none' : '';
+            document.getElementById('s23-ground').value = '';
+            document.getElementById('s23-disclosed').value = '';
+            document.getElementById('s23-reason').value = '';
+          });
         }
-
-        function closeS23Form() {
-          _s23FormOpen = false;
-          document.getElementById('s23-form').classList.remove('is-open');
-          clearTimeout(_s23MsgTimer);
-          var msgEl = document.getElementById('s23-msg');
-          if (msgEl) {
-            msgEl.className = 'pe-save-msg';
-            msgEl.textContent = '';
-          }
-        }
-
-        function showS23Msg(msg, kind) {
-          clearTimeout(_s23MsgTimer);
-          var msgEl = document.getElementById('s23-msg');
-          if (!msgEl) return;
-          msgEl.textContent = msg;
-          msgEl.className = 'pe-save-msg visible ' + (kind || '');
-          if (kind === 'ok') {
-            _s23MsgTimer = setTimeout(function () {
-              closeS23Form();
-            }, 1200);
-          }
-        }
+        function closeS23Form() { ovS23.close(); }
+        function showS23Msg(msg, kind) { ovS23.showMsg(msg, kind); }
 
         function onS23Confirm() {
           if (_s23Saving || !_cmdProxy || !_clientId) return;
@@ -1645,36 +1652,14 @@
 
         /* ── Add risk event form ────────────────────────────────────── */
         function openRiskAddForm() {
-          _reFormOpen = true;
-          document.getElementById('re-kind').value = 'si';
-          document.getElementById('re-severity').value = '';
-          document.getElementById('re-summary').value = '';
-          document.getElementById('risk-add-form').classList.add('is-open');
+          ovRiskEvent.open(function () {
+            document.getElementById('re-kind').value = 'si';
+            document.getElementById('re-severity').value = '';
+            document.getElementById('re-summary').value = '';
+          });
         }
-
-        function closeRiskAddForm() {
-          _reFormOpen = false;
-          document.getElementById('risk-add-form').classList.remove('is-open');
-          clearTimeout(_reMsgTimer);
-          var msgEl = document.getElementById('re-msg');
-          if (msgEl) {
-            msgEl.className = 'pe-save-msg';
-            msgEl.textContent = '';
-          }
-        }
-
-        function showReMsg(msg, kind) {
-          clearTimeout(_reMsgTimer);
-          var msgEl = document.getElementById('re-msg');
-          if (!msgEl) return;
-          msgEl.textContent = msg;
-          msgEl.className = 'pe-save-msg visible ' + (kind || '');
-          if (kind === 'ok') {
-            _reMsgTimer = setTimeout(function () {
-              closeRiskAddForm();
-            }, 1200);
-          }
-        }
+        function closeRiskAddForm() { ovRiskEvent.close(); }
+        function showReMsg(msg, kind) { ovRiskEvent.showMsg(msg, kind); }
 
         function onRiskEventSave() {
           if (_reSaving || !_cmdProxy || !_clientId) return;
@@ -1806,37 +1791,18 @@
 
         /* ── Circle add form ────────────────────────────────────────── */
         function openCircleAdd() {
-          _circleAddOpen = true;
-          elCircleEditBtn.classList.add('is-active');
-          elCaKind.value = 'nominated_rep';
-          elCaName.value = '';
-          elCaRelationship.value = '';
-          elCaPhone.value = '';
-          elCaEmail.value = '';
-          elCaIsNR.checked = false;
-          elCircleAddForm.classList.add('is-open');
-          elCaName.focus();
+          ovCircleAdd.open(function () {
+            elCaKind.value = 'nominated_rep';
+            elCaName.value = '';
+            elCaRelationship.value = '';
+            elCaPhone.value = '';
+            elCaEmail.value = '';
+            elCaIsNR.checked = false;
+            elCaName.focus();
+          });
         }
-
-        function closeCircleAdd() {
-          _circleAddOpen = false;
-          elCircleEditBtn.classList.remove('is-active');
-          elCircleAddForm.classList.remove('is-open');
-          clearTimeout(_circleAddMsgTimer);
-          elCaMsg.className = 'pe-save-msg';
-          elCaMsg.textContent = '';
-        }
-
-        function showCircleAddMsg(msg, kind) {
-          clearTimeout(_circleAddMsgTimer);
-          elCaMsg.textContent = msg;
-          elCaMsg.className = 'pe-save-msg visible ' + (kind || '');
-          if (kind === 'ok') {
-            _circleAddMsgTimer = setTimeout(function () {
-              closeCircleAdd();
-            }, 1200);
-          }
-        }
+        function closeCircleAdd() { ovCircleAdd.close(); }
+        function showCircleAddMsg(msg, kind) { ovCircleAdd.showMsg(msg, kind); }
 
         function onCircleAddSave() {
           if (_circleAddSaving || !_cmdProxy || !_clientId) return;
@@ -1920,37 +1886,18 @@
 
         /* ── Consent edit form ────────────────────────────────────────── */
         function openConsentEdit() {
-          _consentEditOpen = true;
-          elConsentEditBtn.classList.add('is-active');
-          var c = _consent;
-          elCeAdStatus.value = (c && c.advanceDirectiveStatus) || '';
-          elCeConsentStatus.value = (c && c.informedConsentStatus) || '';
-          elCeTeleMode.value = (c && c.teleConsentMode) || '';
-          elCeCapacity.value = (c && c.capacityStatus) || '';
-          elCeS23.checked = !!(c && c.confidentialityExceptionActive);
-          elConsentEditForm.classList.add('is-open');
-          elCeAdStatus.focus();
+          ovConsent.open(function () {
+            var c = _consent;
+            elCeAdStatus.value = (c && c.advanceDirectiveStatus) || '';
+            elCeConsentStatus.value = (c && c.informedConsentStatus) || '';
+            elCeTeleMode.value = (c && c.teleConsentMode) || '';
+            elCeCapacity.value = (c && c.capacityStatus) || '';
+            elCeS23.checked = !!(c && c.confidentialityExceptionActive);
+            elCeAdStatus.focus();
+          });
         }
-
-        function closeConsentEdit() {
-          _consentEditOpen = false;
-          elConsentEditBtn.classList.remove('is-active');
-          elConsentEditForm.classList.remove('is-open');
-          clearTimeout(_consentEditMsgTimer);
-          elCeMsg.className = 'pe-save-msg';
-          elCeMsg.textContent = '';
-        }
-
-        function showConsentEditMsg(msg, kind) {
-          clearTimeout(_consentEditMsgTimer);
-          elCeMsg.textContent = msg;
-          elCeMsg.className = 'pe-save-msg visible ' + (kind || '');
-          if (kind === 'ok') {
-            _consentEditMsgTimer = setTimeout(function () {
-              closeConsentEdit();
-            }, 1200);
-          }
-        }
+        function closeConsentEdit() { ovConsent.close(); }
+        function showConsentEditMsg(msg, kind) { ovConsent.showMsg(msg, kind); }
 
         function onConsentEditSave() {
           if (_consentEditSaving || !_cmdProxy || !_clientId) return;
@@ -2175,34 +2122,15 @@
 
         /* ── Inline edit ────────────────────────────────────────────── */
         function openEdit() {
-          _editOpen = true;
-          elEditBtn.classList.add('is-active');
-          elPeLang.value = (_profile && _profile.preferredLanguage) || '';
-          elPeDiag.value = (_profile && _profile.diagnosis) || '';
-          elPeMeds.value = (_profile && _profile.medicationAwareness) || '';
-          elEditForm.classList.add('is-open');
-          elPeLang.focus();
+          ovProfile.open(function () {
+            elPeLang.value = (_profile && _profile.preferredLanguage) || '';
+            elPeDiag.value = (_profile && _profile.diagnosis) || '';
+            elPeMeds.value = (_profile && _profile.medicationAwareness) || '';
+            elPeLang.focus();
+          });
         }
-
-        function closeEdit() {
-          _editOpen = false;
-          elEditBtn.classList.remove('is-active');
-          elEditForm.classList.remove('is-open');
-          clearTimeout(_editMsgTimer);
-          elPeMsg.className = 'pe-save-msg';
-          elPeMsg.textContent = '';
-        }
-
-        function showEditMsg(msg, kind) {
-          clearTimeout(_editMsgTimer);
-          elPeMsg.textContent = msg;
-          elPeMsg.className = 'pe-save-msg visible ' + (kind || '');
-          if (kind === 'ok') {
-            _editMsgTimer = setTimeout(function () {
-              closeEdit();
-            }, 1200);
-          }
-        }
+        function closeEdit() { ovProfile.close(); }
+        function showEditMsg(msg, kind) { ovProfile.showMsg(msg, kind); }
 
         function onEditSave() {
           if (_editSaving || !_cmdProxy || !_clientId) return;
@@ -2242,6 +2170,10 @@
         /* ── Load data ──────────────────────────────────────────────── */
         function loadAndRender() {
           if (!_queryProxy || !_clientId) return;
+          // Guard against a stale response: the client can switch (context
+          // message) while these calls are in flight; drop results for a client
+          // we're no longer showing so a slow load can't clobber the new one.
+          var reqId = _clientId;
           Promise.all([
             _queryProxy.call('get', _clientId),
             _queryProxy.call('getProfile', _clientId),
@@ -2252,6 +2184,7 @@
             _queryProxy.call('listDocuments', _clientId),
           ])
             .then(function (results) {
+              if (_clientId !== reqId) return;
               var rec = results[0];
               var profile = results[1];
               var circle = results[2];
@@ -2326,11 +2259,11 @@
             }
             if (newId !== _clientId) {
               _clientId = newId;
-              if (_editOpen) closeEdit();
-              if (_circleAddOpen) closeCircleAdd();
-              if (_consentEditOpen) closeConsentEdit();
-              if (_s23FormOpen) closeS23Form();
-              if (_reFormOpen) closeRiskAddForm();
+              if (ovProfile.isOpen()) closeEdit();
+              if (ovCircleAdd.isOpen()) closeCircleAdd();
+              if (ovConsent.isOpen()) closeConsentEdit();
+              if (ovS23.isOpen()) closeS23Form();
+              if (ovRiskEvent.isOpen()) closeRiskAddForm();
               // Reset document upload state for new client.
               _docUploadFile = null;
               elDocFileName.textContent = '';
@@ -2371,7 +2304,7 @@
 
           // Risk: §23 toggle.
           document.getElementById('btn-s23-toggle').addEventListener('click', function () {
-            if (_s23FormOpen) {
+            if (ovS23.isOpen()) {
               closeS23Form();
             } else {
               openS23Form();
@@ -2384,7 +2317,7 @@
 
           // Risk: Add risk event.
           document.getElementById('btn-add-risk').addEventListener('click', function () {
-            if (_reFormOpen) {
+            if (ovRiskEvent.isOpen()) {
               closeRiskAddForm();
             } else {
               openRiskAddForm();
@@ -2403,7 +2336,7 @@
           // Profile edit button — stop propagation so section-header toggle doesn't fire.
           elEditBtn.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (_editOpen) {
+            if (ovProfile.isOpen()) {
               closeEdit();
             } else {
               openEdit();
@@ -2417,7 +2350,7 @@
           // Circle add button.
           elCircleEditBtn.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (_circleAddOpen) {
+            if (ovCircleAdd.isOpen()) {
               closeCircleAdd();
             } else {
               openCircleAdd();
@@ -2431,7 +2364,7 @@
           // Consent edit button.
           elConsentEditBtn.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (_consentEditOpen) {
+            if (ovConsent.isOpen()) {
               closeConsentEdit();
             } else {
               openConsentEdit();
