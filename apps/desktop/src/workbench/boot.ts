@@ -36,6 +36,11 @@ import {
   readPersistedMaturityHighlight,
 } from '../platform/maturity/maturity-highlight';
 import { MaturityHighlightServiceId } from '../platform/services/ids';
+import {
+  OverviewViewModeService,
+  readPersistedOverviewViewMode,
+} from '../platform/view-mode/overview-view-mode';
+import { OverviewViewModeServiceId } from '../platform/services/ids';
 
 const SLOT_TO_CTX_KEY: Partial<Record<SlotId, string>> = {
   [SlotId.PrimarySideBar]: 'sideBar.visible',
@@ -131,6 +136,10 @@ export function boot(): ServiceRegistry {
   // Maturity-highlight — localStorage-backed; default off.
   const maturityHighlight = new MaturityHighlightService(readPersistedMaturityHighlight());
   registry.register(MaturityHighlightServiceId, maturityHighlight);
+
+  // Overview view-mode — localStorage-backed; default 'dense'.
+  const overviewViewMode = new OverviewViewModeService(readPersistedOverviewViewMode());
+  registry.register(OverviewViewModeServiceId, overviewViewMode);
 
   const statusBar = new StatusBarService();
   for (const entry of ANCHORED_ENTRIES) statusBar.register(entry);

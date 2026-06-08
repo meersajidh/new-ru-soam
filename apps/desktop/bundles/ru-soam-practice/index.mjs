@@ -66,6 +66,7 @@ function mapIntakeCompleteness(row) {
   const doneCount = items.reduce((n, it) => n + (it.done ? 1 : 0), 0);
   return {
     clientId: row.patient_id,
+    displayName: deriveDisplayName(row.given_name, row.family_name),
     stage: row.stage,
     items,
     doneCount,

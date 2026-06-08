@@ -2246,10 +2246,34 @@
         }
 
         /* ── Message handler (theme + context) ─────────────────────── */
+        /* ── Section focus (O465 deep-link from intake checklist) ──── */
+        function focusSection(id) {
+          var target = document.getElementById(id);
+          if (!target) return;
+          // Deep-link = "show me THIS section". Collapse every section, open only
+          // the target (Risk/Safety + Profile default to open in the static markup,
+          // so without this they'd stay expanded alongside the target). Toggling
+          // classes is safe — section toggle reads open-state from the class, no
+          // separate JS state to desync.
+          document.querySelectorAll('.section').forEach(function (s) {
+            var open = (s === target);
+            var body = s.querySelector('.section-body');
+            var header = s.querySelector('.section-header');
+            if (body) body.classList.toggle('is-open', open);
+            if (header) {
+              var caret = header.querySelector('.section-caret');
+              if (caret) caret.classList.toggle('is-open', open);
+              header.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+          });
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
         window.addEventListener('message', function (e) {
           var d = e.data;
           if (!d || d.__soamView !== true) return;
           window.__viewBoot.applyTheme(d);
+          if (d.kind === 'focusAspect') { focusSection(d.sectionId); }
           // context message: entityId pushed by BundleViewIframe on client switch.
           if (d.kind === 'context') {
             var newId = d.entityId || null;

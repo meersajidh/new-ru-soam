@@ -10,6 +10,8 @@ import {
   ThemeServiceId,
   RegistryContext,
 } from './ids';
+import { aspectFocus } from '../views/aspect-focus';
+import type { AspectFocusRequest } from '../views/aspect-focus';
 import type { SlotId } from '../layout/slots';
 import type { LayoutSizes } from '../layout/layout-service';
 import type { ThemeDescriptor } from '../theme/tokens';
@@ -223,4 +225,8 @@ export function useActivePanelViewId(): string | null {
   const [id, setId] = useState<string | null>(() => svc.getActivePanelViewId());
   useEffect(() => svc.onDidChange(() => setId(svc.getActivePanelViewId())), [svc]);
   return id;
+}
+
+export function useAspectFocus(): AspectFocusRequest | null {
+  return useSyncExternalStore(aspectFocus.subscribe, aspectFocus.get);
 }

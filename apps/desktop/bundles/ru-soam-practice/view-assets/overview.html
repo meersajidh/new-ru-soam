@@ -1382,7 +1382,13 @@
         items.forEach(function (item) {
           item.addEventListener('click', function (e) {
             e.stopPropagation();
-            _density = item.getAttribute('data-density');
+            var mode = item.getAttribute('data-density');
+            // Persist via renderer service (survives reload/client-switch/session).
+            if (window.soamView && window.soamView.setOverviewViewMode) {
+              window.soamView.setOverviewViewMode(mode);
+            }
+            // Optimistic local update — keeps UI snappy; echoed 'overviewViewMode' is idempotent.
+            _density = mode;
             updateDensityMenu();
             closeMenu();
             renderOverview();
@@ -1471,6 +1477,10 @@
         var d = e.data;
         if (!d || d.__soamView !== true) return;
         window.__viewBoot.applyTheme(d);
+        // init payload carries overviewViewMode — set before first render.
+        if (typeof d.overviewViewMode === 'string') { _density = d.overviewViewMode; }
+        // live push after init: renderer notifies on mode change.
+        if (d.kind === 'overviewViewMode') { _density = d.mode; updateDensityMenu(); renderOverview(); }
         // context message: entityId pushed by BundleViewIframe on client switch.
         if (d.kind === 'context') {
           var newId = d.entityId || null;

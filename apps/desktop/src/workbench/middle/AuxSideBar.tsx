@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import './AuxSideBar.css';
 import {
+  useAspectFocus,
   useAuxViewContainers,
   useContextKey,
   useContextVersion,
@@ -30,6 +31,7 @@ export default function AuxSideBar() {
   const { auxSideBarWidth } = useLayoutSizes();
   const auxContainers = useAuxViewContainers();
   const ctxSvc = useService(ContextKeyServiceId);
+  const focus = useAspectFocus();
 
   // Reactive id read — useContextKey stores value in React state (compiler-safe).
   const activeId = (useContextKey('record.activeId') as string | undefined) ?? '';
@@ -60,6 +62,8 @@ export default function AuxSideBar() {
             resource={resource}
             instanceId={active.id}
             entityId={activeId || null}
+            focusSection={focus?.sectionId}
+            focusNonce={focus?.nonce}
           />
         </div>
         <ResizeHandle

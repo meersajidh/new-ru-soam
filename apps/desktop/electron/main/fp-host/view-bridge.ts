@@ -44,6 +44,15 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
   function replayContext() {
     if (lastContextMsg) window.dispatchEvent(new MessageEvent('message', { data: lastContextMsg }));
   }
+  // Same replay machinery for 'focusAspect' (O465 deep-link). The renderer posts
+  // focusAspect right after view.ready, but a large view's own message listener
+  // (in its body script) may not be registered yet — so the message is dropped,
+  // exactly like the handshake 'context' was. Buffer + replay on DOMContentLoaded.
+  var lastFocusMsg = null;
+  var focusReplayScheduled = false;
+  function replayFocus() {
+    if (lastFocusMsg) window.dispatchEvent(new MessageEvent('message', { data: lastFocusMsg }));
+  }
 
   function send(msg) {
     try { window.parent.postMessage(msg, '*'); }
@@ -94,6 +103,16 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
         if (document.readyState === 'loading' && !contextReplayScheduled) {
           contextReplayScheduled = true;
           document.addEventListener('DOMContentLoaded', replayContext);
+        }
+        break;
+      case 'focusAspect':
+        // Buffer for replay (mirrors 'context'). The view's own listener handles
+        // the live message; if it isn't registered yet, replay on DOMContentLoaded
+        // so a freshly-mounted aspects iframe never drops the deep-link focus.
+        lastFocusMsg = m;
+        if (document.readyState === 'loading' && !focusReplayScheduled) {
+          focusReplayScheduled = true;
+          document.addEventListener('DOMContentLoaded', replayFocus);
         }
         break;
       case 'store.changed':
@@ -163,6 +182,12 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     requestFocus: function () { send({ __soamView: true, kind: 'request.focus' }); },
     openInEditor: function (viewId, opts) {
       send({ __soamView: true, kind: 'request.openEditor', viewId: viewId, query: (opts && opts.query) || undefined, title: (opts && opts.title) || undefined, entityId: (opts && opts.entityId !== undefined) ? opts.entityId : undefined, preview: (opts && opts.preview !== undefined) ? opts.preview : undefined });
+    },
+    setOverviewViewMode: function (mode) {
+      send({ __soamView: true, kind: 'request.setOverviewViewMode', mode: mode });
+    },
+    focusAspect: function (sectionId) {
+      send({ __soamView: true, kind: 'request.focusAspect', sectionId: sectionId });
     },
     requestContextMenu: function (menuId, x, y, context) {
       send({ __soamView: true, kind: 'request.contextMenu', menuId: menuId, x: x, y: y, context: context });

@@ -279,6 +279,20 @@
     (function () {
       'use strict';
 
+      /* ── Aspect deep-link map (O465) ───────────────────────────── */
+      var ITEM_ASPECT = {
+        demographics:      'section-profile',
+        language:          'section-profile',
+        diagnosis:         'section-profile',
+        circle:            'section-circle',
+        informedConsent:   'section-consent',
+        teleConsent:       'section-consent',
+        advanceDirective:  'section-consent',
+        capacity:          'section-consent',
+        riskScreen:        'section-risk',
+        documents:         'section-documents',
+      };
+
       /* ── State ──────────────────────────────────────────────────── */
       var _proxy      = null;
       var _clientId   = null;
@@ -414,14 +428,20 @@
             openBtn.className = 'ic-open-btn';
             openBtn.type = 'button';
             openBtn.textContent = 'Open record';
-            openBtn.addEventListener('click', function () {
-              if (window.soamView) {
-                window.soamView.openInEditor('overview', {
-                  entityId: _clientId,
-                  title: _clientTitle || _clientId,
-                });
-              }
-            });
+            openBtn.addEventListener('click', (function (itemKey) {
+              return function () {
+                if (window.soamView) {
+                  window.soamView.openInEditor('overview', {
+                    entityId: _clientId,
+                    title: _clientTitle || _clientId,
+                  });
+                  var sec = ITEM_ASPECT[itemKey];
+                  if (sec && window.soamView.focusAspect) {
+                    window.soamView.focusAspect(sec);
+                  }
+                }
+              };
+            })(item.key));
             row.appendChild(openBtn);
           }
 
@@ -453,6 +473,10 @@
         if (!_proxy || !_clientId) return;
         _proxy.call('getIntakeCompleteness', _clientId).then(function (data) {
           _data = data;
+          if (data && data.displayName) {
+            _clientTitle = data.displayName;
+            elHsClient.textContent = data.displayName;
+          }
           renderChecklist(_data);
         }).catch(function (err) {
           if (isLockedError(err)) {

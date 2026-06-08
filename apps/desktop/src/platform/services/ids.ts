@@ -16,6 +16,7 @@ import type { IContributionService } from '../contributions/contribution-service
 import type { IMenuService } from '../menu/menu-service';
 import type { IActivityBarDensityService } from '../activity-bar/density-service';
 import type { IMaturityHighlightService } from '../maturity/maturity-highlight';
+import type { IOverviewViewModeService } from '../view-mode/overview-view-mode';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -65,5 +66,8 @@ export const ActivityBarDensityServiceId = serviceId<IActivityBarDensityService>
 
 // Maturity-highlight toggle (Phase 0 build-legibility, mirrors density pattern)
 export const MaturityHighlightServiceId = serviceId<IMaturityHighlightService>('workbench.maturityHighlight');
+
+// Overview view-mode (dense/focused/timeline, O455)
+export const OverviewViewModeServiceId = serviceId<IOverviewViewModeService>('workbench.overviewViewMode');
 
 export const RegistryContext = createContext<ServiceRegistry | null>(null);
