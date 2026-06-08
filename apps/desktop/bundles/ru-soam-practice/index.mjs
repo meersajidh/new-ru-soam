@@ -46,6 +46,59 @@ const VALID_S23_GROUNDS = new Set([
 ]);
 const VALID_PLAN_STATUS = new Set(['none', 'active', 'under_review']);
 
+// ── Intake completeness item set (P5 — read-derivation) ──────────────────────
+const ON_HOLD_REVIEW_DAYS = 30;
+const INTAKE_ITEMS = [
+  { key: 'demographics',     label: 'Demographics',              col: 'has_demographics' },
+  { key: 'language',         label: 'Preferred language',        col: 'has_language' },
+  { key: 'diagnosis',        label: 'Diagnosis / problem list',  col: 'has_diagnosis' },
+  { key: 'circle',           label: 'Circle / NR',               col: 'has_circle' },
+  { key: 'informedConsent',  label: 'Informed consent',          col: 'has_informed_consent' },
+  { key: 'teleConsent',      label: 'Tele-consent',              col: 'has_tele_consent' },
+  { key: 'capacity',         label: 'Capacity assessed',         col: 'has_capacity' },
+  { key: 'advanceDirective', label: 'Advance directive',         col: 'has_ad' },
+  { key: 'riskScreen',       label: 'Initial risk screen',       col: 'has_risk_screen' },
+  { key: 'documents',        label: 'Documents on file',         col: 'has_documents' },
+];
+
+function mapIntakeCompleteness(row) {
+  const items = INTAKE_ITEMS.map((i) => ({ key: i.key, label: i.label, done: !!row[i.col] }));
+  const doneCount = items.reduce((n, it) => n + (it.done ? 1 : 0), 0);
+  return {
+    clientId: row.patient_id,
+    stage: row.stage,
+    items,
+    doneCount,
+    total: INTAKE_ITEMS.length,
+    complete: doneCount === INTAKE_ITEMS.length,
+  };
+}
+
+// Owned-derived Attention obligations (P5). Projection-derived obligations → P6.
+function deriveObligations(row, now) {
+  const stage = row.stage || 'active';
+  const status = row.status || 'active';
+  const obligations = [];
+  // No noise on closed/archived records.
+  if (status === 'archived' || stage === 'discharged') return obligations;
+  const doneCount = INTAKE_ITEMS.reduce((n, i) => n + (row[i.col] ? 1 : 0), 0);
+  const complete = doneCount === INTAKE_ITEMS.length;
+  if (stage === 'intake' && !complete) {
+    obligations.push({ key: 'intake_incomplete', label: 'Intake incomplete' });
+  }
+  if (!row.has_risk_screen) {
+    obligations.push({ key: 'no_risk_screen', label: 'No risk screen' });
+  }
+  if (row.has_informed_consent && !row.has_documents) {
+    obligations.push({ key: 'missing_consent_doc', label: 'Consent doc missing' });
+  }
+  if (stage === 'on_hold' && row.stage_updated_at != null &&
+      (now - row.stage_updated_at) > ON_HOLD_REVIEW_DAYS * 24 * 60 * 60 * 1000) {
+    obligations.push({ key: 'on_hold_stale', label: 'On-hold review due' });
+  }
+  return obligations;
+}
+
 // ── Row → record mappers (reproduce record-patient-cap.ts field-by-field) ─────
 
 function deriveDisplayName(given, family) {
@@ -288,6 +341,41 @@ export function activate(ctx) {
           { event: 'record.patient.viewed', recordType: 'patient_document', recordId: clientId },
         ]);
         return rows.map(mapDocument);
+      }
+
+      case 'getIntakeCompleteness': {
+        const clientId = args[0];
+        const rows = await storeQuery.call('run', [
+          'patient.intakeCompleteness',
+          { id: clientId },
+          { event: 'record.patient.viewed', recordType: 'patient', recordId: clientId },
+        ]);
+        return rows.length > 0 ? mapIntakeCompleteness(rows[0]) : null;
+      }
+
+      case 'listAttention': {
+        const rows = await storeQuery.call('run', [
+          'patient.attentionScan',
+          {},
+          { event: 'record.patient.listed', recordType: 'patient' },
+        ]);
+        const now = Date.now();
+        const out = [];
+        for (const row of rows) {
+          const obligations = deriveObligations(row, now);
+          if (obligations.length === 0) continue;
+          const doneCount = INTAKE_ITEMS.reduce((n, i) => n + (row[i.col] ? 1 : 0), 0);
+          out.push({
+            id: row.patient_id,
+            displayName: deriveDisplayName(row.given_name, row.family_name),
+            stage: row.stage,
+            status: row.status,
+            doneCount,
+            total: INTAKE_ITEMS.length,
+            obligations,
+          });
+        }
+        return out;
       }
 
       default:

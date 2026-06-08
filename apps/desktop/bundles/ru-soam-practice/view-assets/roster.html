@@ -474,6 +474,84 @@
       /* ── Roster content container ────────────────────── */
       #roster-content { display: none; }
       #roster-content.visible { display: block; }
+
+      /* ── Attention chips ─────────────────────────────── */
+      .obligation-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 3px;
+      }
+      .obligation-chip {
+        display: inline-flex;
+        align-items: center;
+        font-size: 10px;
+        font-weight: 500;
+        padding: 2px 7px;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--color-warning) 14%, transparent);
+        color: var(--color-warning);
+        border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
+        cursor: pointer;
+        transition: background var(--transition);
+        font-family: var(--font-sans);
+      }
+      .obligation-chip:hover {
+        background: color-mix(in srgb, var(--color-warning) 24%, transparent);
+      }
+      .obligation-chip.chip-intake {
+        background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+        color: var(--color-accent);
+        border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+      }
+      .obligation-chip.chip-intake:hover {
+        background: color-mix(in srgb, var(--color-accent) 24%, transparent);
+      }
+
+      /* ── Attention row (extends client-row) ──────────── */
+      .attention-row {
+        display: flex;
+        flex-direction: column;
+        padding: 8px 10px 8px 9px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        border-left: 2px solid transparent;
+        outline: none;
+        transition: background var(--transition), border-left-color var(--transition);
+        user-select: none;
+        margin: 1px 5px;
+      }
+      .attention-row:hover { background: var(--color-surface-active); }
+      .attention-row-top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .attention-row-name {
+        flex: 1 1 auto;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-fg-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .attention-count {
+        font-size: 10.5px;
+        color: var(--color-fg-muted);
+        font-family: var(--font-mono);
+        flex-shrink: 0;
+      }
+
+      /* ── Intake badge ────────────────────────────────── */
+      .intake-badge {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--color-fg-muted);
+        font-family: var(--font-mono);
+        margin-left: 6px;
+        flex-shrink: 0;
+      }
     </style>
   </head>
   <body>
@@ -498,7 +576,7 @@
       <!-- Lens switcher -->
       <div id="lens-switch" role="tablist" aria-label="Navigation lens">
 
-        <button class="lens-tab is-active" role="tab" aria-selected="true" data-lens="roster" tabindex="0" title="Roster">
+        <button class="lens-tab" role="tab" aria-selected="false" data-lens="roster" tabindex="-1" title="Roster">
           <span data-codicon="organization" data-size="15"></span>
           <span>Roster</span>
         </button>
@@ -508,7 +586,7 @@
           <span>Agenda</span>
         </button>
 
-        <button class="lens-tab" role="tab" aria-selected="false" data-lens="attention" tabindex="-1" title="Attention">
+        <button class="lens-tab is-active" role="tab" aria-selected="true" data-lens="attention" tabindex="0" title="Attention">
           <span data-codicon="shield" data-size="15"></span>
           <span>Attention</span>
         </button>
@@ -524,7 +602,7 @@
       <div id="lens-body">
 
         <!-- ROSTER lens -->
-        <div class="lens-panel is-active" id="lens-roster">
+        <div class="lens-panel" id="lens-roster">
           <div id="roster-controls">
             <!-- Search -->
             <div class="sidebar-search">
@@ -574,9 +652,18 @@
           <p class="lens-placeholder">Agenda — needs the Schedule Activity.</p>
         </div>
 
-        <!-- ATTENTION placeholder -->
-        <div class="lens-panel" id="lens-attention" data-maturity-id="lens-attention-panel">
-          <p class="lens-placeholder">Attention — needs the lifecycle model.</p>
+        <!-- ATTENTION lens (P5 real) -->
+        <div class="lens-panel is-active" id="lens-attention" data-maturity-id="lens-attention-panel">
+          <div id="attention-loading" style="display:none">
+            <p class="lens-placeholder">Loading…</p>
+          </div>
+          <div id="attention-locked" style="display:none">
+            <p class="lens-placeholder" style="color:var(--color-warning);">Workspace locked.</p>
+          </div>
+          <div id="attention-empty" style="display:none">
+            <p class="lens-placeholder">Nothing needs attention.</p>
+          </div>
+          <div id="attention-content"></div>
         </div>
 
         <!-- INTAKE board (ADR-505 Am3) -->
@@ -596,12 +683,13 @@
         'use strict';
 
         /* ── State ───────────────────────────────────────── */
-        var _proxy    = null;
-        var _roster   = [];
-        var _activeId = null;
-        var _filter   = '';
-        var _group    = 'none';
-        var _activeLens = 'roster';
+        var _proxy      = null;
+        var _roster     = [];
+        var _attention  = [];
+        var _activeId   = null;
+        var _filter     = '';
+        var _group      = 'none';
+        var _activeLens = 'attention';
 
         /* ── Element refs ────────────────────────────────── */
         var elBridgeWait    = document.getElementById('bridge-wait');
@@ -613,8 +701,11 @@
         var elRosterEmpty   = document.getElementById('roster-empty');
         var elRosterLocked  = document.getElementById('roster-locked');
         var elNoResults     = document.getElementById('roster-no-results');
-        var elIntakeContent = document.getElementById('intake-content');
-        var elIntakeEmpty   = document.getElementById('intake-empty');
+        var elIntakeContent    = document.getElementById('intake-content');
+        var elIntakeEmpty      = document.getElementById('intake-empty');
+        var elAttentionContent = document.getElementById('attention-content');
+        var elAttentionEmpty   = document.getElementById('attention-empty');
+        var elAttentionLocked  = document.getElementById('attention-locked');
 
         /* ── Helpers ─────────────────────────────────────── */
         function computeAge(dob) {
@@ -686,6 +777,9 @@
           });
           if (lensId === 'intake') {
             renderIntake();
+          }
+          if (lensId === 'attention') {
+            renderAttention();
           }
         }
 
@@ -843,6 +937,118 @@
           });
         }
 
+        /* ── Attention lens ──────────────────────────────── */
+        function renderAttention() {
+          elAttentionContent.innerHTML = '';
+          elAttentionEmpty.style.display = 'none';
+          elAttentionLocked.style.display = 'none';
+
+          if (_attention.length === 0) {
+            elAttentionEmpty.style.display = 'block';
+            return;
+          }
+
+          var hdr = document.createElement('div');
+          hdr.className = 'group-header';
+          hdr.textContent = 'Needs attention · ' + _attention.length;
+          elAttentionContent.appendChild(hdr);
+
+          _attention.forEach(function (row) {
+            var el = document.createElement('div');
+            el.className = 'attention-row';
+            el.setAttribute('role', 'button');
+            el.setAttribute('tabindex', '0');
+            el.setAttribute('aria-label', row.displayName + ', needs attention');
+
+            var topRow = document.createElement('div');
+            topRow.className = 'attention-row-top';
+
+            var dot = document.createElement('span');
+            dot.className = 'status-dot ' + (row.status || 'active');
+            dot.setAttribute('aria-hidden', 'true');
+
+            var nameEl = document.createElement('span');
+            nameEl.className = 'attention-row-name';
+            nameEl.textContent = row.displayName || '(unnamed)';
+
+            var countEl = document.createElement('span');
+            countEl.className = 'attention-count';
+            countEl.textContent = row.doneCount + '/' + row.total;
+
+            topRow.appendChild(dot);
+            topRow.appendChild(nameEl);
+            topRow.appendChild(countEl);
+            el.appendChild(topRow);
+
+            // Obligation chips
+            var chips = document.createElement('div');
+            chips.className = 'obligation-chips';
+            row.obligations.forEach(function (ob) {
+              var chip = document.createElement('button');
+              chip.className = 'obligation-chip' + (ob.key === 'intake_incomplete' ? ' chip-intake' : '');
+              chip.type = 'button';
+              chip.textContent = ob.label;
+              chip.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (!window.soamView) return;
+                if (ob.key === 'intake_incomplete') {
+                  window.soamView.openInEditor('intake', {
+                    query: 'id=' + encodeURIComponent(row.id),
+                    title: row.displayName || 'Client',
+                  });
+                } else {
+                  window.soamView.openInEditor('overview', {
+                    entityId: row.id,
+                    title: row.displayName || 'Client',
+                  });
+                }
+              });
+              chips.appendChild(chip);
+            });
+            el.appendChild(chips);
+
+            // Row click → open overview
+            el.addEventListener('click', function () {
+              if (window.soamView) {
+                window.soamView.openInEditor('overview', {
+                  entityId: row.id,
+                  title: row.displayName || 'Client',
+                });
+              }
+            });
+            el.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (window.soamView) {
+                  window.soamView.openInEditor('overview', {
+                    entityId: row.id,
+                    title: row.displayName || 'Client',
+                  });
+                }
+              }
+            });
+
+            elAttentionContent.appendChild(el);
+          });
+        }
+
+        function loadAttention() {
+          if (!_proxy) return;
+          _proxy.call('listAttention').then(function (rows) {
+            _attention = Array.isArray(rows) ? rows : [];
+            if (_activeLens === 'attention') {
+              renderAttention();
+            }
+          }).catch(function (err) {
+            if (isLockedError(err)) {
+              elAttentionLocked.style.display = 'block';
+              elAttentionEmpty.style.display = 'none';
+              elAttentionContent.innerHTML = '';
+            }
+            // Non-locked errors: silently ignore (best-effort; roster still loads).
+          });
+        }
+
         /* ── Intake board ────────────────────────────────── */
         var STAGE_LABELS = { referral: 'Referral', intake: 'Intake' };
         var PRE_ACTIVE_STAGES = ['referral', 'intake'];
@@ -875,6 +1081,25 @@
             ul.setAttribute('role', 'list');
             list.forEach(function (p) {
               var li = buildRow(p);
+
+              // Override click/keydown to open intake checklist (not overview).
+              li.addEventListener('click', function (e) {
+                // Stop the buildRow click (which fires openClient→overview).
+                e.stopImmediatePropagation();
+                _activeId = p.id;
+                document.querySelectorAll('.client-row').forEach(function (el) {
+                  var active = el.getAttribute('data-id') === _activeId;
+                  el.classList.toggle('is-active', active);
+                  el.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+                if (window.soamView) {
+                  window.soamView.openInEditor('intake', {
+                    query: 'id=' + encodeURIComponent(p.id),
+                    title: p.displayName || 'Client',
+                  });
+                }
+              }, true /* capture — fires before buildRow's bubble listener */);
+
               li.addEventListener('contextmenu', function (e) {
                 e.preventDefault();
                 if (window.soamView && window.soamView.requestContextMenu) {
@@ -886,6 +1111,24 @@
                   );
                 }
               });
+
+              // Best-effort N/10 badge per intake row.
+              if (_proxy) {
+                _proxy.call('getIntakeCompleteness', p.id).then(function (data) {
+                  if (!data) return;
+                  var main = li.querySelector('.client-row-main');
+                  if (!main) return;
+                  // Remove existing badge if any.
+                  var existing = li.querySelector('.intake-badge');
+                  if (existing) existing.remove();
+                  var badge = document.createElement('span');
+                  badge.className = 'intake-badge';
+                  badge.textContent = data.doneCount + '/' + data.total;
+                  badge.setAttribute('title', data.doneCount + ' of ' + data.total + ' intake items complete');
+                  li.appendChild(badge);
+                }).catch(function () { /* ignore */ });
+              }
+
               ul.appendChild(li);
             });
             elIntakeContent.appendChild(ul);
@@ -962,11 +1205,14 @@
           soamView.events.onActivate(function () {
             if (_proxy) {
               loadRoster();
+              loadAttention();
               return;
             }
             soamView.bindQuery('record.patient.query', '1.0').then(function (proxy) {
               _proxy = proxy;
               loadRoster();
+              loadAttention();
+              switchLens('attention');
             }).catch(function (err) {
               if (isLockedError(err)) {
                 elRosterLocked.classList.add('visible');
@@ -976,9 +1222,19 @@
             });
           });
 
+          // Owned-table change: reload roster on patient/lifecycle, reload attention on any owned table.
+          var ALL_OWNED_TABLES = [
+            'patients', 'patient_profile', 'patient_lifecycle',
+            'patient_circle_member', 'patient_consent_state',
+            'patient_risk_event', 'patient_safety_plan', 'patient_document',
+          ];
           soamView.events.onStoreChange(function (payload) {
-            if (payload && (payload.table === 'patients' || payload.table === 'patient_lifecycle')) {
+            if (!payload) return;
+            if (payload.table === 'patients' || payload.table === 'patient_lifecycle') {
               loadRoster();
+            }
+            if (ALL_OWNED_TABLES.indexOf(payload.table) !== -1) {
+              loadAttention();
             }
           });
 

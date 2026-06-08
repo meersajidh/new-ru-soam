@@ -125,23 +125,70 @@ banner+aspect = both). **Ships:** clinically-safe record — major milestone.
 
 ---
 
-## Phase 5 — Overview modes + Intake checklist + Attention + Overlays
+## Phase 5 — Workflow layer: Intake checklist + Attention lens
 
-**Goal:** the workflow layer that aggregates the spine.
+**Status: BUILT 2026-06-08** (lint+compile green, code-reviewed; runtime CDP verify
+pending workspace unlock). Pure read-derivation — NO new table/command/migration/ADR/audit-kind.
+2 query templates (`patient.intakeCompleteness` per-client, `patient.attentionScan` roster-wide,
+shared flag-expression block) + 2 `record.patient.query` methods (`getIntakeCompleteness`/`listAttention`)
++ host `INTAKE_ITEMS` (10 items) + `deriveObligations` (intake-incomplete / no-risk-screen /
+missing-consent-doc / on-hold-stale, `ON_HOLD_REVIEW_DAYS=30`, closed/archived skipped) + new
+`intake.html` per-client checklist editor (URL `?id=` pinned, safety-plan pattern) + roster.html
+Attention lens real (obligation chips → navigate) + Attention = default landing + intake-board
+rows open checklist + broadened `onStoreChange`. PHI: returns = booleans/enums/displayName only;
+audit reuses existing `viewed`/`listed` kinds, zero new detail.
 
-- **Three view modes** (dense / focused / timeline) as a persisted preference
-  (renderer-only axis, like Activity-Bar density). **O-VIEWMODES.**
-- **Intake checklist** in the Work Area (completeness state, e.g. "6/9") → drives
-  **Intake** lens membership + seeds Attention.
-- **Attention** obligations from owned completeness/lifecycle (intake incomplete,
-  missing consent doc, no initial risk screen, on-hold past threshold);
-  projection-derived obligations (overdue note, unbooked) deferred to Phase 6.
-  **O-ATTENTION** (final set).
-- **Overlays**: `patient_overlay` + `setOverlay` (review / pin / flag over projections).
-- Consider **Attention as default landing lens** (UX principle, IA §9).
+**Goal:** the workflow layer that aggregates the spine — "lead with what needs me
+today" (IA §9). **Scope TRIMMED 2026-06-08 (user call):** build the
+**shared-completeness engine** + its two surfaces. **Deferred out of this slice:**
+**view-modes → O455** (renderer-only presentation pref, orthogonal eye-candy, build
+any time as its own slice), **overlays → O464/P6** (target projections that are mock
+until P6 — unverifiable now), **projection-derived Attention obligations → P6**
+(need Schedule/Sessions).
 
-**Depends on:** Phases 1–4 data. **Info:** 🟡 obligation set partly open. **Ships:**
-workflow-complete Practice.
+**Key architecture insight (IA §6):** the Intake checklist and the Attention lens are
+**two readings of the same data** — owned-aspect completeness + lifecycle. Build the
+derivation once, consume it twice. **No new table, no new command, no migration, no
+ADR** — pure **read-derivation** (new query templates under the existing
+`record.patient.query` cap) + renderer/iframe UI.
+
+### Build sequence
+
+**5a — Completeness engine (read-derivation).** Pin the intake item set + obligation
+set, then build aggregate read queries.
+- **Intake item set** (≈9, from IA §6 `intake_in_progress`; exact set pinned at build,
+  some India/MHA-specific): (1) demographics (name + dob + ≥1 contact on `patients`),
+  (2) preferred language (`patient_profile.preferred_language`), (3) diagnosis/problem
+  list (`patient_profile.diagnosis`), (4) NR/Circle (≥1 `patient_circle_member`, ideally
+  a primary NR), (5) informed consent (`patient_consent_state.informed_consent_status`),
+  (6) tele consent (`tele_consent_mode`), (7) capacity assessed (`capacity_status` ≠
+  null/`unassessed`), (8) AD status (`advance_directive_status`), (9) initial risk screen
+  (≥1 `patient_risk_event` OR `patient_safety_plan.status` ≠ `none`), (10) first documents
+  (≥1 `patient_document`).
+- **Owned-derived obligation set (O456 subset):** intake incomplete (stage ∈ intake AND
+  completeness < full), missing required consent document, no initial risk screen,
+  on-hold past a review threshold (`patient_lifecycle.stage='on_hold'` AND
+  `stage_updated_at` older than X days).
+- **Data:** one or two **query templates** computing per-client completeness flags +
+  obligation flags via LEFT JOIN / EXISTS over the owned tables (efficient roster-wide,
+  vs N×6 per-client reads); exposed as `record.patient.query` methods
+  `getIntakeCompleteness(clientId)` (per-client) + `listAttention()` (roster-wide).
+  Read-only. No PHI in any new audit (these are `viewed` reads at most).
+
+**5b — Intake checklist surface (per-client, Work Area).** A checklist view (new
+`intake.html` view, or a panel) reading `getIntakeCompleteness` → renders the item list
+with done/missing + a completeness count ("6/9"); each item links to its **already-built**
+owned aspect (Profile/Circle/Consent/Documents/Risk edit UIs from P1–P4). Surfaces for
+clients in the `intake` stage; reachable via the Intake lens.
+
+**5c — Attention lens (roster) + default landing.** Roster (`roster.html`) gains **lens
+tabs** (All / Attention / Intake) reading `listAttention`; Attention rows show obligation
+chips → click navigates to the relevant aspect/checklist. **Attention = default landing
+lens** on Practice open (IA §9). Maturity-mark concrete.
+
+**Depends on:** Phases 1–4 owned data (all built). **Info:** ✅ full (item/obligation set
+pinned above). **Ships:** workflow-complete Practice (owned-derived). Projection-derived
+obligations + overlays land with P6.
 
 ---
 
@@ -168,8 +215,8 @@ breadth, rolling.
 P0 (legibility) ─ standalone, do first
 P1 (Profile/Lifecycle) → P2 (Circle/Consent) → P4 (Risk, reads consent_state)
                                               ↘ P3 (Documents, needs blob store)
-P1..P4 ────────────────────────────────────→ P5 (modes/Intake/Attention/Overlays)
-P6 (projections) ── parallel/rolling, each needs its owner (O197)
+P1..P4 ────────────────────────────────────→ P5 (Intake checklist + Attention lens)
+P6 (projections + overlays O464 + view-modes O455) ── parallel/rolling, each owner (O197)
 ```
 
 **Release milestones:** P0–P2 = *real client record* · P4 = *clinically-safe record*
@@ -184,6 +231,10 @@ P6 (projections) ── parallel/rolling, each needs its owner (O197)
 
 ## Open-item ledger for this plan
 
-`O-MATURITY` · `O-BLOBSTORE` · `O-VIEWMODES` · `O-ATTENTION` — to be assigned real
-O-numbers in `docs/Open_Items.md`. O419 (Risk residue), O420 (data-model increments),
-O421 (Billing), O197 (per-Activity scoping) already exist.
+Assigned: **O453** maturity-marking (P0, done), **O454** protected blob store (P3, built),
+**O455** Overview view-modes (deferred out of P5 slice — renderer-only, build any time),
+**O456** Attention obligation set (P5 builds the owned-derived subset; projection-derived
+→ P6), **O457** record CRUD/erase (done), **O462** in-app doc viewing (deferred),
+**O463** blob orphan-sweep (deferred), **O464** overlays (`patient_overlay`/`setOverlay`,
+→ P6 with projections). Pre-existing: O419 (Risk residue, resolved), O420 (data-model
+increments), O421 (Billing A1), O197 (per-Activity scoping).
