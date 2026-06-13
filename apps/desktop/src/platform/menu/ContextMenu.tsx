@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../icons/Icon';
 import type { IMenuService, ResolvedMenuItem } from './menu-service';
@@ -34,6 +34,7 @@ export default function ContextMenu({
   ctxArgs,
 }: Props) {
   const menuRef = useRef<HTMLUListElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const [activeIdx, setActiveIdx] = useState<number>(-1);
 
   // ── O424: Alt key tracking ────────────────────────────────────────────────
@@ -126,11 +127,35 @@ export default function ContextMenu({
     popover.setPopoverElement(el);
   };
 
-  // Open popover at coords once on mount
+  // Open popover at coords once on mount; capture focus origin + move focus to menu.
   useEffect(() => {
+    // Capture whatever has focus before the menu opens (may be the iframe element
+    // in the parent document when raised from a sandboxed bundle view).
+    restoreFocusRef.current = (document.activeElement as HTMLElement) ?? null;
     popover.open({ x, y });
+    // Focus the menu root after the portal mounts + popover positions.
+    // rAF ensures the element is laid out before focus().
+    const raf = requestAnimationFrame(() => {
+      menuRef.current?.focus();
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+    };
     // Only run on mount — coords don't change
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Restore focus to the element that had it before the menu opened (e.g. the
+  // sandboxed iframe, or a shell button). Runs on unmount regardless of dismiss
+  // cause (Esc, outside-click, item select).
+  useEffect(() => {
+    return () => {
+      try {
+        restoreFocusRef.current?.focus?.();
+      } catch {
+        // Element may be gone (e.g. workspace switched). Safe to ignore.
+      }
+    };
   }, []);
 
   // ── Keyboard nav ──────────────────────────────────────────────────────────
@@ -212,6 +237,7 @@ export default function ContextMenu({
       tabIndex={-1}
       style={{ left, top }}
       aria-label="Context menu"
+      aria-activedescendant={activeIdx >= 0 ? `ctxmenu-item-${activeIdx}` : undefined}
     >
       {items.map((item, idx) => {
         // O424: while Alt held, show alt title if available
@@ -235,6 +261,7 @@ export default function ContextMenu({
               <div className="context-menu__separator" role="separator" aria-hidden="true" />
             )}
             <button
+              id={`ctxmenu-item-${idx}`}
               className={[
                 'context-menu__item',
                 item.disabled ? 'context-menu__item--disabled' : '',
@@ -313,6 +340,7 @@ export default function ContextMenu({
                 ctxArgs={ctxArgs}
                 onSelect={onSelect}
                 onClose={closeSubmenu}
+                parentMenuRef={menuRef}
               />
             )}
           </li>
@@ -332,6 +360,9 @@ interface SubMenuFlyoutProps {
   ctxArgs?: unknown[];
   onSelect: (item: ResolvedMenuItem, useAlt?: boolean) => void;
   onClose: () => void;
+  /** Ref to the parent menu root — focused when the flyout closes so keyboard
+   *  nav returns to the parent menu. */
+  parentMenuRef: RefObject<HTMLUListElement | null>;
 }
 
 /**
@@ -354,11 +385,38 @@ function SubMenuFlyout({
   menuSvc,
   onSelect,
   onClose,
+  parentMenuRef,
 }: SubMenuFlyoutProps) {
   const subItems = menuSvc.getMenuItems(submenuId);
   const [activeIdx, setActiveIdx] = useState<number>(-1);
   const [altHeld, setAltHeld] = useState(false);
   const ulRef = useRef<HTMLUListElement | null>(null);
+
+  // Focus the flyout root on mount so keyboard nav events land on the parent
+  // document listener (same mechanism as main menu). rAF ensures element is
+  // laid out (edge-flip effect also runs on mount).
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      ulRef.current?.focus();
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // On unmount (flyout closed via Esc / ArrowLeft / item select), return focus
+  // to the parent menu root so Arrow nav continues from there.
+  // Capture ref.current inside the effect (lint: ref value may change by cleanup time).
+  useEffect(() => {
+    const parentMenu = parentMenuRef.current;
+    return () => {
+      try {
+        parentMenu?.focus?.();
+      } catch {
+        // Parent may be gone. Safe to ignore.
+      }
+    };
+  }, [parentMenuRef]);
 
   // Alt tracking for sub-menu (mirror parent)
   useEffect(() => {
@@ -446,6 +504,7 @@ function SubMenuFlyout({
       tabIndex={-1}
       style={flyoutStyle}
       aria-label="Submenu"
+      aria-activedescendant={activeIdx >= 0 ? `ctxmenu-sub-item-${activeIdx}` : undefined}
     >
       {subItems.map((item, idx) => {
         const displayTitle = (altHeld && item.altCommand && item.altTitle) ? item.altTitle : item.title;
@@ -461,6 +520,7 @@ function SubMenuFlyout({
               <div className="context-menu__separator" role="separator" aria-hidden="true" />
             )}
             <button
+              id={`ctxmenu-sub-item-${idx}`}
               className={[
                 'context-menu__item',
                 item.disabled ? 'context-menu__item--disabled' : '',
