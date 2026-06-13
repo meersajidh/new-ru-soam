@@ -58,6 +58,6 @@
     "@zxcvbn-ts/core": "^3.0.4",
     "better-sqlite3": "npm:better-sqlite3-multiple-ciphers@^12.9.0",
     "better-sqlite3-multiple-ciphers": "^12.9.0",
-    "electron-updater": "^6.8.6"
+    "electron-updater": "^6.8.9"
   }
 }
