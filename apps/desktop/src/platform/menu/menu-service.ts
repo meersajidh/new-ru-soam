@@ -164,7 +164,10 @@ export class MenuService implements IMenuService {
       item: MenuItemContribution;
       cmd?: CommandContribution;
       group: string;
+      /** Order from the `group@N` suffix (primary intra-group sort key). */
       order: number;
+      /** Explicit `order?` field — secondary tie-break (O432). */
+      itemOrder: number;
       contributionIdx: number;
     };
 
@@ -185,18 +188,20 @@ export class MenuService implements IMenuService {
         if (cmd?.when && !this._evaluateWithCtx(cmd.when, ctxMap)) { contribIdx++; continue; }
 
         const parsed = parseGroup(item.group);
-        candidates.push({ item, cmd, group: parsed.group, order: parsed.order, contributionIdx: contribIdx });
+        candidates.push({ item, cmd, group: parsed.group, order: parsed.order, itemOrder: item.order ?? 0, contributionIdx: contribIdx });
         contribIdx++;
       }
     }
 
     if (candidates.length === 0) return [];
 
-    // Sort: group lexicographic, then order asc, then contribution order
+    // Sort: group lexicographic, then `@N` group-suffix order, then the explicit
+    // `order?` field (O432), then contribution/registration order.
     candidates.sort((a, b) => {
       if (a.group < b.group) return -1;
       if (a.group > b.group) return 1;
       if (a.order !== b.order) return a.order - b.order;
+      if (a.itemOrder !== b.itemOrder) return a.itemOrder - b.itemOrder;
       return a.contributionIdx - b.contributionIdx;
     });
 

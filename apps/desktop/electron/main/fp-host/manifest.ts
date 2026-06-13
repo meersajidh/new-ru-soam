@@ -129,7 +129,8 @@ export interface MenuItemManifest {
 
 /**
  * Single keybinding contribution per ADR-417.
- * Chord syntax and namespace enforcement deferred — O427.
+ * Chord syntax is intentionally unenforced here; the runtime keybinding
+ * service rejects malformed chords at registration time.
  */
 export interface KeybindingManifest {
   readonly key: string;
@@ -187,6 +188,37 @@ const CONTRIBUTION_ID_RE = /^[a-z0-9][a-z0-9_.-]*$/i;
 
 // Menu-id slot keys allow `/` for paths like "editor/title/context".
 const MENU_ID_RE = /^[a-z0-9][a-z0-9_./-]*$/i;
+
+/**
+ * Base-platform menu slots that bundles may contribute items INTO (ADR-417 §80).
+ * A bundle key matching one of these passes namespace enforcement — it is adding
+ * items to a platform slot, not defining a new slot.
+ */
+const BASE_RESERVED_SLOTS: ReadonlySet<string> = new Set([
+  'commandPalette',
+  'editor/title',
+  'editor/title/context',
+  'view/title',
+  'view/context',
+  'activitybar/item/context',
+  'statusbar/item/context',
+  'panel/title',
+]);
+
+/**
+ * First-path-segment surface words owned by the base platform.
+ * A menu key whose head segment appears here (but isn't in BASE_RESERVED_SLOTS)
+ * is attempting to invent or redefine a base surface slot — rejected.
+ * `commandPalette` has no slash so it's caught directly by BASE_RESERVED_SLOTS;
+ * it does not need to appear here.
+ */
+const BASE_SLOT_SURFACES: ReadonlySet<string> = new Set([
+  'editor',
+  'view',
+  'panel',
+  'activitybar',
+  'statusbar',
+]);
 
 export class ManifestError extends Error {
   constructor(manifestPath: string, message: string) {
@@ -454,6 +486,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
       if (!Array.isArray(rawCommands)) {
         throw new ManifestError(manifestPath, '`contributes.commands` must be an array');
       }
+      const seenCommandIds = new Set<string>();
       for (const cmd of rawCommands) {
         if (!cmd || typeof cmd !== 'object') {
           throw new ManifestError(manifestPath, 'commands entry must be an object');
@@ -468,6 +501,19 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
             `commands id "${c.id}" must match /^[a-z0-9][a-z0-9_.-]*$/i`,
           );
         }
+        // O427 / O86: declared command id must be prefixed with this bundle's own id.
+        const requiredPrefix = `${m.id as string}.`;
+        if (!c.id.startsWith(requiredPrefix)) {
+          throw new ManifestError(
+            manifestPath,
+            `commands id "${c.id}" must start with "${requiredPrefix}" (bundle may only declare commands in its own namespace)`,
+          );
+        }
+        // O427: intra-manifest duplicate command id check.
+        if (seenCommandIds.has(c.id)) {
+          throw new ManifestError(manifestPath, `commands has duplicate id: "${c.id}"`);
+        }
+        seenCommandIds.add(c.id);
         if (!isString(c.title)) {
           throw new ManifestError(manifestPath, 'commands entry requires `title` as a non-empty string');
         }
@@ -491,7 +537,6 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
     }
 
     // Validate menus
-    // Namespace / reserved-slot enforcement deferred — O427.
     const rawMenus = contrib['menus'];
     if (rawMenus !== undefined) {
       if (!rawMenus || typeof rawMenus !== 'object' || Array.isArray(rawMenus)) {
@@ -504,6 +549,19 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
             manifestPath,
             `menus key "${menuId}" must match /^[a-z0-9][a-z0-9_./-]*$/i`,
           );
+        }
+        // O427: menu slot namespace enforcement (ADR-417 §80).
+        if (!BASE_RESERVED_SLOTS.has(menuId)) {
+          const head = menuId.split('/')[0];
+          if (!menuId.includes('/') || BASE_SLOT_SURFACES.has(head)) {
+            throw new ManifestError(
+              manifestPath,
+              `menus key "${menuId}" is not a declared base slot and a bundle may not define a base-named slot; ` +
+                `allowed base slots: ${[...BASE_RESERVED_SLOTS].join(', ')}; ` +
+                `domain slots must be namespaced "<bundleId>/..."`,
+            );
+          }
+          // head is a bundle-id-shaped namespace — permitted (own or cross-bundle domain slot).
         }
         const itemsArr = menusObj[menuId];
         if (!Array.isArray(itemsArr)) {
@@ -570,7 +628,6 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
     }
 
     // Validate keybindings
-    // Chord syntax validation and namespace enforcement deferred — O427.
     const rawKeybindings = contrib['keybindings'];
     if (rawKeybindings !== undefined) {
       if (!Array.isArray(rawKeybindings)) {
