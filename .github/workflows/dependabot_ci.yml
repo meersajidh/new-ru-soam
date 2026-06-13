@@ -1,0 +1,60 @@
+name: CI
+
+# Validation gate for pull requests (notably dependabot bumps, which otherwise
+# carry zero checks because release.yml runs on tags only). Type-checks the
+# whole workspace + lints the desktop app — the same commands CLAUDE.md lists as
+# the manual verification step. Install mirrors release.yml (pnpm, frozen
+# lockfile) so a bump that breaks dependency resolution reds here, not at tag.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# A newer push to the same PR/branch cancels the in-flight run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Type-check + lint
+    # Only run for branches pushed INTO this repo — i.e. your own branches and
+    # dependabot (it pushes dependabot/* branches in-repo). Fork PRs are skipped
+    # so untrusted code never runs `pnpm install` (postinstall build scripts) on
+    # our runner or burns Actions minutes. Re-enable forks deliberately if the
+    # repo ever goes public and outside contributions are wanted.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    # Type-check and lint are platform-agnostic; the per-OS native build is
+    # covered by release.yml at tag time. One leg keeps PR feedback cheap.
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check workspace
+        run: |
+          pnpm --filter ru-soam compile
+          pnpm --filter @ru-soam/editor compile
+
+      - name: Lint desktop
+        run: pnpm --filter ru-soam lint
