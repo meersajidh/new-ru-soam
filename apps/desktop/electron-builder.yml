@@ -15,6 +15,13 @@ files:
   - dist/fp-host/**
   - changelog.json
   - package.json
+  # Never ship sourcemaps. They are still emitted to dist/ (sourcemap:true in the
+  # vite configs) for crash symbolication as a CI artifact, but packing them into
+  # app.asar would expose the full original main/preload/fp-host source plus a
+  # redundant copy of the O309c build-baked OAuth secret to anyone who unpacks the
+  # app. (The secret also lives in index.mjs itself — that is the accepted
+  # desktop pseudo-secret, removed only when O309a moves code-exchange server-side.)
+  - "!**/*.map"
 
 # Native bindings must live outside app.asar (V8 cannot dlopen a .node
 # from inside an asar). electron-builder auto-unpacks *.node, but be
