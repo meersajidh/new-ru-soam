@@ -30,3 +30,23 @@ allowBuilds:
   electron: true
   better-sqlite3-multiple-ciphers: true
   electron-winstaller: false
+
+# Supply-chain cooldown: reject lockfile entries published within this window
+# (minutes; 4320 = 3d, matching the global pnpm setting that was previously only
+# on one machine — so `pnpm install --frozen-lockfile` enforced it locally but
+# the CI runner, with no global config, skipped the check, letting too-fresh deps
+# slip into main green). Committing it here makes CI + every dev machine enforce
+# ONE policy. Note: dependabot/renovate cooldowns (7d) gate only the DIRECTLY
+# bumped package; pnpm's gate is the only one that also catches fresh TRANSITIVE
+# deps (the gap that let caniuse-lite / electron-to-chromium through 2026-06-13).
+minimumReleaseAge: 4320
+# TEMPORARY exclusion — REMOVE ~2026-06-15 (tracked in Open_Items O467). These 3
+# browserslist DATA packages were published within the cooldown on 2026-06-13;
+# excluding them keeps CI green now without re-resolving the lockfile. They have
+# no install scripts (negligible supply-chain risk), but the guard should cover
+# them once they age out. Remove this block + run `pnpm install` to confirm the
+# lockfile passes unaided.
+minimumReleaseAgeExclude:
+  - caniuse-lite
+  - electron-to-chromium
+  - baseline-browser-mapping
