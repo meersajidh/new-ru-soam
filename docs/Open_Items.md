@@ -7,6 +7,8 @@
 
 Single source of truth for every Open Item (O##) raised across ADRs and the Implementation Plan. Newer items raised inside `Implementation_Plan.md` during phase landings are folded back in here so a reader does not need to grep both surfaces.
 
+> **Companion view (temporary):** [`Trigger_Gated_Items.md`](Trigger_Gated_Items.md) is a curated snapshot of the currently *trigger-gated* (blocked-on-a-precondition) items, grouped by what unblocks them — a pick-up list for when those preconditions land. It is a derived view, **not** a second source of truth; the rows here remain authoritative. **Delete `Trigger_Gated_Items.md` once all the items it lists are closed.** Items there without a dedicated `O###` (rung-H, `aspects.html` section-split, prod PHI migration, the P6 phase) point at their parent row/doc instead.
+
 ## Conventions
 
 - **ID** — assigned at first surfacing. Never re-used. Gaps are gaps; do not back-fill.
