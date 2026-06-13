@@ -24,7 +24,7 @@
     "test": "node --experimental-strip-types --experimental-loader=./scripts/test-loader.mjs --test electron/main/store/backup.test.ts electron/main/store/schema-gate.test.ts"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
+    "@babel/core": "^7.29.7",
     "@electron/rebuild": "^4.0.4",
     "@rolldown/plugin-babel": "^0.2.3",
     "@tailwindcss/vite": "^4.3.0",
