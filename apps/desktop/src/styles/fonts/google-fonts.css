@@ -1,16 +1,29 @@
 /* ─────────────────────────────────────────────────────────────────────────────
- * Webfont loader — Google Fonts CDN.
+ * Webfont loader — self-hosted via @fontsource (O422).
  *
- * Families (SIL Open Font License 1.1):
- *   Source Serif 4  — display + long-form body; variable optical-sizing (opsz 8..60)
- *   Inter Tight     — UI sans for all workbench surfaces
- *   IBM Plex Mono   — mono; scholarly / typewriter character
+ * Families (SIL Open Font License 1.1), bundled into the app at build time by
+ * Vite's asset pipeline (the package `url(./files/*.woff2)` rules are rewritten
+ * to hashed assets under dist/renderer/assets/) — NO runtime CDN fetch. This
+ * removes the previous `fonts.googleapis.com` `@import`, which was both
+ * offline-broken and a direct third-party renderer fetch (ADR-203
+ * brokered-networking concern).
  *
- * Weights: 400 / 500 / 600 / 700 (Source Serif 4, Inter Tight); 400 / 500 (IBM Plex Mono).
- * font-display: swap is implicit in Google's CSS2 endpoint.
+ *   Source Serif 4 — display + long-form body; VARIABLE opsz (8..60) + wght.
+ *                    Self-hosts as family 'Source Serif 4 Variable'.
+ *   Inter Tight    — UI sans for all workbench surfaces; VARIABLE wght.
+ *                    Self-hosts as family 'Inter Tight Variable'.
+ *   IBM Plex Mono  — mono; static 400 / 500. Self-hosts as family
+ *                    'IBM Plex Mono' (plain name — matches the font-set stacks).
  *
- * TODO: port .woff2 files into this folder and replace with explicit @font-face
- * rules to remove the CDN dependency.
+ * The variable families register a `... Variable` family name, so the brand
+ * font-set stacks (font-sets/ru-display.css, ru-editorial.css) list the
+ * `Variable` name first, then the plain name, then the system fallback.
+ *
+ * This `@import` block must precede any font-set class application — see
+ * font-sets/README.md.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import '@fontsource-variable/inter-tight/wght.css';
+@import '@fontsource-variable/source-serif-4/standard.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';

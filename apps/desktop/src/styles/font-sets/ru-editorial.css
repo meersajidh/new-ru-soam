@@ -12,9 +12,9 @@
  */
 
 .font-set-ru-editorial {
-  --font-sans:    'Inter Tight', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-sans:    'Inter Tight Variable', 'Inter Tight', system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono:    'IBM Plex Mono', ui-monospace, Consolas, 'Courier New', monospace;
-  --font-display: 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+  --font-display: 'Source Serif 4 Variable', 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
 
   --font-display-weight: 600;
   --font-display-letter-spacing: -0.005em;
