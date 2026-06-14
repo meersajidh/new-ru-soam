@@ -2,11 +2,11 @@ openapi: '3.0.3'
 
 info:
   title: Identity Service API
-  version: '0.2.0'
+  version: '0.3.0'
   description: |
     Cloud Backend identity service for ru-soam (ADR-311).
-    Phase 11a.1: Google ID-token verification + provisional session response.
-    11a.2 adds account creation fields; 11a.3 replaces response with {access_token, refresh_token}.
+    Phase 11a.2: Google ID-token verification + auto-register account on first verified token.
+    11a.3 replaces session response with {access_token, refresh_token}.
 
 servers:
   - url: 'http://localhost:8080'
@@ -29,8 +29,7 @@ paths:
         The server never handles an OAuth authorization code — token exchange always
         stays in the Desktop Main process (ADR-311 §3, node-first invariant).
 
-        11a.1 (current): returns provisional {sub, email}.
-        11a.2: adds account fields.
+        11a.2 (current): verifies token, auto-registers account, returns {account_id, sub, email}.
         11a.3: replaces response with {access_token, refresh_token}.
       requestBody:
         required: true
@@ -119,11 +118,16 @@ components:
 
     SessionResponse:
       type: object
-      required: [sub, email]
+      required: [account_id, sub, email]
       description: |
-        Provisional 11a.1 shape. 11a.3 will replace this with
+        11a.2 shape. 11a.3 will replace this with
         {access_token, refresh_token, expires_in}.
       properties:
+        account_id:
+          type: string
+          format: uuid
+          description: Stable server-assigned account UUID.
+          example: '550e8400-e29b-41d4-a716-446655440000'
         sub:
           type: string
           description: Google subject identifier (stable, opaque).

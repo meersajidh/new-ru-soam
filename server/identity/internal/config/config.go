@@ -15,6 +15,7 @@ type Config struct {
 	Server  *ServerConfig
 	Logging *LogConfig
 	Google  *GoogleConfig
+	DB      *DBConfig
 }
 
 // Load reads configuration from the environment.
@@ -30,6 +31,7 @@ func Load() (*Config, error) {
 		Server:  loadServerConfig(),
 		Logging: loadLogConfig(),
 		Google:  loadGoogleConfig(),
+		DB:      loadDBConfig(),
 	}
 	return cfg, nil
 }

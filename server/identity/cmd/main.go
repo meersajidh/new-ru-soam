@@ -23,14 +23,15 @@ func main() {
 	logger := cfg.Logging.NewLogger()
 	logger.Info("starting identity service", "port", cfg.Server.Port)
 
-	application, err := app.Build(cfg, logger)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	application, closeStore, err := app.Build(ctx, cfg, logger)
 	if err != nil {
 		logger.Error("failed to build identity service", "error", err)
 		os.Exit(1)
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	defer closeStore()
 
 	if err := application.Run(ctx); err != nil {
 		logger.Error("identity service stopped with error", "error", err)

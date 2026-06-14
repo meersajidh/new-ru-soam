@@ -2,17 +2,26 @@
 package health
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Handler handles health probe requests.
-type Handler struct{}
+// Pinger is the minimal interface the readiness probe needs — satisfied by
+// store.AccountStore (which has Ping) and by test fakes.
+type Pinger interface {
+	Ping(ctx context.Context) error
+}
 
-// New creates a Handler.
-func New() *Handler { return &Handler{} }
+// Handler handles health probe requests.
+type Handler struct {
+	db Pinger // nil when running without a DB (e.g. 11a.0 or misconfigured dev)
+}
+
+// New creates a Handler. db may be nil; readiness will return 503 when nil.
+func New(db Pinger) *Handler { return &Handler{db: db} }
 
 type healthResponse struct {
 	Status    string `json:"status"`
@@ -34,12 +43,21 @@ func (h *Handler) Health(c *gin.Context) {
 }
 
 // Liveness handles GET /health/live.
+// Dependency-free: service process alive → 200.
 func (h *Handler) Liveness(c *gin.Context) {
 	c.JSON(http.StatusOK, newResp("ok"))
 }
 
 // Readiness handles GET /health/ready.
-// In 11a.0 there are no downstream dependencies (no DB), so this is always ok.
+// Returns 503 when the DB is unreachable or not configured.
 func (h *Handler) Readiness(c *gin.Context) {
+	if h.db == nil {
+		c.JSON(http.StatusServiceUnavailable, newResp("unavailable"))
+		return
+	}
+	if err := h.db.Ping(c.Request.Context()); err != nil {
+		c.JSON(http.StatusServiceUnavailable, newResp("unavailable"))
+		return
+	}
 	c.JSON(http.StatusOK, newResp("ok"))
 }
