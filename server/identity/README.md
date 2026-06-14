@@ -127,5 +127,8 @@ internal/session/                   POST /v1/session handler (verify + auto-regi
 internal/store/                     AccountStore interface + pgx/v5 implementation
 internal/rest/                      gin router + middleware
 specs/openapi.yaml                  API contract
-docker-compose.yml                  local Postgres for dev
 ```
+
+Deployment/orchestration artifacts (local-dev Postgres compose, prod
+manifests) live under `server/deploy/`, not in this module — see
+`server/deploy/README.md`. Local Postgres: `just db-identity-up`.

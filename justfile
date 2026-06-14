@@ -19,16 +19,16 @@ run-identity:
 
 # Start local Postgres for identity service dev (docker compose)
 db-identity-up:
-    @cd server/identity && docker compose up -d
+    @cd server/deploy/dev && docker compose up -d
 
-# Stop local Postgres for identity service dev
+# Stop local Postgres for identity service dev (add `-v` manually to wipe data)
 db-identity-down:
-    @cd server/identity && docker compose down
+    @cd server/deploy/dev && docker compose down
 
-# Run goose migrations against DATABASE_URL (set in .env or env)
+# Run goose migrations — DATABASE_URL from server/identity/.env or env
 # Example: just migrate-identity up
 migrate-identity command="up":
-    @cd server/identity && DATABASE_URL="${DATABASE_URL}" go run ./cmd/migrate {{command}}
+    @cd server/identity && go run ./cmd/migrate {{command}}
 
 # Inspect a workspace DB (dev only). Examples:
 #   just dev-db --list

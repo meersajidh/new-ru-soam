@@ -1,0 +1,6 @@
+####################################################################
+# Local-dev deployment for the Cloud Backend server zone.
+# Thin aggregator — include one file per concern.
+####################################################################
+include:
+  - identity-db.yml

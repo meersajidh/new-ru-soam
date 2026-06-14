@@ -1,0 +1,27 @@
+####################################################################
+# Standalone PostgreSQL for the identity service — local dev only.
+# Composed by deploy/dev/docker-compose.yml.
+####################################################################
+# Identity Service Database
+services:
+  identity-postgres:
+    image: postgres:18.1-alpine
+    container_name: identity-dev-db
+    environment:
+      # Credentials — match server/identity/.env.example DATABASE_URL
+      - POSTGRES_USER=identity
+      - POSTGRES_PASSWORD=identity
+      - POSTGRES_DB=identity
+    volumes:
+      - dev_identity_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U identity -d identity']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dev_identity_data:
