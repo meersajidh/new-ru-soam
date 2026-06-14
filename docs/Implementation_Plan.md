@@ -887,15 +887,31 @@ Split into **10a** (data pipeline) and **10b** (encryption + audit). 10a landed;
 - Hash chain valid: `entry[n].prev_hash === entry[n-1].entry_hash`; genesis `prev_hash` is 64 zeros.
 - `AuditEntry` type has no unconstrained string fields (PHI-safe by construction).
 
-## Phase 11 — Sync queue + cloud mirror
+## Phase 11 — Cloud Backend zone: identity, then sync
+
+Phase 11 stands up the Cloud Backend (the fourth trust zone, ADR-101) from scratch. Split into two slices because sync transport needs an authenticated tenant first:
+
+### Phase 11a — Cloud Backend bootstrap + identity service
+
+**Goal:** the node can authenticate to a real Cloud Backend; usage telemetry recorded.
+
+**Deliverable:** Cloud Run (Go) service in `asia-south1` — verify Google ID-token, auto-register account (`sub`=key), issue RS256 (Cloud-KMS-signed) session JWT + rotating refresh, record session events. Node-side: replace any remaining identity stub, store `cloud-session-token` (KEK-wrapped), best-effort/offline-tolerant contact. Account/tenant + session-event tables in Cloud SQL Postgres; secrets in Secret Manager.
+
+**ADRs:** **ADR-311** (identity service — design), ADR-309 (client identity, Part A built), ADR-301/302/303 (PHI/local-first/E2EE invariants), ADR-304/307 (credential storage), ADR-501 (tenancy).
+
+**Open items:** O309a (resolved → ADR-311), O468 (usage-analytics consent/retention — before telemetry ships), O307f (`cloud-session-token` = kek-wrapped).
+
+**Exit:** online sign-in → server verifies ID-token, auto-registers, issues JWT; session events recorded; offline sign-in works on local identity and flushes the queued event on reconnect; server holds zero PHI.
+
+### Phase 11b — Sync queue + cloud mirror
 
 **Goal:** local-first writes propagate; conflict policy committed.
 
-**Deliverable:** outbound sync queue, server-side mirror endpoint, conflict resolution per ADR-302 policy, sync-state StatusBar entry.
+**Deliverable:** outbound sync queue, server-side mirror endpoint (carries `{wrapped_dek, ciphertext, metadata}` envelopes), conflict resolution per ADR-302 policy, sync-state StatusBar entry. Authorizes on the 11a session JWT.
 
-**ADRs:** ADR-302, ADR-304 (sync), ADR-305 (cloud transport).
+**ADRs:** ADR-302 (topology), ADR-303 (E2EE envelope transport), ADR-311 (identity it binds to).
 
-**Open items:** 300-range sync items (tracked in those ADRs).
+**Open items:** **O23** (conflict resolution — CRDT/OT/LWW; working assumption per-record LWW + version counter since collab is deferred, O121), O29 (same KEK/DEK sync+backup), O55 (workspace-settings cloud-mirror).
 
 **Exit:** offline edit → reconnect → mirror converges; conflict surfaced in UI; cloud receives ciphertext only (structural enforcement per ADR-301).
 

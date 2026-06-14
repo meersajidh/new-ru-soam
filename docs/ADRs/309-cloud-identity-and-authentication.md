@@ -5,14 +5,14 @@
 **Date:** 2026-05-26
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-101, ADR-103, ADR-202, ADR-203, ADR-304, ADR-305, ADR-307, ADR-501, ADR-502, ADR-310 _(proposed: calendar provider)_
+**Related:** ADR-101, ADR-103, ADR-202, ADR-203, ADR-304, ADR-305, ADR-307, ADR-501, ADR-502, ADR-310 _(proposed: calendar provider)_, ADR-311 _(Part B taken up: Cloud Backend identity service)_
 
 ## Status note
 
 This ADR is **Draft**. It has two parts with different commitment levels:
 
 - **Part A — Client identity (committed, lands now).** Real Google OAuth in Main replacing the Phase-9 mock (`src/platform/auth/mock-oauth.ts`), the `cloud-session-token` storage decomposition, and workspace-scoped identity binding. This is the work tracked by Open Item **O307g**.
-- **Part B — Cloud Backend identity service (deferred, Proposed direction).** Server-side ID-token verification, account auto-registration, server JWT issuance, and subscription/licensing. **Deferred to Phase 11/12**, landing alongside cloud sync transport (ADR-303). The direction is recorded here so Part A has a contract to bind to; the mechanism is not committed.
+- **Part B — Cloud Backend identity service (TAKEN UP → [ADR-311](311-cloud-backend-identity-service.md), 2026-06-14).** Server-side ID-token verification, account auto-registration, server JWT issuance, and usage telemetry. The direction recorded here is now committed by **ADR-311** as the Phase-11a identity slice (Open Item O309a resolved). Note ADR-311 **corrects** one detail this section left open: token-exchange stays in **Main** (node-direct, for offline-self-sufficiency), so the "client-secret removal" option is N/A. Subscription/licensing (O309b) remains deferred to its own ADR.
 
 A working reference implementation of the whole flow exists in the **old repository** (`~/Repos/msh/ru-soam`). It is treated as a **salvage source**, not a lift-and-shift target — see §"Salvage inventory".
 

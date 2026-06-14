@@ -45,6 +45,7 @@ The ADRs are layered: later ones rest on earlier ones. A newcomer should read in
 8. **[ADR-304](ADRs/304-credential-storage-in-os-keychain.md)**, **[ADR-305](ADRs/305-third-party-provider-credentials.md)** — credential storage and provider integration patterns.
 9. **[ADR-306](ADRs/306-data-recovery-flows.md)** — what happens when things go wrong.
 10. **[ADR-307](ADRs/307-app-level-kek-passphrase-and-auto-lock.md)** — endpoint trust gate: app-level passphrase wraps the KEK; inactivity auto-lock makes "locked" mean something. Closes the walk-up gap left by ADR-303's original keychain-only runtime model.
+10b. **[ADR-309](ADRs/309-cloud-identity-and-authentication.md)** / **[ADR-310](ADRs/310-google-calendar-provider-integration.md)** / **[ADR-311](ADRs/311-cloud-backend-identity-service.md)** — cloud identity (client OAuth in Main) / Google Calendar as a node-direct provider plugin / the Cloud Backend identity service (verify ID-token + issue session JWT + usage telemetry). ADR-311 draws the load-bearing line: the node is self-sufficient for all Google connectivity (identity + every provider plugin); the server is a thin verifier + later sync backbone, never in the provider path.
 11. **[ADR-501](ADRs/501-tenancy-individual-mvp.md)** — tenancy model for MVP.
 12. **[ADR-502](ADRs/502-audit-and-consent-ledger.md)** — audit ledger and consent records.
 13. **[ADR-503](ADRs/503-tenancy-clinic-proposed.md)** _(Proposed)_ — the eventual Clinic extension. Read after MVP to see where 501 is heading.
