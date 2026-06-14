@@ -76,6 +76,12 @@ func (p *Postgres) Ping(ctx context.Context) error {
 	return p.pool.Ping(ctx)
 }
 
+// Pool returns the underlying pgxpool.Pool so other stores can share the connection
+// set without opening a second pool to the same database.
+func (p *Postgres) Pool() *pgxpool.Pool {
+	return p.pool
+}
+
 // scanner abstracts pgx Row/Rows for testability.
 type scanner interface {
 	Scan(dest ...any) error

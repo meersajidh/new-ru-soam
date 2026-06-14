@@ -9,15 +9,17 @@ import (
 	"github.com/meersajidh/ru-soam/server/identity/internal/config"
 	"github.com/meersajidh/ru-soam/server/identity/internal/health"
 	"github.com/meersajidh/ru-soam/server/identity/internal/rest"
+	"github.com/meersajidh/ru-soam/server/identity/internal/service"
 	"github.com/meersajidh/ru-soam/server/identity/internal/session"
 	"github.com/meersajidh/ru-soam/server/identity/internal/store"
 )
 
-// Build is the composition root: config → logger → store → handlers → router → App.
+// Build is the composition root: config → logger → store → signer → token service → handlers → router → App.
 // No goroutines or servers are started here.
 func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, func(), error) {
 	var (
 		accountStore store.AccountStore
+		tokenStore   store.RefreshTokenStore
 		closeStore   func()
 	)
 
@@ -27,6 +29,7 @@ func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, 
 			return nil, nil, fmt.Errorf("build: init postgres store: %w", err)
 		}
 		accountStore = pg
+		tokenStore = store.NewRefreshPostgres(pg.Pool())
 		closeStore = closeFn
 		logger.Info("postgres store connected")
 	} else {
@@ -36,9 +39,35 @@ func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, 
 		closeStore = func() {}
 	}
 
+	// Signer — hard-fail at boot if no key configured and JWT_DEV_EPHEMERAL not set.
+	// A server that cannot sign JWTs is a misconfiguration, not a silent degrade.
+	signer, err := service.NewPEMSigner(cfg.JWT)
+	if err != nil {
+		closeStore()
+		return nil, nil, fmt.Errorf("build: init JWT signer: %w", err)
+	}
+	logger.Info("JWT signer initialised", "dev_ephemeral", cfg.JWT.DevEphemeral)
+
+	// TokenService — requires signer + tokenStore; tokenStore may be nil when no DB.
+	// When tokenStore is nil the TokenService will panic at runtime on any call —
+	// that is acceptable: the session handler already guards the no-DB path (store==nil → 500).
+	// We only build TokenService when both are ready.
+	var tokenSvc *service.TokenService
+	if tokenStore != nil {
+		tokenSvc = service.NewTokenService(
+			signer,
+			tokenStore,
+			cfg.JWT.Issuer,
+			cfg.JWT.AccessTTL,
+			cfg.JWT.RefreshTTL,
+		)
+	} else {
+		logger.Warn("no token store — POST /v1/session will return 500 (no DATABASE_URL)")
+	}
+
 	// Handlers
 	healthHandler := health.New(accountStore) // nil accountStore → readiness 503
-	sessionHandler := session.New(cfg.Google.ClientID, accountStore, logger)
+	sessionHandler := session.New(cfg.Google.ClientID, accountStore, tokenSvc, logger)
 
 	// Router
 	router := rest.NewRouter(logger, cfg, healthHandler, sessionHandler)

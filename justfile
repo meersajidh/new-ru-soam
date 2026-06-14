@@ -30,6 +30,12 @@ db-identity-down:
 migrate-identity command="up":
     @cd server/identity && go run ./cmd/migrate {{command}}
 
+# Generate an RS256 JWT signing keypair for the identity service (dev/interim-prod)
+# Example: just gen-identity-keys          (keys/, 2048-bit)
+#          just gen-identity-keys keys 4096
+gen-identity-keys *args:
+    @cd server/identity && ./scripts/gen-jwt-keys.sh {{args}}
+
 # Inspect a workspace DB (dev only). Examples:
 #   just dev-db --list
 #   just dev-db meersh --info

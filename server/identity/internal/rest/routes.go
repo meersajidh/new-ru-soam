@@ -8,4 +8,8 @@ const (
 
 	// Session routes (11a.1+).
 	SessionRoute = "/v1/session"
+
+	// Token rotation / revocation routes (11a.3+).
+	RefreshRoute = "/v1/refresh"
+	RevokeRoute  = "/v1/revoke"
 )

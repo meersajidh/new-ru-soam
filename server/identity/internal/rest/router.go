@@ -37,4 +37,6 @@ func registerHealthRoutes(r *gin.Engine, h *health.Handler) {
 
 func registerSessionRoutes(r *gin.Engine, h *session.Handler) {
 	r.POST(SessionRoute, h.CreateSession)
+	r.POST(RefreshRoute, h.RefreshSession)
+	r.POST(RevokeRoute, h.RevokeSession)
 }

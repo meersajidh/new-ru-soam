@@ -3,6 +3,7 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/meersajidh/ru-soam/server/identity/internal/model"
 )
@@ -21,4 +22,25 @@ type AccountStore interface {
 
 	// Ping checks that the store is reachable. Used by the readiness probe.
 	Ping(ctx context.Context) error
+}
+
+// RefreshTokenStore is the persistence interface for refresh token rotation.
+// All methods must be safe for concurrent use.
+type RefreshTokenStore interface {
+	// CreateToken inserts a new refresh token row.
+	// tokenHash is the SHA-256 (base64url) of the raw token; the raw value must
+	// never be passed here.
+	CreateToken(ctx context.Context, accountID, tokenHash, familyID string, expiresAt time.Time) error
+
+	// GetByHash retrieves the refresh token whose token_hash matches.
+	// Returns nil, nil when not found (not an error).
+	GetByHash(ctx context.Context, tokenHash string) (*model.RefreshToken, error)
+
+	// MarkUsed sets used_at = now() on the token with the given id.
+	// Called during rotation before inserting the successor token.
+	MarkUsed(ctx context.Context, id string) error
+
+	// RevokeFamily sets revoked_at = now() on ALL tokens sharing familyID.
+	// Called on explicit revoke and on reuse-detection.
+	RevokeFamily(ctx context.Context, familyID string) error
 }

@@ -9,7 +9,9 @@ Thin Go/Gin server. No PHI, no KEK.
 - `GET /health` — overall health
 - `GET /health/live` — liveness probe
 - `GET /health/ready` — readiness probe (503 when DB unreachable)
-- `POST /v1/session` — verify a Google ID token; auto-register account; return `{account_id, sub, email}` (11a.2 — 11a.3 replaces with `{access_token, refresh_token}`)
+- `POST /v1/session` — verify Google ID token; auto-register account; issue `{access_token, refresh_token, expires_in, token_type}` (RS256 JWT, 15min + opaque rotating refresh, 30d)
+- `POST /v1/refresh` — rotate refresh token (one-time-use); reuse → revoke entire family + 401
+- `POST /v1/revoke` — sign out; revoke token family (idempotent)
 
 ## Run
 
@@ -44,6 +46,12 @@ Copy `.env.example` to `.env` and edit as needed.
 | `LOG_FORMAT` | `json` | `json` or `text` |
 | `GOOGLE_CLIENT_ID` | _(required for 11a.1+)_ | Desktop-app OAuth2 client ID. Used as audience when verifying Google ID tokens. If unset, service logs WARN and rejects all real tokens. |
 | `DATABASE_URL` | _(required for 11a.2+)_ | pgx-compatible Postgres connstring. Example: `postgres://identity:identity@localhost:5432/identity?sslmode=disable`. If unset, readiness → 503 and session → 500. |
+| `JWT_DEV_EPHEMERAL` | `false` | Set `true` for local dev — generates an in-memory RS256 keypair (WARN logged; tokens invalid across restarts). **Never in production.** |
+| `JWT_SIGNING_KEY_PEM` | — | Inline PEM-encoded RSA private key (PKCS#1 or PKCS#8). Takes precedence over `JWT_SIGNING_KEY_PATH`. |
+| `JWT_SIGNING_KEY_PATH` | — | Path to a PEM file containing the RSA private key. |
+| `JWT_ISSUER` | `ru-soam-identity` | JWT `iss` claim. |
+| `JWT_ACCESS_TTL` | `15m` | Access JWT lifetime (`time.ParseDuration` format). |
+| `JWT_REFRESH_TTL` | `720h` | Refresh token lifetime (default 30 days). |
 
 ## Migrations
 
@@ -76,33 +84,71 @@ just db-identity-down
 
 Credentials (dev only): user=`identity`, password=`identity`, db=`identity`, port=`5432`.
 
-## curl — verify auto-register
+## curl — token lifecycle (11a.3)
+
+Requires a real Google ID token from the Desktop PKCE flow (see ADR-311 §3).
+The full automated flow (Desktop → server → refresh → revoke) is 11a.5.
 
 ```sh
-# 1. Start local Postgres + apply migrations
+# 1. Start local Postgres + apply both migrations
 just db-identity-up
 just migrate-identity up
 
-# 2. Start server (with .env containing DATABASE_URL + GOOGLE_CLIENT_ID)
+# 2. Start server with JWT_DEV_EPHEMERAL=true (add to .env)
 just dev-identity
 
-# 3. POST a real Google ID token (obtained from the Desktop app's PKCE flow)
-curl -s -X POST http://localhost:8080/v1/session \
+# 3. Login — POST /v1/session with a real Google ID token
+TOKEN_RESP=$(curl -s -X POST http://localhost:8080/v1/session \
   -H 'Content-Type: application/json' \
-  -d '{"id_token":"<YOUR_GOOGLE_ID_TOKEN>"}' | jq .
+  -d '{"id_token":"<YOUR_GOOGLE_ID_TOKEN>"}')
+echo "$TOKEN_RESP" | jq .
+# { "access_token":"eyJ...", "refresh_token":"...", "expires_in":900, "token_type":"Bearer" }
 
-# Expected response:
-# {
-#   "account_id": "<uuid>",
-#   "sub": "<google-sub>",
-#   "email": "<email>"
-# }
+ACCESS=$(echo "$TOKEN_RESP" | jq -r .access_token)
+REFRESH=$(echo "$TOKEN_RESP" | jq -r .refresh_token)
 
-# 4. Check readiness
+# 4. Rotate — POST /v1/refresh (issues new pair, marks old consumed)
+REFRESH_RESP=$(curl -s -X POST http://localhost:8080/v1/refresh \
+  -H 'Content-Type: application/json' \
+  -d "{\"refresh_token\":\"$REFRESH\"}")
+echo "$REFRESH_RESP" | jq .
+NEW_REFRESH=$(echo "$REFRESH_RESP" | jq -r .refresh_token)
+
+# 5. Replay old refresh → 401 (reuse detected; family revoked)
+curl -s -X POST http://localhost:8080/v1/refresh \
+  -H 'Content-Type: application/json' \
+  -d "{\"refresh_token\":\"$REFRESH\"}" | jq .
+# { "error": { "code": "UNAUTHORIZED", "message": "invalid_grant" } }
+
+# 6. Revoke — POST /v1/revoke (sign out)
+curl -s -X POST http://localhost:8080/v1/revoke \
+  -H 'Content-Type: application/json' \
+  -d "{\"refresh_token\":\"$NEW_REFRESH\"}"
+# 200 (idempotent; unknown tokens also 200)
+
+# 7. Check readiness
 curl -s http://localhost:8080/health/ready | jq .
 ```
 
-Second POST with same token → same `account_id`, updated `email` if changed (upsert).
+### Generate a signing keypair (dev / interim prod)
+
+```sh
+just gen-identity-keys          # keys/{private,public}.pem, 2048-bit (keys/ gitignored)
+# or: cd server/identity && ./scripts/gen-jwt-keys.sh [output_dir] [bits]
+```
+
+The script prints the `JWT_SIGNING_KEY_PATH` to set. For prod (pre-KMS), load
+the private PEM into Secret Manager and inject it as `JWT_SIGNING_KEY_PEM` at
+deploy — never commit a private key. Migrate to Cloud KMS at 11a.6.
+
+### Hard-fail without signing key
+
+Starting the server without a signing key and `JWT_DEV_EPHEMERAL` unset:
+
+```sh
+# Confirm hard-fail at boot:
+go run ./cmd  # exits with: "build: init JWT signer: signer: no signing key configured..."
+```
 
 ## Docker
 
@@ -121,10 +167,11 @@ internal/config/                    env-based config (Server, Logging, Google, D
 internal/error/                     typed AppError + gin responder
 internal/health/                    GET /health handlers (readiness pings DB)
 internal/migrations/sql/            embedded goose SQL migration files
-internal/model/                     data types (Account)
-internal/service/                   domain logic: Google ID-token JWKS verifier
-internal/session/                   POST /v1/session handler (verify + auto-register)
-internal/store/                     AccountStore interface + pgx/v5 implementation
+internal/model/                     data types (Account, Claims, RefreshToken)
+internal/service/                   Google ID-token JWKS verifier; PEMSigner; TokenService
+internal/session/                   /v1/session, /v1/refresh, /v1/revoke handlers
+internal/store/                     AccountStore + RefreshTokenStore interfaces + pgx impls
+internal/util/                      CryptoRandomToken, S256Hash
 internal/rest/                      gin router + middleware
 specs/openapi.yaml                  API contract
 ```

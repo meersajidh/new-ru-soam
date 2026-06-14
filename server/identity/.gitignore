@@ -1,3 +1,6 @@
 tmp/
 *.env
 !.env.example
+# JWT signing keys — never commit; gen via scripts/gen-jwt-keys.sh
+keys/
+*.pem

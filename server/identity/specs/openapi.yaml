@@ -2,11 +2,13 @@ openapi: '3.0.3'
 
 info:
   title: Identity Service API
-  version: '0.3.0'
+  version: '0.4.0'
   description: |
     Cloud Backend identity service for ru-soam (ADR-311).
-    Phase 11a.2: Google ID-token verification + auto-register account on first verified token.
-    11a.3 replaces session response with {access_token, refresh_token}.
+    Phase 11a.3: session JWT (RS256, 15min) + rotating refresh token with reuse-detection.
+    POST /v1/refresh rotates the refresh token (one-time-use, same family_id).
+    POST /v1/revoke signs out by revoking the token family.
+    Replayed consumed tokens → whole family revoked → 401.
 
 servers:
   - url: 'http://localhost:8080'
@@ -16,21 +18,21 @@ tags:
   - name: health
     description: Health probes (no auth required)
   - name: session
-    description: Session management (Google ID-token verification)
+    description: Session management (Google ID-token verification + token issuance)
 
 paths:
   /v1/session:
     post:
       tags: [session]
       operationId: createSession
-      summary: Verify a Google ID token and return identity
+      summary: Verify a Google ID token and issue session tokens
       description: |
         Verifies a Google ID token (OIDC) issued by the Desktop app's OAuth2 flow.
         The server never handles an OAuth authorization code — token exchange always
         stays in the Desktop Main process (ADR-311 §3, node-first invariant).
 
-        11a.2 (current): verifies token, auto-registers account, returns {account_id, sub, email}.
-        11a.3: replaces response with {access_token, refresh_token}.
+        Returns an RS256 session JWT (sub = account UUID, 15min) and an opaque
+        rotating refresh token (30d, stored SHA-256-hashed, reuse → family revoke).
       requestBody:
         required: true
         content:
@@ -39,11 +41,11 @@ paths:
               $ref: '#/components/schemas/SessionRequest'
       responses:
         '200':
-          description: ID token verified; provisional identity returned
+          description: ID token verified; session tokens issued
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SessionResponse'
+                $ref: '#/components/schemas/TokenResponse'
         '400':
           description: Missing or malformed request body / id_token field
           content:
@@ -52,6 +54,70 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: ID token invalid, expired, wrong audience, or wrong issuer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/refresh:
+    post:
+      tags: [session]
+      operationId: refreshSession
+      summary: Rotate a refresh token and issue a new access JWT
+      description: |
+        One-time-use refresh token rotation. The presented token is marked consumed
+        and a new token in the same family is returned.
+
+        **Reuse detection:** if the presented token was already consumed by a prior
+        rotation, the entire token family is immediately revoked and 401 is returned.
+        This detects stolen-token replay scenarios.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token rotated; new access JWT + refresh token returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Missing or malformed refresh_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: |
+            Refresh token invalid, expired, revoked, or reuse detected
+            (error code: UNAUTHORIZED, message: "invalid_grant")
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /v1/revoke:
+    post:
+      tags: [session]
+      operationId: revokeSession
+      summary: Sign out — revoke the token family
+      description: |
+        Revokes all tokens in the refresh token family (sign-out).
+        Idempotent: unknown tokens return 200 without leaking existence.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokeRequest'
+      responses:
+        '200':
+          description: Family revoked (or token unknown — idempotent)
+        '400':
+          description: Missing or malformed refresh_token
           content:
             application/json:
               schema:
@@ -90,8 +156,7 @@ paths:
       summary: Readiness probe
       description: |
         Returns 200 when the service is ready to handle requests.
-        In 11a.0 (no DB) this is always 200. Will return 503 when DB is
-        unreachable once 11a.2 lands.
+        Returns 503 when the Postgres store is unreachable.
       responses:
         '200':
           description: Service is ready
@@ -100,7 +165,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
         '503':
-          description: Service not ready (future — 11a.2+)
+          description: Service not ready (DB unreachable)
           content:
             application/json:
               schema:
@@ -116,26 +181,46 @@ components:
           type: string
           description: Raw Google OIDC ID token from the Desktop OAuth2 flow.
 
-    SessionResponse:
+    RefreshRequest:
       type: object
-      required: [account_id, sub, email]
-      description: |
-        11a.2 shape. 11a.3 will replace this with
-        {access_token, refresh_token, expires_in}.
+      required: [refresh_token]
       properties:
-        account_id:
+        refresh_token:
           type: string
-          format: uuid
-          description: Stable server-assigned account UUID.
-          example: '550e8400-e29b-41d4-a716-446655440000'
-        sub:
+          description: Opaque refresh token returned by /v1/session or a prior /v1/refresh call.
+
+    RevokeRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
           type: string
-          description: Google subject identifier (stable, opaque).
-          example: '110169484474386276334'
-        email:
+          description: Opaque refresh token to revoke (revokes the entire family).
+
+    TokenResponse:
+      type: object
+      required: [access_token, refresh_token, expires_in, token_type]
+      description: |
+        Tokens returned on successful login or rotation.
+        The access JWT is RS256, sub = account UUID, exp = now + 15min.
+        The refresh token is opaque (64 random bytes, base64url); stored server-side
+        as SHA-256 hash only.
+      properties:
+        access_token:
           type: string
-          format: email
-          example: 'practitioner@example.com'
+          description: RS256 session JWT (15min lifetime).
+          example: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...'
+        refresh_token:
+          type: string
+          description: Opaque one-time-use refresh token (30d lifetime).
+        expires_in:
+          type: integer
+          description: access_token lifetime in seconds.
+          example: 900
+        token_type:
+          type: string
+          description: Always "Bearer".
+          example: 'Bearer'
 
     HealthResponse:
       type: object
