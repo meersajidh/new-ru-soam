@@ -1,0 +1,96 @@
+openapi: '3.0.3'
+
+info:
+  title: Identity Service API
+  version: '0.1.0'
+  description: |
+    Cloud Backend identity service for ru-soam (ADR-311).
+    Phase 11a.0: health endpoints only.
+    Auth endpoints (POST /v1/session, POST /v1/refresh, POST /v1/revoke) added in 11a.1–11a.3.
+
+servers:
+  - url: 'http://localhost:8080'
+    description: Local development
+
+tags:
+  - name: health
+    description: Health probes (no auth required)
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Overall service health
+      responses:
+        '200':
+          description: Service process is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/live:
+    get:
+      tags: [health]
+      operationId: getLiveness
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Service process is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/ready:
+    get:
+      tags: [health]
+      operationId: getReadiness
+      summary: Readiness probe
+      description: |
+        Returns 200 when the service is ready to handle requests.
+        In 11a.0 (no DB) this is always 200. Will return 503 when DB is
+        unreachable once 11a.2 lands.
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service not ready (future — 11a.2+)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, service, timestamp]
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: identity
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string

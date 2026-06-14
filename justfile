@@ -9,6 +9,14 @@ default:
 dev-desktop:
     @cd apps/desktop && pnpm run dev
 
+# Run the Cloud Backend identity service with live reload (requires `air`)
+dev-identity:
+    @cd server/identity && air
+
+# Run the Cloud Backend identity service (plain, no live reload)
+run-identity:
+    @cd server/identity && go run ./cmd
+
 # Inspect a workspace DB (dev only). Examples:
 #   just dev-db --list
 #   just dev-db meersh --info
