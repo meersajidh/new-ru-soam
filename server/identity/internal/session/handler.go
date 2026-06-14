@@ -18,20 +18,24 @@ type Handler struct {
 	audience string
 	store    store.AccountStore
 	tokens   *service.TokenService
+	events   store.EventStore // nil-safe: telemetry skipped when nil
 	logger   *slog.Logger
 }
 
 // New creates a Handler.
 // audience is the Google OAuth2 client ID used as the JWT audience (GOOGLE_CLIENT_ID).
 // tokens may be nil when no signing key is configured; CreateSession returns 500.
-func New(audience string, accountStore store.AccountStore, tokens *service.TokenService, logger *slog.Logger) *Handler {
-	return &Handler{audience: audience, store: accountStore, tokens: tokens, logger: logger}
+// events may be nil (no DB, or explicitly disabled); telemetry is then skipped.
+func New(audience string, accountStore store.AccountStore, tokens *service.TokenService, events store.EventStore, logger *slog.Logger) *Handler {
+	return &Handler{audience: audience, store: accountStore, tokens: tokens, events: events, logger: logger}
 }
 
 // ── Request / Response shapes ─────────────────────────────────────────────────
 
 type sessionRequest struct {
-	IDToken string `json:"id_token"`
+	IDToken    string `json:"id_token"`
+	DeviceID   string `json:"device_id"`
+	AppVersion string `json:"app_version"`
 }
 
 // tokenResponse is the 11a.3 shape returned by /v1/session and /v1/refresh.
@@ -44,10 +48,14 @@ type tokenResponse struct {
 
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
+	DeviceID     string `json:"device_id"`
+	AppVersion   string `json:"app_version"`
 }
 
 type revokeRequest struct {
 	RefreshToken string `json:"refresh_token"`
+	DeviceID     string `json:"device_id"`
+	AppVersion   string `json:"app_version"`
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -95,6 +103,7 @@ func (h *Handler) CreateSession(c *gin.Context) {
 	}
 
 	h.logger.InfoContext(c.Request.Context(), "session created", "account_id", acc.ID)
+	h.recordEvent(c, acc.ID, req.DeviceID, store.EventLogin, req.AppVersion)
 
 	c.JSON(http.StatusOK, tokenResponse{
 		AccessToken:  tokens.AccessToken,
@@ -119,7 +128,7 @@ func (h *Handler) RefreshSession(c *gin.Context) {
 		return
 	}
 
-	tokens, err := h.tokens.Rotate(c.Request.Context(), req.RefreshToken)
+	tokens, accountID, err := h.tokens.Rotate(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidGrant) || errors.Is(err, service.ErrReuse) {
 			h.logger.WarnContext(c.Request.Context(), "refresh rejected", "reason", err.Error())
@@ -130,6 +139,8 @@ func (h *Handler) RefreshSession(c *gin.Context) {
 		apperror.Respond(c, apperror.NewInternal("refresh failed"))
 		return
 	}
+
+	h.recordEvent(c, accountID, req.DeviceID, store.EventRefresh, req.AppVersion)
 
 	c.JSON(http.StatusOK, tokenResponse{
 		AccessToken:  tokens.AccessToken,
@@ -153,11 +164,32 @@ func (h *Handler) RevokeSession(c *gin.Context) {
 		return
 	}
 
-	if err := h.tokens.Revoke(c.Request.Context(), req.RefreshToken); err != nil {
+	accountID, err := h.tokens.Revoke(c.Request.Context(), req.RefreshToken)
+	if err != nil {
 		h.logger.ErrorContext(c.Request.Context(), "revoke failed", "err", err)
 		apperror.Respond(c, apperror.NewInternal("revoke failed"))
 		return
 	}
 
+	// Only record signout when a known family was revoked (accountID non-empty).
+	if accountID != "" {
+		h.recordEvent(c, accountID, req.DeviceID, store.EventSignout, req.AppVersion)
+	}
+
 	c.Status(http.StatusOK)
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+// recordEvent records a telemetry event best-effort.
+// If events is nil or Record returns an error, a warning is logged and execution
+// continues — telemetry MUST NOT block or fail the auth response.
+func (h *Handler) recordEvent(c *gin.Context, accountID, deviceID, eventType, appVersion string) {
+	if h.events == nil {
+		return
+	}
+	if err := h.events.Record(c.Request.Context(), accountID, deviceID, eventType, appVersion); err != nil {
+		h.logger.WarnContext(c.Request.Context(), "session event record failed (best-effort)",
+			"event_type", eventType, "account_id", accountID, "err", err)
+	}
 }

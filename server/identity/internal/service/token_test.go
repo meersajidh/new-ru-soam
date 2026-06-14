@@ -149,7 +149,7 @@ func TestTokenService_Rotate_Success(t *testing.T) {
 		t.Fatalf("IssueForAccount: %v", err)
 	}
 
-	second, err := svc.Rotate(context.Background(), first.RefreshToken)
+	second, accountID, err := svc.Rotate(context.Background(), first.RefreshToken)
 	if err != nil {
 		t.Fatalf("Rotate: %v", err)
 	}
@@ -158,6 +158,9 @@ func TestTokenService_Rotate_Success(t *testing.T) {
 	}
 	if second.RefreshToken == first.RefreshToken {
 		t.Error("rotated refresh_token must differ from original")
+	}
+	if accountID == "" {
+		t.Error("Rotate returned empty accountID")
 	}
 
 	// Both tokens share the same family.
@@ -189,13 +192,13 @@ func TestTokenService_Reuse_RevokesFamily(t *testing.T) {
 	}
 
 	// Legitimate first rotation.
-	_, err = svc.Rotate(context.Background(), first.RefreshToken)
+	_, _, err = svc.Rotate(context.Background(), first.RefreshToken)
 	if err != nil {
 		t.Fatalf("first Rotate: %v", err)
 	}
 
 	// Replay already-consumed first token → reuse detection.
-	_, err = svc.Rotate(context.Background(), first.RefreshToken)
+	_, _, err = svc.Rotate(context.Background(), first.RefreshToken)
 	if err == nil {
 		t.Fatal("expected ErrReuse on replay, got nil")
 	}
@@ -218,13 +221,13 @@ func TestTokenService_Rotate_RevokesBeforeRotation(t *testing.T) {
 	svc := newTokenSvc(t, fstore)
 
 	first, _ := svc.IssueForAccount(context.Background(), testAccount())
-	second, _ := svc.Rotate(context.Background(), first.RefreshToken)
+	second, _, _ := svc.Rotate(context.Background(), first.RefreshToken)
 
 	// Trigger reuse — revokes family.
-	_, _ = svc.Rotate(context.Background(), first.RefreshToken)
+	_, _, _ = svc.Rotate(context.Background(), first.RefreshToken)
 
 	// Now try to use the legitimate second token — must be rejected (revoked).
-	_, err := svc.Rotate(context.Background(), second.RefreshToken)
+	_, _, err := svc.Rotate(context.Background(), second.RefreshToken)
 	if err == nil {
 		t.Fatal("expected error when family is revoked, got nil")
 	}
@@ -241,7 +244,7 @@ func TestTokenService_Revoke_RevokesFamily(t *testing.T) {
 	}
 	familyID := fstore.familyIDFor(first.RefreshToken)
 
-	if err := svc.Revoke(context.Background(), first.RefreshToken); err != nil {
+	if _, err := svc.Revoke(context.Background(), first.RefreshToken); err != nil {
 		t.Fatalf("Revoke: %v", err)
 	}
 
@@ -255,7 +258,7 @@ func TestTokenService_Revoke_UnknownToken_Idempotent(t *testing.T) {
 	fstore := newFakeStore()
 	svc := newTokenSvc(t, fstore)
 
-	if err := svc.Revoke(context.Background(), "not-a-known-token"); err != nil {
+	if _, err := svc.Revoke(context.Background(), "not-a-known-token"); err != nil {
 		t.Fatalf("Revoke unknown: %v", err)
 	}
 }
@@ -272,7 +275,7 @@ func TestTokenService_ExpiredRefresh_Rejected(t *testing.T) {
 		t.Fatalf("IssueForAccount: %v", err)
 	}
 
-	_, err = svc.Rotate(context.Background(), first.RefreshToken)
+	_, _, err = svc.Rotate(context.Background(), first.RefreshToken)
 	if err == nil {
 		t.Fatal("expected error for expired token, got nil")
 	}

@@ -79,23 +79,26 @@ func (s *TokenService) IssueForAccount(ctx context.Context, acc *model.Account) 
 //
 // Reuse-detection: if used_at is already set on the presented token, the entire
 // token family is revoked (RevokeFamily) and ErrReuse is returned.
-func (s *TokenService) Rotate(ctx context.Context, rawRefresh string) (Tokens, error) {
+//
+// The second return value is the account_id for the rotated token family,
+// enabling the caller to record a telemetry event with the account context.
+func (s *TokenService) Rotate(ctx context.Context, rawRefresh string) (Tokens, string, error) {
 	hash := util.S256Hash(rawRefresh)
 
 	rt, err := s.store.GetByHash(ctx, hash)
 	if err != nil {
-		return Tokens{}, fmt.Errorf("token: rotate lookup: %w", err)
+		return Tokens{}, "", fmt.Errorf("token: rotate lookup: %w", err)
 	}
 	if rt == nil {
-		return Tokens{}, ErrInvalidGrant
+		return Tokens{}, "", ErrInvalidGrant
 	}
 	if rt.RevokedAt != nil {
-		return Tokens{}, ErrInvalidGrant
+		return Tokens{}, "", ErrInvalidGrant
 	}
 	if time.Now().After(rt.ExpiresAt) {
 		// Best-effort revoke; ignore error — token expired regardless.
 		_ = s.store.RevokeFamily(ctx, rt.FamilyID)
-		return Tokens{}, ErrInvalidGrant
+		return Tokens{}, "", ErrInvalidGrant
 	}
 
 	// Reuse-detection: already consumed → stolen token replay → revoke lineage.
@@ -104,12 +107,12 @@ func (s *TokenService) Rotate(ctx context.Context, rawRefresh string) (Tokens, e
 			// Log but still return ErrReuse — safety is more important.
 			_ = revokeErr
 		}
-		return Tokens{}, ErrReuse
+		return Tokens{}, "", ErrReuse
 	}
 
 	// Mark presented token as used (one-time-use consumed).
 	if err := s.store.MarkUsed(ctx, rt.ID); err != nil {
-		return Tokens{}, fmt.Errorf("token: mark used: %w", err)
+		return Tokens{}, "", fmt.Errorf("token: mark used: %w", err)
 	}
 
 	// Fetch account for access JWT claims.
@@ -119,19 +122,19 @@ func (s *TokenService) Rotate(ctx context.Context, rawRefresh string) (Tokens, e
 
 	accessToken, err := s.signAccess(acc)
 	if err != nil {
-		return Tokens{}, fmt.Errorf("token: sign access: %w", err)
+		return Tokens{}, "", fmt.Errorf("token: sign access: %w", err)
 	}
 
 	// Insert child refresh token in the SAME family (rotation lineage continues).
 	rawNew, err := util.CryptoRandomToken(refreshTokenBytes)
 	if err != nil {
-		return Tokens{}, fmt.Errorf("token: generate new refresh: %w", err)
+		return Tokens{}, "", fmt.Errorf("token: generate new refresh: %w", err)
 	}
 	newHash := util.S256Hash(rawNew)
 	newExpiresAt := time.Now().Add(s.refreshTTL)
 
 	if err := s.store.CreateToken(ctx, rt.AccountID, newHash, rt.FamilyID, newExpiresAt); err != nil {
-		return Tokens{}, fmt.Errorf("token: store rotated refresh: %w", err)
+		return Tokens{}, "", fmt.Errorf("token: store rotated refresh: %w", err)
 	}
 
 	return Tokens{
@@ -139,25 +142,28 @@ func (s *TokenService) Rotate(ctx context.Context, rawRefresh string) (Tokens, e
 		RefreshToken: rawNew,
 		ExpiresIn:    int(s.accessTTL.Seconds()),
 		TokenType:    "Bearer",
-	}, nil
+	}, rt.AccountID, nil
 }
 
-// Revoke revokes the token family for rawRefresh. Unknown tokens return nil
+// Revoke revokes the token family for rawRefresh. Unknown tokens return ("", nil)
 // (idempotent — do not leak token existence to callers).
-func (s *TokenService) Revoke(ctx context.Context, rawRefresh string) error {
+//
+// The first return value is the account_id of the revoked family, or "" when
+// the token was unknown. Callers use this to record a signout telemetry event.
+func (s *TokenService) Revoke(ctx context.Context, rawRefresh string) (string, error) {
 	hash := util.S256Hash(rawRefresh)
 	rt, err := s.store.GetByHash(ctx, hash)
 	if err != nil {
-		return fmt.Errorf("token: revoke lookup: %w", err)
+		return "", fmt.Errorf("token: revoke lookup: %w", err)
 	}
 	if rt == nil {
-		// Unknown token — idempotent 200.
-		return nil
+		// Unknown token — idempotent 200, no account to attribute.
+		return "", nil
 	}
 	if err := s.store.RevokeFamily(ctx, rt.FamilyID); err != nil {
-		return fmt.Errorf("token: revoke family: %w", err)
+		return "", fmt.Errorf("token: revoke family: %w", err)
 	}
-	return nil
+	return rt.AccountID, nil
 }
 
 // signAccess builds and signs an RS256 access JWT for acc.

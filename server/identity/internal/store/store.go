@@ -24,6 +24,23 @@ type AccountStore interface {
 	Ping(ctx context.Context) error
 }
 
+// Event-type constants for session telemetry.
+// Use these instead of raw strings to avoid typos.
+const (
+	EventLogin   = "login"
+	EventRefresh = "refresh"
+	EventSignout = "signout"
+)
+
+// EventStore is the persistence interface for operational session telemetry.
+// Implementations must be safe for concurrent use.
+type EventStore interface {
+	// Record inserts one session_events row.
+	// Empty strings for deviceID and appVersion are stored as SQL NULL.
+	// Best-effort: callers should log and continue on error.
+	Record(ctx context.Context, accountID, deviceID, eventType, appVersion string) error
+}
+
 // RefreshTokenStore is the persistence interface for refresh token rotation.
 // All methods must be safe for concurrent use.
 type RefreshTokenStore interface {

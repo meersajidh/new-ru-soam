@@ -20,6 +20,7 @@ func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, 
 	var (
 		accountStore store.AccountStore
 		tokenStore   store.RefreshTokenStore
+		eventStore   store.EventStore
 		closeStore   func()
 	)
 
@@ -30,6 +31,7 @@ func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, 
 		}
 		accountStore = pg
 		tokenStore = store.NewRefreshPostgres(pg.Pool())
+		eventStore = store.NewSessionEventPostgres(pg.Pool())
 		closeStore = closeFn
 		logger.Info("postgres store connected")
 	} else {
@@ -67,7 +69,7 @@ func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, 
 
 	// Handlers
 	healthHandler := health.New(accountStore) // nil accountStore → readiness 503
-	sessionHandler := session.New(cfg.Google.ClientID, accountStore, tokenSvc, logger)
+	sessionHandler := session.New(cfg.Google.ClientID, accountStore, tokenSvc, eventStore, logger)
 
 	// Router
 	router := rest.NewRouter(logger, cfg, healthHandler, sessionHandler)
