@@ -8,8 +8,10 @@
  * O309c stopgap). process.env takes precedence; baked constants are the fallback.
  *
  * After exchange: decode id_token payload locally → { email, googleId, name?, picture? }.
- * Access token, refresh token, and id_token are discarded immediately.
- * Nothing is written to CredentialStore (deferred O309a).
+ * The id_token is now also returned to the Main cloud client (CloudSessionService) so it
+ * can be posted to the identity server (ADR-311 §3). It is STILL never returned to the
+ * renderer (ADR-202/304). All Google access/refresh tokens are discarded immediately.
+ * Nothing is written to CredentialStore here (O309a — handled by CloudSessionService).
  */
 
 import { randomBytes } from 'crypto';
@@ -28,6 +30,11 @@ export interface GoogleIdentityClaims {
   readonly googleId: string;
   readonly name?: string;
   readonly picture?: string;
+  /**
+   * The raw Google ID-token — surfaced for Main's CloudSessionService (ADR-311 §3).
+   * MUST NOT be returned to the renderer or exposed via any IPC channel (ADR-202/304).
+   */
+  readonly idToken: string;
 }
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -140,10 +147,12 @@ export async function signInWithGoogle(): Promise<GoogleIdentityClaims> {
     throw new Error('id_token missing email claim');
   }
 
-  // Discard all tokens immediately — never expose to caller or renderer.
+  // Discard Google access/refresh tokens — never expose to caller or renderer.
+  // id_token is kept Main-internal (passed to CloudSessionService only; never reaches renderer).
   const identity: GoogleIdentityClaims = {
     email: claims.email,
     googleId: claims.sub,
+    idToken: data.id_token,
     ...(claims.name !== undefined ? { name: claims.name } : {}),
     ...(claims.picture !== undefined ? { picture: claims.picture } : {}),
   };

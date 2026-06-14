@@ -37,6 +37,7 @@ import type {
   DeleteWorkspaceResult,
 } from '../../shared/lock-protocol.js';
 import { credentialStore } from '../credentials/index.js';
+import { cloudSessionService } from '../cloud/session-service.js';
 import type { BrowserWindow } from 'electron';
 
 type GetWindow = () => BrowserWindow | null;
@@ -107,6 +108,18 @@ export function openProtectedStoreIfNeeded(workspaceId: string, svc: LockService
   }
 }
 
+/**
+ * Commit a pending cloud refresh token (if any) to CredentialStore, KEK-wrapped.
+ * Called at every unlock seam alongside openProtectedStoreIfNeeded.
+ * Guards on a live KEK — mirrors the openProtectedStoreIfNeeded guard.
+ * Best-effort: CloudSessionService.commitPending() never throws.
+ */
+function commitCloudSessionIfPending(workspaceId: string, svc: LockService): void {
+  const kek = svc.kekHandle();
+  if (kek === null) return;
+  cloudSessionService.commitPending(workspaceId, kek);
+}
+
 export function installLockChannel(
   getWindow: GetWindow,
   getActiveLockService: GetActiveLockService,
@@ -124,6 +137,7 @@ export function installLockChannel(
       if (state.locked) {
         localStoreManager.closeProtected();
         protectedBlobsManager.close();
+        cloudSessionService.clearVolatile();
       }
     });
   }
@@ -147,6 +161,7 @@ export function installLockChannel(
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
         openProtectedStoreIfNeeded(workspaceId, svc);
+        commitCloudSessionIfPending(workspaceId, svc);
         const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
         auditService.emit({
           event: 'workspace.unlock',
@@ -171,6 +186,7 @@ export function installLockChannel(
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
         openProtectedStoreIfNeeded(workspaceId, svc);
+        commitCloudSessionIfPending(workspaceId, svc);
         const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
         auditService.emit({
           event: 'workspace.recovery.used',
@@ -220,6 +236,7 @@ export function installLockChannel(
     const svc = getActiveLockService();
     if (svc) {
       svc.relock();
+      cloudSessionService.clearVolatile();
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
         const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
@@ -277,6 +294,7 @@ export function installLockChannel(
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
         openProtectedStoreIfNeeded(workspaceId, svc);
+        commitCloudSessionIfPending(workspaceId, svc);
         const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
         auditService.emit({
           event: 'workspace.setup.complete',
@@ -326,6 +344,7 @@ export function installLockChannel(
       if (state.locked) {
         localStoreManager.closeProtected();
         protectedBlobsManager.close();
+        cloudSessionService.clearVolatile();
       }
     });
 
@@ -380,6 +399,7 @@ export function installLockChannel(
 
     // Relock current service and clear it
     getActiveLockService()?.relock();
+    cloudSessionService.clearVolatile(); // TODO(11a.5b / O471): also call POST /v1/revoke
     setActiveLockService(null);
 
     // Dispose auto-lock handle

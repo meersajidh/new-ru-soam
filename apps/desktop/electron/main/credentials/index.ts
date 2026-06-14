@@ -16,7 +16,8 @@ import path from 'path';
 import { app, safeStorage } from 'electron';
 
 // Credential type catalogue — grow in later phases.
-export type CredentialType = 'local-store-db-key';
+// 'cloud-session-token' = KEK-wrapped refresh token for the identity server (ADR-311 / O307f).
+export type CredentialType = 'local-store-db-key' | 'cloud-session-token';
 
 function storageKey(workspaceId: string, type: CredentialType, ref?: string): string {
   return ref ? `ru-soam.${workspaceId}.${type}.${ref}` : `ru-soam.${workspaceId}.${type}`;

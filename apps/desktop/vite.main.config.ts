@@ -37,6 +37,10 @@ export default defineConfig(({ mode }) => {
       // GOOGLE_CLIENT_ID/SECRET here — reusing the dev vars would leak them.
       __OAUTH_CLIENT_ID__: JSON.stringify(process.env['OAUTH_BUILD_CLIENT_ID'] ?? ''),
       __OAUTH_CLIENT_SECRET__: JSON.stringify(process.env['OAUTH_BUILD_CLIENT_SECRET'] ?? ''),
+      // Baked identity-service base URL (prod fallback). Set IDENTITY_BASE_URL in the
+      // CI/packaging environment. Dev builds without this var bake empty string →
+      // process.env['IDENTITY_BASE_URL'] still wins at runtime (same precedence as OAuth creds).
+      __IDENTITY_BASE_URL__: JSON.stringify(process.env['IDENTITY_BASE_URL'] ?? ''),
     },
     plugins: [copyMainAssets()],
     build: {
