@@ -2,11 +2,11 @@ openapi: '3.0.3'
 
 info:
   title: Identity Service API
-  version: '0.1.0'
+  version: '0.2.0'
   description: |
     Cloud Backend identity service for ru-soam (ADR-311).
-    Phase 11a.0: health endpoints only.
-    Auth endpoints (POST /v1/session, POST /v1/refresh, POST /v1/revoke) added in 11a.1–11a.3.
+    Phase 11a.1: Google ID-token verification + provisional session response.
+    11a.2 adds account creation fields; 11a.3 replaces response with {access_token, refresh_token}.
 
 servers:
   - url: 'http://localhost:8080'
@@ -15,8 +15,49 @@ servers:
 tags:
   - name: health
     description: Health probes (no auth required)
+  - name: session
+    description: Session management (Google ID-token verification)
 
 paths:
+  /v1/session:
+    post:
+      tags: [session]
+      operationId: createSession
+      summary: Verify a Google ID token and return identity
+      description: |
+        Verifies a Google ID token (OIDC) issued by the Desktop app's OAuth2 flow.
+        The server never handles an OAuth authorization code — token exchange always
+        stays in the Desktop Main process (ADR-311 §3, node-first invariant).
+
+        11a.1 (current): returns provisional {sub, email}.
+        11a.2: adds account fields.
+        11a.3: replaces response with {access_token, refresh_token}.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionRequest'
+      responses:
+        '200':
+          description: ID token verified; provisional identity returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '400':
+          description: Missing or malformed request body / id_token field
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: ID token invalid, expired, wrong audience, or wrong issuer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /health:
     get:
       tags: [health]
@@ -68,6 +109,30 @@ paths:
 
 components:
   schemas:
+    SessionRequest:
+      type: object
+      required: [id_token]
+      properties:
+        id_token:
+          type: string
+          description: Raw Google OIDC ID token from the Desktop OAuth2 flow.
+
+    SessionResponse:
+      type: object
+      required: [sub, email]
+      description: |
+        Provisional 11a.1 shape. 11a.3 will replace this with
+        {access_token, refresh_token, expires_in}.
+      properties:
+        sub:
+          type: string
+          description: Google subject identifier (stable, opaque).
+          example: '110169484474386276334'
+        email:
+          type: string
+          format: email
+          example: 'practitioner@example.com'
+
     HealthResponse:
       type: object
       required: [status, service, timestamp]

@@ -8,6 +8,7 @@ import (
 	"github.com/meersajidh/ru-soam/server/identity/internal/config"
 	"github.com/meersajidh/ru-soam/server/identity/internal/health"
 	"github.com/meersajidh/ru-soam/server/identity/internal/rest"
+	"github.com/meersajidh/ru-soam/server/identity/internal/session"
 )
 
 // Build is the composition root: config → logger → handlers → router → App.
@@ -15,9 +16,10 @@ import (
 func Build(cfg *config.Config, logger *slog.Logger) (*App, error) {
 	// Handlers
 	healthHandler := health.New()
+	sessionHandler := session.New(cfg.Google.ClientID, logger)
 
 	// Router
-	router := rest.NewRouter(logger, cfg, healthHandler)
+	router := rest.NewRouter(logger, cfg, healthHandler, sessionHandler)
 
 	// HTTP server
 	httpServer := &http.Server{

@@ -2,13 +2,14 @@
 
 Cloud Backend identity service for ru-soam (ADR-311, Phase 11a).
 
-Thin Go/Gin server. Phase 11a.0 = structure + health only. Auth logic (Google JWKS verify, JWT issue, refresh rotation) lands in 11a.1–11a.3. No PHI, no KEK.
+Thin Go/Gin server. No PHI, no KEK.
 
-## What it does (11a.0)
+## What it does
 
 - `GET /health` — overall health
 - `GET /health/live` — liveness probe
 - `GET /health/ready` — readiness probe
+- `POST /v1/session` — verify a Google ID token; return `{sub, email}` (11a.1 provisional — 11a.3 replaces with `{access_token, refresh_token}`)
 
 ## Run
 
@@ -35,6 +36,7 @@ Copy `.env.example` to `.env` and edit as needed.
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000\|http://localhost:5173` | Pipe-separated allowed origins. |
 | `LOG_LEVEL` | `INFO` | `DEBUG` / `INFO` / `WARN` / `ERROR` |
 | `LOG_FORMAT` | `json` | `json` or `text` |
+| `GOOGLE_CLIENT_ID` | _(required for 11a.1)_ | Desktop-app OAuth2 client ID. Used as audience when verifying Google ID tokens. Obtain from Google Cloud Console → APIs & Services → Credentials. If unset, the service logs a WARN at startup and rejects all real ID tokens. |
 
 ## Docker
 
@@ -47,10 +49,12 @@ docker run -p 8080:8080 identity
 
 ```
 cmd/main.go                 entrypoint
-internal/app/               app lifecycle (Run + Shutdown)
-internal/config/            env-based config
+internal/app/               app lifecycle (composition root, Run + Shutdown)
+internal/config/            env-based config (Server, Logging, Google)
 internal/error/             typed AppError + gin responder
-internal/health/            /health handlers
+internal/health/            GET /health handlers
+internal/service/           domain logic: Google ID-token JWKS verifier
+internal/session/           POST /v1/session handler
 internal/rest/              gin router + middleware
 specs/openapi.yaml          API contract
 ```

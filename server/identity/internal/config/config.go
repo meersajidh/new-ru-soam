@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Server  *ServerConfig
 	Logging *LogConfig
+	Google  *GoogleConfig
 }
 
 // Load reads configuration from the environment.
@@ -28,6 +29,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		Server:  loadServerConfig(),
 		Logging: loadLogConfig(),
+		Google:  loadGoogleConfig(),
 	}
 	return cfg, nil
 }
