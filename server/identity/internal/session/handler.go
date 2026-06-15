@@ -32,9 +32,8 @@ func New(audience string, accountStore AccountStore, tokens *service.TokenServic
 // ── Request / Response shapes ─────────────────────────────────────────────────
 
 type sessionRequest struct {
-	IDToken    string `json:"id_token"`
-	DeviceID   string `json:"device_id"`
-	AppVersion string `json:"app_version"`
+	IDToken string `json:"id_token"`
+	// DeviceID and AppVersion removed — telemetry decoupled to POST /v1/events (Phase β / O468).
 }
 
 // tokenResponse is the 11a.3 shape returned by /v1/session and /v1/refresh.
@@ -47,14 +46,12 @@ type tokenResponse struct {
 
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
-	DeviceID     string `json:"device_id"`
-	AppVersion   string `json:"app_version"`
+	// DeviceID and AppVersion removed — telemetry decoupled to POST /v1/events (Phase β / O468).
 }
 
 type revokeRequest struct {
 	RefreshToken string `json:"refresh_token"`
-	DeviceID     string `json:"device_id"`
-	AppVersion   string `json:"app_version"`
+	// DeviceID and AppVersion removed — telemetry decoupled to POST /v1/events (Phase β / O468).
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -102,7 +99,7 @@ func (h *Handler) CreateSession(c *gin.Context) {
 	}
 
 	h.logger.InfoContext(c.Request.Context(), "session created", "account_id", acc.ID)
-	h.recordEvent(c, acc.ID, req.DeviceID, EventLogin, req.AppVersion)
+	// Telemetry (login event) decoupled to POST /v1/events (Phase β / O468).
 
 	c.JSON(http.StatusOK, tokenResponse{
 		AccessToken:  tokens.AccessToken,
@@ -127,7 +124,7 @@ func (h *Handler) RefreshSession(c *gin.Context) {
 		return
 	}
 
-	tokens, accountID, err := h.tokens.Rotate(c.Request.Context(), req.RefreshToken)
+	tokens, _, err := h.tokens.Rotate(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidGrant) || errors.Is(err, service.ErrReuse) {
 			h.logger.WarnContext(c.Request.Context(), "refresh rejected", "reason", err.Error())
@@ -138,8 +135,7 @@ func (h *Handler) RefreshSession(c *gin.Context) {
 		apperror.Respond(c, apperror.NewInternal("refresh failed"))
 		return
 	}
-
-	h.recordEvent(c, accountID, req.DeviceID, EventRefresh, req.AppVersion)
+	// Telemetry (refresh event) decoupled to POST /v1/events (Phase β / O468).
 
 	c.JSON(http.StatusOK, tokenResponse{
 		AccessToken:  tokens.AccessToken,
@@ -163,17 +159,13 @@ func (h *Handler) RevokeSession(c *gin.Context) {
 		return
 	}
 
-	accountID, err := h.tokens.Revoke(c.Request.Context(), req.RefreshToken)
+	_, err := h.tokens.Revoke(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		h.logger.ErrorContext(c.Request.Context(), "revoke failed", "err", err)
 		apperror.Respond(c, apperror.NewInternal("revoke failed"))
 		return
 	}
-
-	// Only record signout when a known family was revoked (accountID non-empty).
-	if accountID != "" {
-		h.recordEvent(c, accountID, req.DeviceID, EventSignout, req.AppVersion)
-	}
+	// Telemetry (signout event) decoupled to POST /v1/events (Phase β / O468).
 
 	c.Status(http.StatusOK)
 }
