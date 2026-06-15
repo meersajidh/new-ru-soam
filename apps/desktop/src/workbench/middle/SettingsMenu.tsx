@@ -264,11 +264,15 @@ export default function SettingsMenu() {
                 <div className="settings-mode-row">
                   {(
                     [
-                      { value: 'off', label: 'Off' },
-                      { value: 'online-only', label: 'Online only' },
-                      { value: 'on', label: 'On' },
+                      { value: 'off', label: 'Off', hint: 'Nothing sent.' },
+                      {
+                        value: 'online-only',
+                        label: 'Online only',
+                        hint: 'Sent when connected; not queued offline.',
+                      },
+                      { value: 'on', label: 'On', hint: 'Queued when offline, sent later.' },
                     ] as const
-                  ).map(({ value, label }) => (
+                  ).map(({ value, label, hint }) => (
                     <button
                       key={value}
                       className="settings-mode-btn"
@@ -276,6 +280,7 @@ export default function SettingsMenu() {
                       onClick={() => telemetrySvc.setMode(value)}
                       role="menuitemradio"
                       aria-checked={telemetryMode === value}
+                      title={hint}
                     >
                       {label}
                     </button>
@@ -283,19 +288,7 @@ export default function SettingsMenu() {
                 </div>
 
                 <p className="settings-analytics-notice">
-                  Share anonymous usage events (sign-in, refresh, sign-out) with an
-                  anonymous per-install device ID and app version to help improve
-                  ru-soam. <strong>No personal or clinical data (PHI) is ever
-                  sent.</strong>
-                  <br />
-                  <span className="settings-analytics-modes">
-                    <span>Off</span> — nothing sent.{' '}
-                    <span>Online only</span> — sent when connected; not queued.{' '}
-                    <span>On</span> — queued offline and sent later.
-                  </span>
-                  <br />
-                  Default is Off. You can change this at any time. Events are kept
-                  for up to 90 days.
+                  Anonymous usage events — <strong>no PHI ever sent</strong>, kept up to 90 days.
                 </p>
               </div>
 

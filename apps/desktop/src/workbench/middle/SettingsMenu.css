@@ -307,11 +307,6 @@
   font-weight: 500;
 }
 
-.settings-analytics-modes span {
-  @apply text-fg-secondary;
-  font-weight: 500;
-}
-
 /* ── Danger button ────────────────────────────────────────────────────────── */
 
 .settings-danger-btn {
