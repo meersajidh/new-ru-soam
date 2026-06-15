@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -168,6 +169,87 @@ func (h *Handler) RevokeSession(c *gin.Context) {
 	// Telemetry (signout event) decoupled to POST /v1/events (Phase β / O468).
 
 	c.Status(http.StatusOK)
+}
+
+// ── Telemetry ingest ─────────────────────────────────────────────────────────
+
+// eventsRequest is the body for POST /v1/events.
+type eventsRequest struct {
+	Events []eventItem `json:"events"`
+}
+
+type eventItem struct {
+	// EventType must be one of EventLogin / EventRefresh / EventSignout.
+	EventType string `json:"event_type"`
+	// DeviceID and AppVersion are optional analytics fields — stored as SQL NULL when absent.
+	DeviceID   string `json:"device_id,omitempty"`
+	AppVersion string `json:"app_version,omitempty"`
+	// NOTE: no occurred_at accepted — server stamps created_at=now() via Record.
+	// Late-flushed offline-queued events therefore carry receipt-time, not
+	// occurrence-time. Accepted coarse-analytics tradeoff (Phase β.2 flush design).
+}
+
+// validEventTypes is the closed set of accepted event_type values.
+var validEventTypes = map[string]struct{}{
+	EventLogin:   {},
+	EventRefresh: {},
+	EventSignout: {},
+}
+
+// maxEventsPerBatch caps the batch size to bound abuse.
+const maxEventsPerBatch = 100
+
+// RecordEvents handles POST /v1/events.
+//
+// account_id is derived solely from the session JWT set by requireSession middleware;
+// it is never accepted from the request body — the JWT is the identity authority.
+func (h *Handler) RecordEvents(c *gin.Context) {
+	if h.events == nil {
+		// EventStore not configured (no DB). Log and return 503 so the client
+		// can distinguish "server ok" from "telemetry unavailable".
+		h.logger.WarnContext(c.Request.Context(), "RecordEvents: event store not configured")
+		apperror.Respond(c, apperror.NewInternal("telemetry store not available"))
+		return
+	}
+
+	accountID := c.GetString("account_id")
+	if accountID == "" {
+		// Should not reach here — requireSession sets it; guard for safety.
+		apperror.Respond(c, apperror.NewUnauthorized("authentication required"))
+		return
+	}
+
+	var req eventsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperror.Respond(c, apperror.NewBadRequest("invalid request body"))
+		return
+	}
+	if len(req.Events) == 0 {
+		apperror.Respond(c, apperror.NewBadRequest("events must not be empty"))
+		return
+	}
+	if len(req.Events) > maxEventsPerBatch {
+		apperror.Respond(c, apperror.NewBadRequest("too many events in batch (max 100)"))
+		return
+	}
+
+	// Validate all event_types before recording any — fast-fail on bad input.
+	for i, ev := range req.Events {
+		if _, ok := validEventTypes[ev.EventType]; !ok {
+			apperror.Respond(c, apperror.NewBadRequest(
+				"events["+strconv.Itoa(i)+"]: unknown event_type "+ev.EventType+
+					"; must be login, refresh, or signout",
+			))
+			return
+		}
+	}
+
+	// Record best-effort: log individual failures, do NOT abort the whole batch.
+	for _, ev := range req.Events {
+		h.recordEvent(c, accountID, ev.DeviceID, ev.EventType, ev.AppVersion)
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────

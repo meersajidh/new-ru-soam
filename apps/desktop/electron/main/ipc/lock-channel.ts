@@ -38,6 +38,7 @@ import type {
 } from '../../shared/lock-protocol.js';
 import { credentialStore } from '../credentials/index.js';
 import { cloudSessionService } from '../cloud/session-service.js';
+import { telemetryService } from '../cloud/telemetry.js';
 import type { BrowserWindow } from 'electron';
 
 type GetWindow = () => BrowserWindow | null;
@@ -138,6 +139,7 @@ export function installLockChannel(
       if (state.locked) {
         localStoreManager.closeProtected();
         protectedBlobsManager.close();
+        telemetryService.stopWatcher();
         cloudSessionService.clearVolatile();
       }
     });
@@ -237,6 +239,7 @@ export function installLockChannel(
     const svc = getActiveLockService();
     if (svc) {
       svc.relock();
+      telemetryService.stopWatcher();
       cloudSessionService.clearVolatile();
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
@@ -345,6 +348,7 @@ export function installLockChannel(
       if (state.locked) {
         localStoreManager.closeProtected();
         protectedBlobsManager.close();
+        telemetryService.stopWatcher();
         cloudSessionService.clearVolatile();
       }
     });
@@ -413,6 +417,7 @@ export function installLockChannel(
 
     // Relock current service and clear it
     svc?.relock();
+    telemetryService.stopWatcher();
     setActiveLockService(null);
 
     // Dispose auto-lock handle

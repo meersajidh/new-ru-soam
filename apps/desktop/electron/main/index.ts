@@ -27,6 +27,8 @@ import { registerStoreQueryCapability } from './local-store/store-query-cap';
 import { registerBlobCapabilities } from './local-store/blob-cap';
 import { registerPlatformAuthCapability } from './capability/platform-auth';
 import { isOAuthConfigured } from './auth/oauth.js';
+import { cloudSessionService } from './cloud/session-service.js';
+import { telemetryService } from './cloud/telemetry.js';
 import { localStoreManager } from './local-store/index';
 import { auditService } from './audit/index';
 // Phase 9: crypto + credentials + lock + workspace
@@ -270,6 +272,12 @@ app.whenReady().then(() => {
   }
 
   registerPlatformAuthCapability();
+
+  // Phase β / O468: wire telemetry token provider. The arrow function closes over
+  // cloudSessionService without creating an import cycle (telemetry.ts does NOT
+  // import session-service.ts; only main/index.ts knows both).
+  telemetryService.init(() => cloudSessionService.accessToken());
+
   registerUpdateCapability();
   registerCommandsCapability();
 

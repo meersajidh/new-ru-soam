@@ -12,4 +12,8 @@ const (
 	// Token rotation / revocation routes (11a.3+).
 	RefreshRoute = "/v1/refresh"
 	RevokeRoute  = "/v1/revoke"
+
+	// Telemetry ingest route (11a.5b / Phase β.1+).
+	// Requires a valid session JWT (requireSession middleware).
+	EventsRoute = "/v1/events"
 )

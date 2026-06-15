@@ -38,6 +38,7 @@ import {
   CloudOfflineError,
   CloudAuthError,
 } from './identity-client.js';
+import { telemetryService } from './telemetry.js';
 
 /**
  * Build the AAD for the cloud-session-token KEK-wrap envelope.
@@ -58,6 +59,14 @@ export class CloudSessionService {
 
   /** Current in-memory access token (short-lived; not persisted). */
   private _accessToken: string | null = null;
+
+  /**
+   * Current in-memory access token. Main-internal only — renderer never sees it.
+   * Used by TelemetryService (injected via init()) to authenticate event POSTs.
+   */
+  accessToken(): string | null {
+    return this._accessToken;
+  }
 
   /**
    * Best-effort: post the id_token to the identity server and hold the result
@@ -160,6 +169,9 @@ export class CloudSessionService {
         this._accessToken = tokens.accessToken;
         // Rotate: replace stored credential with new refresh token (KEK still live).
         this.storeRefreshToken(workspaceId, kek, tokens.refreshToken);
+        // Emit refresh telemetry after successful rotation.
+        telemetryService.emit('refresh', tokens.accessToken);
+        telemetryService.flush(tokens.accessToken);
       } catch (err) {
         if (err instanceof CloudAuthError) {
           // Token dead (reuse / expired / family revoked) — clear credential, user must re-sign-in.
@@ -187,6 +199,9 @@ export class CloudSessionService {
   commitOrRefresh(workspaceId: string, kek: Buffer): void {
     if (this._pending) {
       this.commitPending(workspaceId, kek);
+      // Emit login telemetry AFTER commit succeeds (token committed = new session).
+      telemetryService.emit('login', this._accessToken);
+      telemetryService.flush(this._accessToken);
     } else {
       this.refreshOnUnlock(workspaceId, kek);
     }
@@ -217,6 +232,9 @@ export class CloudSessionService {
       this.clearVolatile();
       return;
     }
+
+    // Emit signout telemetry BEFORE clearVolatile() — token still held in memory.
+    telemetryService.emit('signout', this._accessToken);
 
     // Synchronous local sign-out — must complete regardless of network.
     credentialStore.delete(workspaceId, 'cloud-session-token');

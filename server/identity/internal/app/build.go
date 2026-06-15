@@ -76,7 +76,7 @@ func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, 
 	sessionHandler := session.New(cfg.Google.ClientID, accountStore, tokenSvc, eventStore, logger)
 
 	// Router
-	router := rest.NewRouter(logger, cfg, healthHandler, sessionHandler)
+	router := rest.NewRouter(logger, cfg, signer, healthHandler, sessionHandler)
 
 	// HTTP server
 	httpServer := &http.Server{

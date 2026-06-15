@@ -56,6 +56,16 @@ interface SessionResponse {
   expires_in: number;
 }
 
+/**
+ * A single telemetry event posted to POST /v1/events.
+ * account_id is derived server-side from the JWT — do NOT send it.
+ */
+export interface TelemetryEvent {
+  event_type: 'login' | 'refresh' | 'signout';
+  device_id?: string;
+  app_version?: string;
+}
+
 const REQUEST_TIMEOUT_MS = 10_000;
 
 function resolveBaseUrl(): string {
@@ -178,6 +188,62 @@ export async function postRefresh(refreshToken: string): Promise<SessionTokens |
       refreshToken: data.refresh_token,
       expiresIn: data.expires_in,
     };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * POST /v1/events — emit telemetry events (Phase β / O468).
+ *
+ * No-op when cloud is not configured.
+ * Throws `CloudAuthError` on HTTP 401/4xx (token dead).
+ * Throws `CloudOfflineError` on network failure, timeout, or 5xx (retryable).
+ */
+export async function postEvents(accessToken: string, events: TelemetryEvent[]): Promise<void> {
+  const baseUrl = resolveBaseUrl();
+  if (!baseUrl) return;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    let resp: Response;
+    try {
+      resp = await fetch(`${baseUrl}/v1/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ events }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw new CloudOfflineError(`Identity server unreachable: ${String(err)}`, err);
+    }
+
+    if (resp.status >= 400 && resp.status < 500) {
+      let body = '';
+      try {
+        body = await resp.text();
+      } catch {
+        // ignore
+      }
+      throw new CloudAuthError(`Events rejected (${resp.status}): ${body}`, resp.status);
+    }
+
+    if (!resp.ok) {
+      let body = '';
+      try {
+        body = await resp.text();
+      } catch {
+        // ignore
+      }
+      throw new CloudOfflineError(`Identity server returned ${resp.status}: ${body}`);
+    }
+
+    // 204 / 2xx → success
   } finally {
     clearTimeout(timer);
   }

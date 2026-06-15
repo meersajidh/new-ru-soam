@@ -22,7 +22,10 @@ import type { Density } from '../../platform/activity-bar/density-service';
 import { usePopover } from '../../platform/popover/use-popover';
 import Popover from '../../platform/popover/Popover';
 import DeleteWorkspaceDialog from './DeleteWorkspaceDialog';
+import { usePrefsCapability } from '../../platform/data/use-capability';
 import './SettingsMenu.css';
+
+type TelemetryMode = 'off' | 'online-only' | 'on';
 
 export default function SettingsMenu() {
   const kekLocked = useContextKey('workspace.kekLocked') as boolean;
@@ -34,6 +37,29 @@ export default function SettingsMenu() {
   const densitySvc = useService(ActivityBarDensityServiceId);
 
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+
+  // Prefs capability — used to read/write cloud.telemetryMode.
+  const prefsCap = usePrefsCapability();
+  const [telemetryMode, setTelemetryMode] = useState<TelemetryMode>('off');
+
+  // Read cloud.telemetryMode on mount (once cap is available).
+  useEffect(() => {
+    if (!prefsCap) return;
+    prefsCap.get('cloud.telemetryMode').then(({ value }) => {
+      if (value === 'online-only' || value === 'on' || value === 'off') {
+        setTelemetryMode(value);
+      }
+    }).catch(() => {/* use default 'off' */});
+  }, [prefsCap]);
+
+  function handleTelemetryMode(mode: TelemetryMode) {
+    if (!prefsCap || mode === telemetryMode) return;
+    setTelemetryMode(mode); // optimistic
+    prefsCap.set('cloud.telemetryMode', mode).catch(() => {
+      // revert on failure
+      setTelemetryMode(telemetryMode);
+    });
+  }
 
   // Appearance state — live-subscribed so active highlight stays in sync.
   const [themes, setThemes] = useState<ThemeDescriptor[]>(() => themeSvc.list());
@@ -182,6 +208,49 @@ export default function SettingsMenu() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="settings-popover-divider" aria-hidden="true" />
+
+          {/* ── Usage analytics ─────────────────────────────────────────── */}
+          <div className="settings-section">
+            <div className="settings-section-label">Usage analytics</div>
+
+            <div className="settings-mode-row">
+              {(
+                [
+                  { value: 'off', label: 'Off' },
+                  { value: 'online-only', label: 'Online only' },
+                  { value: 'on', label: 'On' },
+                ] as const
+              ).map(({ value, label }) => (
+                <button
+                  key={value}
+                  className="settings-mode-btn"
+                  data-active={telemetryMode === value || undefined}
+                  onClick={() => handleTelemetryMode(value)}
+                  role="menuitemradio"
+                  aria-checked={telemetryMode === value}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <p className="settings-analytics-notice">
+              Share anonymous usage events (sign-in, refresh, sign-out) with an
+              anonymous per-install device ID and app version to help improve
+              ru-soam. <strong>No personal or clinical data (PHI) is ever
+              sent.</strong>
+              <br />
+              <span className="settings-analytics-modes">
+                <span>Off</span> — nothing sent.{' '}
+                <span>Online only</span> — sent when connected; not queued.{' '}
+                <span>On</span> — queued offline and sent later.
+              </span>
+              <br />
+              Default is Off. You can change this at any time.
+            </p>
           </div>
 
           <div className="settings-popover-divider" aria-hidden="true" />
