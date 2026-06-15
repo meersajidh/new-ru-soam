@@ -1,0 +1,18 @@
+# Build-context upload filter for `gcloud builds submit`.
+# Keep the source tarball lean and — critically — keep dev secrets/keys
+# out of the Cloud Build GCS source bucket.
+
+# air live-reload artifacts
+tmp/
+.air.toml
+
+# dev signing keys + any PEM — NEVER upload
+keys/
+*.pem
+
+# local env files (secrets); .env.example is harmless but unneeded for build
+*.env
+
+# docs/specs not needed to compile
+README.md
+specs/

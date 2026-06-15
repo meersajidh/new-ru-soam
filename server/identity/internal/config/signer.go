@@ -40,6 +40,16 @@ type JWTConfig struct {
 	// invalidated on restart. NEVER use in production.
 	// Set via JWT_DEV_EPHEMERAL=true.
 	DevEphemeral bool
+
+	// KMSKeyName is the full Cloud KMS CryptoKeyVersion resource name used for
+	// RS256 JWT signing in production (11a.6).  When set, KMSSigner is used and
+	// the PEM / DevEphemeral fields are ignored.
+	//
+	// Format: projects/P/locations/REGION/keyRings/R/cryptoKeys/K/cryptoKeyVersions/V
+	//
+	// Mutually exclusive with JWT_SIGNING_KEY_PEM, JWT_SIGNING_KEY_PATH, and
+	// JWT_DEV_EPHEMERAL.  Set via JWT_KMS_KEY_NAME.
+	KMSKeyName string
 }
 
 func loadJWTConfig() *JWTConfig {
@@ -50,8 +60,9 @@ func loadJWTConfig() *JWTConfig {
 		SigningKeyPEM:  os.Getenv("JWT_SIGNING_KEY_PEM"),
 		SigningKeyPath: os.Getenv("JWT_SIGNING_KEY_PATH"),
 		DevEphemeral:   os.Getenv("JWT_DEV_EPHEMERAL") == "true",
+		KMSKeyName:     os.Getenv("JWT_KMS_KEY_NAME"),
 	}
-	if cfg.SigningKeyPEM == "" && cfg.SigningKeyPath == "" && !cfg.DevEphemeral {
+	if cfg.KMSKeyName == "" && cfg.SigningKeyPEM == "" && cfg.SigningKeyPath == "" && !cfg.DevEphemeral {
 		slog.Warn("no JWT signing key configured (JWT_SIGNING_KEY_PEM / JWT_SIGNING_KEY_PATH); " +
 			"set JWT_DEV_EPHEMERAL=true for local dev — server will HARD FAIL at boot")
 	}

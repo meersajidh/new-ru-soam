@@ -48,12 +48,34 @@ func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, 
 
 	// Signer — hard-fail at boot if no key configured and JWT_DEV_EPHEMERAL not set.
 	// A server that cannot sign JWTs is a misconfiguration, not a silent degrade.
-	signer, err := service.NewPEMSigner(cfg.JWT)
-	if err != nil {
-		closeStore()
-		return nil, nil, fmt.Errorf("build: init JWT signer: %w", err)
+	//
+	// Selection order:
+	//   1. JWT_KMS_KEY_NAME set → KMSSigner (Cloud KMS, production).
+	//   2. Otherwise           → PEMSigner  (inline PEM / file / ephemeral, dev).
+	var signer service.Signer
+	if cfg.JWT.KMSKeyName != "" {
+		kmsClient, err := service.NewKMSKeyManagementClient(ctx)
+		if err != nil {
+			closeStore()
+			return nil, nil, fmt.Errorf("build: init KMS client: %w", err)
+		}
+		kmsSigner, err := service.NewKMSSigner(ctx, kmsClient, cfg.JWT.KMSKeyName)
+		if err != nil {
+			kmsClient.Close()
+			closeStore()
+			return nil, nil, fmt.Errorf("build: init KMS signer: %w", err)
+		}
+		signer = kmsSigner
+		logger.Info("JWT signer initialised", "mode", "kms", "key_name", cfg.JWT.KMSKeyName)
+	} else {
+		pemSigner, err := service.NewPEMSigner(cfg.JWT)
+		if err != nil {
+			closeStore()
+			return nil, nil, fmt.Errorf("build: init JWT signer: %w", err)
+		}
+		signer = pemSigner
+		logger.Info("JWT signer initialised", "mode", "pem", "dev_ephemeral", cfg.JWT.DevEphemeral)
 	}
-	logger.Info("JWT signer initialised", "dev_ephemeral", cfg.JWT.DevEphemeral)
 
 	// TokenService — requires signer + refreshStore; refreshStore is nil when no DB.
 	// We only build TokenService when both are ready; the session handler guards
