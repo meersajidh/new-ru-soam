@@ -17,6 +17,7 @@ import type { IMenuService } from '../menu/menu-service';
 import type { IActivityBarDensityService } from '../activity-bar/density-service';
 import type { IMaturityHighlightService } from '../maturity/maturity-highlight';
 import type { IOverviewViewModeService } from '../view-mode/overview-view-mode';
+import type { ITelemetryModeService } from '../telemetry/telemetry-mode-service';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -69,5 +70,8 @@ export const MaturityHighlightServiceId = serviceId<IMaturityHighlightService>('
 
 // Overview view-mode (dense/focused/timeline, O455)
 export const OverviewViewModeServiceId = serviceId<IOverviewViewModeService>('workbench.overviewViewMode');
+
+// Telemetry mode (off/online-only/on, prefs-backed, shared source of truth)
+export const TelemetryModeServiceId = serviceId<ITelemetryModeService>('workbench.telemetryMode');
 
 export const RegistryContext = createContext<ServiceRegistry | null>(null);

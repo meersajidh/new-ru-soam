@@ -82,6 +82,11 @@ const REGISTRY: Record<SemanticIconId, CodiconGlyph> = {
   'info': 'info',
   'pass': 'pass-filled',
 
+  // Telemetry mode indicators
+  'telemetry-off': 'eye-closed',        // off — clearly "nothing being observed"
+  'telemetry-online-only': 'pulse',     // online-only — activity when connected
+  'telemetry-on': 'broadcast',          // on — active transmission
+
   // Cloud
   'cloud': 'cloud',
   'cloud-download': 'cloud-download',

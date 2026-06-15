@@ -130,4 +130,17 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
     icon: 'target',
     scope: 'always',
   },
+  {
+    // Telemetry status indicator — tooltip-only, no command.
+    // Icon + tooltip updated by TelemetryModeService in boot.ts.
+    // Per-workspace setting → workspace-scoped (no `scope: 'always'`), so it
+    // hides on the lock screen where the mode is meaningless.
+    id: 'workbench.telemetry',
+    region: 'right',
+    priority: 55,
+    text: '',
+    tooltip: 'Usage analytics: Off',
+    visible: true,
+    icon: 'telemetry-off',
+  },
 ];

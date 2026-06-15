@@ -41,6 +41,9 @@ import {
   readPersistedOverviewViewMode,
 } from '../platform/view-mode/overview-view-mode';
 import { OverviewViewModeServiceId } from '../platform/services/ids';
+import { TelemetryModeService } from '../platform/telemetry/telemetry-mode-service';
+import type { TelemetryMode } from '../platform/telemetry/telemetry-mode-service';
+import { TelemetryModeServiceId } from '../platform/services/ids';
 
 const SLOT_TO_CTX_KEY: Partial<Record<SlotId, string>> = {
   [SlotId.PrimarySideBar]: 'sideBar.visible',
@@ -140,6 +143,10 @@ export function boot(): ServiceRegistry {
   // Overview view-mode — localStorage-backed; default 'dense'.
   const overviewViewMode = new OverviewViewModeService(readPersistedOverviewViewMode());
   registry.register(OverviewViewModeServiceId, overviewViewMode);
+
+  // Telemetry mode — prefs-cap-backed; default 'off'. Reloads on workspace change.
+  const telemetryMode = new TelemetryModeService();
+  registry.register(TelemetryModeServiceId, telemetryMode);
 
   const statusBar = new StatusBarService();
   for (const entry of ANCHORED_ENTRIES) statusBar.register(entry);
@@ -378,6 +385,26 @@ export function boot(): ServiceRegistry {
   }
   syncMaturityHighlightEntry(maturityHighlight.isEnabled());
   maturityHighlight.onDidChange(syncMaturityHighlightEntry);
+
+  // ── Telemetry mode StatusBar indicator ───────────────────────────────────
+  const TELEMETRY_ICON: Record<TelemetryMode, string> = {
+    'off': 'telemetry-off',
+    'online-only': 'telemetry-online-only',
+    'on': 'telemetry-on',
+  };
+  const TELEMETRY_TOOLTIP: Record<TelemetryMode, string> = {
+    'off': 'Usage analytics: Off',
+    'online-only': 'Usage analytics: Online only',
+    'on': 'Usage analytics: On',
+  };
+  function syncTelemetryEntry(mode: TelemetryMode): void {
+    statusBar.update('workbench.telemetry', {
+      icon: TELEMETRY_ICON[mode],
+      tooltip: TELEMETRY_TOOLTIP[mode],
+    });
+  }
+  syncTelemetryEntry(telemetryMode.getMode());
+  telemetryMode.onChange(syncTelemetryEntry);
 
   // ── Phase 9b: DEV-mode StatusBar entry ────────────────────────────────────
   // Use import.meta.env.DEV as an approximation of "not packaged".
