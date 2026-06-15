@@ -95,6 +95,8 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-308](ADRs/308-update-time-data-integrity.md) — Update-time data integrity (pre-migration backup, transactional DDL, schema gates). _(Accepted)_
 - [ADR-309](ADRs/309-cloud-identity-and-authentication.md) — Cloud identity and authentication (Google OAuth + cloud session). _(Draft)_
 - [ADR-310](ADRs/310-google-calendar-provider-integration.md) — Google Calendar provider integration. _(Proposed)_
+- [ADR-311](ADRs/311-cloud-backend-identity-service.md) — Cloud Backend identity service (verify ID-token + session JWT + usage telemetry). _(Accepted)_
+- [ADR-312](ADRs/312-usage-telemetry-base-and-domain-tiers.md) — Usage telemetry: base mechanism + domain vocabulary, PHI-free by construction. _(Accepted)_
 
 #### Workbench / UI composition (400–499)
 
