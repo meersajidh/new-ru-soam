@@ -5,7 +5,7 @@
 **Date:** 2026-06-14
 **Supersedes:** —
 **Superseded by:** —
-**Related:** ADR-101, ADR-103, ADR-106, ADR-202, ADR-203, ADR-301, ADR-302, ADR-303, ADR-304, ADR-305, ADR-307, ADR-309, ADR-310, ADR-501, ADR-502
+**Related:** ADR-101, ADR-103, ADR-106, ADR-202, ADR-203, ADR-301, ADR-302, ADR-303, ADR-304, ADR-305, ADR-307, ADR-309, ADR-310, ADR-312, ADR-501, ADR-502
 
 ## Status note
 
@@ -83,6 +83,8 @@ The identity Google grant and any provider Google grant (Calendar, Meet) both hi
 - **Account key** = Google `sub` (email is unique too, but `sub` is the stable key). **Nickname** is **display-only**, captured per ADR-501; it carries **no uniqueness constraint** — Google identity is already the unique key. This **withdraws the O307h "nickname global-uniqueness" requirement**.
 
 ### 7. Usage telemetry
+
+> **Policy consolidated in [ADR-312](312-usage-telemetry-base-and-domain-tiers.md) (Accepted).** This section describes the **base mechanism** as built in 11a; the canonical telemetry decisions — base/domain two-tier model, 3-mode consent gate, PHI-free classification (incl. the stricter domain inferential-leakage rule), and 90-day retention — live in ADR-312. Keep policy edits there, not here.
 
 The server records a **session-event** at each token **issue** (login), **refresh**, and **sign-out**, into a server-side **usage store** distinct from the ADR-502 clinical audit ledger (that ledger is PHI-domain, Main-origin, client-side; this is operational, account-level, server-side).
 
