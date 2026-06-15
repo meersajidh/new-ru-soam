@@ -65,6 +65,36 @@ func TestSessionEventsSchema_PHIFree(t *testing.T) {
 	}
 }
 
+// TestSessionEvents_EventTypeConstraint_IncludesAccountDeleted verifies that the
+// 0005 migration adds 'account_deleted' to the session_events event_type CHECK
+// and that the closed enum remains PHI-free (enum-only values, no free text).
+func TestSessionEvents_EventTypeConstraint_IncludesAccountDeleted(t *testing.T) {
+	t.Parallel()
+
+	const migFile = "sql/0005_session_events_account_deleted.sql"
+	data, err := migrations.FS.ReadFile(migFile)
+	if err != nil {
+		t.Fatalf("read migration %q: %v", migFile, err)
+	}
+	sql := string(data)
+
+	// The Up section must ADD CONSTRAINT with account_deleted in the IN list.
+	requiredValues := []string{"login", "refresh", "signout", "account_deleted"}
+	for _, v := range requiredValues {
+		if !strings.Contains(sql, "'"+v+"'") {
+			t.Errorf("migration 0005 Up section missing event_type value %q in CHECK constraint", v)
+		}
+	}
+
+	// Sanity: must not introduce any PHI-like free-text values.
+	phiProbe := []string{"email", "name", "phone", "ip", "location", "fingerprint"}
+	for _, p := range phiProbe {
+		if strings.Contains(sql, "'"+p+"'") {
+			t.Errorf("migration 0005 unexpectedly contains PHI-like string %q", p)
+		}
+	}
+}
+
 // extractColumnNames parses bare column names from a CREATE TABLE DDL block.
 // It matches lines of the form:   <name>   <TYPE> ...
 // inside the CREATE TABLE session_events ( ... ); block.

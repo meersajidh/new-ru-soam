@@ -466,11 +466,12 @@ export function installLockChannel(
         return { ok: false, code: 'nickname-mismatch' } satisfies DeleteWorkspaceResult;
       }
 
-      // d. Revoke cloud session BEFORE relock — KEK needed to unwrap stored refresh token.
-      //    Best-effort: never throws; tolerates offline (ADR-311 Am1 A1.2).
+      // d. Delete cloud account BEFORE relock — KEK needed to unwrap stored refresh token.
+      //    Soft-deletes server-side + emits account_deleted telemetry (consent-gated).
+      //    Best-effort: never throws; tolerates offline (ADR-311 Am1 A1.2, Am2 O477).
       const kek = svc.kekHandle();
       if (kek) {
-        cloudSessionService.revokeOnDisconnect(id, kek);
+        cloudSessionService.deleteCloudAccount(id, kek);
       }
       telemetryService.stopWatcher();
 

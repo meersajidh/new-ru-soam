@@ -61,7 +61,7 @@ interface SessionResponse {
  * account_id is derived server-side from the JWT — do NOT send it.
  */
 export interface TelemetryEvent {
-  event_type: 'login' | 'refresh' | 'signout';
+  event_type: 'login' | 'refresh' | 'signout' | 'account_deleted';
   device_id?: string;
   app_version?: string;
 }
@@ -244,6 +244,60 @@ export async function postEvents(accessToken: string, events: TelemetryEvent[]):
     }
 
     // 204 / 2xx → success
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * POST /v1/account/delete — revoke token family + soft-delete the account (ADR-311 Am2 / O477).
+ *
+ * Best-effort, idempotent. No-op when cloud is not configured.
+ * Throws `CloudAuthError` on HTTP 4xx (unexpected — treated same as offline by caller).
+ * Throws `CloudOfflineError` on network failure, timeout, or 5xx (caller swallows).
+ * Unknown token → server returns 204 (no-op) — treated as success.
+ */
+export async function postAccountDelete(refreshToken: string): Promise<void> {
+  const baseUrl = resolveBaseUrl();
+  if (!baseUrl) return;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    let resp: Response;
+    try {
+      resp = await fetch(`${baseUrl}/v1/account/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw new CloudOfflineError(`Identity server unreachable: ${String(err)}`, err);
+    }
+
+    if (resp.status >= 400 && resp.status < 500) {
+      let body = '';
+      try {
+        body = await resp.text();
+      } catch {
+        // ignore
+      }
+      throw new CloudAuthError(`Account delete rejected (${resp.status}): ${body}`, resp.status);
+    }
+
+    if (!resp.ok) {
+      let body = '';
+      try {
+        body = await resp.text();
+      } catch {
+        // ignore
+      }
+      throw new CloudOfflineError(`Identity server returned ${resp.status}: ${body}`);
+    }
+
+    // 204 → success
   } finally {
     clearTimeout(timer);
   }

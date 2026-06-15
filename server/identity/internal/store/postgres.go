@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -32,16 +33,24 @@ func NewPostgres(ctx context.Context, databaseURL string) (*Postgres, func(), er
 }
 
 // UpsertByGoogleSub inserts or updates the account for the given Google sub.
-// On conflict (google_sub UNIQUE) it refreshes the email and updated_at.
-// Returns the full persisted row.
+//
+// Tombstone model (ADR-311 §A2.3): deleted accounts are permanent tombstones —
+// they are never reactivated. The partial unique index
+// accounts_google_sub_active_key covers only active rows, so:
+//   - No active row exists (first signup, or all prior rows are deleted tombstones)
+//     → INSERT a new active row with a fresh id.
+//   - An active row exists (O475 reconnect: same live account, dead refresh)
+//     → UPDATE email only (no status/deleted_at touch).
+//
+// Returns the current persisted account (the new or existing active row).
 func (p *Postgres) UpsertByGoogleSub(ctx context.Context, googleSub, email string) (*model.Account, error) {
 	const q = `
 		INSERT INTO accounts (google_sub, email)
 		VALUES ($1, $2)
-		ON CONFLICT (google_sub) DO UPDATE
+		ON CONFLICT (google_sub) WHERE status = 'active' DO UPDATE
 		  SET email      = EXCLUDED.email,
 		      updated_at = now()
-		RETURNING id, google_sub, email, entity_id, created_at, updated_at`
+		RETURNING id, google_sub, email, entity_id, status, deleted_at, created_at, updated_at`
 
 	row := p.pool.QueryRow(ctx, q, googleSub, email)
 
@@ -52,12 +61,15 @@ func (p *Postgres) UpsertByGoogleSub(ctx context.Context, googleSub, email strin
 	return acc, nil
 }
 
-// GetByGoogleSub retrieves an account by Google sub. Returns nil, nil if not found.
+// GetByGoogleSub retrieves the active account for the given Google sub.
+// Returns nil, nil when no active account exists (sub unknown, or only
+// deleted tombstones remain). Never returns a deleted row.
 func (p *Postgres) GetByGoogleSub(ctx context.Context, googleSub string) (*model.Account, error) {
 	const q = `
-		SELECT id, google_sub, email, entity_id, created_at, updated_at
+		SELECT id, google_sub, email, entity_id, status, deleted_at, created_at, updated_at
 		FROM accounts
-		WHERE google_sub = $1`
+		WHERE google_sub = $1
+		  AND status = 'active'`
 
 	row := p.pool.QueryRow(ctx, q, googleSub)
 	acc, err := scanAccount(row)
@@ -69,6 +81,24 @@ func (p *Postgres) GetByGoogleSub(ctx context.Context, googleSub string) (*model
 		return nil, fmt.Errorf("store: get account: %w", err)
 	}
 	return acc, nil
+}
+
+// MarkDeleted soft-deletes the account by setting status='deleted' and deleted_at=now().
+// All other columns (email, entity_id, etc.) are retained for history.
+// Idempotent: re-marking an already-deleted account is a no-op.
+func (p *Postgres) MarkDeleted(ctx context.Context, accountID string) error {
+	const q = `
+		UPDATE accounts
+		SET status     = 'deleted',
+		    deleted_at = now(),
+		    updated_at = now()
+		WHERE id = $1`
+
+	_, err := p.pool.Exec(ctx, q, accountID)
+	if err != nil {
+		return fmt.Errorf("store: mark account deleted: %w", err)
+	}
+	return nil
 }
 
 // Ping checks reachability of the Postgres pool.
@@ -89,12 +119,15 @@ type scanner interface {
 
 func scanAccount(row scanner) (*model.Account, error) {
 	var acc model.Account
-	var entityID *string // nullable UUID stored as text pointer
+	var entityID *string     // nullable UUID stored as text pointer
+	var deletedAt *time.Time // nullable timestamp
 	err := row.Scan(
 		&acc.ID,
 		&acc.GoogleSub,
 		&acc.Email,
 		&entityID,
+		&acc.Status,
+		&deletedAt,
 		&acc.CreatedAt,
 		&acc.UpdatedAt,
 	)
@@ -102,6 +135,7 @@ func scanAccount(row scanner) (*model.Account, error) {
 		return nil, err
 	}
 	acc.EntityID = entityID
+	acc.DeletedAt = deletedAt
 	return &acc, nil
 }
 

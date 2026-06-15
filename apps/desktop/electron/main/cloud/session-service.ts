@@ -14,9 +14,9 @@
  *   commitOrRefresh() finds no _pending → calls refreshOnUnlock(), which unwraps
  *   the stored refresh token and rotates it via POST /v1/refresh.
  *
- * Revoke flow (delete-account — explicit account-end, NOT routine sign-out):
- *   revokeOnDisconnect() synchronously clears local credential then fires best-effort
- *   POST /v1/revoke (detached, never blocks the delete path).
+ * Delete-account flow (explicit account-end, NOT routine sign-out):
+ *   deleteCloudAccount() emits account_deleted telemetry (consent-gated), synchronously
+ *   clears local credential, then fires best-effort POST /v1/account/delete (detached).
  *   Routine sign-out / lock keeps the credential and rotates it on next unlock.
  *
  * Renderer NEVER sees access or refresh tokens — only {signedIn: boolean} (ADR-202/304).
@@ -34,7 +34,7 @@ import { credentialStore } from '../credentials/index.js';
 import {
   postSession,
   postRefresh,
-  postRevoke,
+  postAccountDelete,
   isCloudConfigured,
   CloudOfflineError,
   CloudAuthError,
@@ -211,16 +211,17 @@ export class CloudSessionService {
 
   /**
    * Explicit account-end path (delete-account only — NOT routine sign-out or lock).
-   * Routine sign-out keeps the credential; revoke is reserved for when the user
-   * deliberately destroys the workspace (ADR-311 Am1 A1.1/A1.2).
+   * Routine sign-out keeps the credential; this is reserved for when the user
+   * deliberately destroys the workspace (ADR-311 Am1 A1.1/A1.2, Am2 O477).
    *
-   * Synchronously clears the local credential, emits the one honest `signout`
-   * telemetry event, then fires best-effort POST /v1/revoke detached.
+   * Synchronously clears the local credential, emits the `account_deleted`
+   * telemetry event (consent-gated via TelemetryService), then fires best-effort
+   * POST /v1/account/delete detached (revokes family + soft-deletes account server-side).
    *
    * MUST be called BEFORE relock() evaporates the KEK — the KEK is needed to
-   * unwrap the stored refresh token for the revoke call.
+   * unwrap the stored refresh token for the delete call.
    */
-  revokeOnDisconnect(workspaceId: string, kek: Buffer): void {
+  deleteCloudAccount(workspaceId: string, kek: Buffer): void {
     const stored = credentialStore.get(workspaceId, 'cloud-session-token');
     if (!stored) {
       this.clearVolatile();
@@ -233,22 +234,24 @@ export class CloudSessionService {
       const plain = decryptFromEnvelope(kek, env);
       refreshToken = plain.toString('utf8');
     } catch (err) {
-      console.warn('[CloudSessionService] revokeOnDisconnect: failed to unwrap stored token — skipping revoke:', err);
+      console.warn('[CloudSessionService] deleteCloudAccount: failed to unwrap stored token — skipping delete:', err);
       credentialStore.delete(workspaceId, 'cloud-session-token');
       this.clearVolatile();
       return;
     }
 
-    // Emit signout telemetry BEFORE clearVolatile() — token still held in memory.
-    telemetryService.emit('signout', this._accessToken);
+    // Emit account_deleted telemetry BEFORE clearVolatile() — token still held in memory.
+    // Consent-gated by TelemetryService (cloud.telemetryMode); no-op if off.
+    telemetryService.emit('account_deleted', this._accessToken);
 
     // Synchronous local disconnect — must complete regardless of network.
     credentialStore.delete(workspaceId, 'cloud-session-token');
     this.clearVolatile();
 
-    // Best-effort: fire revoke detached. Server family expires on its own if offline.
-    void postRevoke(refreshToken).catch((err) => {
-      console.warn('[CloudSessionService] revokeOnDisconnect: revoke request failed (best-effort):', err instanceof Error ? err.message : String(err));
+    // Best-effort: fire account delete detached. Server records soft-delete; family
+    // expires on its own if offline. Unknown token → server returns 204 (idempotent).
+    void postAccountDelete(refreshToken).catch((err) => {
+      console.warn('[CloudSessionService] deleteCloudAccount: account delete request failed (best-effort):', err instanceof Error ? err.message : String(err));
     });
   }
 

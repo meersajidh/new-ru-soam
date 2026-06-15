@@ -9,9 +9,16 @@ import (
 // AccountStore is the account persistence the session handler needs.
 // Consumer-defined (Go idiom); satisfied structurally by *store.Postgres.
 type AccountStore interface {
-	// UpsertByGoogleSub inserts an account for the given Google sub, or updates
-	// the email if one already exists. Returns the current persisted account.
+	// UpsertByGoogleSub inserts a new active account for the given Google sub when
+	// no active row exists (first signup, or only deleted tombstones remain), or
+	// updates the email on the existing active row (O475 reconnect path).
+	// Deleted tombstones are never reactivated — re-signup creates a new account.
+	// Returns the current persisted active account.
 	UpsertByGoogleSub(ctx context.Context, googleSub, email string) (*model.Account, error)
+
+	// MarkDeleted soft-deletes the account: sets status='deleted' + deleted_at=now().
+	// Retains all other columns. Idempotent.
+	MarkDeleted(ctx context.Context, accountID string) error
 }
 
 // EventStore records operational session telemetry. Consumer-defined;
@@ -25,7 +32,8 @@ type EventStore interface {
 
 // Event-type constants for session telemetry — use instead of raw strings.
 const (
-	EventLogin   = "login"
-	EventRefresh = "refresh"
-	EventSignout = "signout"
+	EventLogin          = "login"
+	EventRefresh        = "refresh"
+	EventSignout        = "signout"
+	EventAccountDeleted = "account_deleted"
 )

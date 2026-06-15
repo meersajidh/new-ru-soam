@@ -28,7 +28,7 @@ type kmsClient interface {
 // The public key is fetched once at construction and cached for the process lifetime.
 type KMSSigner struct {
 	client  kmsClient
-	keyName string        // full CryptoKeyVersion resource name
+	keyName string // full CryptoKeyVersion resource name
 	pubKey  *rsa.PublicKey
 }
 

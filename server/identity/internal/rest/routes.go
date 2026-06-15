@@ -16,4 +16,8 @@ const (
 	// Telemetry ingest route (11a.5b / Phase β.1+).
 	// Requires a valid session JWT (requireSession middleware).
 	EventsRoute = "/v1/events"
+
+	// Account lifecycle (ADR-311 Amendment 2 / O477).
+	// Refresh-token-authenticated (no requireSession — mirrors RevokeRoute).
+	AccountDeleteRoute = "/v1/account/delete"
 )

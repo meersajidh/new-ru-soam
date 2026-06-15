@@ -45,6 +45,8 @@ func registerSessionRoutes(r *gin.Engine, h *session.Handler) {
 	r.POST(SessionRoute, h.CreateSession)
 	r.POST(RefreshRoute, h.RefreshSession)
 	r.POST(RevokeRoute, h.RevokeSession)
+	// Account delete is refresh-token-authenticated (not requireSession).
+	r.POST(AccountDeleteRoute, h.DeleteAccount)
 }
 
 func registerAuthedRoutes(r *gin.Engine, signer service.Signer, issuer string, h *session.Handler) {

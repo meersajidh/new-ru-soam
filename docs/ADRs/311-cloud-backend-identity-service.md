@@ -1,7 +1,7 @@
 # Cloud Backend identity service: node-first auth, ID-token verification, session JWT, usage telemetry
 
 **ID:** ADR-311
-**Status:** Accepted (amended 2026-06-15 — see Amendment 1: sign-out is a local operation; login ≡ signup; revoke moves to delete-account)
+**Status:** Accepted (amended 2026-06-15 — see Amendment 1: sign-out is a local operation; login ≡ signup; revoke moves to delete-account · Amendment 2: account-deletion is a server-recorded lifecycle state — soft-delete + `status` + `account_deleted` event)
 **Date:** 2026-06-14
 **Supersedes:** —
 **Superseded by:** —
@@ -205,3 +205,41 @@ The Google grants for **provider APIs** (Calendar, Meet — §5, ADR-305 Flow-A,
 - **O473** — *Resolved by this amendment* (A1.1/A1.2): routine sign-out is local and keeps the credential; revoke moves to delete-account. The orphan cannot occur.
 - **O475** *(new)* — "Reconnect to sync" recovery UX for the 30-day-idle dead-refresh case (A1.4). Deferred.
 - **O476** *(new)* — Provider-grant consent/scope-prompt strategy (incremental vs bundled), System B / domain (A1.5). Deferred to the provider-connectivity ADR.
+
+## Amendment 2 (2026-06-15) — account-deletion is a server-recorded lifecycle state (soft-delete + status)
+
+**Trigger.** The Am1 runtime verify surfaced that client **delete-account** (`soam:workspace:delete`) tells the server **nothing** about the deletion — it revoked the refresh-token family (`refresh_tokens.revoked_at`) and emitted a consent-gated `signout` telemetry row, but the **`accounts` row persisted unchanged** (email and all), and **nothing authoritatively recorded that the account was deleted**. Two gaps: (1) the deletion is not recorded except as a best-effort, consent-gated, semantically-ambiguous `signout` telemetry event (so with telemetry off, a deletion leaves *no trace*); (2) the server account record has no lifecycle state. This amendment makes account-deletion a **server-recorded, consent-independent lifecycle state** on the `accounts` row, and adds a distinct telemetry event for the usage signal. It refines the §6 account model; the token model (§4) and OAuth boundary (§3) are unchanged.
+
+### A2.1 `accounts` gains a lifecycle status (soft-delete, full-row retention)
+
+The `accounts` table gains **`status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','deleted'))`** + **`deleted_at TIMESTAMPTZ NULL`** (migration `0004`). Deletion is a **soft-delete**: the row is **retained in full** — `google_sub`, `email`, `entity_id` all kept (decided: retain, not scrub) — and only `status`/`deleted_at` change. The **status change itself is the authoritative deletion record**, written by a server endpoint that is **always** called on delete (functional, **not** telemetry-consent-gated), so a deletion is recorded regardless of the user's telemetry setting. Soft-delete (not row-`DELETE`) also preserves the `session_events` history (whose `account_id` FK is `ON DELETE CASCADE` — a hard delete would erase the usage history; soft-delete keeps it).
+
+> **Personal-data note.** The retained `email` is **not PHI** (it is the practitioner's own account identifier, never patient data — the ADR-301 PHI invariant is about clinical content, which never reaches the server). Retaining it on a deleted tombstone (for audit + the `entity_id` binding toward future Clinic tenancy) is fine; **no email-scrub-on-delete is required**.
+
+### A2.2 New endpoint `POST /v1/account/delete` — mark deleted + revoke family
+
+A new endpoint resolves the account from the supplied **refresh token** (same trust model as `/v1/revoke` — possession of the refresh token *is* the account credential, so no `requireSession` access-JWT dance is needed and it works without a live access token), then: (a) **revokes the whole refresh-token family** (reuses `TokenService.Revoke`, which returns the `account_id`), and (b) **marks the account `status='deleted'`, `deleted_at=now()`** (new `AccountStore.MarkDeleted`). Idempotent: an unknown / already-revoked token resolves to no account → 200/204 no-op. It records **no** `session_events` row itself (telemetry stays on its own consent-gated channel — A2.3). The client's delete-account path calls this **best-effort before relock** (KEK live to unwrap the refresh token), replacing the prior `/v1/revoke`-only call.
+
+### A2.3 Re-signup after deletion = a NEW account (tombstone, not reactivation) — *revised*
+
+> **Revised 2026-06-15** (supersedes the original "reactivation" decision below). Deletion **destroys the entire local workspace** — SQLite, protected store, KEK, all PHI (`soam:workspace:delete` removes the workspace directory). After deletion there is **nothing local to reconnect to**; a subsequent Google sign-in is a **brand-new workspace** (new id, new KEK, empty), *not* a resume. Re-attaching that fresh start to the **old** server account — dragging forward its `session_events` history and (in 11b) its now-undecryptable synced blobs (the KEK that could read them is gone) — **conflates two distinct account lifetimes**. So **reactivation is the wrong model**.
+
+**Decision.** A deleted account stays `status='deleted'` **permanently** (an audit **tombstone** — this is what satisfies the "retain a record" requirement, A2.1). Re-signing up with the same Google identity **inserts a NEW account row** (new `id`, fresh history, fresh future sync tenancy); the old tombstone is untouched. Local fresh-start ↔ server fresh-account, 1:1, no conflation.
+
+**Mechanism.** The full `UNIQUE(google_sub)` constraint is replaced by a **partial unique index** `UNIQUE (google_sub) WHERE status='active'` (migration `0006`) — *at most one active account per Google identity, unlimited deleted tombstones*. `AccountStore.UpsertByGoogleSub` (the `/v1/session` auto-register path) becomes `ON CONFLICT (google_sub) WHERE status='active' DO UPDATE SET email=…, updated_at=now()`:
+- **No active row** (first-ever signup, or only tombstones remain after a deletion) → **INSERT a new active row**. ← the re-signup-after-deletion case.
+- **An active row already exists** (the Am1 §A1.4 / O475 reconnect-to-sync path: same *live* account, dead refresh, re-sign-in) → **reuse it** (update email). No new row, no duplication.
+
+The earlier `deleted→active` reactivation flip is **removed** — deleted rows are never the conflict target and never come back to life.
+
+> **Future (sync era) — bounded grace-window reactivation-with-restore → O478.** The "deletion is immediately permanent, re-signup = new account" stance above is correct *while there is no server-side user state to restore* (today: deletion totally erases the local workspace, and the server holds no PHI). Once **11b sync** lands, the server carries the user's **encrypted** synced state (ADR-303 `{wrapped_dek, ciphertext, metadata}` envelopes). The intended model then becomes a **soft delete with a bounded grace window (~7 days)**: within the window the user may **reactivate** (re-sign-in → the *same* account comes back, `status` `deleted→active`) and **restore** their synced state; after the window a **background purge** permanently destroys the account's synced state (and finalises the tombstone), after which re-signup is once again a brand-new account. **Key dependency (non-trivial):** the local KEK is destroyed on delete, so restoring synced ciphertext requires the **key material to survive the window** — the passphrase-derived KEK must be re-derivable (KDF salt + wrapped-KEK retained, e.g. synced or server-held for the window), or the envelopes are undecryptable even if retained. This intersects ADR-303 (sync key model), O468 (purge infrastructure), and O457 (DPDP right-to-erasure — a bounded recovery window is compatible with erasure as a reasonable backup/grace period, but the purge must be guaranteed). **Deferred to 11b** — no synced state exists to restore today.
+
+### A2.4 Distinct telemetry event `account_deleted`
+
+The usage signal for deletion gets its **own** event type rather than overloading `signout`: `session_events.event_type` CHECK gains **`account_deleted`** (migration `0005`), the server's `validEventTypes` set + `EventAccountDeleted` const are extended, and the client emits **`account_deleted`** (not `signout`) on delete via the existing **consent-gated `/v1/events`** channel. This remains best-effort/opt-in — the *authoritative* deletion record is the `accounts.status` change (A2.1), which is independent of consent. `signout` stays in the enum (Am1 reserves it for explicit account-end; currently emitted only on this path, now superseded by `account_deleted` for deletes — it may be retired in a later cleanup). All event rows stay enum-only / PHI-free; the `schema_phi_test` invariant is unchanged.
+
+### A2.5 Status changes
+
+- **O478** *(new)* — Sync-era bounded grace-window reactivation-with-restore (~7-day soft-delete window → reactivate+restore, else background purge). Revises A2.3 for the 11b sync era; intersects ADR-303 key model + O468 purge + O457 erasure. Deferred to 11b (no synced state to restore today).
+- **Email-scrub on delete** — *not required* (A2.1): the account `email` is the practitioner's own identifier, not PHI; the tombstone retains it by design.
+- **O477** *(new)* — Account soft-delete lifecycle: `accounts.status`/`deleted_at` (migration `0004`), `POST /v1/account/delete` (mark-deleted + revoke family), `UpsertByGoogleSub` reactivation, `account_deleted` telemetry event (`session_events` CHECK migration `0005` + client/server enum), and the client delete-account wiring. Also the home for any future email-scrub-on-delete DPDP refinement (A2.1 note).

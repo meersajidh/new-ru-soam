@@ -171,6 +171,48 @@ func (h *Handler) RevokeSession(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// ── Account lifecycle ─────────────────────────────────────────────────────────
+
+type deleteAccountRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+// DeleteAccount handles POST /v1/account/delete.
+// Refresh-token-authenticated (no requireSession): revokes the token family via
+// TokenService.Revoke, then soft-deletes the account (status='deleted', deleted_at=now()).
+// Idempotent: unknown / already-revoked token → accountID "" → no MarkDeleted → 204.
+// Records NO session_event here; the client emits account_deleted via POST /v1/events.
+func (h *Handler) DeleteAccount(c *gin.Context) {
+	var req deleteAccountRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.RefreshToken == "" {
+		apperror.Respond(c, apperror.NewBadRequest("refresh_token is required"))
+		return
+	}
+
+	if h.tokens == nil {
+		apperror.Respond(c, apperror.NewInternal("token service not available"))
+		return
+	}
+
+	accountID, err := h.tokens.Revoke(c.Request.Context(), req.RefreshToken)
+	if err != nil {
+		h.logger.ErrorContext(c.Request.Context(), "DeleteAccount: revoke failed", "err", err)
+		apperror.Respond(c, apperror.NewInternal("account delete failed"))
+		return
+	}
+
+	// Idempotent: unknown/already-revoked token returns accountID="".
+	if accountID != "" && h.store != nil {
+		if merr := h.store.MarkDeleted(c.Request.Context(), accountID); merr != nil {
+			// Log + tolerate: the token is already revoked; the soft-delete is best-effort.
+			h.logger.ErrorContext(c.Request.Context(), "DeleteAccount: mark deleted failed (tolerated)",
+				"account_id", accountID, "err", merr)
+		}
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 // ── Telemetry ingest ─────────────────────────────────────────────────────────
 
 // eventsRequest is the body for POST /v1/events.
@@ -191,9 +233,10 @@ type eventItem struct {
 
 // validEventTypes is the closed set of accepted event_type values.
 var validEventTypes = map[string]struct{}{
-	EventLogin:   {},
-	EventRefresh: {},
-	EventSignout: {},
+	EventLogin:          {},
+	EventRefresh:        {},
+	EventSignout:        {},
+	EventAccountDeleted: {},
 }
 
 // maxEventsPerBatch caps the batch size to bound abuse.
@@ -238,7 +281,7 @@ func (h *Handler) RecordEvents(c *gin.Context) {
 		if _, ok := validEventTypes[ev.EventType]; !ok {
 			apperror.Respond(c, apperror.NewBadRequest(
 				"events["+strconv.Itoa(i)+"]: unknown event_type "+ev.EventType+
-					"; must be login, refresh, or signout",
+					"; must be login, refresh, signout, or account_deleted",
 			))
 			return
 		}
