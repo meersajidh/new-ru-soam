@@ -249,7 +249,8 @@ export default function SettingsMenu() {
                 <span>On</span> — queued offline and sent later.
               </span>
               <br />
-              Default is Off. You can change this at any time.
+              Default is Off. You can change this at any time. Events are kept
+              for up to 90 days.
             </p>
           </div>
 

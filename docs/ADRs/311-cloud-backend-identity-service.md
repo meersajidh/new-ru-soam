@@ -152,7 +152,7 @@ Three prior Go auth codebases were reviewed (2026-06-14) as design inputs, not p
 
 ## Open Items
 
-- **O468** *(new)* — Usage-analytics consent/notice text + retention policy. Mechanism (the session-event store) is committed here; the DPDP **notice** at onboarding and the **retention** schedule are a policy decision that must land before telemetry ships.
+- **O468** *(partly resolved 2026-06-15)* — Usage-analytics consent/notice text + retention policy. Mechanism (the session-event store + the gated `/v1/events` channel) is committed in 11a.5b. **Notice DONE:** the opt-in 3-mode "Usage analytics" Settings control carries the consent notice (collected fields, explicit "no PHI", default-off). **Retention DECIDED: 90 days rolling** — raw `session_events` rows older than 90d are deleted; the **purge mechanism** (Cloud Scheduler + scheduled `DELETE`, or partition TTL) is implemented in **11a.6** and is the remaining gate before telemetry is *enabled* in a shipped release.
 - **O309a** — *Resolved by this ADR* for the 11a identity slice (verification, JWT, refresh rotation, token-exchange home = Main). The "client-secret removal" sub-item closes as **N/A** (§3).
 - **O307f** — *Shrunk*: the only client credential at rest is `cloud-session-token`, **KEK-wrapped**. The `google-oauth-refresh` client type does not exist in this design.
 - **O307h** — *Withdrawn*: nickname is display-only; no global-uniqueness constraint (Google identity is the unique key).
