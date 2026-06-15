@@ -23,7 +23,7 @@ func NewSessionEventPostgres(pool *pgxpool.Pool) *SessionEventPostgres {
 func (s *SessionEventPostgres) Record(ctx context.Context, accountID, deviceID, eventType, appVersion string) error {
 	const q = `
 		INSERT INTO session_events (account_id, device_id, event_type, app_version)
-		VALUES ($1, NULLIF($2, ''), $3, NULLIF($4, ''))`
+		VALUES ($1, NULLIF($2, '')::uuid, $3, NULLIF($4, ''))`
 	_, err := s.pool.Exec(ctx, q, accountID, deviceID, eventType, appVersion)
 	if err != nil {
 		return fmt.Errorf("event store: record: %w", err)

@@ -17,10 +17,14 @@ import (
 // Build is the composition root: config → logger → store → signer → token service → handlers → router → App.
 // No goroutines or servers are started here.
 func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, func(), error) {
+	// Consumer-interface-typed (declared by service/session/health). Left as nil
+	// interfaces when no DB so the handlers' nil guards fire correctly — assign
+	// only inside the DB block to avoid a non-nil interface wrapping a nil pointer.
 	var (
-		accountStore store.AccountStore
-		tokenStore   store.RefreshTokenStore
-		eventStore   store.EventStore
+		accountStore session.AccountStore
+		refreshStore service.RefreshTokenStore
+		eventStore   session.EventStore
+		pinger       health.Pinger
 		closeStore   func()
 	)
 
@@ -30,7 +34,8 @@ func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, 
 			return nil, nil, fmt.Errorf("build: init postgres store: %w", err)
 		}
 		accountStore = pg
-		tokenStore = store.NewRefreshPostgres(pg.Pool())
+		pinger = pg
+		refreshStore = store.NewRefreshPostgres(pg.Pool())
 		eventStore = store.NewSessionEventPostgres(pg.Pool())
 		closeStore = closeFn
 		logger.Info("postgres store connected")
@@ -50,15 +55,14 @@ func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, 
 	}
 	logger.Info("JWT signer initialised", "dev_ephemeral", cfg.JWT.DevEphemeral)
 
-	// TokenService — requires signer + tokenStore; tokenStore may be nil when no DB.
-	// When tokenStore is nil the TokenService will panic at runtime on any call —
-	// that is acceptable: the session handler already guards the no-DB path (store==nil → 500).
-	// We only build TokenService when both are ready.
+	// TokenService — requires signer + refreshStore; refreshStore is nil when no DB.
+	// We only build TokenService when both are ready; the session handler guards
+	// the no-DB path (tokens == nil → 500), so a nil TokenService is acceptable.
 	var tokenSvc *service.TokenService
-	if tokenStore != nil {
+	if refreshStore != nil {
 		tokenSvc = service.NewTokenService(
 			signer,
-			tokenStore,
+			refreshStore,
 			cfg.JWT.Issuer,
 			cfg.JWT.AccessTTL,
 			cfg.JWT.RefreshTTL,
@@ -68,7 +72,7 @@ func Build(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, 
 	}
 
 	// Handlers
-	healthHandler := health.New(accountStore) // nil accountStore → readiness 503
+	healthHandler := health.New(pinger) // nil pinger → readiness 503
 	sessionHandler := session.New(cfg.Google.ClientID, accountStore, tokenSvc, eventStore, logger)
 
 	// Router

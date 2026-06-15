@@ -10,15 +10,14 @@ import (
 
 	apperror "github.com/meersajidh/ru-soam/server/identity/internal/error"
 	"github.com/meersajidh/ru-soam/server/identity/internal/service"
-	"github.com/meersajidh/ru-soam/server/identity/internal/store"
 )
 
 // Handler handles session requests.
 type Handler struct {
 	audience string
-	store    store.AccountStore
+	store    AccountStore
 	tokens   *service.TokenService
-	events   store.EventStore // nil-safe: telemetry skipped when nil
+	events   EventStore // nil-safe: telemetry skipped when nil
 	logger   *slog.Logger
 }
 
@@ -26,7 +25,7 @@ type Handler struct {
 // audience is the Google OAuth2 client ID used as the JWT audience (GOOGLE_CLIENT_ID).
 // tokens may be nil when no signing key is configured; CreateSession returns 500.
 // events may be nil (no DB, or explicitly disabled); telemetry is then skipped.
-func New(audience string, accountStore store.AccountStore, tokens *service.TokenService, events store.EventStore, logger *slog.Logger) *Handler {
+func New(audience string, accountStore AccountStore, tokens *service.TokenService, events EventStore, logger *slog.Logger) *Handler {
 	return &Handler{audience: audience, store: accountStore, tokens: tokens, events: events, logger: logger}
 }
 
@@ -103,7 +102,7 @@ func (h *Handler) CreateSession(c *gin.Context) {
 	}
 
 	h.logger.InfoContext(c.Request.Context(), "session created", "account_id", acc.ID)
-	h.recordEvent(c, acc.ID, req.DeviceID, store.EventLogin, req.AppVersion)
+	h.recordEvent(c, acc.ID, req.DeviceID, EventLogin, req.AppVersion)
 
 	c.JSON(http.StatusOK, tokenResponse{
 		AccessToken:  tokens.AccessToken,
@@ -140,7 +139,7 @@ func (h *Handler) RefreshSession(c *gin.Context) {
 		return
 	}
 
-	h.recordEvent(c, accountID, req.DeviceID, store.EventRefresh, req.AppVersion)
+	h.recordEvent(c, accountID, req.DeviceID, EventRefresh, req.AppVersion)
 
 	c.JSON(http.StatusOK, tokenResponse{
 		AccessToken:  tokens.AccessToken,
@@ -173,7 +172,7 @@ func (h *Handler) RevokeSession(c *gin.Context) {
 
 	// Only record signout when a known family was revoked (accountID non-empty).
 	if accountID != "" {
-		h.recordEvent(c, accountID, req.DeviceID, store.EventSignout, req.AppVersion)
+		h.recordEvent(c, accountID, req.DeviceID, EventSignout, req.AppVersion)
 	}
 
 	c.Status(http.StatusOK)

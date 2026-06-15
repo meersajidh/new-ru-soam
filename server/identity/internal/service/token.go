@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/meersajidh/ru-soam/server/identity/internal/model"
-	"github.com/meersajidh/ru-soam/server/identity/internal/store"
 	"github.com/meersajidh/ru-soam/server/identity/internal/util"
 )
 
@@ -28,14 +27,14 @@ type Tokens struct {
 // It is the offline-unit-testable core; the store dependency is injected.
 type TokenService struct {
 	signer     Signer
-	store      store.RefreshTokenStore
+	store      RefreshTokenStore
 	issuer     string
 	accessTTL  time.Duration
 	refreshTTL time.Duration
 }
 
 // NewTokenService creates a TokenService.
-func NewTokenService(signer Signer, tokenStore store.RefreshTokenStore, issuer string, accessTTL, refreshTTL time.Duration) *TokenService {
+func NewTokenService(signer Signer, tokenStore RefreshTokenStore, issuer string, accessTTL, refreshTTL time.Duration) *TokenService {
 	return &TokenService{
 		signer:     signer,
 		store:      tokenStore,
