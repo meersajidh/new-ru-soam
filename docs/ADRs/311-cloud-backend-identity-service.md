@@ -1,7 +1,7 @@
 # Cloud Backend identity service: node-first auth, ID-token verification, session JWT, usage telemetry
 
 **ID:** ADR-311
-**Status:** Accepted
+**Status:** Accepted (amended 2026-06-15 — see Amendment 1: sign-out is a local operation; login ≡ signup; revoke moves to delete-account)
 **Date:** 2026-06-14
 **Supersedes:** —
 **Superseded by:** —
@@ -161,3 +161,47 @@ Three prior Go auth codebases were reviewed (2026-06-14) as design inputs, not p
 - **O309b** — Subscription & licensing (plan-as-claim in the session JWT, offline license JWT, grace period). Own ADR; gated on this service existing. Also the home for any device-binding/fingerprint need.
 - **O23** — Operational/PHI sync conflict resolution. Phase **11b**, not here. (Working assumption for the data shape at hand: per-record last-write-wins + version counter, since concurrent collaborative edit is deferred — O121.)
 - **O28** — Crash-dump PHI scrubbing. This is the first telemetry surface (the named trigger); usage-login telemetry needs no scrubbing, crash-dump scrubbing stays deferred.
+
+## Amendment 1 (2026-06-15) — sign-out is a local operation; login ≡ signup; revoke moves to delete-account
+
+**Trigger.** The 11a.6 prod verification surfaced two "telemetry-flow" open items — **O472** (the `login` event is structurally near-uncapturable) and **O473** (sign-out orphans the cloud session with no way back). Working through them exposed that both are **category errors** introduced at *build* time (the 11a.5b / O471-phase-α client work), not gaps in this ADR's token model. §4–§5 already state the correct invariant — *Google is contacted exactly once, at sign-in; all subsequent session renewal is node↔our-server; identity ⟂ provider connectivity*. The build, however, wired **routine sign-out to revoke the server session** (`revokeOnSignOut` → delete the KEK-wrapped `cloud-session-token` + POST `/v1/revoke`), which is what manufactured the O473 orphan, and it treated `login` as if it were a recurring event, which is what made O472 look unsolvable. This amendment corrects the **session lifecycle semantics** to match the token model the ADR already chose. No change to the token model itself (§4), the OAuth boundary (§3), or the identity/provider split (§5).
+
+### A1.1 The two session events the user experiences (and what each does)
+
+Each **workspace is an account** (ADR-501; the account key is Google `sub`, §6). After the **one-time signup** (the only Google sign-in), there are exactly two recurring "session" events, and **neither involves Google or the server session**:
+
+| User action | What it is | Effect on the local KEK | Effect on the cloud session (our refresh token at rest) |
+| --- | --- | --- | --- |
+| **Lock / auto-lock** (2a) | Workstation-style lock | KEK evaporates; in-memory state cleared | **Kept.** Rotated via `/v1/refresh` at the next unlock. |
+| **Sign out** (2b) | Logoff → return to the account picker | KEK evaporates; in-memory state cleared | **Kept.** The picker loads *another* account; returning to this one and unlocking rotates *its* credential. |
+
+Sign-out (2b) differs from lock (2a) only in that it returns to the **account picker** (to switch accounts) instead of the unlock prompt for the same account. Both are **purely local**: the per-workspace `cloud-session-token` stays KEK-wrapped at rest, and the next unlock of that account rotates it. Because the refresh token is a **30-day sliding window** (rotated on every use), an account re-entered within 30 days **never re-contacts Google**.
+
+### A1.2 Revoke is an explicit account-end action, not routine logoff
+
+Tearing down the **server session** (POST `/v1/revoke` + delete the credential) is a deliberate, rare act — it belongs to **delete-account** (`soam:workspace:delete`, the Danger-Zone action that destroys the whole workspace), **not** to routine sign-out. There is no separate "disconnect cloud but keep the workspace" surface: telemetry already has its own three-mode off switch (it does not need session revocation to stop), and sync (11b) is future and separately consented. So:
+
+- **Routine sign-out / lock** → drop in-memory session state only; **keep** the stored credential; emit **no** `signout` telemetry (the cloud session is still alive server-side — emitting `signout` would be a lie).
+- **Delete-account** → while still unlocked, revoke the server session (best-effort `/v1/revoke`), emit the **one** honest `signout` telemetry event, then delete the credential and the workspace.
+
+### A1.3 `login` ≡ signup — there is no recurring login
+
+The §7 `login` session-event fires **only at signup** (the first and only Google sign-in, when the pending refresh token is first committed). Workspace **re-entry is not a login** — it is a `refresh`. Therefore:
+
+- **O472 dissolves.** Stop trying to make `login` capturable as a recurring event. Accept it as the **one-time signup marker** (best-effort; it may fire before the user can opt into telemetry, since the per-account mode defaults off — that is acceptable for a once-per-account event). The **recurring activity heartbeat is `refresh`** (emitted on every unlock), which *is* captured.
+- The closed event enum `{ login, refresh, signout }` is **unchanged**; only its semantics are clarified: `login` = signup (once), `refresh` = unlock/heartbeat (recurring), `signout` = explicit account-end (rare).
+
+### A1.4 The one path Google legitimately reappears for identity
+
+If an account is **idle past the 30-day refresh window**, the stored refresh token lapses; the next unlock's `/v1/refresh` returns `CloudAuthError`, the dead credential is cleared, and the account's cloud session is genuinely gone. Restoring it then requires a **fresh Google ID-token = a re-sign-in** (this is a *sign-in*, **not** a signup — the account already exists, keyed by `sub`). This is the **only** identity path where Google reappears after signup, and it is rare. A **"Reconnect to sync"** recovery entry point (re-run the Main OAuth → fresh `/v1/session` → commit while unlocked) is the recovery UX. It is **deferred** (telemetry is the only System-A consumer today, and it is opt-in/best-effort) → **O475**.
+
+### A1.5 Provider connectivity (System B) consent/scope strategy — deferred
+
+The Google grants for **provider APIs** (Calendar, Meet — §5, ADR-305 Flow-A, **domain**-owned, OS-keychain, server-independent) are a separate, unbuilt concern. Their open design question is **consent/scope strategy**: request provider scopes **incrementally per plugin** (cleaner credential isolation per ADR-310, but risks repeated auth prompts as Activities are added) vs **bundled** at a single consent moment (fewer prompts, weaker isolation). This is **not** part of identity and is deferred to the provider-connectivity ADR when Calendar/Meet build → **O476**.
+
+### A1.6 Status changes
+
+- **O472** — *Resolved by this amendment* (A1.3): `login` ≡ signup, one-time; recurring heartbeat is `refresh`.
+- **O473** — *Resolved by this amendment* (A1.1/A1.2): routine sign-out is local and keeps the credential; revoke moves to delete-account. The orphan cannot occur.
+- **O475** *(new)* — "Reconnect to sync" recovery UX for the 30-day-idle dead-refresh case (A1.4). Deferred.
+- **O476** *(new)* — Provider-grant consent/scope-prompt strategy (incremental vs bundled), System B / domain (A1.5). Deferred to the provider-connectivity ADR.

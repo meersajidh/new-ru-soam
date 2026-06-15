@@ -402,20 +402,14 @@ export function installLockChannel(
   ipcMain.handle('soam:workspace:sign-out', (event) => {
     if (!isPlatformSender(event)) return null;
 
-    // Revoke BEFORE relock — KEK is needed to unwrap the stored refresh token.
-    // revokeOnSignOut() synchronously clears local credential + fires best-effort
-    // POST /v1/revoke detached (never blocks sign-out, tolerates offline).
-    const workspaceId = workspaceRegistry.getActive();
-    const svc = getActiveLockService();
-    const kek = svc?.kekHandle() ?? null;
-    if (workspaceId && kek) {
-      cloudSessionService.revokeOnSignOut(workspaceId, kek);
-    } else {
-      // No KEK (workspace locked or no active workspace) — just clear volatile state.
-      cloudSessionService.clearVolatile();
-    }
+    // Routine sign-out is a LOCAL operation (ADR-311 Am1 A1.1/A1.2).
+    // Drop in-memory session state only — keep the KEK-wrapped cloud-session-token
+    // at rest so the next unlock of this account rotates it via /v1/refresh.
+    // Revoke (POST /v1/revoke + delete credential) belongs to delete-account only.
+    cloudSessionService.clearVolatile();
 
     // Relock current service and clear it
+    const svc = getActiveLockService();
     svc?.relock();
     telemetryService.stopWatcher();
     setActiveLockService(null);
@@ -472,6 +466,14 @@ export function installLockChannel(
         return { ok: false, code: 'nickname-mismatch' } satisfies DeleteWorkspaceResult;
       }
 
+      // d. Revoke cloud session BEFORE relock — KEK needed to unwrap stored refresh token.
+      //    Best-effort: never throws; tolerates offline (ADR-311 Am1 A1.2).
+      const kek = svc.kekHandle();
+      if (kek) {
+        cloudSessionService.revokeOnDisconnect(id, kek);
+      }
+      telemetryService.stopWatcher();
+
       // e. Close SQLite handle FIRST (open handle blocks dir removal on Windows).
       //    Also close the protected blob store (zeroes the in-memory blob key).
       localStoreManager.closeActive();
@@ -482,7 +484,8 @@ export function installLockChannel(
       rebindAutoLock(autoLockHandleRef, null);
       setActiveLockService(null);
 
-      // g. Erase credentials
+      // g. Erase credentials (deleteAllForWorkspace covers cloud-session-token +
+      //    any other workspace creds; idempotent after revokeOnDisconnect).
       credentialStore.deleteAllForWorkspace(id);
 
       // h. Remove workspace directory

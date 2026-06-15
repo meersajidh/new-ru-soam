@@ -14,9 +14,10 @@
  *   commitOrRefresh() finds no _pending → calls refreshOnUnlock(), which unwraps
  *   the stored refresh token and rotates it via POST /v1/refresh.
  *
- * Revoke flow (sign-out):
- *   revokeOnSignOut() synchronously clears local credential then fires best-effort
- *   POST /v1/revoke (detached, never blocks sign-out).
+ * Revoke flow (delete-account — explicit account-end, NOT routine sign-out):
+ *   revokeOnDisconnect() synchronously clears local credential then fires best-effort
+ *   POST /v1/revoke (detached, never blocks the delete path).
+ *   Routine sign-out / lock keeps the credential and rotates it on next unlock.
  *
  * Renderer NEVER sees access or refresh tokens — only {signedIn: boolean} (ADR-202/304).
  *
@@ -209,13 +210,17 @@ export class CloudSessionService {
   }
 
   /**
-   * Sign-out path: synchronously clear local credential (regardless of network),
-   * then fire best-effort POST /v1/revoke detached.
+   * Explicit account-end path (delete-account only — NOT routine sign-out or lock).
+   * Routine sign-out keeps the credential; revoke is reserved for when the user
+   * deliberately destroys the workspace (ADR-311 Am1 A1.1/A1.2).
+   *
+   * Synchronously clears the local credential, emits the one honest `signout`
+   * telemetry event, then fires best-effort POST /v1/revoke detached.
    *
    * MUST be called BEFORE relock() evaporates the KEK — the KEK is needed to
    * unwrap the stored refresh token for the revoke call.
    */
-  revokeOnSignOut(workspaceId: string, kek: Buffer): void {
+  revokeOnDisconnect(workspaceId: string, kek: Buffer): void {
     const stored = credentialStore.get(workspaceId, 'cloud-session-token');
     if (!stored) {
       this.clearVolatile();
@@ -228,7 +233,7 @@ export class CloudSessionService {
       const plain = decryptFromEnvelope(kek, env);
       refreshToken = plain.toString('utf8');
     } catch (err) {
-      console.warn('[CloudSessionService] revokeOnSignOut: failed to unwrap stored token — skipping revoke:', err);
+      console.warn('[CloudSessionService] revokeOnDisconnect: failed to unwrap stored token — skipping revoke:', err);
       credentialStore.delete(workspaceId, 'cloud-session-token');
       this.clearVolatile();
       return;
@@ -237,13 +242,13 @@ export class CloudSessionService {
     // Emit signout telemetry BEFORE clearVolatile() — token still held in memory.
     telemetryService.emit('signout', this._accessToken);
 
-    // Synchronous local sign-out — must complete regardless of network.
+    // Synchronous local disconnect — must complete regardless of network.
     credentialStore.delete(workspaceId, 'cloud-session-token');
     this.clearVolatile();
 
     // Best-effort: fire revoke detached. Server family expires on its own if offline.
     void postRevoke(refreshToken).catch((err) => {
-      console.warn('[CloudSessionService] revokeOnSignOut: revoke request failed (best-effort):', err instanceof Error ? err.message : String(err));
+      console.warn('[CloudSessionService] revokeOnDisconnect: revoke request failed (best-effort):', err instanceof Error ? err.message : String(err));
     });
   }
 

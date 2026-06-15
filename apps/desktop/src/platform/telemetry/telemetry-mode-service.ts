@@ -71,6 +71,11 @@ export class TelemetryModeService implements ITelemetryModeService {
 
   private async _reload(): Promise<void> {
     if (!this._proxy) return;
+    // O474: skip pref read if no workspace is active yet — avoids the
+    // [cap.not_found] "no active workspace" noise logged at boot before unlock.
+    // workspace.onChange already re-triggers _reload() once a workspace becomes active.
+    const active = await window.soam.workspace.getActive();
+    if (!active) return;
     try {
       const result = (await this._proxy.call('get', PREF_KEY)) as { value: string | null };
       const v = result?.value;
