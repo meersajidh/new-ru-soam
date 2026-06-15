@@ -170,8 +170,9 @@ export class CloudSessionService {
         // Rotate: replace stored credential with new refresh token (KEK still live).
         this.storeRefreshToken(workspaceId, kek, tokens.refreshToken);
         // Emit refresh telemetry after successful rotation.
+        // emit() drains any queued backlog itself on success (mode 'on') — no
+        // separate flush() call here (a redundant flush double-sends the queue).
         telemetryService.emit('refresh', tokens.accessToken);
-        telemetryService.flush(tokens.accessToken);
       } catch (err) {
         if (err instanceof CloudAuthError) {
           // Token dead (reuse / expired / family revoked) — clear credential, user must re-sign-in.
@@ -200,8 +201,8 @@ export class CloudSessionService {
     if (this._pending) {
       this.commitPending(workspaceId, kek);
       // Emit login telemetry AFTER commit succeeds (token committed = new session).
+      // emit() drains any queued backlog itself on success — no separate flush().
       telemetryService.emit('login', this._accessToken);
-      telemetryService.flush(this._accessToken);
     } else {
       this.refreshOnUnlock(workspaceId, kek);
     }

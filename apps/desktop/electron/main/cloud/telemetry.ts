@@ -33,6 +33,8 @@ const WATCHER_INTERVAL_MS = 45_000;
 class TelemetryService {
   private tokenProvider: (() => string | null) | null = null;
   private watcherTimer: NodeJS.Timeout | null = null;
+  /** True while a flush POST is in flight — coalesces concurrent flushes. */
+  private flushing = false;
 
   /**
    * Called once at Main boot to inject a live token getter.
@@ -106,6 +108,10 @@ class TelemetryService {
   flush(token: string | null): void {
     try {
       if (!token) return;
+      // In-flight guard: a single flush owns the queue at a time. Without this,
+      // concurrent flushes (emit's success handler + the net-watcher tick, etc.)
+      // each read the queue and POST it before either clears → duplicate sends.
+      if (this.flushing) return;
 
       const m = this.mode();
       if (m === 'off') {
@@ -116,6 +122,7 @@ class TelemetryService {
       const q = this.readQueue();
       if (q.length === 0) return;
 
+      this.flushing = true;
       void postEvents(token, q)
         .then(() => {
           this.clearQueue();
@@ -132,6 +139,9 @@ class TelemetryService {
           if (!(err instanceof CloudOfflineError) && !(err instanceof CloudAuthError)) {
             console.error('[TelemetryService] flush: unexpected error:', err);
           }
+        })
+        .finally(() => {
+          this.flushing = false;
         });
     } catch (err) {
       console.error('[TelemetryService] flush: caught synchronous error:', err);
