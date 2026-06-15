@@ -109,15 +109,16 @@ export function openProtectedStoreIfNeeded(workspaceId: string, svc: LockService
 }
 
 /**
- * Commit a pending cloud refresh token (if any) to CredentialStore, KEK-wrapped.
- * Called at every unlock seam alongside openProtectedStoreIfNeeded.
+ * Sync cloud session state at every unlock seam:
+ *   - New user (fresh sign-in): KEK-wrap and store the pending refresh token.
+ *   - Returning user: unwrap stored token, rotate via POST /v1/refresh (detached).
  * Guards on a live KEK — mirrors the openProtectedStoreIfNeeded guard.
- * Best-effort: CloudSessionService.commitPending() never throws.
+ * Best-effort: CloudSessionService.commitOrRefresh() never throws.
  */
-function commitCloudSessionIfPending(workspaceId: string, svc: LockService): void {
+function syncCloudSessionOnUnlock(workspaceId: string, svc: LockService): void {
   const kek = svc.kekHandle();
   if (kek === null) return;
-  cloudSessionService.commitPending(workspaceId, kek);
+  cloudSessionService.commitOrRefresh(workspaceId, kek);
 }
 
 export function installLockChannel(
@@ -161,7 +162,7 @@ export function installLockChannel(
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
         openProtectedStoreIfNeeded(workspaceId, svc);
-        commitCloudSessionIfPending(workspaceId, svc);
+        syncCloudSessionOnUnlock(workspaceId, svc);
         const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
         auditService.emit({
           event: 'workspace.unlock',
@@ -186,7 +187,7 @@ export function installLockChannel(
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
         openProtectedStoreIfNeeded(workspaceId, svc);
-        commitCloudSessionIfPending(workspaceId, svc);
+        syncCloudSessionOnUnlock(workspaceId, svc);
         const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
         auditService.emit({
           event: 'workspace.recovery.used',
@@ -294,7 +295,7 @@ export function installLockChannel(
       const workspaceId = workspaceRegistry.getActive();
       if (workspaceId) {
         openProtectedStoreIfNeeded(workspaceId, svc);
-        commitCloudSessionIfPending(workspaceId, svc);
+        syncCloudSessionOnUnlock(workspaceId, svc);
         const nickname = workspaceRegistry.getMeta(workspaceId)?.nickname;
         auditService.emit({
           event: 'workspace.setup.complete',
@@ -397,9 +398,21 @@ export function installLockChannel(
   ipcMain.handle('soam:workspace:sign-out', (event) => {
     if (!isPlatformSender(event)) return null;
 
+    // Revoke BEFORE relock — KEK is needed to unwrap the stored refresh token.
+    // revokeOnSignOut() synchronously clears local credential + fires best-effort
+    // POST /v1/revoke detached (never blocks sign-out, tolerates offline).
+    const workspaceId = workspaceRegistry.getActive();
+    const svc = getActiveLockService();
+    const kek = svc?.kekHandle() ?? null;
+    if (workspaceId && kek) {
+      cloudSessionService.revokeOnSignOut(workspaceId, kek);
+    } else {
+      // No KEK (workspace locked or no active workspace) — just clear volatile state.
+      cloudSessionService.clearVolatile();
+    }
+
     // Relock current service and clear it
-    getActiveLockService()?.relock();
-    cloudSessionService.clearVolatile(); // TODO(11a.5b / O471): also call POST /v1/revoke
+    svc?.relock();
     setActiveLockService(null);
 
     // Dispose auto-lock handle

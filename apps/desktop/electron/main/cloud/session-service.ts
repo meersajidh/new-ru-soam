@@ -2,26 +2,42 @@
  * CloudSessionService — owns the pending→committed refresh-token lifecycle
  * for the identity server (ADR-311 §4, O307f).
  *
- * Acquire flow:
+ * Acquire flow (new user / fresh sign-in):
  *   1. After Google OAuth, caller passes the id_token to acquire().
  *   2. acquire() posts to /v1/session (best-effort; never throws to caller).
  *   3. On success: access token held in memory; refresh token held as _pending.
  *   4. At the unlock seam (setup:acknowledge / unlock / unlock-recovery),
- *      lock-channel calls commitPending() which KEK-wraps and stores the refresh token.
+ *      lock-channel calls commitOrRefresh() which detects _pending and KEK-wraps
+ *      the refresh token into CredentialStore.
+ *
+ * Refresh flow (returning user):
+ *   commitOrRefresh() finds no _pending → calls refreshOnUnlock(), which unwraps
+ *   the stored refresh token and rotates it via POST /v1/refresh.
+ *
+ * Revoke flow (sign-out):
+ *   revokeOnSignOut() synchronously clears local credential then fires best-effort
+ *   POST /v1/revoke (detached, never blocks sign-out).
  *
  * Renderer NEVER sees access or refresh tokens — only {signedIn: boolean} (ADR-202/304).
  *
- * TODO(11a.5b / O471):
- *   - Returning-user refresh-on-unlock: call POST /v1/refresh with stored token on unlock.
- *   - Sign-out revocation: call POST /v1/revoke before clearing stored token.
- *   - Offline event queue: queue failed acquire() events, flush on reconnect.
+ * KEK lifetime note: kekHandle() returns the live Buffer held in LockService memory
+ * until the next relock event. The async refresh window (postRefresh network call)
+ * completes well before any relock could fire — the KEK is NOT zeroed by the unlock
+ * seam itself, only by the onDidChange(locked=true) handler. Therefore we reuse the
+ * live kek reference directly for the post-success re-wrap, without copying. This is
+ * documented and intentional (Phase α / O471).
  */
 
-import { app } from 'electron';
-import { encryptToEnvelope, encodeEnvelope } from '../crypto/envelope.js';
+import { encryptToEnvelope, encodeEnvelope, decodeEnvelope, decryptFromEnvelope } from '../crypto/envelope.js';
 import { credentialStore } from '../credentials/index.js';
-import { postSession, isCloudConfigured, CloudOfflineError } from './identity-client.js';
-import { getDeviceId } from './device-id.js';
+import {
+  postSession,
+  postRefresh,
+  postRevoke,
+  isCloudConfigured,
+  CloudOfflineError,
+  CloudAuthError,
+} from './identity-client.js';
 
 /**
  * Build the AAD for the cloud-session-token KEK-wrap envelope.
@@ -47,8 +63,12 @@ export class CloudSessionService {
    * Best-effort: post the id_token to the identity server and hold the result
    * in memory.  Never throws — sign-in must never fail due to cloud state.
    *
+   * Note: device_id / app_version NOT sent — telemetry decoupled to
+   * POST /v1/events (Phase β / O468). getDeviceId() and device-id.ts remain
+   * in place for Phase β use.
+   *
    * If a KEK is already available (workspace already unlocked), the pending
-   * refresh token is committed immediately.  Otherwise commitPending() is
+   * refresh token is committed immediately.  Otherwise commitOrRefresh() is
    * called later at the next unlock seam.
    */
   async acquire(idToken: string): Promise<void> {
@@ -56,7 +76,7 @@ export class CloudSessionService {
 
     let tokens;
     try {
-      tokens = await postSession(idToken, getDeviceId(), app.getVersion());
+      tokens = await postSession(idToken);
     } catch (err) {
       if (err instanceof CloudOfflineError) {
         console.warn('[CloudSessionService] acquire: server unreachable — continuing offline:', err.message);
@@ -71,32 +91,141 @@ export class CloudSessionService {
 
     this._accessToken = tokens.accessToken;
     this._pending = { refreshToken: tokens.refreshToken };
-    // commit deferred to next unlock seam (lock-channel calls commitPending).
-    // If the workspace is already unlocked when acquire() runs, lock-channel
-    // will call commitPending() at the *next* lock event — which for the new-user
-    // setup:acknowledge seam happens moments after sign-in anyway.
+    // commit deferred to next unlock seam (lock-channel calls commitOrRefresh).
+  }
+
+  /**
+   * KEK-wrap and persist a refresh token to CredentialStore.
+   * Extracted as a private helper — called by commitPending and refreshOnUnlock.
+   */
+  private storeRefreshToken(workspaceId: string, kek: Buffer, refreshToken: string): void {
+    const aad = buildCloudSessionTokenAad(workspaceId);
+    const envelope = encryptToEnvelope(kek, Buffer.from(refreshToken, 'utf8'), aad);
+    const bytes = Buffer.from(encodeEnvelope(envelope), 'utf8');
+    credentialStore.set(workspaceId, 'cloud-session-token', bytes);
   }
 
   /**
    * KEK-wrap the pending refresh token and persist it to CredentialStore.
-   * Called at every unlock seam (setup:acknowledge, unlock, unlock-recovery)
-   * by lock-channel.ts.  Idempotent: if no pending token, no-op.
+   * Called by commitOrRefresh when _pending is set (new-user / fresh-sign-in path).
+   * Idempotent: if no pending token, no-op.
    *
    * Best-effort: logs and swallows errors so the unlock path is never broken.
    */
-  commitPending(workspaceId: string, kek: Buffer): void {
+  private commitPending(workspaceId: string, kek: Buffer): void {
     if (!this._pending) return;
     const { refreshToken } = this._pending;
     try {
-      const aad = buildCloudSessionTokenAad(workspaceId);
-      const envelope = encryptToEnvelope(kek, Buffer.from(refreshToken, 'utf8'), aad);
-      const bytes = Buffer.from(encodeEnvelope(envelope), 'utf8');
-      credentialStore.set(workspaceId, 'cloud-session-token', bytes);
+      this.storeRefreshToken(workspaceId, kek, refreshToken);
       this._pending = null;
     } catch (err) {
       console.error('[CloudSessionService] commitPending: failed to store refresh token:', err);
       // Do NOT re-throw — unlock must not fail.
     }
+  }
+
+  /**
+   * Returning-user path: unwrap the stored refresh token, call POST /v1/refresh,
+   * and rotate the stored credential on success.
+   *
+   * Runs the network call in a detached async IIFE so the unlock seam returns
+   * immediately. The KEK reference is reused directly — it stays live in
+   * LockService memory until the next relock event, which cannot fire during
+   * the (short) network window (see module-level KEK lifetime note).
+   *
+   * Best-effort: no cloud/network failure ever throws out of an unlock seam.
+   */
+  private refreshOnUnlock(workspaceId: string, kek: Buffer): void {
+    const stored = credentialStore.get(workspaceId, 'cloud-session-token');
+    if (!stored) return; // no stored credential — no-op
+
+    let refreshToken: string;
+    try {
+      const env = decodeEnvelope(stored.toString('utf8'));
+      const plain = decryptFromEnvelope(kek, env);
+      refreshToken = plain.toString('utf8');
+    } catch (err) {
+      // Tampered or wrong-key envelope — treat as dead token.
+      console.warn('[CloudSessionService] refreshOnUnlock: failed to unwrap stored token — clearing:', err);
+      credentialStore.delete(workspaceId, 'cloud-session-token');
+      this.clearVolatile();
+      return;
+    }
+
+    // Detached async: unlock seam must not block on network.
+    void (async () => {
+      try {
+        const tokens = await postRefresh(refreshToken);
+        if (!tokens) return; // cloud unconfigured — no-op
+        this._accessToken = tokens.accessToken;
+        // Rotate: replace stored credential with new refresh token (KEK still live).
+        this.storeRefreshToken(workspaceId, kek, tokens.refreshToken);
+      } catch (err) {
+        if (err instanceof CloudAuthError) {
+          // Token dead (reuse / expired / family revoked) — clear credential, user must re-sign-in.
+          console.warn('[CloudSessionService] refreshOnUnlock: refresh token rejected — clearing credential:', err.message);
+          credentialStore.delete(workspaceId, 'cloud-session-token');
+          this.clearVolatile();
+        } else if (err instanceof CloudOfflineError) {
+          // Retryable — keep stored token, retry next unlock.
+          console.warn('[CloudSessionService] refreshOnUnlock: server offline — will retry next unlock:', err.message);
+        } else {
+          console.error('[CloudSessionService] refreshOnUnlock: unexpected error:', err);
+        }
+      }
+    })();
+  }
+
+  /**
+   * Called at every unlock seam (setup:acknowledge, unlock, unlock-recovery).
+   *
+   * If _pending (new-user / fresh sign-in): commitPending — KEK-wrap and store.
+   * Otherwise (returning user): refreshOnUnlock — unwrap, rotate via /v1/refresh.
+   *
+   * Replaces the per-seam commitPending call in lock-channel.ts.
+   */
+  commitOrRefresh(workspaceId: string, kek: Buffer): void {
+    if (this._pending) {
+      this.commitPending(workspaceId, kek);
+    } else {
+      this.refreshOnUnlock(workspaceId, kek);
+    }
+  }
+
+  /**
+   * Sign-out path: synchronously clear local credential (regardless of network),
+   * then fire best-effort POST /v1/revoke detached.
+   *
+   * MUST be called BEFORE relock() evaporates the KEK — the KEK is needed to
+   * unwrap the stored refresh token for the revoke call.
+   */
+  revokeOnSignOut(workspaceId: string, kek: Buffer): void {
+    const stored = credentialStore.get(workspaceId, 'cloud-session-token');
+    if (!stored) {
+      this.clearVolatile();
+      return;
+    }
+
+    let refreshToken: string;
+    try {
+      const env = decodeEnvelope(stored.toString('utf8'));
+      const plain = decryptFromEnvelope(kek, env);
+      refreshToken = plain.toString('utf8');
+    } catch (err) {
+      console.warn('[CloudSessionService] revokeOnSignOut: failed to unwrap stored token — skipping revoke:', err);
+      credentialStore.delete(workspaceId, 'cloud-session-token');
+      this.clearVolatile();
+      return;
+    }
+
+    // Synchronous local sign-out — must complete regardless of network.
+    credentialStore.delete(workspaceId, 'cloud-session-token');
+    this.clearVolatile();
+
+    // Best-effort: fire revoke detached. Server family expires on its own if offline.
+    void postRevoke(refreshToken).catch((err) => {
+      console.warn('[CloudSessionService] revokeOnSignOut: revoke request failed (best-effort):', err instanceof Error ? err.message : String(err));
+    });
   }
 
   /**

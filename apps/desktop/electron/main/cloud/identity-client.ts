@@ -9,13 +9,28 @@
  * null / false).  Sign-in MUST NOT fail due to cloud being unconfigured or
  * unreachable — every call is best-effort.
  *
- * TODO(11a.5b / O471): add postRefresh() and postRevoke() here once the
- * returning-user refresh-on-unlock and sign-out revocation paths are built.
+ * Phase α (O471): postSession / postRefresh / postRevoke are FUNCTIONAL AUTH only.
+ * Telemetry (device_id / app_version / session_events) is decoupled to
+ * POST /v1/events (Phase β / O468).
  */
 
 // Build-time baked identity base URL (prod fallback). Baked by vite.main.config.ts
 // from IDENTITY_BASE_URL env var at package time. Empty when not set.
 declare const __IDENTITY_BASE_URL__: string;
+
+/**
+ * Thrown on non-retryable auth failure: HTTP 401 or other 4xx from the identity
+ * server, indicating the refresh token is dead (reuse-detected / expired /
+ * family revoked).  Distinct from CloudOfflineError (network/timeout/5xx = retryable).
+ */
+export class CloudAuthError extends Error {
+  readonly statusCode: number;
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.name = 'CloudAuthError';
+    this.statusCode = statusCode;
+  }
+}
 
 /** Thrown on network error, timeout, or non-2xx response from the identity server. */
 export class CloudOfflineError extends Error {
@@ -62,12 +77,11 @@ export function isCloudConfigured(): boolean {
  * Returns `null` when cloud is not configured (disabled, non-error).
  * Throws `CloudOfflineError` on network failure, timeout, or non-2xx response
  * so callers can treat cloud contact as best-effort.
+ *
+ * Note: device_id / app_version NOT sent here — telemetry decoupled to
+ * POST /v1/events (Phase β / O468).
  */
-export async function postSession(
-  idToken: string,
-  deviceId: string,
-  appVersion: string,
-): Promise<SessionTokens | null> {
+export async function postSession(idToken: string): Promise<SessionTokens | null> {
   const baseUrl = resolveBaseUrl();
   if (!baseUrl) return null;
 
@@ -80,7 +94,7 @@ export async function postSession(
       resp = await fetch(`${baseUrl}/v1/session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_token: idToken, device_id: deviceId, app_version: appVersion }),
+        body: JSON.stringify({ id_token: idToken }),
         signal: controller.signal,
       });
     } catch (err) {
@@ -94,9 +108,7 @@ export async function postSession(
       } catch {
         // ignore
       }
-      throw new CloudOfflineError(
-        `Identity server returned ${resp.status}: ${body}`,
-      );
+      throw new CloudOfflineError(`Identity server returned ${resp.status}: ${body}`);
     }
 
     const data = (await resp.json()) as SessionResponse;
@@ -105,6 +117,108 @@ export async function postSession(
       refreshToken: data.refresh_token,
       expiresIn: data.expires_in,
     };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * POST /v1/refresh — rotate the refresh token and get a fresh access JWT.
+ *
+ * Returns `null` when cloud is not configured (disabled, non-error).
+ * Throws `CloudAuthError` on HTTP 401/4xx (token dead — reuse / expired / revoked).
+ * Throws `CloudOfflineError` on network failure, timeout, or 5xx (retryable).
+ */
+export async function postRefresh(refreshToken: string): Promise<SessionTokens | null> {
+  const baseUrl = resolveBaseUrl();
+  if (!baseUrl) return null;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    let resp: Response;
+    try {
+      resp = await fetch(`${baseUrl}/v1/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw new CloudOfflineError(`Identity server unreachable: ${String(err)}`, err);
+    }
+
+    if (resp.status >= 400 && resp.status < 500) {
+      let body = '';
+      try {
+        body = await resp.text();
+      } catch {
+        // ignore
+      }
+      throw new CloudAuthError(
+        `Refresh token rejected (${resp.status}): ${body}`,
+        resp.status,
+      );
+    }
+
+    if (!resp.ok) {
+      let body = '';
+      try {
+        body = await resp.text();
+      } catch {
+        // ignore
+      }
+      throw new CloudOfflineError(`Identity server returned ${resp.status}: ${body}`);
+    }
+
+    const data = (await resp.json()) as SessionResponse;
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresIn: data.expires_in,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * POST /v1/revoke — revoke the token family (best-effort, idempotent).
+ *
+ * No-op when cloud is not configured.
+ * Throws `CloudOfflineError` on network failure, timeout, or non-2xx (caller swallows).
+ * Server revoke is idempotent — offline failures are tolerable; family expires on its own.
+ */
+export async function postRevoke(refreshToken: string): Promise<void> {
+  const baseUrl = resolveBaseUrl();
+  if (!baseUrl) return;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    let resp: Response;
+    try {
+      resp = await fetch(`${baseUrl}/v1/revoke`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw new CloudOfflineError(`Identity server unreachable: ${String(err)}`, err);
+    }
+
+    if (!resp.ok) {
+      let body = '';
+      try {
+        body = await resp.text();
+      } catch {
+        // ignore
+      }
+      throw new CloudOfflineError(`Identity server returned ${resp.status}: ${body}`);
+    }
   } finally {
     clearTimeout(timer);
   }
