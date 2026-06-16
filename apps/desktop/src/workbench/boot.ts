@@ -457,6 +457,34 @@ export function boot(): ServiceRegistry {
   }
   cloudSession.onChange(updateSyncStateEntry);
 
+  // ── Cloud-session disconnect notification ─────────────────────────────────
+  // Toast + Notification-panel entry when a LIVE session goes dead (refresh token
+  // expired / rejected / revoked — proactive rotation found it unusable). Gated on
+  // a genuine signed-in → signed-out transition so we don't toast the initial
+  // boot-disconnected state (the status-bar icon already flags that) and only while
+  // the workspace is unlocked + visible. Auto-dismissed once reconnected.
+  let prevSignedIn: boolean | null = null;
+  let deadSessionNotifId: string | null = null;
+  cloudSession.onChange((s) => {
+    const unlockedVisible = syncSetupComplete && !syncLocked && syncNickname.length > 0;
+    if (prevSignedIn === true && !s.signedIn && unlockedVisible && deadSessionNotifId === null) {
+      deadSessionNotifId = notifications.push({
+        severity: 'warning',
+        title: 'Cloud sync disconnected',
+        message: 'Your session expired or was revoked. Reconnect to keep syncing.',
+        sticky: true,
+        actions: [
+          { label: 'Reconnect', onClick: () => void commands.execute('workbench.cloudReconnect') },
+        ],
+      });
+    }
+    if (s.signedIn && deadSessionNotifId !== null) {
+      notifications.dismiss(deadSessionNotifId);
+      deadSessionNotifId = null;
+    }
+    prevSignedIn = s.signedIn;
+  });
+
   // ── workbench.cloudReconnect command ──────────────────────────────────────
   commands.register(
     'workbench.cloudReconnect',
@@ -466,6 +494,14 @@ export function boot(): ServiceRegistry {
         const result = await cloudSession.reconnect();
         if (!result.ok) {
           console.warn('[workbench] cloudReconnect failed:', result.error);
+          // Surface the failure (e.g. identity-mismatch) — the status-bar click
+          // path has no inline error area like SettingsMenu does.
+          notifications.push({
+            severity: 'warning',
+            title: 'Reconnect failed',
+            message: result.error,
+            sticky: false,
+          });
         }
       } catch (err) {
         console.error('[workbench] cloudReconnect: unexpected error:', err);

@@ -77,9 +77,9 @@ export class CloudSessionService implements ICloudSessionService {
       return { ok: false, error: 'Auth capability not available.' };
     }
     try {
-      const result = (await this._authProxy.call('signInWithGoogle')) as
+      const result = (await this._authProxy.call('signInWithGoogle', { intent: 'reconnect' })) as
         | { ok: true; email: string; googleId: string }
-        | { ok: false; code: string; message?: string };
+        | { ok: false; code: string; message?: string; boundEmail?: string };
       if (result.ok) {
         // Main emits cloud.session.changed when the token commits, which updates
         // _state.signedIn via the subscription above. Re-fetch to pick up any
@@ -87,7 +87,11 @@ export class CloudSessionService implements ICloudSessionService {
         void this._reload();
         return { ok: true };
       }
-      return { ok: false, error: result.message ?? `Sign-in failed (${result.code}).` };
+      const error =
+        result.code === 'identity-mismatch'
+          ? `This account belongs to ${result.boundEmail ?? 'another account'}. Sign in with that account to reconnect.`
+          : (result.message ?? `Sign-in failed (${result.code}).`);
+      return { ok: false, error };
     } catch (err) {
       return {
         ok: false,

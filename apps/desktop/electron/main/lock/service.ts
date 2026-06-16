@@ -472,7 +472,7 @@ export class LockService {
    * Decrypt and return the workspace identity.
    * Returns null if locked, not set up, or decryption fails.
    */
-  getIdentity(): { email: string } | null {
+  getIdentity(): { email: string; googleId?: string } | null {
     if (this._kek === null) return null;
     return readIdentity(this._workspaceId, this._kek);
   }
