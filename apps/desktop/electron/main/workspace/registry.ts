@@ -127,7 +127,10 @@ export class WorkspaceRegistry {
    * Returns null if the file is absent or corrupt.
    */
   getMeta(workspaceId: string): WorkspaceMeta | null {
-    const p = metaPath(workspaceId);
+    // Use a PURE path here — metaPath()/workspaceDir() mkdir as a side effect,
+    // which would recreate a deleted/stale workspace dir merely by reading it
+    // (e.g. the boot stale-pointer guard checking getMeta on a removed dir).
+    const p = path.join(userDataRoot(), 'workspaces', workspaceId, 'meta.json');
     if (!fs.existsSync(p)) return null;
     try {
       const raw = fs.readFileSync(p, 'utf8');

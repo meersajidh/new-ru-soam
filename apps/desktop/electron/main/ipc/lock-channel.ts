@@ -333,8 +333,12 @@ export function installLockChannel(
       return { ok: false, code: 'unknown-workspace' } satisfies WorkspaceSetActiveResult;
     }
 
-    // Dispose current LockService + auto-lock handle
+    // Dispose current LockService + auto-lock handle.
+    // Snapshot any in-flight pending token BEFORE the relock — the outgoing
+    // workspace's onDidChange(locked) fires clearVolatile() which zeros _pendingIdToken.
+    // This preserves a fresh-signup pending across an account/workspace switch.
     const currentSvc = getActiveLockService();
+    const preservedPending = cloudSessionService.takePending();
     if (currentSvc) currentSvc.relock();
     rebindAutoLock(autoLockHandleRef, null);
 
@@ -370,6 +374,11 @@ export function installLockChannel(
     workspaceRegistry.setActive(workspaceId);
     emitWorkspaceChanged(getWindow);
     emitLockChanged(getWindow, getActiveLockService);
+
+    // Restore any pending token that was preserved before the outgoing relock.
+    // commitOrRefresh() (called at acknowledge/unlock) will commit it to the
+    // correct target workspace only if that workspace has no stored credential.
+    cloudSessionService.restorePending(preservedPending);
 
     return { ok: true } satisfies WorkspaceSetActiveResult;
   });

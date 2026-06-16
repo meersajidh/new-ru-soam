@@ -33,6 +33,7 @@ import { localStoreManager } from './local-store/index';
 import { auditService } from './audit/index';
 // Phase 9: crypto + credentials + lock + workspace
 import { credentialStore } from './credentials/index';
+import { metadataExists } from './lock/storage';
 import { ensureLocalStoreDbKey } from './credentials/db-key';
 import { LockService } from './lock/service';
 import { workspaceRegistry } from './workspace/registry';
@@ -161,16 +162,44 @@ app.whenReady().then(() => {
   // 3. Resolve active LockService
   const activeId = workspaceRegistry.getActive();
   if (activeId) {
-    const svc = new LockService(activeId);
-    setActiveLockService(svc);
-    // Always provision db-key regardless of metadataExists (setup-pending
-    // workspaces need a key too — the store is opened before setup completes).
-    const dbKey = ensureLocalStoreDbKey(activeId);
-    // Phase 10b: open the Local Store encrypted. See ADR-302 §"Class 2".
-    // openFor() consumes + zeros the key buffer in its finally block.
-    localStoreManager.openFor(activeId, dbKey);
+    // Guard: only trust the active pointer when the workspace has a valid meta.json.
+    // A stale pointer (manually deleted / corrupt workspace dir) must not create a
+    // ghost LockService or recreate the store directory — clear it and fall through.
+    if (workspaceRegistry.getMeta(activeId) === null) {
+      console.warn('[boot] active workspace pointer stale (no meta.json) — clearing:', activeId);
+      workspaceRegistry.setActive(null);
+    } else {
+      const svc = new LockService(activeId);
+      setActiveLockService(svc);
+      // Always provision db-key regardless of metadataExists (setup-pending
+      // workspaces need a key too — the store is opened before setup completes).
+      const dbKey = ensureLocalStoreDbKey(activeId);
+      // Phase 10b: open the Local Store encrypted. See ADR-302 §"Class 2".
+      // openFor() consumes + zeros the key buffer in its finally block.
+      localStoreManager.openFor(activeId, dbKey);
+    }
   }
   // Else: no active workspace — renderer routes to pre-workspace state
+
+  // Sweep abandoned setup-pending workspaces: have meta.json (create ran) but no
+  // lock.json (setupAcknowledge never completed = abandoned signup). Skip the active
+  // workspace — an active setup-pending workspace is a legit interrupted setup the
+  // renderer resumes via /setup/keys. (No real user data exists without lock.json.)
+  {
+    const activeIdForSweep = workspaceRegistry.getActive();
+    for (const meta of workspaceRegistry.list()) {
+      if (meta.workspaceId === activeIdForSweep) continue;
+      if (!metadataExists(meta.workspaceId)) {
+        console.warn('[boot] sweeping abandoned setup-pending workspace:', meta.workspaceId);
+        try {
+          credentialStore.deleteAllForWorkspace(meta.workspaceId);
+          workspaceRegistry.delete(meta.workspaceId);
+        } catch (err) {
+          console.error('[boot] failed to sweep workspace', meta.workspaceId, err);
+        }
+      }
+    }
+  }
 
   // 4. Start auto-lock if we have an active service
   rebindAutoLock(autoLockHandleRef, getActiveLockService());

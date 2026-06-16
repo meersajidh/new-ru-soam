@@ -1,18 +1,17 @@
 /**
- * CloudSessionService — owns the pending→committed refresh-token lifecycle
+ * CloudSessionService — owns the held-ID-token→committed refresh-token lifecycle
  * for the identity server (ADR-311 §4, O307f).
  *
- * Acquire flow (new user / fresh sign-in):
- *   1. After Google OAuth, caller passes the id_token to acquire().
- *   2. acquire() posts to /v1/session (best-effort; never throws to caller).
- *   3. On success: access token held in memory; refresh token held as _pending.
- *      expiresIn is also stashed so commitOrRefresh can schedule rotation.
- *   4. At the unlock seam (setup:acknowledge / unlock / unlock-recovery),
- *      lock-channel calls commitOrRefresh() which detects _pending and KEK-wraps
- *      the refresh token into CredentialStore.
+ * Sign-in flow (new user / fresh sign-in):
+ *   1. After Google OAuth, caller passes the id_token to holdIdToken().
+ *   2. holdIdToken() stores it in _pendingIdToken — NO server contact yet.
+ *   3. At the unlock/acknowledge seam (setup:acknowledge / unlock / unlock-recovery),
+ *      lock-channel calls commitOrRefresh() which detects _pendingIdToken and posts
+ *      to /v1/session, then KEK-wraps the returned refresh token into CredentialStore.
+ *      If the user abandons signup before that seam, no server account is created.
  *
  * Refresh flow (returning user):
- *   commitOrRefresh() finds no _pending → calls doRotate(), which unwraps the
+ *   commitOrRefresh() finds no _pendingIdToken → calls doRotate(), which unwraps the
  *   stored refresh token and rotates it via POST /v1/refresh. On success a
  *   proactive rotation timer is scheduled for (expiresIn - 60) seconds so the
  *   session never goes stale while the workspace is unlocked.
@@ -29,14 +28,14 @@
  *   clears local credential, then fires best-effort POST /v1/account/delete (detached).
  *   Routine sign-out / lock keeps the credential and rotates it on next unlock.
  *
- * Renderer NEVER sees access or refresh tokens — only {signedIn: boolean} (ADR-202/304).
+ * Renderer NEVER sees access, refresh, or ID tokens — only {signedIn: boolean} (ADR-202/304).
  *
  * KEK lifetime note: kekHandle() returns the live Buffer held in LockService memory
- * until the next relock event. The async refresh window (postRefresh network call)
- * completes well before any relock could fire — the KEK is NOT zeroed by the unlock
- * seam itself, only by the onDidChange(locked=true) handler. Therefore we reuse the
- * live kek reference directly for the post-success re-wrap, without copying. This is
- * documented and intentional (Phase α / O471).
+ * until the next relock event. The async refresh window (postRefresh / postSession
+ * network call) completes well before any relock could fire — the KEK is NOT zeroed
+ * by the unlock seam itself, only by the onDidChange(locked=true) handler. Therefore
+ * we reuse the live kek reference directly for the post-success re-wrap, without
+ * copying. This is documented and intentional (Phase α / O471).
  */
 
 import { encryptToEnvelope, encodeEnvelope, decodeEnvelope, decryptFromEnvelope } from '../crypto/envelope.js';
@@ -82,8 +81,10 @@ function buildCloudSessionTokenAad(workspaceId: string): Buffer {
 
 /** Singleton cloud session service. */
 export class CloudSessionService {
-  /** Refresh token waiting to be KEK-wrapped (not yet committed to CredentialStore). */
-  private _pending: { refreshToken: string; expiresIn: number } | null = null;
+  /** ID-token from OAuth, held in memory until the unlock/acknowledge seam.
+   *  The /v1/session exchange (and server account creation) is deferred to
+   *  commitOrRefresh(). Never sent to renderer. Cleared on clearVolatile(). */
+  private _pendingIdToken: string | null = null;
 
   /** Current in-memory access token (short-lived; not persisted). */
   private _accessToken: string | null = null;
@@ -128,70 +129,53 @@ export class CloudSessionService {
   }
 
   /**
-   * Best-effort: post the id_token to the identity server and hold the result
-   * in memory.  Never throws — sign-in must never fail due to cloud state.
-   *
-   * Note: device_id / app_version NOT sent — telemetry decoupled to
-   * POST /v1/events (Phase β / O468). getDeviceId() and device-id.ts remain
-   * in place for Phase β use.
-   *
-   * If a KEK is already available (workspace already unlocked), the pending
-   * refresh token is committed immediately.  Otherwise commitOrRefresh() is
-   * called later at the next unlock seam.
+   * Hold the OAuth ID-token in memory; the /v1/session exchange is deferred to
+   * commitOrRefresh() at the next unlock/acknowledge seam. No server contact here.
+   * If cloud is not configured, no-op. Never throws.
    */
-  async acquire(idToken: string): Promise<void> {
+  holdIdToken(idToken: string): void {
     if (!isCloudConfigured()) return;
+    this._pendingIdToken = idToken;
+  }
 
-    let tokens;
-    try {
-      tokens = await postSession(idToken);
-    } catch (err) {
-      if (err instanceof CloudOfflineError) {
-        console.warn('[CloudSessionService] acquire: server unreachable — continuing offline:', err.message);
-        return;
+  /**
+   * Detached: POST /v1/session with the held ID-token, then KEK-wrap+store the
+   * returned refresh token, schedule rotation, emit login telemetry + session-change.
+   * Best-effort — never throws. On offline/auth failure the sign-in simply does not
+   * complete (no credential stored); the workspace stays cloud-disconnected.
+   */
+  private exchangeAndCommit(workspaceId: string, kek: Buffer, idToken: string): void {
+    void (async () => {
+      try {
+        const tokens = await postSession(idToken);
+        if (!tokens) return; // cloud unconfigured — no-op
+        this._accessToken = tokens.accessToken;
+        this.storeRefreshToken(workspaceId, kek, tokens.refreshToken);
+        this.scheduleRotation(tokens.expiresIn);
+        telemetryService.emit('login', this._accessToken);
+        this._emitSessionChange?.(true);
+      } catch (err) {
+        if (err instanceof CloudOfflineError) {
+          console.warn('[CloudSessionService] exchangeAndCommit: server offline — sign-in deferred:', err.message);
+        } else if (err instanceof CloudAuthError) {
+          console.warn('[CloudSessionService] exchangeAndCommit: id-token rejected:', err.message);
+        } else {
+          console.error('[CloudSessionService] exchangeAndCommit: unexpected error:', err);
+        }
+        // Do NOT emit session-change(false) — renderer default is disconnected.
       }
-      // Unexpected error — log but don't propagate.
-      console.error('[CloudSessionService] acquire: unexpected error:', err);
-      return;
-    }
-
-    if (!tokens) return; // cloud not configured — no-op
-
-    this._accessToken = tokens.accessToken;
-    this._pending = { refreshToken: tokens.refreshToken, expiresIn: tokens.expiresIn };
-    // commit deferred to next unlock seam (lock-channel calls commitOrRefresh).
+    })();
   }
 
   /**
    * KEK-wrap and persist a refresh token to CredentialStore.
-   * Extracted as a private helper — called by commitPending and doRotate.
+   * Extracted as a private helper — called by exchangeAndCommit and doRotate.
    */
   private storeRefreshToken(workspaceId: string, kek: Buffer, refreshToken: string): void {
     const aad = buildCloudSessionTokenAad(workspaceId);
     const envelope = encryptToEnvelope(kek, Buffer.from(refreshToken, 'utf8'), aad);
     const bytes = Buffer.from(encodeEnvelope(envelope), 'utf8');
     credentialStore.set(workspaceId, 'cloud-session-token', bytes);
-  }
-
-  /**
-   * KEK-wrap the pending refresh token and persist it to CredentialStore.
-   * Called by commitOrRefresh when _pending is set (new-user / fresh-sign-in path).
-   * Idempotent: if no pending token, no-op.
-   *
-   * Best-effort: logs and swallows errors so the unlock path is never broken.
-   */
-  private commitPending(workspaceId: string, kek: Buffer): void {
-    if (!this._pending) return;
-    const { refreshToken, expiresIn } = this._pending;
-    try {
-      this.storeRefreshToken(workspaceId, kek, refreshToken);
-      this._pending = null;
-      // Schedule proactive rotation from the stashed expiresIn.
-      this.scheduleRotation(expiresIn);
-    } catch (err) {
-      console.error('[CloudSessionService] commitPending: failed to store refresh token:', err);
-      // Do NOT re-throw — unlock must not fail.
-    }
   }
 
   /**
@@ -270,23 +254,58 @@ export class CloudSessionService {
   /**
    * Called at every unlock seam (setup:acknowledge, unlock, unlock-recovery).
    *
-   * If _pending (new-user / fresh sign-in): commitPending — KEK-wrap and store.
-   * Otherwise (returning user): doRotate with telemetry.
+   * If _pendingIdToken and the workspace has no stored credential (fresh signup):
+   *   exchangeAndCommit — POST /v1/session with the held ID-token, KEK-wrap +
+   *   store the result, schedule rotation, emit login telemetry, notify renderer.
+   *   All network I/O is detached (best-effort); the unlock seam never blocks.
+   * Otherwise (returning user, or no held ID-token):
+   *   drop any stale held ID-token, doRotate with telemetry.
+   *
+   * The `!hasStored` guard prevents re-exchanging an ID-token for a DIFFERENT
+   * workspace (e.g. token survived a setActive switch via takePending/restorePending)
+   * from overwriting an existing credential on an unrelated workspace.
    *
    * Replaces the per-seam commitPending call in lock-channel.ts.
    */
   commitOrRefresh(workspaceId: string, kek: Buffer): void {
     this._activeWorkspaceId = workspaceId;
-    if (this._pending) {
-      this.commitPending(workspaceId, kek);
-      // Emit login telemetry AFTER commit succeeds (token committed = new session).
-      // emit() drains any queued backlog itself on success — no separate flush().
-      telemetryService.emit('login', this._accessToken);
-      // Notify renderer: session is live.
-      this._emitSessionChange?.(true);
+    const hasStored = credentialStore.get(workspaceId, 'cloud-session-token') !== null;
+    if (this._pendingIdToken && !hasStored) {
+      // Fresh workspace, never signed in — exchange the held ID-token now and commit.
+      const idToken = this._pendingIdToken;
+      this._pendingIdToken = null;
+      this.exchangeAndCommit(workspaceId, kek, idToken);
     } else {
+      // Existing workspace (or no held token) — drop any stale held token, rotate.
+      this._pendingIdToken = null;
       this.doRotate(workspaceId, kek, { emitTelemetry: true });
     }
+  }
+
+  /**
+   * Temporarily extract the held ID-token so a workspace switch (`setActive`)
+   * can preserve it across the outgoing relock, which would otherwise zero it
+   * via clearVolatile().
+   *
+   * Caller is responsible for restoring via restorePending().
+   *
+   * @returns The current held ID-token (or null if none), clearing _pendingIdToken.
+   */
+  takePending(): string | null {
+    const idToken = this._pendingIdToken;
+    this._pendingIdToken = null;
+    return idToken;
+  }
+
+  /**
+   * Restore a held ID-token previously taken with takePending().
+   * Replaces any current _pendingIdToken (in practice it is null at this point
+   * because clearVolatile() ran during the relock that prompted the take).
+   *
+   * @param idToken  The snapshot returned by takePending(), or null for no-op.
+   */
+  restorePending(idToken: string | null): void {
+    this._pendingIdToken = idToken;
   }
 
   /**
@@ -406,7 +425,7 @@ export class CloudSessionService {
   clearVolatile(): void {
     this.stopRotation();
     this._accessToken = null;
-    this._pending = null;
+    this._pendingIdToken = null;
     this._activeWorkspaceId = null;
   }
 }

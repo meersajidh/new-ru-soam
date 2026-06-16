@@ -7,10 +7,12 @@
  *     on success. Returns { ok: false, code: 'not-configured' } when GOOGLE_CLIENT_ID /
  *     GOOGLE_CLIENT_SECRET are absent — defensive guard only; the app now exits at launch
  *     if credentials are missing, so this code path is not normally reachable.
- *     After obtaining identity, best-effort contacts the identity server (ADR-311 §3) to
- *     acquire a session JWT + refresh token (CloudSessionService.acquire).  Server contact
- *     is never returned to the renderer — only { ok, email, googleId } crosses the IPC
- *     boundary (ADR-202/304).
+ *     After obtaining identity, the ID-token is held in memory via holdIdToken() —
+ *     NO server contact occurs here. The /v1/session exchange is deferred to
+ *     commitOrRefresh() at the unlock/acknowledge seam (ADR-311 §3). This ensures that
+ *     abandoning signup mid-wizard leaves no orphan server account or token.
+ *     Tokens are never returned to the renderer — only { ok, email, googleId } crosses
+ *     the IPC boundary (ADR-202/304).
  *
  *   getCloudSessionStatus(): CloudSessionStatusResult
  *     Returns { ok: true, signedIn: boolean } indicating whether a cloud session exists
@@ -19,7 +21,7 @@
  *
  * ADR-202: renderer reaches this through bindCapability('platform.auth', '1.0').
  * ADR-304: tokens are discarded in oauth.ts and never returned to renderer.
- * ADR-311: id_token posted to identity server in Main only; result stored KEK-wrapped.
+ * ADR-311: /v1/session exchange happens in Main at the unlock seam, not at OAuth time.
  * NOT PHI-flagged: OAuth fires at step 1 BEFORE the workspace and KEK exist.
  */
 
@@ -46,9 +48,11 @@ export function registerPlatformAuthCapability(): void {
         try {
           const identity = await signInWithGoogle();
 
-          // Best-effort: contact identity server and hold refresh token in memory.
-          // Never throws — sign-in must not block on or fail due to server state.
-          await cloudSessionService.acquire(identity.idToken);
+          // Hold the ID-token in memory; the /v1/session exchange is deferred to
+          // commitOrRefresh() at the next unlock/acknowledge seam. No server
+          // contact here — abandoning signup before that seam leaves no orphan
+          // server account. Never throws.
+          cloudSessionService.holdIdToken(identity.idToken);
 
           // O475 commit-while-unlocked: if a workspace is already active and
           // unlocked (e.g. Settings → Reconnect to sync), commit the pending
