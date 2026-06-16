@@ -13,7 +13,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { userDataRoot, activeWorkspacePath, workspaceDir, metaPath } from './paths.js';
+import { userDataRoot, activeWorkspacePath, ensureWorkspaceDir, metaPath } from './paths.js';
 
 export interface WorkspaceMeta {
   readonly workspaceId: string;
@@ -109,8 +109,8 @@ export class WorkspaceRegistry {
     }
 
     const workspaceId = crypto.randomUUID();
-    // Ensure dir exists (workspaceDir does mkdir)
-    workspaceDir(workspaceId);
+    // Genuine birth of the workspace dir — the one explicit creation site.
+    ensureWorkspaceDir(workspaceId);
 
     const metaFile: MetaFile = {
       nickname: args.nickname,
@@ -127,10 +127,9 @@ export class WorkspaceRegistry {
    * Returns null if the file is absent or corrupt.
    */
   getMeta(workspaceId: string): WorkspaceMeta | null {
-    // Use a PURE path here — metaPath()/workspaceDir() mkdir as a side effect,
-    // which would recreate a deleted/stale workspace dir merely by reading it
-    // (e.g. the boot stale-pointer guard checking getMeta on a removed dir).
-    const p = path.join(userDataRoot(), 'workspaces', workspaceId, 'meta.json');
+    // metaPath() is pure (O481) — reading it never creates the workspace dir,
+    // so the boot stale-pointer guard can safely check a removed workspace.
+    const p = metaPath(workspaceId);
     if (!fs.existsSync(p)) return null;
     try {
       const raw = fs.readFileSync(p, 'utf8');

@@ -17,6 +17,7 @@
  */
 
 import fs from 'fs';
+import { ensureWorkspaceDir } from '../workspace/paths.js';
 import { rateLimitPath } from './paths.js';
 
 interface RateLimitState {
@@ -44,6 +45,7 @@ function read(workspaceId: string): RateLimitState {
 }
 
 function write(workspaceId: string, state: RateLimitState): void {
+  ensureWorkspaceDir(workspaceId);
   fs.writeFileSync(rateLimitPath(workspaceId), JSON.stringify(state, null, 2), 'utf8');
 }
 

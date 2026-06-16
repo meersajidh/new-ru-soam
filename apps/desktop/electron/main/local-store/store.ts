@@ -28,6 +28,7 @@ import { unlinkSync } from 'fs';
 import Database from 'better-sqlite3';
 import type DatabaseT from 'better-sqlite3';
 import { localStoreDbPath, protectedStoreDbPath } from './paths.js';
+import { ensureWorkspaceDir } from '../workspace/paths.js';
 import { runMigrations } from './migrations.js';
 import type { StoreResidency } from './migrations.js';
 import type { StoreChangedPayload } from '../../shared/ipc-protocol.js';
@@ -100,6 +101,7 @@ export class LocalStore {
         `LocalStore.open(${workspaceId}) refused: already open for ${this._workspaceId}`,
       );
     }
+    ensureWorkspaceDir(workspaceId);
     const dbPath = residency === 'protected'
       ? protectedStoreDbPath(workspaceId)
       : localStoreDbPath(workspaceId);

@@ -9,7 +9,7 @@
 
 import fs from 'fs';
 import { encryptToEnvelope, decryptFromEnvelope, canonicalJson } from '../crypto/envelope.js';
-import { identityPath } from './paths.js';
+import { identityPath, ensureWorkspaceDir } from './paths.js';
 
 export interface Identity {
   readonly email: string;
@@ -31,6 +31,7 @@ function buildIdentityAad(workspaceId: string): Buffer {
  * @param identity     Plain-data identity object.
  */
 export function writeIdentity(workspaceId: string, kek: Buffer, identity: Identity): void {
+  ensureWorkspaceDir(workspaceId);
   const aad = buildIdentityAad(workspaceId);
   const plaintext = Buffer.from(JSON.stringify(identity), 'utf8');
   const envelope = encryptToEnvelope(kek, plaintext, aad);

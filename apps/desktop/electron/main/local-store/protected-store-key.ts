@@ -28,6 +28,7 @@ import {
   type Envelope,
 } from '../crypto/envelope.js';
 import { protectedStoreKeyPath } from './paths.js';
+import { ensureWorkspaceDir } from '../workspace/paths.js';
 
 const PROTECTED_STORE_KEY_BYTES = 32; // 256-bit cipher key
 
@@ -44,6 +45,7 @@ function readKeyFile(workspaceId: string): Envelope {
 }
 
 function writeKeyFile(workspaceId: string, envelope: Envelope): void {
+  ensureWorkspaceDir(workspaceId);
   const filePath = protectedStoreKeyPath(workspaceId);
   fs.writeFileSync(filePath, JSON.stringify(envelope), { encoding: 'utf8', mode: 0o600 });
 }

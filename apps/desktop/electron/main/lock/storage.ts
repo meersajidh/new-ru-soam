@@ -18,6 +18,7 @@
 
 import fs from 'fs';
 import type { Envelope } from '../crypto/envelope.js';
+import { ensureWorkspaceDir } from '../workspace/paths.js';
 import { metadataPath } from './paths.js';
 
 export interface Metadata {
@@ -53,5 +54,6 @@ export function readMetadata(workspaceId: string): Metadata | null {
 }
 
 export function writeMetadata(workspaceId: string, m: Metadata): void {
+  ensureWorkspaceDir(workspaceId);
   fs.writeFileSync(metadataPath(workspaceId), JSON.stringify(m, null, 2), 'utf8');
 }
