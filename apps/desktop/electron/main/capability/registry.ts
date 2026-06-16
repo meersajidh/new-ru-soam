@@ -103,6 +103,15 @@ export function setLockServiceGetter(getter: () => LockService | null): void {
   _getLockService = getter;
 }
 
+/**
+ * Returns the active LockService (or null) via the injected getter.
+ * Used by platform-auth to commit a fresh session immediately when
+ * the workspace is already unlocked (O475 reconnect path).
+ */
+export function getActiveLockService(): LockService | null {
+  return _getLockService ? _getLockService() : null;
+}
+
 function key(name: string, version: string): string {
   return `${name}@${version}`;
 }

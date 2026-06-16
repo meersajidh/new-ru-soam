@@ -278,6 +278,23 @@ app.whenReady().then(() => {
   // import session-service.ts; only main/index.ts knows both).
   telemetryService.init(() => cloudSessionService.accessToken());
 
+  // Proactive rotation + renderer session-state bridge.
+  // kekProvider: returns live KEK when workspace is unlocked, null when locked.
+  // emitSessionChange: pushes cloud.session.changed to the renderer so the
+  //   status-bar indicator and SettingsMenu reflect live session state.
+  cloudSessionService.init(
+    () => getActiveLockService()?.kekHandle() ?? null,
+    (signedIn) => {
+      const win = mainWindow;
+      if (win && !win.isDestroyed()) {
+        win.webContents.send(SOAM_EVENT_CHANNEL, {
+          name: 'cloud.session.changed',
+          payload: { signedIn },
+        });
+      }
+    },
+  );
+
   registerUpdateCapability();
   registerCommandsCapability();
 

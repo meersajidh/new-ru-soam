@@ -44,6 +44,8 @@ import { OverviewViewModeServiceId } from '../platform/services/ids';
 import { TelemetryModeService } from '../platform/telemetry/telemetry-mode-service';
 import type { TelemetryMode } from '../platform/telemetry/telemetry-mode-service';
 import { TelemetryModeServiceId } from '../platform/services/ids';
+import { CloudSessionService } from '../platform/cloud/cloud-session-service';
+import { CloudSessionServiceId } from '../platform/services/ids';
 
 const SLOT_TO_CTX_KEY: Partial<Record<SlotId, string>> = {
   [SlotId.PrimarySideBar]: 'sideBar.visible',
@@ -147,6 +149,10 @@ export function boot(): ServiceRegistry {
   // Telemetry mode — prefs-cap-backed; default 'off'. Reloads on workspace change.
   const telemetryMode = new TelemetryModeService();
   registry.register(TelemetryModeServiceId, telemetryMode);
+
+  // Cloud session state — event-backed; reflects live signedIn/configured from Main.
+  const cloudSession = new CloudSessionService();
+  registry.register(CloudSessionServiceId, cloudSession);
 
   const statusBar = new StatusBarService();
   for (const entry of ANCHORED_ENTRIES) statusBar.register(entry);
@@ -393,9 +399,9 @@ export function boot(): ServiceRegistry {
     'on': 'telemetry-on',
   };
   const TELEMETRY_TOOLTIP: Record<TelemetryMode, string> = {
-    'off': 'Usage analytics: Off',
-    'online-only': 'Usage analytics: Online only',
-    'on': 'Usage analytics: On',
+    'off': 'Usage analytics: Off — click to change',
+    'online-only': 'Usage analytics: Online only — click to change',
+    'on': 'Usage analytics: On — click to change',
   };
   function syncTelemetryEntry(mode: TelemetryMode): void {
     statusBar.update('workbench.telemetry', {
@@ -405,6 +411,68 @@ export function boot(): ServiceRegistry {
   }
   syncTelemetryEntry(telemetryMode.getMode());
   telemetryMode.onChange(syncTelemetryEntry);
+
+  // Click cycles the mode Off → Online only → On → Off.
+  const TELEMETRY_CYCLE: Record<TelemetryMode, TelemetryMode> = {
+    'off': 'online-only',
+    'online-only': 'on',
+    'on': 'off',
+  };
+  commands.register(
+    'workbench.cycleTelemetryMode',
+    'Usage Analytics: Cycle Mode',
+    () => {
+      telemetryMode.setMode(TELEMETRY_CYCLE[telemetryMode.getMode()]);
+    },
+    { category: 'Cloud' },
+  );
+
+  // ── Sync-state StatusBar indicator (folds the cloud-session disconnect) ────
+  // The existing workbench.sync.state entry (left region, cloud icon) reflects
+  // cloud session health: normal "Sync state" when signed in; 'warning' severity
+  // + a reconnect action when the session token is dead (proactive rotation found
+  // it expired/revoked). Visibility is still gated on unlocked + nickname, set by
+  // syncLockStatusBar — these mirrors let updateSyncStateEntry() recompute from
+  // either a lock-state change or a cloud-session change.
+  let syncLocked = true;
+  let syncSetupComplete = false;
+  let syncNickname = '';
+  function updateSyncStateEntry(): void {
+    const show = syncSetupComplete && !syncLocked && syncNickname.length > 0;
+    if (!show) {
+      statusBar.update('workbench.sync.state', { visible: false });
+      return;
+    }
+    const s = cloudSession.getState();
+    const disconnected = s.configured && !s.signedIn;
+    statusBar.update('workbench.sync.state', {
+      visible: true,
+      icon: disconnected ? 'cloud-disconnected' : 'cloud',
+      severity: disconnected ? 'warning' : undefined,
+      tooltip: disconnected
+        ? 'Cloud sync disconnected — click to reconnect'
+        : `Sync state for ${syncNickname}`,
+      command: disconnected ? 'workbench.cloudReconnect' : undefined,
+    });
+  }
+  cloudSession.onChange(updateSyncStateEntry);
+
+  // ── workbench.cloudReconnect command ──────────────────────────────────────
+  commands.register(
+    'workbench.cloudReconnect',
+    'Cloud: Reconnect to sync',
+    async () => {
+      try {
+        const result = await cloudSession.reconnect();
+        if (!result.ok) {
+          console.warn('[workbench] cloudReconnect failed:', result.error);
+        }
+      } catch (err) {
+        console.error('[workbench] cloudReconnect: unexpected error:', err);
+      }
+    },
+    { category: 'Cloud' },
+  );
 
   // ── Phase 9b: DEV-mode StatusBar entry ────────────────────────────────────
   // Use import.meta.env.DEV as an approximation of "not packaged".
@@ -430,6 +498,11 @@ export function boot(): ServiceRegistry {
 
   // Helper to update lock-related StatusBar entries from the current context key state
   function syncLockStatusBar(locked: boolean, setupComplete: boolean, nickname: string): void {
+    // Mirror current lock state so updateSyncStateEntry() can recompute the
+    // sync.state entry on either a lock-state or a cloud-session change.
+    syncLocked = locked;
+    syncSetupComplete = setupComplete;
+    syncNickname = nickname;
     if (setupComplete) {
       // Show lock indicator
       statusBar.update('workbench.lock', {
@@ -446,16 +519,13 @@ export function boot(): ServiceRegistry {
         tooltip: `Active account: ${nickname}`,
         icon: 'briefcase',
       });
-      statusBar.update('workbench.sync.state', {
-        visible: !locked && nickname.length > 0,
-        tooltip: `Sync state for ${nickname}`,
-      });
     } else {
       // Pre-setup: hide status entries tied to workspace identity
       statusBar.update('workbench.lock', { visible: false });
       statusBar.update('workbench.workspace.nickname', { visible: false });
-      statusBar.update('workbench.sync.state', { visible: false });
     }
+    // Sync-state entry reflects both lock gating and cloud-session health.
+    updateSyncStateEntry();
   }
 
   // Subscribe to lock state changes emitted by Main

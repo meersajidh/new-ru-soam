@@ -14,6 +14,7 @@ import { Icon } from '../../platform/icons/Icon';
 import { useContextKey, useService } from '../../platform/services/hooks';
 import {
   ActivityBarDensityServiceId,
+  CloudSessionServiceId,
   FontServiceId,
   ThemeServiceId,
   TelemetryModeServiceId,
@@ -38,9 +39,15 @@ export default function SettingsMenu() {
   const fontSvc = useService(FontServiceId);
   const densitySvc = useService(ActivityBarDensityServiceId);
   const telemetrySvc = useService(TelemetryModeServiceId);
+  const cloudSessionSvc = useService(CloudSessionServiceId);
 
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [panelView, setPanelView] = useState<PanelView>('root');
+
+  // Cloud session state — live via CloudSessionService.
+  const [cloudStatus, setCloudStatus] = useState(() => cloudSessionSvc.getState());
+  const [reconnectLoading, setReconnectLoading] = useState(false);
+  const [reconnectError, setReconnectError] = useState('');
 
   // Telemetry mode — driven by TelemetryModeService.
   const [telemetryMode, setTelemetryModeState] = useState<TelemetryMode>(
@@ -64,7 +71,7 @@ export default function SettingsMenu() {
     estimatedHeight: 320,
   });
 
-  // Subscribe to theme/dark/font/density changes.
+  // Subscribe to theme/dark/font/density/telemetry/cloud-session changes.
   useEffect(() => {
     const offTheme = themeSvc.onThemeChange((t) => {
       setActiveTheme(t);
@@ -77,14 +84,16 @@ export default function SettingsMenu() {
     });
     const offDensity = densitySvc.onDidChangeDensity(setDensity);
     const offTelemetry = telemetrySvc.onChange(setTelemetryModeState);
+    const offCloud = cloudSessionSvc.onChange(setCloudStatus);
     return () => {
       offTheme();
       offDark();
       offFont();
       offDensity();
       offTelemetry();
+      offCloud();
     };
-  }, [themeSvc, fontSvc, densitySvc, telemetrySvc]);
+  }, [themeSvc, fontSvc, densitySvc, telemetrySvc, cloudSessionSvc]);
 
   // Reset to root view each time popover opens.
   const prevOpen = useRef(false);
@@ -94,6 +103,22 @@ export default function SettingsMenu() {
     }
     prevOpen.current = popover.isOpen;
   }, [popover.isOpen]);
+
+  // Reconnect to sync handler — delegates to CloudSessionService.
+  const handleReconnect = async () => {
+    setReconnectLoading(true);
+    setReconnectError('');
+    try {
+      const result = await cloudSessionSvc.reconnect();
+      if (!result.ok) {
+        setReconnectError(result.error);
+      }
+    } catch (err) {
+      setReconnectError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setReconnectLoading(false);
+    }
+  };
 
   if (kekLocked || !setupComplete) return null;
 
@@ -256,6 +281,30 @@ export default function SettingsMenu() {
           {panelView === 'system' && (
             <>
               {backButton('System', () => setPanelView('root'))}
+
+              {/* ── Reconnect to sync ────────────────────────────────────────── */}
+              {cloudStatus.configured && !cloudStatus.signedIn && (
+                <>
+                  <div className="settings-section">
+                    <div className="settings-section-label">Sync</div>
+                    <button
+                      className="settings-reconnect-btn"
+                      role="menuitem"
+                      onClick={() => void handleReconnect()}
+                      disabled={reconnectLoading}
+                    >
+                      <span className="settings-reconnect-icon">
+                        <Icon name="cloud" size={13} />
+                      </span>
+                      {reconnectLoading ? 'Connecting…' : 'Reconnect to sync'}
+                    </button>
+                    {reconnectError && (
+                      <p className="settings-reconnect-error">{reconnectError}</p>
+                    )}
+                  </div>
+                  <div className="settings-popover-divider" aria-hidden="true" />
+                </>
+              )}
 
               {/* ── Usage analytics ──────────────────────────────────────────── */}
               <div className="settings-section">

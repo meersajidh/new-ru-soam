@@ -18,6 +18,7 @@ import type { IActivityBarDensityService } from '../activity-bar/density-service
 import type { IMaturityHighlightService } from '../maturity/maturity-highlight';
 import type { IOverviewViewModeService } from '../view-mode/overview-view-mode';
 import type { ITelemetryModeService } from '../telemetry/telemetry-mode-service';
+import type { ICloudSessionService } from '../cloud/cloud-session-service';
 import { createContext } from 'react';
 import type { ServiceRegistry } from './registry';
 
@@ -73,5 +74,8 @@ export const OverviewViewModeServiceId = serviceId<IOverviewViewModeService>('wo
 
 // Telemetry mode (off/online-only/on, prefs-backed, shared source of truth)
 export const TelemetryModeServiceId = serviceId<ITelemetryModeService>('workbench.telemetryMode');
+
+// Cloud session state (configured/signedIn, event-backed, live status-bar + reconnect)
+export const CloudSessionServiceId = serviceId<ICloudSessionService>('workbench.cloudSession');
 
 export const RegistryContext = createContext<ServiceRegistry | null>(null);

@@ -76,6 +76,22 @@ export interface SoamWorkspace {
   readonly onChange: (listener: (e: WorkspaceChangedEvent) => void) => () => void;
 }
 
+// ── Cloud namespace ────────────────────────────────────────────────────────────
+
+/**
+ * Renderer-visible cloud session surface. Token values NEVER cross this bridge
+ * (ADR-202/304) — only signedIn boolean.
+ */
+export interface SoamCloud {
+  /**
+   * Subscribe to session-state changes pushed from Main.
+   * Fires whenever proactive rotation succeeds (signedIn=true) or a refresh
+   * token is found dead (signedIn=false). Does NOT fire on relock/sign-out
+   * (those are workspace-lifecycle events, not token-death events).
+   */
+  readonly onSessionChange: (listener: (e: { signedIn: boolean }) => void) => () => void;
+}
+
 // ── App namespace ──────────────────────────────────────────────────────────────
 
 /**
@@ -121,6 +137,7 @@ export interface Soam {
   readonly workspace: SoamWorkspace;
   readonly update: SoamUpdate;
   readonly app: SoamApp;
+  readonly cloud: SoamCloud;
 }
 
 let nextId = 1;
@@ -281,6 +298,18 @@ const appBedrock: SoamApp = {
   },
 };
 
+// ── Cloud bridge helpers ──────────────────────────────────────────────────────
+
+const cloud: SoamCloud = {
+  onSessionChange(listener) {
+    return subscribePlatformEvent((payload) => {
+      if (payload.name === 'cloud.session.changed') {
+        listener(payload.payload as { signedIn: boolean });
+      }
+    });
+  },
+};
+
 // ── CQRS proxy factory ─────────────────────────────────────────────────────────
 //
 // Shared implementation for bindCapability / bindQuery / bindCommand.
@@ -330,4 +359,5 @@ export const soam: Soam = {
   workspace,
   update,
   app: appBedrock,
+  cloud,
 };

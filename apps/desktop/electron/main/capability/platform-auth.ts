@@ -24,8 +24,9 @@
  */
 
 import { signInWithGoogle } from '../auth/oauth.js';
-import { registerCapability } from './registry.js';
+import { registerCapability, getActiveLockService } from './registry.js';
 import { cloudSessionService } from '../cloud/session-service.js';
+import { isCloudConfigured } from '../cloud/identity-client.js';
 import { workspaceRegistry } from '../workspace/registry.js';
 
 export type SignInWithGoogleResult =
@@ -33,7 +34,7 @@ export type SignInWithGoogleResult =
   | { readonly ok: false; readonly code: 'not-configured' | 'cancelled' | 'error'; readonly message?: string };
 
 export type CloudSessionStatusResult =
-  | { readonly ok: true; readonly signedIn: boolean }
+  | { readonly ok: true; readonly signedIn: boolean; readonly configured: boolean }
   | { readonly ok: false; readonly code: 'no-active-workspace' };
 
 export function registerPlatformAuthCapability(): void {
@@ -48,6 +49,23 @@ export function registerPlatformAuthCapability(): void {
           // Best-effort: contact identity server and hold refresh token in memory.
           // Never throws — sign-in must not block on or fail due to server state.
           await cloudSessionService.acquire(identity.idToken);
+
+          // O475 commit-while-unlocked: if a workspace is already active and
+          // unlocked (e.g. Settings → Reconnect to sync), commit the pending
+          // token immediately so the caller sees signedIn:true on the next
+          // getCloudSessionStatus call without waiting for the next unlock seam.
+          // Guard: both workspaceId and a live KEK must be present; onboarding
+          // (no active workspace) and already-locked workspaces are unaffected.
+          const reconnectWorkspaceId = workspaceRegistry.getActive();
+          if (reconnectWorkspaceId) {
+            const lockSvc = getActiveLockService();
+            if (lockSvc) {
+              const kek = lockSvc.kekHandle();
+              if (kek !== null) {
+                cloudSessionService.commitOrRefresh(reconnectWorkspaceId, kek);
+              }
+            }
+          }
 
           const result: SignInWithGoogleResult = {
             ok: true,
@@ -76,7 +94,8 @@ export function registerPlatformAuthCapability(): void {
           return result;
         }
         const { signedIn } = cloudSessionService.getStatus(workspaceId);
-        const result: CloudSessionStatusResult = { ok: true, signedIn };
+        const configured = isCloudConfigured();
+        const result: CloudSessionStatusResult = { ok: true, signedIn, configured };
         return result;
       }
 

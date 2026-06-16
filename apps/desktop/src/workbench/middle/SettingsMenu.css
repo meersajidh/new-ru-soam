@@ -307,6 +307,52 @@
   font-weight: 500;
 }
 
+/* ── Reconnect to sync button ─────────────────────────────────────────────── */
+
+.settings-reconnect-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  @apply text-fg-secondary text-sm rounded-lg px-2.5 py-1.5;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+
+.settings-reconnect-btn:hover:not(:disabled) {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+}
+
+.settings-reconnect-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.settings-reconnect-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  @apply text-fg-muted;
+}
+
+.settings-reconnect-error {
+  @apply text-error;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  padding: 0.125rem 0.375rem;
+  margin: 0;
+}
+
 /* ── Danger button ────────────────────────────────────────────────────────── */
 
 .settings-danger-btn {

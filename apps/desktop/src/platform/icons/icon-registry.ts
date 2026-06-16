@@ -90,6 +90,7 @@ const REGISTRY: Record<SemanticIconId, CodiconGlyph> = {
   // Cloud
   'cloud': 'cloud',
   'cloud-download': 'cloud-download',
+  'cloud-disconnected': 'debug-disconnect', // dead cloud session — plug pulled
 
   // Data / workspace
   'briefcase': 'briefcase',
