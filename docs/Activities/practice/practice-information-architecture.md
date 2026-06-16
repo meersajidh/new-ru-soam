@@ -47,8 +47,8 @@ Practice does not stand alone. The MVP catalogue (`docs/Product/Product_Scope.md
 | Activity | Bundle | Owns | Practice surfaces it as |
 |---|---|---|---|
 | **Practice** | `ru-soam-practice` | the **Client record** (profile, circle, consent, documents, risk, overlays, lifecycle) | — (it *is* the hub) |
-| **Sessions** | `ru-soam.sessions` | progress notes (authoring) | Notes projection + overlays |
-| **Schedule** | `ru-soam.schedule` | appointments/calendar | Agenda lens + Appointments projection; minor cmds (confirm/no-show) |
+| **Sessions** | `ru-soam.sessions` | **Client Meeting** (the clinical appointment — ADR-508) + progress notes (authoring) | **Next-client-meeting** + Notes projection + overlays |
+| **Schedule** | `ru-soam.schedule` | calendar/events — a **storeless UI over the provider** (ADR-507) | Agenda / full-calendar projection (the *clinical* meeting projects from **Sessions**, see ADR-507 §8) |
 | **Assessments** | `ru-soam.assessments` | measures + scoring | Scores & Trends projection |
 | **Planner** | `ru-soam.planner` | goals + tasks | Goals & Tasks projection |
 | **Billing** *(candidate, O421)* | `ru-soam.billing` | self-pay payments/receipts | Payment-status projection |
@@ -135,7 +135,7 @@ may not exist yet (render with a source-pill placeholder until they do).
 | **Risk / Safety** | Owned · Practice | `patient_risk_event` (+ safety state) | any clinical contact | Risk aspect + banner | `addRiskEvent`,`setCapacity`,`toggleException` | **banner (conditional)** | → Risk aspect → safety-plan tab |
 | Overlays (review/pin/flag) | Owned · Practice | `patient_overlay` | reviewing a projection | overlay bar on artifact | `setOverlay` | chip | inline |
 | Notes | Projection · Sessions | (Sessions) | authored in Sessions | — | overlay only | last-note card | → Notes aspect → note tab → author in Sessions |
-| Appointments | Projection · Schedule | (Schedule) | booked in Schedule | — | confirm/no-show minor cmd | next-session card | → Appointments aspect → launch Schedule |
+| Appointments / Client Meeting | Projection · **Sessions** (ADR-508); calendar via Schedule (ADR-507) | (Sessions Client Meeting, backed by a Schedule event) | booked app- or provider-side (Calendly/Google), resolved to a client | — | confirm/no-show minor cmd | next-**client-meeting** card | → Appointments aspect → Sessions / launch Schedule |
 | Scores & trends | Projection · Assessments | (Assessments) | administered in Assessments | — | — | trend card / ministat | → Scores aspect → launch Assessments |
 | Goals & tasks | Projection · Planner | (Planner) | planned in Planner | — | — | goals card / ministat | → Goals aspect → launch Planner |
 | Payment status | Projection · Billing | (Billing) | recorded in Billing | — | (maybe mark-paid minor) | payment card / ministat | → Payment aspect → launch Billing |
@@ -218,7 +218,7 @@ Three depths, consistent across every element. This is the in/out the prototype 
    (glance / triage)   →    (aux sidebar: this client,  →  (one instance)  (author, ambient)
                             one facet in full)
    "last note: 28 May"  →   Notes aspect: all notes     →  note tab (read-only)  → Sessions
-   "next: Thu 11:00"    →   Appointments aspect: all    →  —                     → Schedule
+   "next: Thu 11:00"    →   Appointments aspect: all    →  —                  → Sessions (mtg) / Schedule (cal)
    "SI noted"           →   Risk/Safety aspect: history →  safety-plan editor tab (owned)
    header               →   Profile aspect              →  —  (edit in place)
 ```

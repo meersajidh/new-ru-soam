@@ -5,7 +5,8 @@
 **Date:** 2026-05-12
 **Supersedes:** —
 **Superseded by:** —
-**Related:** —
+**Refined by:** ADR-313 (consented provider-PHI gradient + PHI Safety Score — narrows one carve-out for PHI to the *user's own* third-party provider; this ADR's core invariant against *our* cloud stays Final and intact)
+**Related:** ADR-313
 
 ## Context
 

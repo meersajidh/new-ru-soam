@@ -97,6 +97,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-310](ADRs/310-google-calendar-provider-integration.md) — Google Calendar provider integration. _(Proposed)_
 - [ADR-311](ADRs/311-cloud-backend-identity-service.md) — Cloud Backend identity service (verify ID-token + session JWT + usage telemetry). _(Accepted)_
 - [ADR-312](ADRs/312-usage-telemetry-base-and-domain-tiers.md) — Usage telemetry: base mechanism + domain vocabulary, PHI-free by construction. _(Accepted)_
+- [ADR-313](ADRs/313-phi-egress-to-user-controlled-providers.md) — PHI egress to user-controlled providers: the consented, audited, default-off, score-driven **interim** gradient + the PHI Safety Score. Refines ADR-301 (narrows one carve-out; 301's core invariant against *our* cloud stays Final). _(Accepted)_
 
 #### Workbench / UI composition (400–499)
 
@@ -127,6 +128,8 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-504](ADRs/504-canonical-domain-record-ownership.md) — Canonical domain record ownership: `core-domain` Main-resident service (resolves O69). _(Superseded by ADR-506)_
 - [ADR-505](ADRs/505-practice-activity.md) — Practice Activity: roster + Client/Patient record management (first per-Activity pass, O197). _(Draft)_
 - [ADR-506](ADRs/506-domain-module-cqrs-and-ownership.md) — Domain module model: **pure-base Main** + CQRS bundle-owned records (retires `core-domain`; command logic in First-Party-Host; hybrid validation; declared deps; base/domain/extensions tiers). _(Accepted)_
+- [ADR-507](ADRs/507-schedule-activity.md) — Schedule Activity: a **storeless UI over calendar providers** (`CalendarProvider` port, Google Flow-A adapter, provider = master of events; derived classification tags). Takes up ADR-310. _(Draft)_
+- [ADR-508](ADRs/508-sessions-client-meeting.md) — Sessions: the **Client Meeting** (persisted clinical subset of the calendar) — dual-origin, field-partitioned sync, identity-resolution seam, `MeetingProvider` port (Meet/Zoom). The only store in the Schedule/Sessions pair. _(Draft)_
 
 ### Proposals
 

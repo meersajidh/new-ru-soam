@@ -82,8 +82,8 @@ feature set.
 | Activity | Bundle id | What the practitioner does | Owns / references |
 | --- | --- | --- | --- |
 | **Practice** | `ru-soam.practice` | Manage the practice roster and each person's record (demographics, contact, status). The central entity surface. Scoped in [ADR-505](../ADRs/505-practice-activity.md). | Primary **editor** of the Client/Patient record; the canonical record is **owned** by `core-domain` (ADR-504, see [O69](#cross-surface-data--o69)) |
-| **Sessions** | `ru-soam.sessions` | Document clinical sessions (progress notes). The core daily activity; composes the `BaseEdit` primitive (ADR-414) + clinical note types (ADR-404). | refs Client/Patient |
-| **Schedule** | `ru-soam.schedule` | Book and view appointments. Integrates the Google Calendar provider (ADR-310, proposed). | refs Client/Patient |
+| **Sessions** | `ru-soam.sessions` | The clinical encounter spine: owns the **Client Meeting** (the client appointment seen clinically — [ADR-508](../ADRs/508-sessions-client-meeting.md)) + progress notes, transcriptions, reports (composes `RuEdit`/ADR-414 + note types/ADR-404). Includes online meetings via a `MeetingProvider` port (Meet/Zoom). | **owns** Client Meeting; refs Client/Patient |
+| **Schedule** | `ru-soam.schedule` | View and book on the practitioner's calendar — a **storeless UI over a calendar provider** ([ADR-507](../ADRs/507-schedule-activity.md), takes up ADR-310). The provider (Google now; MS/Apple/cal.com later) is the **master of events**; the clinical subset is persisted by Sessions. | refs provider (master); refs Client/Patient via Sessions |
 | **Assessments** | `ru-soam.assessments` | Administer standardized measures (e.g. PHQ-9, GAD-7) and track outcomes over time. | refs Client/Patient (± Session) |
 | **Planner** | `ru-soam.planner` | Plan forward across horizons: near-term tasks/follow-ups **and** longer-horizon treatment goals/objectives (the former Tasks + Treatment Plans, merged). | refs Client/Patient |
 | **Catalog** | `ru-soam.catalog` | Browse and maintain reusable, non-client assets: templates, worksheets, psychoeducation materials, and clinical snippet *content* (domain content for the base snippet engine, ADR-416 / ADR-106). | — (reusable; not client-bound) |
@@ -91,6 +91,18 @@ feature set.
 
 Bottom-group platform items (Bundles, Settings, Recovery, Onboarding) are core-shell,
 not Activities — owned by ADR-405, out of this catalogue.
+
+**Schedule / Sessions split (ADR-507 / ADR-508, 2026-06-16).** Scheduling is two Activities, not
+one: **Schedule** is a storeless UI over a calendar *provider* (the provider is the master of events);
+**Sessions** owns the persisted **Client Meeting** — the clinical subset of the calendar, discovered
+either app-side or provider-side (Calendly/Google) and resolved to a roster client. A client appointment
+is a *link*, not a move: the event stays on the provider's calendar and gains a Client Meeting in Sessions.
+
+**PHI Safety Score (ADR-313).** Because practitioners arrive with client PHI already in their calendar
+provider, the PHI boundary is treated as a *destination*: absolute against **our** cloud (ADR-301,
+unchanged), and a consented, audited, **default-off**, score-driven **interim** gradient against the
+**user's own** provider. The **PHI Safety Score** is the first-class, gradient-closing engine that
+measures and nudges that migration. Scale design = O483.
 
 ## Aspects (Contextual)
 
