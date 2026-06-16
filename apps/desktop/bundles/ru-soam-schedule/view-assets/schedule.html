@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'; font-src data:"
+    />
+    <title>Schedule</title>
+    <style>
+      /* ── Reset ───────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
+
+      /* ── Design tokens ───────────────────────────────────── */
+      :root {
+        color-scheme: light dark;
+        --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+        --color-surface-base:     #161618;
+        --color-surface-panel:    #1c1c1f;
+        --color-surface-elevated: #232326;
+        --color-surface-active:   #2a2d26;
+        --color-fg-primary:   #f2f2f7;
+        --color-fg-secondary: #aeaeb2;
+        --color-fg-muted:     #636366;
+        --color-border:       #3a3a3c;
+        --color-border-focus: #5ac85a;
+        --color-accent:       #5ac85a;
+        --color-accent-fg:    #1c1c1e;
+        --color-accent-hover: #6bd46b;
+        --color-success:      #5ac85a;
+        --color-warning:      #f4a623;
+        --color-error:        #e05252;
+        --radius-sm: 4px;
+        --radius-md: 7px;
+        --transition: 130ms ease;
+      }
+
+      /* ── Base ────────────────────────────────────────────── */
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.5;
+        background: var(--color-surface-panel);
+        color: var(--color-fg-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* ── Bridge wait overlay ─────────────────────────────── */
+      #bridge-wait {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-panel);
+        z-index: 100;
+        font-size: 12px;
+        color: var(--color-fg-muted);
+      }
+      #bridge-wait.hidden { display: none; }
+
+      /* ── Header ──────────────────────────────────────────── */
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px 8px;
+        border-bottom: 1px solid var(--color-border);
+        flex-shrink: 0;
+      }
+      .header-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--color-fg-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        flex: 1;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      .btn-accent {
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+      }
+      .btn-accent:hover { background: var(--color-accent-hover); }
+      .btn-ghost {
+        color: var(--color-fg-secondary);
+        border: 1px solid var(--color-border);
+      }
+      .btn-ghost:hover { background: var(--color-surface-elevated); }
+      .btn-danger {
+        color: var(--color-error);
+        border: 1px solid var(--color-border);
+      }
+      .btn-danger:hover { background: var(--color-surface-elevated); }
+
+      /* ── Date range nav ──────────────────────────────────── */
+      .range-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-bottom: 1px solid var(--color-border);
+        flex-shrink: 0;
+      }
+      .range-label {
+        flex: 1;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--color-fg-primary);
+        text-align: center;
+      }
+      .nav-btn {
+        width: 26px;
+        height: 26px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+        color: var(--color-fg-secondary);
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      .nav-btn:hover { background: var(--color-surface-elevated); }
+
+      /* ── Content area ────────────────────────────────────── */
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 0;
+      }
+
+      /* ── Connect state ───────────────────────────────────── */
+      .connect-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        height: 100%;
+        padding: 24px;
+        text-align: center;
+      }
+      .connect-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--color-surface-elevated);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .connect-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+      }
+      .connect-desc {
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        max-width: 260px;
+        line-height: 1.6;
+      }
+
+      /* ── Loading / error states ──────────────────────────── */
+      .state-msg {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 120px;
+        font-size: 12px;
+        color: var(--color-fg-muted);
+      }
+      .state-error {
+        color: var(--color-error);
+      }
+
+      /* ── Day group ───────────────────────────────────────── */
+      .day-group {
+        padding: 0 8px 2px;
+      }
+      .day-header {
+        padding: 6px 4px 3px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+      }
+      .day-header-date {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--color-fg-primary);
+      }
+      .day-header-date.today {
+        color: var(--color-accent);
+      }
+
+      /* ── Event card ──────────────────────────────────────── */
+      .event-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 6px 6px;
+        border-radius: var(--radius-sm);
+        margin-bottom: 2px;
+        cursor: default;
+        transition: background var(--transition);
+      }
+      .event-card:hover { background: var(--color-surface-elevated); }
+      .event-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--color-accent);
+        flex-shrink: 0;
+        margin-top: 4px;
+      }
+      .event-dot.allday {
+        background: var(--color-fg-muted);
+      }
+      .event-info { flex: 1; min-width: 0; }
+      .event-title {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--color-fg-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .event-time {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        margin-top: 1px;
+      }
+
+      /* ── No-events ───────────────────────────────────────── */
+      .no-events {
+        padding: 16px 12px;
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bridge-wait">Connecting…</div>
+    <div id="root" style="display:none">
+      <div class="header">
+        <span class="header-title">Schedule</span>
+        <button id="btn-disconnect" class="btn btn-danger" style="display:none">Disconnect</button>
+        <button id="btn-connect" class="btn btn-accent" style="display:none">Connect Google Calendar</button>
+      </div>
+      <div id="range-bar" class="range-bar" style="display:none">
+        <button class="nav-btn" id="btn-prev" title="Previous week">&#8249;</button>
+        <span class="range-label" id="range-label"></span>
+        <button class="nav-btn" id="btn-next" title="Next week">&#8250;</button>
+        <button class="btn btn-ghost" id="btn-today" style="font-size:11px;padding:3px 8px;">Today</button>
+      </div>
+      <div class="content" id="content">
+        <div class="connect-state" id="connect-prompt" style="display:none">
+          <div class="connect-icon">
+            <span data-codicon="calendar" data-size="20"></span>
+          </div>
+          <div class="connect-title">Connect your calendar</div>
+          <div class="connect-desc">
+            Link your Google Calendar to see your schedule here. Your credential never leaves this device.
+          </div>
+          <button class="btn btn-accent" id="btn-connect-inner">Connect Google Calendar</button>
+        </div>
+        <div id="events-area"></div>
+      </div>
+    </div>
+
+    <script>
+    (function () {
+      'use strict';
+
+      // ── Helpers ───────────────────────────────────────────────
+      var boot   = window.__viewBoot;
+      var bridge = null;
+      var calCap = null;
+
+      var MS_PER_DAY = 86400000;
+
+      // ── State ─────────────────────────────────────────────────
+      var connected    = false;
+      var loading      = false;
+      var events       = [];
+      var weekOffset   = 0; // 0 = current week
+
+      // ── DOM refs ──────────────────────────────────────────────
+      var bridgeWait   = document.getElementById('bridge-wait');
+      var root         = document.getElementById('root');
+      var btnConnect   = document.getElementById('btn-connect');
+      var btnConnInner = document.getElementById('btn-connect-inner');
+      var btnDisconn   = document.getElementById('btn-disconnect');
+      var rangeBar     = document.getElementById('range-bar');
+      var rangeLabel   = document.getElementById('range-label');
+      var btnPrev      = document.getElementById('btn-prev');
+      var btnNext      = document.getElementById('btn-next');
+      var btnToday     = document.getElementById('btn-today');
+      var connectProm  = document.getElementById('connect-prompt');
+      var eventsArea   = document.getElementById('events-area');
+
+      // ── Date utilities ─────────────────────────────────────────
+      function startOfWeek(d) {
+        // Monday-anchored
+        var day = d.getDay(); // 0=Sun
+        var diff = (day === 0) ? -6 : 1 - day;
+        var mon = new Date(d);
+        mon.setDate(d.getDate() + diff);
+        mon.setHours(0, 0, 0, 0);
+        return mon;
+      }
+
+      function addDays(d, n) {
+        var r = new Date(d);
+        r.setDate(d.getDate() + n);
+        return r;
+      }
+
+      function weekRange() {
+        var base = new Date();
+        base.setDate(base.getDate() + weekOffset * 7);
+        var from = startOfWeek(base);
+        var to   = addDays(from, 7); // exclusive end
+        return { from: from, to: to };
+      }
+
+      var DAY_NAMES  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+      function fmtWeekLabel(from, to) {
+        var toInc = addDays(to, -1);
+        if (from.getMonth() === toInc.getMonth()) {
+          return MONTH_NAMES[from.getMonth()] + ' ' + from.getDate() + ' – ' + toInc.getDate() + ', ' + from.getFullYear();
+        }
+        return MONTH_NAMES[from.getMonth()] + ' ' + from.getDate() + ' – ' + MONTH_NAMES[toInc.getMonth()] + ' ' + toInc.getDate() + ', ' + toInc.getFullYear();
+      }
+
+      function fmtTime(isoStr) {
+        if (!isoStr || isoStr.length <= 10) return 'All day';
+        try {
+          var d = new Date(isoStr);
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+          return isoStr;
+        }
+      }
+
+      function fmtTimeRange(start, end, allDay) {
+        if (allDay) return 'All day';
+        return fmtTime(start) + ' – ' + fmtTime(end);
+      }
+
+      function isToday(d) {
+        var now = new Date();
+        return d.getFullYear() === now.getFullYear()
+          && d.getMonth()      === now.getMonth()
+          && d.getDate()       === now.getDate();
+      }
+
+      // ── Render ─────────────────────────────────────────────────
+      function setConnectedUI(isConn) {
+        connected = isConn;
+        btnConnect.style.display   = isConn ? 'none' : '';
+        btnDisconn.style.display   = isConn ? '' : 'none';
+        rangeBar.style.display     = isConn ? '' : 'none';
+        connectProm.style.display  = isConn ? 'none' : '';
+        eventsArea.style.display   = isConn ? '' : 'none';
+        if (isConn) loadEvents();
+      }
+
+      function renderEvents(evs, range) {
+        eventsArea.innerHTML = '';
+        // Group by day
+        var byDay = {};
+        var cur = new Date(range.from);
+        var end = new Date(range.to);
+        while (cur < end) {
+          var key = cur.toDateString();
+          byDay[key] = { date: new Date(cur), items: [] };
+          cur = addDays(cur, 1);
+        }
+
+        evs.forEach(function (ev) {
+          var startD = new Date(ev.start);
+          // Normalise to local date for grouping
+          var d = ev.allDay
+            ? new Date(ev.start + 'T00:00:00') // date-only string
+            : startD;
+          var key = d.toDateString();
+          if (byDay[key]) byDay[key].items.push(ev);
+        });
+
+        var totalShown = 0;
+
+        Object.keys(byDay).forEach(function (key) {
+          var entry = byDay[key];
+          var grp = document.createElement('div');
+          grp.className = 'day-group';
+
+          var hdr = document.createElement('div');
+          hdr.className = 'day-header';
+          var dateSpan = document.createElement('span');
+          dateSpan.className = 'day-header-date' + (isToday(entry.date) ? ' today' : '');
+          dateSpan.textContent = entry.date.getDate().toString();
+          var daySpan = document.createElement('span');
+          daySpan.textContent = DAY_NAMES[entry.date.getDay()];
+          hdr.appendChild(dateSpan);
+          hdr.appendChild(daySpan);
+          grp.appendChild(hdr);
+
+          if (entry.items.length === 0) {
+            var none = document.createElement('div');
+            none.className = 'state-msg';
+            none.style.height = '28px';
+            grp.appendChild(none);
+          } else {
+            entry.items.forEach(function (ev) {
+              totalShown++;
+              var card = document.createElement('div');
+              card.className = 'event-card';
+
+              var dot = document.createElement('div');
+              dot.className = 'event-dot' + (ev.allDay ? ' allday' : '');
+              card.appendChild(dot);
+
+              var info = document.createElement('div');
+              info.className = 'event-info';
+
+              var title = document.createElement('div');
+              title.className = 'event-title';
+              title.textContent = ev.title || '(No title)';
+              info.appendChild(title);
+
+              var time = document.createElement('div');
+              time.className = 'event-time';
+              time.textContent = fmtTimeRange(ev.start, ev.end, ev.allDay);
+              info.appendChild(time);
+
+              card.appendChild(info);
+              grp.appendChild(card);
+            });
+          }
+
+          eventsArea.appendChild(grp);
+        });
+
+        if (evs.length === 0) {
+          var noEv = document.createElement('div');
+          noEv.className = 'no-events';
+          noEv.textContent = 'No events this week.';
+          eventsArea.appendChild(noEv);
+        }
+      }
+
+      function showLoading() {
+        eventsArea.innerHTML = '<div class="state-msg">Loading events…</div>';
+      }
+
+      function showError(msg) {
+        eventsArea.innerHTML = '<div class="state-msg state-error">' + msg + '</div>';
+      }
+
+      // ── Load events ────────────────────────────────────────────
+      function loadEvents() {
+        if (!calCap || !connected) return;
+        var range = weekRange();
+        rangeLabel.textContent = fmtWeekLabel(range.from, range.to);
+
+        if (loading) return;
+        loading = true;
+        showLoading();
+
+        calCap.call('listEvents', range.from.toISOString(), range.to.toISOString())
+          .then(function (evs) {
+            loading = false;
+            events = evs || [];
+            renderEvents(events, range);
+          })
+          .catch(function (err) {
+            loading = false;
+            var msg = err && err.message ? err.message : String(err);
+            if (msg.indexOf('calendar.not_connected') !== -1 || msg.indexOf('not connected') !== -1) {
+              setConnectedUI(false);
+            } else {
+              showError('Failed to load events: ' + msg);
+            }
+          });
+      }
+
+      // ── Connect / disconnect ───────────────────────────────────
+      function doConnect() {
+        if (!calCap) return;
+        btnConnect.disabled = true;
+        btnConnInner.disabled = true;
+        btnConnect.textContent = 'Connecting…';
+        btnConnInner.textContent = 'Connecting…';
+
+        calCap.call('connect', [])
+          .then(function (result) {
+            btnConnect.disabled = false;
+            btnConnInner.disabled = false;
+            btnConnect.textContent = 'Connect Google Calendar';
+            btnConnInner.textContent = 'Connect Google Calendar';
+            if (result && result.ok) {
+              setConnectedUI(true);
+            } else {
+              var err = (result && result.error) ? result.error : 'Unknown error';
+              showError('Connection failed: ' + err);
+              connectProm.style.display = '';
+            }
+          })
+          .catch(function (err) {
+            btnConnect.disabled = false;
+            btnConnInner.disabled = false;
+            btnConnect.textContent = 'Connect Google Calendar';
+            btnConnInner.textContent = 'Connect Google Calendar';
+            showError('Connection failed: ' + (err.message || String(err)));
+            connectProm.style.display = '';
+          });
+      }
+
+      function doDisconnect() {
+        if (!calCap) return;
+        calCap.call('disconnect', [])
+          .then(function () { setConnectedUI(false); })
+          .catch(function () { setConnectedUI(false); });
+      }
+
+      // ── Bootstrap ──────────────────────────────────────────────
+      boot.awaitBridge().then(function (sv) {
+        bridge = sv;
+        bridgeWait.classList.add('hidden');
+        root.style.display = '';
+        boot.applyCodicons();
+
+        // Wire nav buttons before cap is ready (they just set state; loadEvents
+        // is called after the cap is bound below).
+        btnPrev.addEventListener('click', function () { weekOffset--; loadEvents(); });
+        btnNext.addEventListener('click', function () { weekOffset++; loadEvents(); });
+        btnToday.addEventListener('click', function () { weekOffset = 0; loadEvents(); });
+
+        // Bind the schedule.calendar query cap.
+        // bindQuery returns a Promise that resolves to the proxy handle.
+        return sv.bindQuery('schedule.calendar', '1.0').then(function (cap) {
+          calCap = cap;
+
+          // Wire connect/disconnect buttons
+          btnConnect.addEventListener('click', doConnect);
+          btnConnInner.addEventListener('click', doConnect);
+          btnDisconn.addEventListener('click', doDisconnect);
+
+          // Check connection status on load
+          return calCap.call('getStatus', [])
+            .then(function (status) {
+              setConnectedUI(!!(status && status.connected));
+            })
+            .catch(function () {
+              setConnectedUI(false);
+            });
+        });
+      }).catch(function (err) {
+        bridgeWait.classList.remove('hidden');
+        bridgeWait.textContent = 'Bridge error: ' + (err && err.message ? err.message : String(err));
+      });
+
+    })();
+    </script>
+  </body>
+</html>

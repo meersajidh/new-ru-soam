@@ -1,0 +1,39 @@
+{
+  "id": "ru-soam-schedule",
+  "version": "0.1.0",
+  "entry": "index.mjs",
+  "activationEvents": ["lazy"],
+  "capabilities": [
+    { "name": "schedule.calendar", "version": "1.0", "kind": "query" }
+  ],
+  "views": [
+    { "id": "schedule", "path": "schedule.html" }
+  ],
+  "dependencies": {
+    "capabilities": ["calendar.provider@1.0"]
+  },
+  "contributes": {
+    "activityBar.items": [
+      {
+        "id": "ru-soam-schedule.activity",
+        "label": "Schedule",
+        "icon": "calendar",
+        "viewContainer": "ru-soam-schedule.container",
+        "group": "top",
+        "when": "workspace.activeId"
+      }
+    ],
+    "viewContainers": [
+      {
+        "id": "ru-soam-schedule.container",
+        "title": "Schedule",
+        "view": "schedule",
+        "location": "primary"
+      }
+    ],
+    "panel.views": [],
+    "commands": [],
+    "menus": {},
+    "keybindings": []
+  }
+}

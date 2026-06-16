@@ -41,6 +41,7 @@ import { installLockChannel, createAutoLockHandleRef, rebindAutoLock } from './i
 import { installAppChannel } from './ipc/app-channel';
 import { registerUpdateCapability } from './ipc/update-channel';
 import { registerCommandsCapability } from './capability/commands';
+import { registerCalendarProviderCapability } from './calendar/calendar-cap';
 import { initUpdater } from './updater/index';
 import { registerQuiesceHook } from './updater/db-quiesce';
 import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
@@ -326,6 +327,7 @@ app.whenReady().then(() => {
 
   registerUpdateCapability();
   registerCommandsCapability();
+  registerCalendarProviderCapability();
 
   // Bundle query templates — rung F / O445.
   // Must come after registerStoreQueryCapability() (already called above)
