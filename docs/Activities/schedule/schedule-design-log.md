@@ -247,6 +247,29 @@ direction of the same resolver.
 
 ---
 
+### SD-14 — Provider residency split (resolves SD-8) → promoted to ADR-507 §10 + ADR-506 Am1 (2026-06-17)
+
+Raised by an architecture review of the built P0 against ADR-506 (pure-base Main) / ADR-418 (trust tiers).
+SD-8 had deferred the "exact Main-broker vs FP-Host-logic residency split" to the ADR; ADR-507 §3/§4 left
+it ambiguous and the P0 build resolved it Main-ward (whole Google adapter + `calendar.provider@1.0` PHI cap
+in `electron/main/calendar/`) — re-introducing the ADR-504 "PHI handler in Main" anti-pattern ADR-506
+retired. Resolved (LOCKED):
+
+- **Adapter logic (endpoints / scopes / request shaping / event mapping / port impl) → FP-Host bundle**
+  (domain, ADR-506 §9). **Credential lifecycle (KEK-wrapped storage / refresh / `shell.openExternal` grant)
+  → Main**, as a **provider-agnostic base credential broker** (KEK can't leave Main; `shell` is Main).
+  **Network egress → a Main brokered-fetch base cap** (manifest `apiHosts` allowlist + short-lived-token
+  inject; refresh-token + KEK never leave Main).
+- **Rejected "X" (FP-Host's own egress):** would contradict ADR-410's standing *"no host network by
+  default, brokered through Main"* invariant + ADR-418 §4 (don't de-sandbox the most-PHI-adjacent code —
+  direct egress = PHI-exfil-on-bug). Chose **"Y"** (Main brokers): single auditable chokepoint, blast-radius
+  = declared hosts, untrusted-host egress-denial for free, no ADR-410 amendment needed.
+- **Latent finding:** the FP-Host Node process can currently reach the network (deny-list omits
+  `http`/`https`; global `fetch` can't be module-denied) — a sandbox gap vs ADR-410, unused by any bundle,
+  being closed now (deny-list + global-neuter); airtight host hardening stays O137.
+- **P0 deviation tracked to O485 (P1):** move adapter → FP-Host, add the base broker + brokered-fetch caps,
+  split `schedule.calendar` query/command (CQRS), fix the stale "not renderer-visible" comment.
+
 ## Open queue (not yet concluded)
 
 - **SQ-2 — Concept model: Schedule entities vs Sessions entities (NEXT — stay at concept level, no fields yet).**

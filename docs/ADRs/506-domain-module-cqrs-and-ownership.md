@@ -262,3 +262,29 @@ today — refactoring into the FP-Host when the seam + store cap exist.
   method-classes).
 - **O448** — expressing hard/safety/legal invariants as declarative schema constraints
   (what's expressible as `CHECK`/`FK`/trigger vs what must stay First-Party-Host logic).
+
+## Amendment 1 — provider-connectivity base mechanisms; the calendar P0 Main-residency exception (2026-06-17)
+
+Raised by the Schedule review (ADR-507 §10). Two clarifications, no change to the core model:
+
+- **A1.1 — provider connectivity is a base mechanism, and lives in Main.** §1's enumerated
+  Main-resident base set (keys, crypto, store, audit, generic CRUD/query, migration/validator)
+  is **not exhaustive of base** — it lists the *data-authority* mechanisms. **Provider
+  connectivity** is equally base and equally Main-resident: (a) a **provider-agnostic credential
+  broker** (OS-keychain + KEK-wrap per O307f + refresh + interactive `shell.openExternal` grant,
+  keyed by `{provider, account, scopes}`), and (b) a **brokered-fetch** cap (manifest-declared
+  `apiHosts` allowlist + short-lived-token injection + outbound call, per ADR-203/410). Both are
+  **domain-agnostic** (no provider/clinical knowledge — the bundle supplies endpoints, scopes,
+  hosts as *data*, mirroring how a bundle supplies `ownedTables` to §6), so they preserve
+  "pure-base Main." A first-party **provider bundle** (ADR-507 §10) is then a normal ADR-506
+  vertical slice: its adapter logic runs in FP-Host and *consumes* these base caps; the
+  credential/KEK/egress never enter the bundle.
+
+- **A1.2 — the calendar P0 build is a known, temporary exception to "pure-base Main REACHED."**
+  Schedule P0 (`electron/main/calendar/`) runs a Google adapter + the `calendar.provider@1.0`
+  PHI cap **as Main code** — exactly the ADR-504 anti-pattern this ADR retired. It is contained
+  (cap is `phi:true` + lock-gated + first-party-only) and **scheduled for correction in
+  Schedule P1 (O485)** per ADR-507 §10's "P0 build deviation": adapter logic → FP-Host bundle,
+  connectivity → the A1.1 base caps. Until then the "pure-base Main REACHED" claim in *Phasing /
+  current state* holds **for the patient record only** — calendar is the lone outstanding
+  domain-in-Main cap.

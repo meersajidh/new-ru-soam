@@ -31,6 +31,10 @@ const DENIED_MODULES: ReadonlySet<string> = new Set([
   'child_process',
   'fs',
   'net',
+  'http',
+  'https',
+  'http2',
+  'tls',
   'dgram',
   'worker_threads',
   'vm',
@@ -111,6 +115,39 @@ if (typeof procExt.binding === 'function') {
 
 // `process.env` snapshot — reads pass through; writes / deletes throw.
 defineLockedProp('env', Object.freeze({ ...process.env }) as NodeJS.ProcessEnv);
+
+// Neuter outbound-network globals — fetch / WebSocket / EventSource are
+// built-in globals, NOT importable modules, so DENIED_MODULES cannot catch
+// them.  Guard by presence (Node version may not expose all three).
+if (typeof globalThis.fetch === 'function') {
+  Object.defineProperty(globalThis, 'fetch', {
+    value: () => {
+      throw new Error('fetch denied');
+    },
+    configurable: false,
+    writable: false,
+  });
+}
+if (typeof globalThis.WebSocket === 'function') {
+  // Regular function (not arrow) so `new WebSocket(...)` runs the body and throws
+  // our message, rather than the engine's "not a constructor" TypeError.
+  Object.defineProperty(globalThis, 'WebSocket', {
+    value: function () {
+      throw new Error('WebSocket denied');
+    },
+    configurable: false,
+    writable: false,
+  });
+}
+if (typeof globalThis.EventSource === 'function') {
+  Object.defineProperty(globalThis, 'EventSource', {
+    value: function () {
+      throw new Error('EventSource denied');
+    },
+    configurable: false,
+    writable: false,
+  });
+}
 
 /**
  * Bundle Host process entry — runs in `utilityProcess` per ADR-410.

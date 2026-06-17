@@ -85,6 +85,62 @@ The provider is **optional**. No provider connected → Schedule (the calendar U
 manages Client Meetings directly in Sessions (which is local, ADR-508). Offline → calendar view degraded;
 the clinical spine is unaffected.
 
+### 10. Provider residency — adapter logic → FP-Host; credential lifecycle + network egress → Main (resolves SD-8, the §3/§4 tension)
+
+§3 (provider = a bundle's CQRS caps) and §4 (credential never enters the bundle; Main injects + performs
+the outbound call) left the **code-residency split** implicit; the design log SD-8 deferred "exact
+Main-broker vs FP-Host-logic residency" to this ADR. Resolved into three pieces:
+
+- **Adapter logic = FP-Host (domain bundle).** Provider-specific knowledge — API endpoints, scope sets,
+  request shaping, response→`CalendarEvent` mapping, the `CalendarProvider` port implementation — runs in
+  the first-party bundle's FP-Host logic half. It is domain code (ADR-506 §9: domain → FP-Host) and must
+  **not** live in Main.
+
+- **Credential lifecycle = Main, provider-agnostic base mechanism.** Token at-rest (KEK-wrapped per
+  O307f), refresh, and the interactive grant (`shell.openExternal` + loopback PKCE) are Main-only — the
+  KEK never leaves Main (ADR-307 / ADR-418 §2) and `shell` is a Main API. Exposed as a **generic,
+  provider-agnostic credential broker** keyed by `{provider, account, scopes}` — **not** a Google- or
+  calendar-named Main cap. This keeps Main domain-free (ADR-506 §1) while it owns the key-bearing half,
+  and makes additional providers (§2) cheap.
+
+- **Network egress = a Main brokered-fetch base cap; NOT FP-Host raw egress.** The bundle shapes the
+  request and calls a generic **brokered-fetch** base capability; Main validates the target host against
+  the bundle's manifest-declared allowlist (`apiHosts` — *data*, not logic, cf. `ownedTables` ADR-506 §6),
+  injects the short-lived access token, performs the outbound call, and returns the raw response for the
+  bundle to map. **The refresh token and the KEK never leave Main; only the short-lived access token is
+  used inside Main's broker — it is never handed to the bundle.**
+
+  **Why not FP-Host's own egress** (the rejected option "X"): ADR-410 makes *"no network access from the
+  host by default; outbound brokered through Main"* a standing trust-zone invariant, and ADR-418 §4's
+  bug-vs-malice rule (the most-PHI-adjacent code is what we least want de-sandboxed) applies directly to a
+  PHI-holding process — direct egress is a **PHI-exfil-on-bug** vector (a buggy dependency could phone
+  home). Brokered-fetch keeps a single auditable chokepoint, shrinks blast-radius to declared hosts, and
+  gives the future untrusted Bundle-Host egress-denial **for free** (it is simply never granted the cap).
+  Granting FP-Host raw egress would require **amending ADR-410** — rejected. *(Note: the FP-Host Node
+  process today has latent OS-level network reachability because its module deny-list omits
+  `http`/`https` and global `fetch` cannot be module-denied — a sandbox gap, contra ADR-410, not a grant.
+  It is unused by any current bundle and is being closed; airtight host-surface hardening stays tracked by
+  O137.)*
+
+This makes the provider bundle a true ADR-506 vertical slice: domain logic in FP-Host, key/credential/egress
+**mechanism** consumed from base.
+
+#### P0 build deviation (to correct in P1 / O485)
+
+The shipped P0 (`apps/desktop/bundles/ru-soam-schedule` + `electron/main/calendar/`) predates this decision:
+the Google adapter (OAuth, token store, `listEvents` fetch, event mapping) and the `calendar.provider@1.0`
+cap all run in **Main**, with the FP-Host bundle a hollow relay. This is a **known, temporary deviation**
+from §10 — Main is *not* pure-base while it stands (contra ADR-506 §"pure-base Main REACHED") — tracked to
+the P1 refactor (O485): (a) move adapter logic into the FP-Host bundle; (b) introduce the
+provider-agnostic credential-broker + brokered-fetch base caps; (c) split the bundle's view-facing
+`schedule.calendar` into a **query** cap (`getStatus`/`listEvents`) and a **command** cap
+(`connect`/`disconnect`) per §3 + ADR-506 §3/§7, and classify `kind` accordingly (the P0 cap is wrongly
+marked `kind: query` while exposing mutating `connect`/`disconnect`); (d) fix the stale
+`calendar-cap.ts` comment claiming the cap is "not renderer-visible" — the single shared registry +
+allowlist-free `soam-channel` make it renderer-reachable (no PHI hole — renderer is a trusted PHI peer —
+but the relay indirection is unenforced). Until P1 the deviation is **contained**: the cap is `phi:true` +
+lock-gated + first-party-only, so PHI exposure is unchanged.
+
 ## Consequences
 
 ### Positive
