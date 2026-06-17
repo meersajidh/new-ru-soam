@@ -186,6 +186,9 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     setOverviewViewMode: function (mode) {
       send({ __soamView: true, kind: 'request.setOverviewViewMode', mode: mode });
     },
+    setTabDescription: function (text) {
+      send({ __soamView: true, kind: 'request.setTabDescription', text: text });
+    },
     focusAspect: function (sectionId) {
       send({ __soamView: true, kind: 'request.focusAspect', sectionId: sectionId });
     },

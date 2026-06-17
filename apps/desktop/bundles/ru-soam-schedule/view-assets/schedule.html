@@ -8,49 +8,68 @@
     />
     <title>Schedule</title>
     <style>
-      /* ── Reset ───────────────────────────────────────────── */
+
+      /* ── Reset ─────────────────────────────────────────────────── */
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
 
-      /* ── Design tokens ───────────────────────────────────── */
+      /* ── Design tokens (defaults — injected via postMessage from host) ─ */
       :root {
         color-scheme: light dark;
-        --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-        --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+
+        --font-sans:    'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-mono:    ui-monospace, Consolas, 'Courier New', monospace;
+        --font-display: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+        /* Surface */
         --color-surface-base:     #161618;
         --color-surface-panel:    #1c1c1f;
         --color-surface-elevated: #232326;
         --color-surface-active:   #2a2d26;
+        /* Foreground */
         --color-fg-primary:   #f2f2f7;
         --color-fg-secondary: #aeaeb2;
         --color-fg-muted:     #636366;
+        /* Borders */
         --color-border:       #3a3a3c;
         --color-border-focus: #5ac85a;
-        --color-accent:       #5ac85a;
-        --color-accent-fg:    #1c1c1e;
-        --color-accent-hover: #6bd46b;
-        --color-success:      #5ac85a;
-        --color-warning:      #f4a623;
-        --color-error:        #e05252;
-        --radius-sm: 4px;
-        --radius-md: 7px;
+        /* Accent */
+        --color-accent:         #5ac85a;
+        --color-accent-fg:      #1c1c1e;
+        --color-accent-hover:   #6bd46b;
+        --color-accent-pressed: #4ab44a;
+        /* Semantic */
+        --color-success: #5ac85a;
+        --color-warning: #f4a623;
+        --color-error:   #e05252;
+        --color-info:    #5ac0de;
+
+        --radius-sm:   4px;
+        --radius-md:   7px;
+        --radius-card: 10px;
+
         --transition: 130ms ease;
+
+        /* Time-grid constants */
+        --tg-hour-h:   56px;  /* height of one hour row — MUST match JS HOUR_H */
+        --tg-gutter-w: 64px;  /* width of the left time-label gutter */
       }
 
-      /* ── Base ────────────────────────────────────────────── */
+      /* ── Base ──────────────────────────────────────────────────── */
       html, body {
         height: 100%;
         overflow: hidden;
         font-family: var(--font-sans);
         font-size: 13px;
         line-height: 1.5;
-        background: var(--color-surface-panel);
+        background: var(--color-surface-base);
         color: var(--color-fg-primary);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         text-rendering: optimizeLegibility;
       }
 
+      /* ── Root layout ───────────────────────────────────────────── */
       #root {
         display: flex;
         flex-direction: column;
@@ -58,287 +77,1259 @@
         overflow: hidden;
       }
 
-      /* ── Bridge wait overlay ─────────────────────────────── */
+      /* ── Bridge wait overlay ───────────────────────────────────── */
       #bridge-wait {
         position: fixed;
         inset: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-surface-panel);
+        background: var(--color-surface-base);
         z-index: 100;
-        font-size: 12px;
+        gap: 8px;
+        font-size: 11px;
         color: var(--color-fg-muted);
       }
       #bridge-wait.hidden { display: none; }
+      .spinner {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
 
-      /* ── Header ──────────────────────────────────────────── */
-      .header {
+      /* ── Work header ───────────────────────────────────────────── */
+      .work-header {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 10px 12px 8px;
+        gap: 10px;
+        padding: 0 18px;
+        height: 52px;
         border-bottom: 1px solid var(--color-border);
         flex-shrink: 0;
+        background: var(--color-surface-panel);
       }
-      .header-title {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--color-fg-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        flex: 1;
+
+      /* Date nav cluster */
+      .date-nav {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
       }
-      .btn {
+      .nav-btn {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-sm);
+        color: var(--color-fg-secondary);
+        transition: background var(--transition), color var(--transition);
+        font-size: 14px;
+      }
+      .nav-btn:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
+      .nav-btn:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
+      .btn-today {
         padding: 4px 10px;
         border-radius: var(--radius-sm);
         font-size: 12px;
         font-weight: 500;
-        cursor: pointer;
-        transition: background var(--transition);
-      }
-      .btn-accent {
-        background: var(--color-accent);
-        color: var(--color-accent-fg);
-      }
-      .btn-accent:hover { background: var(--color-accent-hover); }
-      .btn-ghost {
         color: var(--color-fg-secondary);
         border: 1px solid var(--color-border);
+        transition: background var(--transition), color var(--transition), border-color var(--transition);
       }
-      .btn-ghost:hover { background: var(--color-surface-elevated); }
-      .btn-danger {
-        color: var(--color-error);
-        border: 1px solid var(--color-border);
+      .btn-today:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+        border-color: color-mix(in srgb, var(--color-border) 70%, var(--color-fg-muted));
       }
-      .btn-danger:hover { background: var(--color-surface-elevated); }
+      .btn-today:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
 
-      /* ── Date range nav ──────────────────────────────────── */
-      .range-bar {
+      /* Range label */
+      .range-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+        letter-spacing: -0.01em;
+        flex: 1;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* View switcher */
+      .view-switcher {
         display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 12px;
-        border-bottom: 1px solid var(--color-border);
+        gap: 1px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        padding: 2px;
         flex-shrink: 0;
       }
-      .range-label {
-        flex: 1;
-        font-size: 12px;
+      .view-tab {
+        padding: 3px 10px;
+        border-radius: 3px;
+        font-size: 11.5px;
         font-weight: 500;
-        color: var(--color-fg-primary);
-        text-align: center;
+        color: var(--color-fg-muted);
+        transition: background var(--transition), color var(--transition);
+        letter-spacing: 0.01em;
       }
-      .nav-btn {
-        width: 26px;
-        height: 26px;
+      .view-tab:hover {
+        color: var(--color-fg-secondary);
+        background: color-mix(in srgb, var(--color-surface-active) 60%, transparent);
+      }
+      .view-tab.is-active {
+        background: var(--color-surface-panel);
+        color: var(--color-fg-primary);
+        box-shadow: 0 1px 3px color-mix(in srgb, #000 25%, transparent);
+      }
+      .view-tab:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
+
+      /* PHI chip — static visual placeholder (P-D wires the real value) */
+      .phi-chip {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        border-radius: var(--radius-sm);
-        font-size: 14px;
-        color: var(--color-fg-secondary);
-        cursor: pointer;
-        transition: background var(--transition);
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: var(--radius-md);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        border: 1px solid color-mix(in srgb, var(--color-success) 40%, transparent);
+        background: color-mix(in srgb, var(--color-success) 10%, transparent);
+        color: var(--color-success);
+        flex-shrink: 0;
+        user-select: none;
+        cursor: default;
       }
-      .nav-btn:hover { background: var(--color-surface-elevated); }
+      .phi-chip-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--color-success);
+        flex-shrink: 0;
+      }
 
-      /* ── Content area ────────────────────────────────────── */
-      .content {
+      /* ── Full-area state panels ────────────────────────────────── */
+      .state-panel {
         flex: 1;
-        overflow-y: auto;
-        padding: 8px 0;
-      }
-
-      /* ── Connect state ───────────────────────────────────── */
-      .connect-state {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 12px;
-        height: 100%;
-        padding: 24px;
+        padding: 40px 24px;
         text-align: center;
+        overflow: hidden;
       }
-      .connect-icon {
-        width: 40px;
-        height: 40px;
+      .state-icon {
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         background: var(--color-surface-elevated);
         display: flex;
         align-items: center;
         justify-content: center;
+        flex-shrink: 0;
+        color: var(--color-fg-muted);
       }
-      .connect-title {
-        font-size: 14px;
+      .state-title {
+        font-size: 15px;
         font-weight: 600;
         color: var(--color-fg-primary);
+        letter-spacing: -0.01em;
       }
-      .connect-desc {
+      .state-desc {
         font-size: 12px;
         color: var(--color-fg-muted);
-        max-width: 260px;
+        max-width: 300px;
         line-height: 1.6;
       }
-
-      /* ── Loading / error states ──────────────────────────── */
-      .state-msg {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 120px;
+      .state-error-msg {
         font-size: 12px;
-        color: var(--color-fg-muted);
-      }
-      .state-error {
         color: var(--color-error);
+        max-width: 340px;
+        line-height: 1.55;
+        background: color-mix(in srgb, var(--color-error) 8%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+        border-radius: var(--radius-md);
+        padding: 8px 14px;
       }
 
-      /* ── Day group ───────────────────────────────────────── */
-      .day-group {
-        padding: 0 8px 2px;
-      }
-      .day-header {
-        padding: 6px 4px 3px;
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--color-fg-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        display: flex;
-        align-items: baseline;
+      /* ── Shared button styles ──────────────────────────────────── */
+      .btn {
+        display: inline-flex;
+        align-items: center;
         gap: 6px;
-      }
-      .day-header-date {
-        font-size: 16px;
-        font-weight: 700;
-        color: var(--color-fg-primary);
-      }
-      .day-header-date.today {
-        color: var(--color-accent);
-      }
-
-      /* ── Event card ──────────────────────────────────────── */
-      .event-card {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 6px 6px;
+        padding: 6px 14px;
         border-radius: var(--radius-sm);
-        margin-bottom: 2px;
-        cursor: default;
-        transition: background var(--transition);
-      }
-      .event-card:hover { background: var(--color-surface-elevated); }
-      .event-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--color-accent);
-        flex-shrink: 0;
-        margin-top: 4px;
-      }
-      .event-dot.allday {
-        background: var(--color-fg-muted);
-      }
-      .event-info { flex: 1; min-width: 0; }
-      .event-title {
         font-size: 12px;
         font-weight: 500;
+        cursor: pointer;
+        transition: background var(--transition), opacity var(--transition);
+        border: none;
+      }
+      .btn:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .btn-accent {
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+      }
+      .btn-accent:hover:not(:disabled) { background: var(--color-accent-hover); }
+      .btn-accent:active:not(:disabled) { background: var(--color-accent-pressed); }
+      .btn-ghost {
+        background: transparent;
+        color: var(--color-fg-secondary);
+        border: 1px solid var(--color-border);
+      }
+      .btn-ghost:hover:not(:disabled) { background: var(--color-surface-active); }
+      .btn-danger {
+        background: transparent;
+        color: var(--color-error);
+        border: 1px solid color-mix(in srgb, var(--color-error) 35%, transparent);
+      }
+      .btn-danger:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--color-error) 8%, transparent);
+      }
+
+      /* ── Calendar content area ─────────────────────────────────── */
+      #cal-area {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ── Agenda view ───────────────────────────────────────────── */
+      .agenda-scroll {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 35%, transparent) transparent;
+        padding: 8px 0 24px;
+      }
+
+      .day-group {
+        padding: 0;
+      }
+
+      .day-header {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        padding: 14px 20px 6px;
+        position: sticky;
+        top: 0;
+        background: var(--color-surface-base);
+        z-index: 1;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+      }
+      .day-num {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--color-fg-primary);
+        line-height: 1;
+        font-family: var(--font-display);
+        letter-spacing: -0.02em;
+        min-width: 28px;
+        text-align: right;
+      }
+      .day-num.is-today {
+        color: var(--color-accent);
+      }
+      .day-weekday {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--color-fg-muted);
+      }
+      .day-month {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        margin-left: auto;
+      }
+
+      .day-events {
+        padding: 8px 20px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .day-empty {
+        padding: 8px 20px 10px;
+        font-size: 11.5px;
+        color: var(--color-fg-muted);
+        font-style: italic;
+      }
+
+      /* ── Event card (agenda only) — 3-col layout ───────────────── */
+      .event-card {
+        display: grid;
+        grid-template-columns: 80px 1fr auto;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 14px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: background var(--transition);
+        border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+        background: var(--color-surface-panel);
+        position: relative;
+      }
+      .event-card:hover {
+        background: var(--color-surface-elevated);
+        border-color: var(--color-border);
+      }
+      .event-card.is-selected {
+        background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface-panel));
+        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+      }
+
+      /* Left: time column */
+      .event-time-col {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--color-fg-secondary);
+        white-space: nowrap;
+        line-height: 1.3;
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .event-time-col.allday-label {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-fg-muted);
+      }
+
+      /* Middle: title + modality subline */
+      .event-body { min-width: 0; }
+      .event-title {
+        font-size: 13px;
+        font-weight: 600;
         color: var(--color-fg-primary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        line-height: 1.35;
       }
-      .event-time {
+      .event-modality {
         font-size: 11px;
         color: var(--color-fg-muted);
-        margin-top: 1px;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
-      /* ── No-events ───────────────────────────────────────── */
+      /* Right: classification badge */
+      .event-kind-badge {
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 100px;
+        border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+        color: var(--color-fg-muted);
+        background: color-mix(in srgb, var(--color-surface-base) 60%, transparent);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .event-kind-badge.kind-session {
+        color: var(--color-accent);
+        border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+        background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+      }
+      .event-kind-badge.kind-personal {
+        color: var(--color-info);
+        border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
+        background: color-mix(in srgb, var(--color-info) 8%, transparent);
+      }
+      .event-kind-badge.kind-admin {
+        color: var(--color-warning);
+        border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
+        background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+      }
+
+      /* legacy — kept for safety, not used in new agenda layout */
+      .event-strip { display: none; }
+      .event-meta { display: none; }
+      .event-cal-badge { display: none; }
+
+      /* ── Time-grid (shared: week + day) ───────────────────────── */
+      .tg-root {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* All-day strip — sticky above the scrollable grid */
+      .tg-allday-row {
+        display: flex;
+        flex-shrink: 0;
+        border-bottom: 1px solid var(--color-border);
+        background: var(--color-surface-panel);
+      }
+      .tg-allday-gutter {
+        width: var(--tg-gutter-w);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 4px 8px 4px 0;
+        font-size: 9.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--color-fg-muted);
+        border-right: 1px solid var(--color-border);
+      }
+      .tg-allday-cols {
+        flex: 1;
+        display: flex;
+        min-height: 30px;
+        padding: 4px 0;
+      }
+      /* Each day column inside the all-day strip */
+      .tg-allday-col {
+        flex: 1;
+        padding: 1px 3px;
+        border-right: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .tg-allday-col:last-child { border-right: none; }
+      .tg-allday-pill {
+        font-size: 10.5px;
+        font-weight: 500;
+        color: var(--color-fg-primary);
+        background: color-mix(in srgb, var(--color-surface-active) 80%, transparent);
+        border-left: 2px solid color-mix(in srgb, var(--color-accent) 55%, var(--color-fg-muted) 45%);
+        border-radius: 3px;
+        padding: 2px 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      .tg-allday-pill:hover { background: var(--color-surface-active); }
+      .tg-allday-pill.is-selected {
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+        border-left-color: var(--color-accent);
+      }
+
+      /* Column header row — sticky, above all-day strip */
+      .tg-col-headers {
+        display: flex;
+        flex-shrink: 0;
+        border-bottom: 1px solid var(--color-border);
+        background: var(--color-surface-panel);
+      }
+      .tg-col-header-gutter {
+        width: var(--tg-gutter-w);
+        flex-shrink: 0;
+        border-right: 1px solid var(--color-border);
+      }
+      .tg-col-header {
+        flex: 1;
+        text-align: center;
+        padding: 8px 4px 7px;
+        border-right: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+        cursor: default;
+        position: relative;
+      }
+      .tg-col-header:last-child { border-right: none; }
+      .tg-col-header.is-today {
+        background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+      }
+      .tg-col-header-wd {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--color-fg-muted);
+        line-height: 1;
+      }
+      .tg-col-header-date {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--color-fg-primary);
+        font-family: var(--font-display);
+        letter-spacing: -0.025em;
+        line-height: 1.1;
+        margin-top: 2px;
+      }
+      .tg-col-header-date.is-today {
+        color: var(--color-accent);
+      }
+      /* Day view: larger header treatment */
+      .tg-col-header.day-solo {
+        text-align: left;
+        padding: 10px 14px 8px;
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+      }
+      .tg-col-header.day-solo .tg-col-header-date {
+        font-size: 30px;
+        letter-spacing: -0.03em;
+        line-height: 1;
+      }
+      .tg-col-header.day-solo .tg-col-header-wd {
+        font-size: 13px;
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--color-fg-secondary);
+      }
+
+      /* Scrollable grid body */
+      .tg-scroll {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 30%, transparent) transparent;
+        position: relative;
+      }
+      .tg-grid {
+        display: flex;
+        position: relative;
+        /* height = 24 hours × hour-height */
+        min-height: calc(24 * var(--tg-hour-h));
+      }
+
+      /* Left gutter: hour labels */
+      .tg-gutter {
+        width: var(--tg-gutter-w);
+        flex-shrink: 0;
+        position: relative;
+        border-right: 1px solid var(--color-border);
+      }
+      .tg-hour-label {
+        position: absolute;
+        right: 8px;
+        font-size: 9.5px;
+        font-weight: 500;
+        color: var(--color-fg-muted);
+        line-height: 1;
+        /* vertically centred on the border line */
+        transform: translateY(-50%);
+        white-space: nowrap;
+        user-select: none;
+      }
+
+      /* Day columns area */
+      .tg-cols {
+        flex: 1;
+        display: flex;
+        position: relative;
+      }
+
+      /* Hour grid lines (drawn as a repeating bg on tg-cols) */
+      .tg-cols::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: repeating-linear-gradient(
+          to bottom,
+          color-mix(in srgb, var(--color-border) 55%, transparent) 0px,
+          color-mix(in srgb, var(--color-border) 55%, transparent) 1px,
+          transparent 1px,
+          transparent var(--tg-hour-h)
+        );
+        background-size: 100% var(--tg-hour-h);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* Individual day column inside the scrollable grid */
+      .tg-day-col {
+        flex: 1;
+        position: relative;
+        border-right: 1px solid color-mix(in srgb, var(--color-border) 35%, transparent);
+        min-height: calc(24 * var(--tg-hour-h));
+      }
+      .tg-day-col:last-child { border-right: none; }
+      .tg-day-col.is-today {
+        background: color-mix(in srgb, var(--color-accent) 3%, transparent);
+      }
+
+      /* Timed event block — absolutely positioned */
+      .tg-event {
+        position: absolute;
+        left: 4px;
+        right: 4px;
+        text-align: left; /* <button> UA default is center — override */
+        border-radius: var(--radius-sm);
+        background: color-mix(in srgb, var(--color-surface-active) 70%, var(--color-surface-panel) 30%);
+        border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+        border-left: 3px solid color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%);
+        padding: 4px 6px;
+        cursor: pointer;
+        overflow: hidden;
+        transition: background var(--transition), border-color var(--transition);
+        z-index: 1;
+        box-shadow: 0 1px 2px color-mix(in srgb, #000 15%, transparent);
+      }
+      .tg-event:hover {
+        background: color-mix(in srgb, var(--color-surface-active) 90%, transparent);
+        border-color: color-mix(in srgb, var(--color-border) 90%, transparent);
+      }
+      .tg-event.is-selected {
+        background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+        border-left-color: var(--color-accent);
+        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+      }
+      .tg-event-time {
+        font-size: 9.5px;
+        font-weight: 600;
+        color: var(--color-fg-muted);
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tg-event-title {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--color-fg-primary);
+        line-height: 1.3;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      .tg-event-participant {
+        font-size: 10px;
+        color: var(--color-fg-muted);
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
+      }
+      /* Hide time label when event block is too short */
+      .tg-event.tiny .tg-event-time { display: none; }
+      .tg-event.tiny .tg-event-title { font-size: 10.5px; }
+      .tg-event.tiny .tg-event-participant { display: none; }
+
+      /* Now-line */
+      .tg-now-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 0;
+        pointer-events: none;
+        z-index: 3;
+      }
+      .tg-now-line::before {
+        /* horizontal rule */
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 1.5px;
+        background: var(--color-error);
+        opacity: 0.75;
+      }
+      .tg-now-line::after {
+        /* dot on left edge */
+        content: '';
+        position: absolute;
+        left: -4px;
+        top: -3px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--color-error);
+        opacity: 0.8;
+      }
+      /* Now-line inside gutter: the dot appears here */
+      .tg-now-gutter-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 0;
+        pointer-events: none;
+        z-index: 3;
+      }
+      .tg-now-gutter-line::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: -3px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--color-error);
+        opacity: 0.8;
+      }
+
+      /* ── Month view ────────────────────────────────────────────── */
+      .month-view-wrap {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .month-weekday-row {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        border-top: 1px solid var(--color-border);
+        border-bottom: 1px solid var(--color-border);
+        flex-shrink: 0;
+        background: var(--color-surface-panel);
+      }
+      .month-weekday-label {
+        padding: 6px 0;
+        text-align: center;
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--color-fg-muted);
+        border-right: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+      }
+      .month-weekday-label:last-child { border-right: none; }
+      .month-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        flex: 1;
+        overflow: hidden;
+        align-content: start;
+      }
+      .month-cell {
+        border-right: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+        padding: 6px 6px 8px;
+        min-height: 130px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .month-cell:nth-child(7n) { border-right: none; }
+      .month-cell.is-outside {
+        background: color-mix(in srgb, var(--color-surface-panel) 40%, transparent);
+        opacity: 0.55;
+      }
+      .month-cell-date {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--color-fg-secondary);
+        line-height: 1;
+        padding: 1px 2px;
+        border-radius: 3px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+      .month-cell-date.is-today {
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+      }
+      .month-event-pill {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--color-fg-primary);
+        background: color-mix(in srgb, var(--color-surface-active) 80%, transparent);
+        border-radius: 4px;
+        padding: 3px 7px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        transition: background var(--transition);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        line-height: 1.4;
+      }
+      .month-event-pill::before {
+        content: '';
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%);
+        flex-shrink: 0;
+      }
+      .month-event-pill:hover { background: var(--color-surface-active); }
+      .month-event-pill.is-selected {
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+      }
+      .month-event-pill.is-selected::before {
+        background: var(--color-accent);
+      }
+      .month-overflow {
+        font-size: 10px;
+        color: var(--color-fg-muted);
+        padding: 1px 2px;
+      }
+
+      /* ── Inline event-detail popover ───────────────────────────── */
+      #detail-popover {
+        position: fixed;
+        z-index: 200;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        box-shadow:
+          0 4px 6px -1px color-mix(in srgb, #000 30%, transparent),
+          0 10px 20px -4px color-mix(in srgb, #000 25%, transparent);
+        padding: 0;
+        min-width: 300px;
+        max-width: 380px;
+        overflow: hidden;
+        outline: none;
+      }
+      #detail-popover.hidden { display: none; }
+
+      .popover-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+      }
+      .popover-kind-strip {
+        width: 3px;
+        border-radius: 2px;
+        align-self: stretch;
+        min-height: 20px;
+        flex-shrink: 0;
+        background: var(--color-fg-muted);
+        opacity: 0.5;
+        margin-top: 1px;
+      }
+      .popover-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+        line-height: 1.35;
+        flex: 1;
+        min-width: 0;
+        word-break: break-word;
+      }
+      .popover-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius-sm);
+        color: var(--color-fg-muted);
+        flex-shrink: 0;
+        transition: background var(--transition), color var(--transition);
+      }
+      .popover-close:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
+      .popover-close:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
+
+      .popover-body {
+        padding: 12px 16px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .popover-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        font-size: 12px;
+      }
+      .popover-row-icon {
+        color: var(--color-fg-muted);
+        flex-shrink: 0;
+        margin-top: 1px;
+        display: inline-flex;
+        align-items: center;
+        min-width: 14px;
+      }
+      .popover-row-text {
+        color: var(--color-fg-secondary);
+        line-height: 1.4;
+        flex: 1;
+        min-width: 0;
+        word-break: break-word;
+      }
+      .popover-row-text strong {
+        color: var(--color-fg-primary);
+        font-weight: 500;
+      }
+      .popover-duration-badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--color-fg-secondary);
+        background: var(--color-surface-base);
+        border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+        border-radius: 3px;
+        padding: 1px 5px;
+        margin-left: 6px;
+      }
+      .popover-cal-badge {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+        border-radius: 3px;
+        padding: 1px 5px;
+      }
+
+      /* Meeting link — selectable/copyable URL. NOT a clickable anchor:
+         the bundle iframe is sandboxed allow-scripts allow-forms (no allow-popups /
+         allow-top-navigation per ADR-411), so target=_blank navigation is blocked.
+         One-click launch needs a soamView.openExternal bridge verb → shell.openExternal
+         capability (follow-up). For now the user selects + copies the URL. */
+      .popover-join-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-fg-secondary);
+        margin-bottom: 2px;
+      }
+      .popover-join-url {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        line-height: 1.45;
+        color: var(--color-accent);
+        user-select: text;
+        cursor: text;
+        word-break: break-all;
+      }
+
+      /* Participants section */
+      .popover-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--color-fg-muted);
+        margin-bottom: 4px;
+        padding-left: 23px; /* align under row text (9px gap + 14px icon) */
+      }
+      .popover-participants {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .popover-participant {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11.5px;
+      }
+      .popover-avatar {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface-base) 80%);
+        border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+        color: var(--color-accent);
+        font-size: 9px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        text-transform: uppercase;
+        letter-spacing: -0.01em;
+      }
+      .popover-participant-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--color-fg-secondary);
+      }
+      .popover-participant-role {
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--color-fg-muted);
+        background: color-mix(in srgb, var(--color-surface-base) 80%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+        border-radius: 3px;
+        padding: 0 4px;
+        flex-shrink: 0;
+        line-height: 1.6;
+      }
+      .popover-divider {
+        height: 1px;
+        background: color-mix(in srgb, var(--color-border) 50%, transparent);
+        margin: 2px 0;
+      }
+
+      /* ── Day view — centered column ─────────────────────────────── */
+      /* Wrap everything in day view with max-width + centering via inner wrapper */
+      .tg-root.day-view {
+        align-items: center;
+      }
+      .tg-root.day-view .tg-col-headers,
+      .tg-root.day-view .tg-allday-row {
+        width: 100%;
+        max-width: 780px;
+        align-self: center;
+      }
+      .tg-root.day-view .tg-col-headers {
+        border-radius: var(--radius-card) var(--radius-card) 0 0;
+      }
+      .tg-root.day-view .tg-scroll {
+        width: 100%;
+        max-width: 780px;
+        align-self: center;
+        border-radius: 0 0 var(--radius-card) var(--radius-card);
+      }
+
+      /* Card shell that wraps the 780px day + agenda columns */
+      .day-card-shell,
+      .agenda-card-shell {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px 24px 24px;
+      }
+      /* Card surface: max-width container with border + elevation */
+      .day-card-shell > .tg-root {
+        width: 100%;
+        max-width: 780px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        box-shadow:
+          0 1px 3px color-mix(in srgb, #000 18%, transparent),
+          0 4px 12px color-mix(in srgb, #000 14%, transparent);
+        background: var(--color-surface-panel);
+        overflow: hidden;
+        /* Override inner day-view centering — card shell handles max-width already */
+        align-items: stretch;
+      }
+      .day-card-shell > .tg-root.day-view .tg-col-headers,
+      .day-card-shell > .tg-root.day-view .tg-allday-row,
+      .day-card-shell > .tg-root.day-view .tg-scroll {
+        max-width: none;
+        width: 100%;
+      }
+      /* Agenda card */
+      .agenda-card-shell > .agenda-scroll {
+        width: 100%;
+        max-width: 780px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        box-shadow:
+          0 1px 3px color-mix(in srgb, #000 18%, transparent),
+          0 4px 12px color-mix(in srgb, #000 14%, transparent);
+        background: var(--color-surface-panel);
+        overflow-y: auto;
+        max-height: 100%;
+        padding: 8px 0 24px;
+      }
+
+      /* ── Popover copy-link button ───────────────────────────────── */
+      .popover-copy-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius-sm);
+        color: var(--color-fg-muted);
+        flex-shrink: 0;
+        transition: background var(--transition), color var(--transition);
+        cursor: pointer;
+        border: none;
+        background: none;
+        font: inherit;
+        margin-left: 4px;
+        vertical-align: middle;
+      }
+      .popover-copy-btn:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
+      .popover-copy-btn:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
+      .popover-copy-btn.copied {
+        color: var(--color-success);
+      }
+      .popover-copy-confirm {
+        font-size: 10px;
+        color: var(--color-success);
+        margin-left: 4px;
+        font-weight: 600;
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+      .popover-copy-confirm.show { opacity: 1; }
+
+      /* ── Popover backdrop ───────────────────────────────────────── */
+      #popover-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 199;
+        background: transparent;
+      }
+      #popover-backdrop.hidden { display: none; }
+
+      /* ── No-events empty ───────────────────────────────────────── */
       .no-events {
-        padding: 16px 12px;
+        padding: 32px 16px;
+        text-align: center;
         font-size: 12px;
         color: var(--color-fg-muted);
-        text-align: center;
+        font-style: italic;
       }
+
+      /* ── Loading row ───────────────────────────────────────────── */
+      .loading-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 32px 16px;
+        font-size: 12px;
+        color: var(--color-fg-muted);
+      }
+
     </style>
   </head>
   <body>
-    <div id="bridge-wait">Connecting…</div>
+    <div id="bridge-wait"><span class="spinner"></span> Connecting…</div>
     <div id="root" style="display:none">
-      <div class="header">
-        <span class="header-title">Schedule</span>
-        <button id="btn-disconnect" class="btn btn-danger" style="display:none">Disconnect</button>
-        <button id="btn-connect" class="btn btn-accent" style="display:none">Connect Google Calendar</button>
-      </div>
-      <div id="range-bar" class="range-bar" style="display:none">
-        <button class="nav-btn" id="btn-prev" title="Previous week">&#8249;</button>
-        <span class="range-label" id="range-label"></span>
-        <button class="nav-btn" id="btn-next" title="Next week">&#8250;</button>
-        <button class="btn btn-ghost" id="btn-today" style="font-size:11px;padding:3px 8px;">Today</button>
-      </div>
-      <div class="content" id="content">
-        <div class="connect-state" id="connect-prompt" style="display:none">
-          <div class="connect-icon">
-            <span data-codicon="calendar" data-size="20"></span>
-          </div>
-          <div class="connect-title">Connect your calendar</div>
-          <div class="connect-desc">
-            Link your Google Calendar to see your schedule here. Your credential never leaves this device.
-          </div>
-          <button class="btn btn-accent" id="btn-connect-inner">Connect Google Calendar</button>
+
+      <!-- Work header -->
+      <div class="work-header">
+        <div class="date-nav">
+          <button class="nav-btn" id="btn-prev" title="Previous" type="button">&#8249;</button>
+          <button class="btn-today" id="btn-today" type="button">Today</button>
+          <button class="nav-btn" id="btn-next" title="Next" type="button">&#8250;</button>
         </div>
-        <div id="events-area"></div>
+        <span class="range-label" id="range-label"></span>
+        <div class="phi-chip" title="PHI Safety Score — high (read-only provider, no cloud sync)">
+          <span class="phi-chip-dot"></span>High PHI safety
+        </div>
+        <div class="view-switcher" id="view-switcher">
+          <button class="view-tab" data-view="agenda" type="button">Agenda</button>
+          <button class="view-tab" data-view="day"    type="button">Day</button>
+          <button class="view-tab" data-view="week"   type="button">Week</button>
+          <button class="view-tab" data-view="month"  type="button">Month</button>
+        </div>
       </div>
+
+      <!-- Dynamic calendar area -->
+      <div id="cal-area"></div>
+
+    </div>
+
+    <!-- Popover backdrop: prevents grid scroll while popover open -->
+    <div id="popover-backdrop" class="hidden"></div>
+
+    <!-- Inline event detail popover -->
+    <div id="detail-popover" class="hidden" role="dialog" aria-modal="true" aria-label="Event detail" tabindex="-1">
+      <div class="popover-header">
+        <div class="popover-kind-strip" id="pop-strip"></div>
+        <div class="popover-title" id="pop-title"></div>
+        <button class="popover-close" id="pop-close" type="button" aria-label="Close"></button>
+      </div>
+      <div class="popover-body" id="pop-body"></div>
     </div>
 
     <script>
     (function () {
       'use strict';
 
-      // ── Helpers ───────────────────────────────────────────────
-      var boot   = window.__viewBoot;
-      var bridge = null;
-      var calCap = null;
-
-      var MS_PER_DAY = 86400000;
-
-      // ── State ─────────────────────────────────────────────────
-      var connected    = false;
-      var loading      = false;
-      var events       = [];
-      var weekOffset   = 0; // 0 = current week
-
-      // ── DOM refs ──────────────────────────────────────────────
-      var bridgeWait   = document.getElementById('bridge-wait');
-      var root         = document.getElementById('root');
-      var btnConnect   = document.getElementById('btn-connect');
-      var btnConnInner = document.getElementById('btn-connect-inner');
-      var btnDisconn   = document.getElementById('btn-disconnect');
-      var rangeBar     = document.getElementById('range-bar');
-      var rangeLabel   = document.getElementById('range-label');
-      var btnPrev      = document.getElementById('btn-prev');
-      var btnNext      = document.getElementById('btn-next');
-      var btnToday     = document.getElementById('btn-today');
-      var connectProm  = document.getElementById('connect-prompt');
-      var eventsArea   = document.getElementById('events-area');
-
-      // ── Date utilities ─────────────────────────────────────────
-      function startOfWeek(d) {
-        // Monday-anchored
-        var day = d.getDay(); // 0=Sun
-        var diff = (day === 0) ? -6 : 1 - day;
-        var mon = new Date(d);
-        mon.setDate(d.getDate() + diff);
-        mon.setHours(0, 0, 0, 0);
-        return mon;
+      /* ── Icon helper ─────────────────────────────────────────────── */
+      var ICON_MAP = {
+        'calendar':       'calendar',
+        'clock':          'clockface',
+        'calendar-x':     'calendar',
+        'wifi-off':       'debug-disconnect',
+        'alert-circle':   'warning',
+        'check-circle':   'pass',
+        'chevron-right':  'chevron-right',
+        'x':              'close',
+        'link':           'link',
+        'layers':         'layers',
+        'hourglass':      'watch',
+        'location':       'location',
+        'globe':          'globe',
+        'person':         'account',
+        'organization':   'organization',
+        'copy':           'copy',
+        'check':          'check',
+      };
+      function icon(name, size) {
+        var n = ICON_MAP[name] || name;
+        return window.codicon ? window.codicon(n, size || 13) : '';
       }
+
+      /* Clipboard fallback via hidden textarea + execCommand (must run in click handler) */
+      function fallbackCopy(text, onSuccess) {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          var ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          if (ok && onSuccess) onSuccess();
+        } catch (err) { /* silently ignore */ }
+      }
+
+      /* ── Date utilities ──────────────────────────────────────────── */
+      var DAY_NAMES_SHORT  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      var DAY_NAMES_FULL   = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      var MONTH_NAMES      = ['January','February','March','April','May','June',
+                              'July','August','September','October','November','December'];
+      var MONTH_NAMES_SHORT = ['Jan','Feb','Mar','Apr','May','Jun',
+                               'Jul','Aug','Sep','Oct','Nov','Dec'];
 
       function addDays(d, n) {
         var r = new Date(d);
@@ -346,251 +1337,1098 @@
         return r;
       }
 
-      function weekRange() {
-        var base = new Date();
-        base.setDate(base.getDate() + weekOffset * 7);
-        var from = startOfWeek(base);
-        var to   = addDays(from, 7); // exclusive end
-        return { from: from, to: to };
+      function startOfWeek(d) { // Monday-anchored
+        var day = d.getDay();
+        var diff = (day === 0) ? -6 : 1 - day;
+        var mon = new Date(d);
+        mon.setDate(d.getDate() + diff);
+        mon.setHours(0, 0, 0, 0);
+        return mon;
       }
 
-      var DAY_NAMES  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-      function fmtWeekLabel(from, to) {
-        var toInc = addDays(to, -1);
-        if (from.getMonth() === toInc.getMonth()) {
-          return MONTH_NAMES[from.getMonth()] + ' ' + from.getDate() + ' – ' + toInc.getDate() + ', ' + from.getFullYear();
-        }
-        return MONTH_NAMES[from.getMonth()] + ' ' + from.getDate() + ' – ' + MONTH_NAMES[toInc.getMonth()] + ' ' + toInc.getDate() + ', ' + toInc.getFullYear();
+      function startOfDay(d) {
+        var r = new Date(d);
+        r.setHours(0, 0, 0, 0);
+        return r;
       }
 
-      function fmtTime(isoStr) {
-        if (!isoStr || isoStr.length <= 10) return 'All day';
-        try {
-          var d = new Date(isoStr);
-          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
-          return isoStr;
-        }
+      function startOfMonth(d) {
+        return new Date(d.getFullYear(), d.getMonth(), 1);
       }
-
-      function fmtTimeRange(start, end, allDay) {
-        if (allDay) return 'All day';
-        return fmtTime(start) + ' – ' + fmtTime(end);
+      function endOfMonth(d) {
+        return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
       }
 
       function isToday(d) {
         var now = new Date();
         return d.getFullYear() === now.getFullYear()
-          && d.getMonth()      === now.getMonth()
-          && d.getDate()       === now.getDate();
+          && d.getMonth() === now.getMonth()
+          && d.getDate() === now.getDate();
       }
 
-      // ── Render ─────────────────────────────────────────────────
-      function setConnectedUI(isConn) {
-        connected = isConn;
-        btnConnect.style.display   = isConn ? 'none' : '';
-        btnDisconn.style.display   = isConn ? '' : 'none';
-        rangeBar.style.display     = isConn ? '' : 'none';
-        connectProm.style.display  = isConn ? 'none' : '';
-        eventsArea.style.display   = isConn ? '' : 'none';
-        if (isConn) loadEvents();
+      function sameDay(a, b) {
+        return a.getFullYear() === b.getFullYear()
+          && a.getMonth() === b.getMonth()
+          && a.getDate() === b.getDate();
       }
 
-      function renderEvents(evs, range) {
-        eventsArea.innerHTML = '';
-        // Group by day
-        var byDay = {};
+      function fmtTime(isoStr) {
+        if (!isoStr || isoStr.length <= 10) return 'All day';
+        try {
+          return new Date(isoStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) { return isoStr; }
+      }
+
+      function fmtTimeRange(ev) {
+        if (ev.allDay) return 'All day';
+        return fmtTime(ev.start) + ' – ' + fmtTime(ev.end);
+      }
+
+      // Parse a date out of either a date-string "YYYY-MM-DD" or ISO datetime.
+      function evDate(isoStr, allDay) {
+        if (!isoStr) return new Date(NaN);
+        if (allDay) return new Date(isoStr + 'T00:00:00');
+        return new Date(isoStr);
+      }
+
+      // Minutes since midnight for a datetime string (never called on allDay).
+      function minOfDay(isoStr) {
+        var d = new Date(isoStr);
+        return d.getHours() * 60 + d.getMinutes();
+      }
+
+      // Format duration in minutes as "X hr Y min" or "X min".
+      function fmtDuration(minutes) {
+        if (minutes <= 0) return '';
+        var h = Math.floor(minutes / 60);
+        var m = minutes % 60;
+        if (h > 0 && m > 0) return h + ' hr ' + m + ' min';
+        if (h > 0) return h === 1 ? '1 hr' : h + ' hr';
+        return m + ' min';
+      }
+
+      /* ── State ───────────────────────────────────────────────────── */
+      var connected    = false;
+      var connecting   = false;
+      var loadError    = null;
+      var events       = [];
+      var offset       = 0;       // week/day/month offset from today
+      var view         = 'week';  // 'agenda' | 'day' | 'week' | 'month'
+      var selectedId   = null;
+      var calCap       = null;
+      var _soamView    = null;
+
+      /* ── DOM refs ─────────────────────────────────────────────────── */
+      var elBridgeWait  = document.getElementById('bridge-wait');
+      var elRoot        = document.getElementById('root');
+      var elRangeLabel  = document.getElementById('range-label');
+      var elCalArea     = document.getElementById('cal-area');
+      var elBtnPrev     = document.getElementById('btn-prev');
+      var elBtnNext     = document.getElementById('btn-next');
+      var elBtnToday    = document.getElementById('btn-today');
+      var elViewSwitch  = document.getElementById('view-switcher');
+      var elBackdrop    = document.getElementById('popover-backdrop');
+      var elPopover     = document.getElementById('detail-popover');
+      var elPopTitle    = document.getElementById('pop-title');
+      var elPopStrip    = document.getElementById('pop-strip');
+      var elPopBody     = document.getElementById('pop-body');
+      var elPopClose    = document.getElementById('pop-close');
+
+      /* ── Classification map (inert — all events get unclassified) ── */
+      var KIND_CLASS = {
+        'session':      'kind-session',
+        'personal':     'kind-personal',
+        'admin':        'kind-admin',
+        'unclassified': 'kind-unclassified',
+      };
+      function kindClass(ev) {
+        // P1/O485 will populate ev.kind; for now always unclassified.
+        var k = (ev && ev.kind) || 'unclassified';
+        return KIND_CLASS[k] || 'kind-unclassified';
+      }
+
+      /* ── Range computation ───────────────────────────────────────── */
+      function rangeForView() {
+        var base = new Date();
+        var from, to, label;
+        if (view === 'agenda' || view === 'week') {
+          base.setDate(base.getDate() + offset * 7);
+          from = startOfWeek(base);
+          to   = addDays(from, 7);
+          var toInc = addDays(to, -1);
+          // "15 – 21 June 2026" — collapse month/year when shared
+          if (from.getMonth() === toInc.getMonth() && from.getFullYear() === toInc.getFullYear()) {
+            label = from.getDate() + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES[from.getMonth()] + ' ' + from.getFullYear();
+          } else if (from.getFullYear() === toInc.getFullYear()) {
+            label = from.getDate() + ' ' + MONTH_NAMES_SHORT[from.getMonth()] + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES_SHORT[toInc.getMonth()] + ' ' + from.getFullYear();
+          } else {
+            label = from.getDate() + ' ' + MONTH_NAMES_SHORT[from.getMonth()] + ' ' + from.getFullYear() + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES_SHORT[toInc.getMonth()] + ' ' + toInc.getFullYear();
+          }
+        } else if (view === 'day') {
+          base.setDate(base.getDate() + offset);
+          from = startOfDay(base);
+          to   = addDays(from, 1);
+          // "Wednesday, 17 June"
+          label = DAY_NAMES_FULL[from.getDay()] + ', ' + from.getDate() + ' ' + MONTH_NAMES[from.getMonth()];
+        } else { // month
+          base.setMonth(base.getMonth() + offset);
+          from = startOfMonth(base);
+          to   = new Date(endOfMonth(base).getTime() + 1);
+          label = MONTH_NAMES[from.getMonth()] + ' ' + from.getFullYear();
+        }
+        return { from: from, to: to, label: label };
+      }
+
+      /* ── Events for a date ───────────────────────────────────────── */
+      function eventsForDay(d) {
+        return events.filter(function (ev) {
+          var evD = evDate(ev.start, ev.allDay);
+          return sameDay(evD, d);
+        }).sort(function (a, b) {
+          if (a.allDay && !b.allDay) return -1;
+          if (!a.allDay && b.allDay) return 1;
+          return new Date(a.start) - new Date(b.start);
+        });
+      }
+
+      /* ── Render helpers ──────────────────────────────────────────── */
+      function el(tag, cls) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        return e;
+      }
+      function txt(tag, cls, text) {
+        var e = el(tag, cls);
+        e.textContent = text;
+        return e;
+      }
+
+      /* Derive modality subline from ev.meetingLink / ev.location */
+      function modalitySubline(ev) {
+        if (ev.meetingLink) {
+          var u = (ev.meetingLink || '').toLowerCase();
+          if (u.indexOf('meet.google.com') !== -1) return 'Online · Google Meet';
+          if (u.indexOf('zoom.us') !== -1 || u.indexOf('zoom.com') !== -1) return 'Online · Zoom';
+          return 'Online · Video call';
+        }
+        if (ev.location) return 'In person · ' + ev.location;
+        return '';
+      }
+
+      /* Format short time range for agenda e.g. "9–9:50" or "All day" */
+      function fmtTimeShort(ev) {
+        if (ev.allDay || !ev.start || ev.start.length <= 10) return 'All day';
+        function fmt(iso) {
+          var d = new Date(iso);
+          var h = d.getHours();
+          var m = d.getMinutes();
+          return h + (m ? ':' + (m < 10 ? '0' + m : m) : '');
+        }
+        var s = fmt(ev.start);
+        var e = ev.end ? fmt(ev.end) : '';
+        return e ? s + '–' + e : s;
+      }
+
+      function makeEventCard(ev) {
+        var isAllDay = ev.allDay || (!ev.start || ev.start.length <= 10);
+        var card = el('div', 'event-card' + (ev.id === selectedId ? ' is-selected' : ''));
+        card.dataset.evId = ev.id;
+
+        /* Left: time */
+        var timeCol = txt('div', 'event-time-col' + (isAllDay ? ' allday-label' : ''), fmtTimeShort(ev));
+        card.appendChild(timeCol);
+
+        /* Middle: title + modality */
+        var body = el('div', 'event-body');
+        body.appendChild(txt('div', 'event-title', ev.title || '(No title)'));
+        var subline = modalitySubline(ev);
+        if (subline) body.appendChild(txt('div', 'event-modality', subline));
+        card.appendChild(body);
+
+        /* Right: kind badge */
+        var k = (ev && ev.kind) || 'unclassified';
+        var badgeText = k === 'unclassified' ? 'UNCLASSIFIED' : k.toUpperCase();
+        var badge = txt('div', 'event-kind-badge ' + kindClass(ev), badgeText);
+        card.appendChild(badge);
+
+        card.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openPopover(ev, card);
+        });
+        return card;
+      }
+
+      /* ── View: Agenda ────────────────────────────────────────────── */
+      function renderAgenda(range) {
+        var shell = el('div', 'agenda-card-shell');
+        var wrap = el('div', 'agenda-scroll');
+
+        // Build day buckets for the 7-day range.
+        var days = [];
         var cur = new Date(range.from);
-        var end = new Date(range.to);
-        while (cur < end) {
-          var key = cur.toDateString();
-          byDay[key] = { date: new Date(cur), items: [] };
+        while (cur < range.to) {
+          days.push(new Date(cur));
           cur = addDays(cur, 1);
         }
 
-        evs.forEach(function (ev) {
-          var startD = new Date(ev.start);
-          // Normalise to local date for grouping
-          var d = ev.allDay
-            ? new Date(ev.start + 'T00:00:00') // date-only string
-            : startD;
-          var key = d.toDateString();
-          if (byDay[key]) byDay[key].items.push(ev);
-        });
+        var hasAny = false;
+        days.forEach(function (d) {
+          var dayEvs = eventsForDay(d);
+          if (dayEvs.length > 0) hasAny = true;
 
-        var totalShown = 0;
-
-        Object.keys(byDay).forEach(function (key) {
-          var entry = byDay[key];
-          var grp = document.createElement('div');
-          grp.className = 'day-group';
-
-          var hdr = document.createElement('div');
-          hdr.className = 'day-header';
-          var dateSpan = document.createElement('span');
-          dateSpan.className = 'day-header-date' + (isToday(entry.date) ? ' today' : '');
-          dateSpan.textContent = entry.date.getDate().toString();
-          var daySpan = document.createElement('span');
-          daySpan.textContent = DAY_NAMES[entry.date.getDay()];
-          hdr.appendChild(dateSpan);
-          hdr.appendChild(daySpan);
+          var grp = el('div', 'day-group');
+          var hdr = el('div', 'day-header');
+          var numEl = txt('span', 'day-num' + (isToday(d) ? ' is-today' : ''), d.getDate().toString());
+          var wdEl  = txt('span', 'day-weekday', DAY_NAMES_SHORT[d.getDay()]);
+          var moEl  = txt('span', 'day-month', MONTH_NAMES_SHORT[d.getMonth()]);
+          hdr.appendChild(numEl);
+          hdr.appendChild(wdEl);
+          hdr.appendChild(moEl);
           grp.appendChild(hdr);
 
-          if (entry.items.length === 0) {
-            var none = document.createElement('div');
-            none.className = 'state-msg';
-            none.style.height = '28px';
-            grp.appendChild(none);
+          var evBox = el('div', 'day-events');
+          if (dayEvs.length === 0) {
+            var empty = txt('div', 'day-empty', 'No events');
+            grp.appendChild(empty);
           } else {
-            entry.items.forEach(function (ev) {
-              totalShown++;
-              var card = document.createElement('div');
-              card.className = 'event-card';
-
-              var dot = document.createElement('div');
-              dot.className = 'event-dot' + (ev.allDay ? ' allday' : '');
-              card.appendChild(dot);
-
-              var info = document.createElement('div');
-              info.className = 'event-info';
-
-              var title = document.createElement('div');
-              title.className = 'event-title';
-              title.textContent = ev.title || '(No title)';
-              info.appendChild(title);
-
-              var time = document.createElement('div');
-              time.className = 'event-time';
-              time.textContent = fmtTimeRange(ev.start, ev.end, ev.allDay);
-              info.appendChild(time);
-
-              card.appendChild(info);
-              grp.appendChild(card);
+            dayEvs.forEach(function (ev) {
+              evBox.appendChild(makeEventCard(ev));
             });
+            grp.appendChild(evBox);
           }
-
-          eventsArea.appendChild(grp);
+          wrap.appendChild(grp);
         });
 
-        if (evs.length === 0) {
-          var noEv = document.createElement('div');
-          noEv.className = 'no-events';
-          noEv.textContent = 'No events this week.';
-          eventsArea.appendChild(noEv);
+        if (!hasAny) {
+          var noEv = txt('div', 'no-events', 'No events this week.');
+          wrap.appendChild(noEv);
         }
+        shell.appendChild(wrap);
+        return shell;
+      }
+
+      /* ── Time-grid shared builder ────────────────────────────────── */
+      // hourHeight in px — MUST equal CSS --tg-hour-h (56px). Both change together.
+      var HOUR_H = 56;
+      var MIN_BLOCK_H = 22; // minimum block height in px
+      var SCROLL_TO_HOUR = 7; // scroll viewport to show 7 AM on load
+
+      // Greedy lane-packing: group overlapping timed events into lanes.
+      // Returns array of { ev, lane, totalLanes }.
+      function packLanes(timedEvs) {
+        // Sort by start time.
+        var sorted = timedEvs.slice().sort(function (a, b) {
+          return new Date(a.start) - new Date(b.start);
+        });
+        // Each group = set of mutually-overlapping events.
+        var result = [];
+        var groups = []; // [{end, lanes: [{ev,endMin}]}]
+
+        sorted.forEach(function (ev) {
+          var startMin = minOfDay(ev.start);
+          var endMin   = ev.end ? minOfDay(ev.end) : startMin + 60;
+          if (endMin <= startMin) endMin = startMin + 30;
+
+          // Find a group where this event overlaps with at least one existing event.
+          var placed = false;
+          for (var gi = 0; gi < groups.length; gi++) {
+            var grp = groups[gi];
+            // Overlaps group if startMin < group's latest end.
+            if (startMin < grp.maxEnd) {
+              // Find a free lane within this group.
+              var laneIdx = -1;
+              for (var li = 0; li < grp.lanes.length; li++) {
+                if (grp.lanes[li].endMin <= startMin) {
+                  laneIdx = li;
+                  break;
+                }
+              }
+              if (laneIdx === -1) {
+                laneIdx = grp.lanes.length;
+                grp.lanes.push({ endMin: endMin });
+              } else {
+                grp.lanes[laneIdx].endMin = endMin;
+              }
+              grp.maxEnd = Math.max(grp.maxEnd, endMin);
+              result.push({ ev: ev, groupIdx: gi, lane: laneIdx, endMin: endMin });
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) {
+            groups.push({ maxEnd: endMin, lanes: [{ endMin: endMin }] });
+            result.push({ ev: ev, groupIdx: groups.length - 1, lane: 0, endMin: endMin });
+          }
+        });
+
+        // Second pass: annotate totalLanes per group.
+        return result.map(function (item) {
+          return {
+            ev:         item.ev,
+            lane:       item.lane,
+            totalLanes: groups[item.groupIdx].lanes.length,
+          };
+        });
+      }
+
+      // Build a single day column's timed events (used by both week + day grids).
+      function buildTimedEvents(timedEvs, colEl, dayDate) {
+        var packed = packLanes(timedEvs);
+        packed.forEach(function (item) {
+          var ev = item.ev;
+          var startMin = minOfDay(ev.start);
+          var endMin   = ev.end ? minOfDay(ev.end) : startMin + 60;
+          if (endMin <= startMin) endMin = startMin + 30;
+          var durationMin = endMin - startMin;
+
+          var topPx = (startMin / 60) * HOUR_H;
+          var hPx   = Math.max(MIN_BLOCK_H, (durationMin / 60) * HOUR_H);
+
+          // Lane positioning: divide column width among lanes.
+          var laneW = 100 / item.totalLanes;
+          var leftPct  = item.lane * laneW;
+          var rightPct = 100 - (item.lane + 1) * laneW;
+
+          var block = el('button', 'tg-event' + (ev.id === selectedId ? ' is-selected' : '') + (hPx < 30 ? ' tiny' : ''));
+          block.type = 'button';
+          block.dataset.evId = ev.id;
+          block.style.top    = topPx + 'px';
+          block.style.height = hPx + 'px';
+          // Override left/right with lane percentages when multiple lanes.
+          if (item.totalLanes > 1) {
+            block.style.left  = 'calc(' + leftPct + '% + 3px)';
+            block.style.right = 'calc(' + rightPct + '% + 3px)';
+          }
+
+          var timeEl = txt('div', 'tg-event-time', fmtTime(ev.start));
+          var titleEl = el('div', 'tg-event-title');
+          /* Modality icon inline after title text (omit on tiny) */
+          if (hPx >= 30) {
+            var modalityIconHtml = '';
+            if (ev.meetingLink) {
+              modalityIconHtml = icon('device-camera-video', 11);
+            } else if (ev.location) {
+              modalityIconHtml = icon('location', 11);
+            }
+            if (modalityIconHtml) {
+              // Title via textContent (never innerHTML — it's user/PHI calendar
+              // data and may contain < or &); icon span built separately.
+              var tSpan = document.createElement('span');
+              tSpan.style.verticalAlign = 'middle';
+              tSpan.textContent = ev.title || '(No title)';
+              var iSpan = document.createElement('span');
+              iSpan.style.cssText = 'vertical-align:middle;margin-left:4px;opacity:0.65';
+              iSpan.innerHTML = modalityIconHtml; // our own generated SVG
+              titleEl.appendChild(tSpan);
+              titleEl.appendChild(iSpan);
+            } else {
+              titleEl.textContent = ev.title || '(No title)';
+            }
+          } else {
+            titleEl.textContent = ev.title || '(No title)';
+          }
+          block.appendChild(timeEl);
+          block.appendChild(titleEl);
+
+          /* Participant subline: prefer organiser name, else first non-self attendee; only on non-tiny */
+          if (hPx >= 30 && ev.attendees && ev.attendees.length > 0) {
+            var nonSelf = ev.attendees.filter(function (a) { return !a.self; });
+            if (nonSelf.length > 0) {
+              /* Find organiser among non-self attendees */
+              var organiserEmail = ev.organizer && ev.organizer.email ? ev.organizer.email.toLowerCase() : null;
+              var organiserAttendee = nonSelf.filter(function (a) {
+                return a.organizer === true || (organiserEmail && (a.email || '').toLowerCase() === organiserEmail);
+              })[0];
+              var primary = organiserAttendee || nonSelf[0];
+              var nameStr = primary.name || primary.email || '';
+              if (nameStr) {
+                var extra = nonSelf.length - 1;
+                var chipLabel = extra > 0 ? nameStr + ' +' + extra : nameStr;
+                block.appendChild(txt('div', 'tg-event-participant', chipLabel));
+              }
+            }
+          }
+
+          block.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openPopover(ev, block);
+          });
+          colEl.appendChild(block);
+        });
+      }
+
+      // Build the shared time-grid structure (week or day).
+      // dayDates = array of Date objects for each column.
+      // isDayView = true → single wide column, no col-header (header built outside).
+      function buildTimeGrid(dayDates, isDayView) {
+        var root = el('div', 'tg-root' + (isDayView ? ' day-view' : ''));
+
+        /* ── Column headers ── */
+        if (!isDayView) {
+          var colHeaders = el('div', 'tg-col-headers');
+          var gutterHead = el('div', 'tg-col-header-gutter');
+          colHeaders.appendChild(gutterHead);
+          dayDates.forEach(function (d) {
+            var hdr = el('div', 'tg-col-header' + (isToday(d) ? ' is-today' : ''));
+            var wd  = txt('div', 'tg-col-header-wd', DAY_NAMES_SHORT[d.getDay()]);
+            var dt  = txt('div', 'tg-col-header-date' + (isToday(d) ? ' is-today' : ''), d.getDate().toString());
+            hdr.appendChild(wd);
+            hdr.appendChild(dt);
+            colHeaders.appendChild(hdr);
+          });
+          root.appendChild(colHeaders);
+        } else {
+          // Day view: big header with date + weekday label
+          var dayHead = el('div', 'tg-col-headers');
+          var dayGutterHead = el('div', 'tg-col-header-gutter');
+          dayHead.appendChild(dayGutterHead);
+          var d0 = dayDates[0];
+          var soloHdr = el('div', 'tg-col-header day-solo' + (isToday(d0) ? ' is-today' : ''));
+          var soloDate = txt('div', 'tg-col-header-date' + (isToday(d0) ? ' is-today' : ''), d0.getDate().toString());
+          var soloWd   = txt('div', 'tg-col-header-wd', DAY_NAMES_FULL[d0.getDay()] + ', ' + d0.getDate() + ' ' + MONTH_NAMES[d0.getMonth()]);
+          soloHdr.appendChild(soloDate);
+          soloHdr.appendChild(soloWd);
+          dayHead.appendChild(soloHdr);
+          root.appendChild(dayHead);
+        }
+
+        /* ── All-day strip ── */
+        var alldayRow = el('div', 'tg-allday-row');
+        var alldayGutter = txt('div', 'tg-allday-gutter', 'all‑day');
+        alldayRow.appendChild(alldayGutter);
+        var alldayCols = el('div', 'tg-allday-cols');
+        var hasAllDay = false;
+        dayDates.forEach(function (d) {
+          var adCol = el('div', 'tg-allday-col');
+          var dayEvs = eventsForDay(d);
+          dayEvs.filter(function (ev) { return ev.allDay || (ev.start && ev.start.length <= 10); })
+            .forEach(function (ev) {
+              hasAllDay = true;
+              var pill = txt('div', 'tg-allday-pill' + (ev.id === selectedId ? ' is-selected' : ''), ev.title || '(No title)');
+              pill.dataset.evId = ev.id;
+              pill.addEventListener('click', function (e) {
+                e.stopPropagation();
+                openPopover(ev, pill);
+              });
+              adCol.appendChild(pill);
+            });
+          alldayCols.appendChild(adCol);
+        });
+        alldayRow.appendChild(alldayCols);
+        // Only show strip if it has content (or always show for clean layout).
+        root.appendChild(alldayRow);
+
+        /* ── Scrollable grid ── */
+        var scroll = el('div', 'tg-scroll');
+        var grid   = el('div', 'tg-grid');
+
+        // Gutter with hour labels 1–23 (label appears at top of each hour row).
+        var gutter = el('div', 'tg-gutter');
+        for (var h = 0; h <= 23; h++) {
+          if (h === 0) continue; // skip midnight label at very top
+          var labelEl = txt('div', 'tg-hour-label', h < 12 ? h + ' AM' : (h === 12 ? '12 PM' : (h - 12) + ' PM'));
+          labelEl.style.top = (h * HOUR_H) + 'px';
+          gutter.appendChild(labelEl);
+        }
+        grid.appendChild(gutter);
+
+        /* ── Day columns ── */
+        var colsWrap = el('div', 'tg-cols');
+        var nowLineEl = null;
+        var nowGutterLineEl = null;
+
+        dayDates.forEach(function (d, colIdx) {
+          var colEl = el('div', 'tg-day-col' + (isToday(d) ? ' is-today' : ''));
+          var dayEvs = eventsForDay(d);
+          var timedEvs = dayEvs.filter(function (ev) {
+            return !ev.allDay && ev.start && ev.start.length > 10;
+          });
+          buildTimedEvents(timedEvs, colEl, d);
+
+          // Now-line: draw in today's column only.
+          if (isToday(d)) {
+            var now = new Date();
+            var nowMin = now.getHours() * 60 + now.getMinutes();
+            var nowTop = (nowMin / 60) * HOUR_H;
+            var nl = el('div', 'tg-now-line');
+            nl.style.top = nowTop + 'px';
+            colEl.appendChild(nl);
+            nowLineEl = nl;
+
+            // Also track top for gutter line.
+            nowGutterLineEl = { top: nowTop };
+          }
+
+          colsWrap.appendChild(colEl);
+        });
+        grid.appendChild(colsWrap);
+        scroll.appendChild(grid);
+
+        // Now-line dot in gutter.
+        if (nowGutterLineEl) {
+          var gutterNow = el('div', 'tg-now-gutter-line');
+          gutterNow.style.top = nowGutterLineEl.top + 'px';
+          gutter.appendChild(gutterNow);
+        }
+
+        root.appendChild(scroll);
+
+        // Scroll to 7 AM on mount (after appended to DOM).
+        // Use requestAnimationFrame so layout is computed first.
+        requestAnimationFrame(function () {
+          scroll.scrollTop = SCROLL_TO_HOUR * HOUR_H - 24; // offset slightly so the 7am line is visible
+        });
+
+        return root;
+      }
+
+      /* ── View: Day ───────────────────────────────────────────────── */
+      function renderDay(range) {
+        var shell = el('div', 'day-card-shell');
+        shell.appendChild(buildTimeGrid([range.from], true));
+        return shell;
+      }
+
+      /* ── View: Week ──────────────────────────────────────────────── */
+      function renderWeek(range) {
+        var days = [];
+        var cur = new Date(range.from);
+        while (cur < range.to) {
+          days.push(new Date(cur));
+          cur = addDays(cur, 1);
+        }
+        return buildTimeGrid(days, false);
+      }
+
+      /* ── View: Month ─────────────────────────────────────────────── */
+      function renderMonth(range) {
+        var wrap = el('div', 'month-view-wrap');
+
+        // Weekday labels (Mon–Sun)
+        var wdRow = el('div', 'month-weekday-row');
+        ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(function (wd) {
+          wdRow.appendChild(txt('div', 'month-weekday-label', wd));
+        });
+        wrap.appendChild(wdRow);
+
+        var grid = el('div', 'month-grid');
+
+        // Grid starts on Monday of the week containing day 1 of the month.
+        var monthStart = startOfMonth(range.from);
+        var gridStart  = startOfWeek(monthStart);
+        var monthEnd   = endOfMonth(range.from);
+        // Sunday of the week containing the last day of the month — stop here so
+        // we render whole weeks through month-end without a stray extra week.
+        var gridEnd    = addDays(startOfWeek(monthEnd), 6);
+
+        var cur = new Date(gridStart);
+        while (cur <= gridEnd) {
+          var d    = new Date(cur);
+          var outside = d.getMonth() !== monthStart.getMonth();
+          var cell = el('div', 'month-cell' + (outside ? ' is-outside' : ''));
+
+          var dateEl = txt('div', 'month-cell-date' + (isToday(d) ? ' is-today' : ''), d.getDate().toString());
+          cell.appendChild(dateEl);
+
+          var dayEvs = eventsForDay(d);
+          var maxPills = 5;
+          dayEvs.slice(0, maxPills).forEach(function (ev) {
+            var pill = txt('div', 'month-event-pill' + (ev.id === selectedId ? ' is-selected' : ''), ev.title || '(No title)');
+            pill.dataset.evId = ev.id;
+            pill.addEventListener('click', function (e) {
+              e.stopPropagation();
+              openPopover(ev, pill);
+            });
+            cell.appendChild(pill);
+          });
+          if (dayEvs.length > maxPills) {
+            cell.appendChild(txt('div', 'month-overflow', '+' + (dayEvs.length - maxPills) + ' more'));
+          }
+          grid.appendChild(cell);
+          cur = addDays(cur, 1);
+        }
+        wrap.appendChild(grid);
+        return wrap;
+      }
+
+      /* ── Popover ─────────────────────────────────────────────────── */
+      // Update selection highlight by toggling classes on existing event nodes.
+      // NEVER rebuild the grid for selection — a rebuild re-runs buildTimeGrid's
+      // rAF scroll-to-7AM, which jumps the scroll position on every event click.
+      function setSelection(id) {
+        selectedId = id;
+        var nodes = elCalArea.querySelectorAll('[data-ev-id]');
+        Array.prototype.forEach.call(nodes, function (n) {
+          n.classList.toggle('is-selected', n.dataset.evId === id);
+        });
+      }
+
+      function openPopover(ev, anchorEl) {
+        var rect = anchorEl.getBoundingClientRect();
+        setSelection(ev.id); // highlight in place — no grid rebuild, no scroll jump
+
+        elPopTitle.textContent = ev.title || '(No title)';
+        elPopStrip.className   = 'popover-kind-strip ' + kindClass(ev);
+
+        elPopClose.innerHTML = icon('x', 14);
+
+        elPopBody.innerHTML = '';
+
+        // Time row
+        var timeRow = el('div', 'popover-row');
+        var timeIco = el('span', 'popover-row-icon');
+        timeIco.innerHTML = icon('clock', 13);
+        var timeTxt = el('span', 'popover-row-text');
+        if (ev.allDay) {
+          timeTxt.textContent = 'All day';
+        } else {
+          timeTxt.innerHTML = '<strong>' + fmtTime(ev.start) + ' – ' + fmtTime(ev.end) + '</strong>';
+          // Append duration badge if computable
+          if (ev.start && ev.end && ev.start.length > 10 && ev.end.length > 10) {
+            var startMs = new Date(ev.start).getTime();
+            var endMs   = new Date(ev.end).getTime();
+            var durMin  = Math.round((endMs - startMs) / 60000);
+            if (durMin > 0) {
+              var durBadge = txt('span', 'popover-duration-badge', fmtDuration(durMin));
+              timeTxt.appendChild(durBadge);
+            }
+          }
+        }
+        timeRow.appendChild(timeIco);
+        timeRow.appendChild(timeTxt);
+        elPopBody.appendChild(timeRow);
+
+        // Calendar row
+        if (ev.calendarName) {
+          var calRow = el('div', 'popover-row');
+          var calIco = el('span', 'popover-row-icon');
+          calIco.innerHTML = icon('layers', 13);
+          var calTxt = el('div', 'popover-row-text');
+          calTxt.appendChild(txt('span', 'popover-cal-badge', ev.calendarName));
+          calRow.appendChild(calIco);
+          calRow.appendChild(calTxt);
+          elPopBody.appendChild(calRow);
+        }
+
+        // Location row
+        if (ev.location) {
+          var locRow = el('div', 'popover-row');
+          var locIco = el('span', 'popover-row-icon');
+          locIco.innerHTML = icon('location', 13);
+          var locTxt = txt('span', 'popover-row-text', ev.location);
+          locRow.appendChild(locIco);
+          locRow.appendChild(locTxt);
+          elPopBody.appendChild(locRow);
+        }
+
+        // Meeting link row — selectable URL + copy button.
+        // NOT a clickable anchor: sandboxed iframe has no allow-popups/allow-top-navigation.
+        if (ev.meetingLink) {
+          var joinRow = el('div', 'popover-row');
+          var joinIco = el('span', 'popover-row-icon');
+          joinIco.innerHTML = icon('globe', 13);
+          var joinTxt = el('div', 'popover-row-text');
+          joinTxt.appendChild(txt('div', 'popover-join-label', 'Meeting link'));
+
+          var joinUrlRow = el('div', '');
+          joinUrlRow.style.display = 'flex';
+          joinUrlRow.style.alignItems = 'center';
+          joinUrlRow.style.gap = '4px';
+          joinUrlRow.style.flexWrap = 'wrap';
+
+          var joinUrl = txt('span', 'popover-join-url', ev.meetingLink);
+          joinUrlRow.appendChild(joinUrl);
+
+          /* Copy button */
+          var copyBtn = el('button', 'popover-copy-btn');
+          copyBtn.type = 'button';
+          copyBtn.title = 'Copy link';
+          copyBtn.innerHTML = icon('copy', 13);
+          var copyConfirm = txt('span', 'popover-copy-confirm', 'Copied');
+          var copyTimer = null;
+
+          copyBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var url = ev.meetingLink;
+            function showCopied() {
+              copyBtn.innerHTML = icon('check', 13);
+              copyBtn.classList.add('copied');
+              copyConfirm.classList.add('show');
+              if (copyTimer) clearTimeout(copyTimer);
+              copyTimer = setTimeout(function () {
+                copyBtn.innerHTML = icon('copy', 13);
+                copyBtn.classList.remove('copied');
+                copyConfirm.classList.remove('show');
+              }, 1200);
+            }
+            /* Try modern clipboard API first (may be blocked in opaque-origin sandbox) */
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(url).then(showCopied).catch(function () {
+                fallbackCopy(url, showCopied);
+              });
+            } else {
+              fallbackCopy(url, showCopied);
+            }
+          });
+
+          joinUrlRow.appendChild(copyBtn);
+          joinUrlRow.appendChild(copyConfirm);
+          joinTxt.appendChild(joinUrlRow);
+          joinRow.appendChild(joinIco);
+          joinRow.appendChild(joinTxt);
+          elPopBody.appendChild(joinRow);
+        }
+
+        // Participants section
+        // Show attendees list, or a single organiser row if no attendees but ev.organizer present.
+        var hasAttendees = ev.attendees && ev.attendees.length > 0;
+        var hasOrganizerOnly = !hasAttendees && ev.organizer && (ev.organizer.email || ev.organizer.displayName);
+        if (hasAttendees || hasOrganizerOnly) {
+          var divider = el('div', 'popover-divider');
+          elPopBody.appendChild(divider);
+
+          var secLabel = el('div', 'popover-section-label');
+          secLabel.innerHTML = icon('person', 11) + ' Participants';
+          elPopBody.appendChild(secLabel);
+
+          var participantsList = el('div', 'popover-participants');
+
+          /* Helper: determine if an attendee is the organiser */
+          var orgEmail = ev.organizer && ev.organizer.email ? ev.organizer.email.toLowerCase() : null;
+          function isOrganiser(a) {
+            return a.organizer === true || (orgEmail && (a.email || '').toLowerCase() === orgEmail);
+          }
+
+          if (hasAttendees) {
+            var maxShown = 8; // cap to avoid huge popover
+            var shown = ev.attendees.slice(0, maxShown);
+            shown.forEach(function (a) {
+              var nameStr = a.name || a.email || '?';
+              var initials = nameStr
+                .split(/\s+/)
+                .slice(0, 2)
+                .map(function (w) { return w.charAt(0); })
+                .join('');
+
+              var pRow = el('div', 'popover-participant');
+              var avatar = txt('div', 'popover-avatar', initials || '?');
+              var pName = txt('div', 'popover-participant-name', a.name || a.email || 'Unknown');
+              pRow.appendChild(avatar);
+              pRow.appendChild(pName);
+
+              // Role tags: both can apply (self + organiser)
+              if (a.self) {
+                pRow.appendChild(txt('span', 'popover-participant-role', 'you'));
+              }
+              if (isOrganiser(a)) {
+                pRow.appendChild(txt('span', 'popover-participant-role', 'organiser'));
+              }
+
+              participantsList.appendChild(pRow);
+            });
+
+            if (ev.attendees.length > maxShown) {
+              var moreEl = txt('div', 'popover-row-text',
+                '+' + (ev.attendees.length - maxShown) + ' more');
+              moreEl.style.fontSize = '11px';
+              moreEl.style.paddingLeft = '30px';
+              moreEl.style.color = 'var(--color-fg-muted)';
+              participantsList.appendChild(moreEl);
+            }
+          } else {
+            // No attendees but organizer known — show organiser as single entry
+            var org = ev.organizer;
+            var orgName = org.displayName || org.email || '?';
+            var orgInitials = orgName.split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('');
+            var orgRow = el('div', 'popover-participant');
+            orgRow.appendChild(txt('div', 'popover-avatar', orgInitials || '?'));
+            orgRow.appendChild(txt('div', 'popover-participant-name', orgName));
+            orgRow.appendChild(txt('span', 'popover-participant-role', 'organiser'));
+            participantsList.appendChild(orgRow);
+          }
+
+          elPopBody.appendChild(participantsList);
+        }
+
+        // Position popover near anchor, clamped within iframe viewport.
+        // Show backdrop first (prevents grid scroll, closes on outside click).
+        elBackdrop.classList.remove('hidden');
+
+        var pop = elPopover;
+        pop.classList.remove('hidden');
+        pop.style.top   = '';
+        pop.style.left  = '';
+        pop.style.right = '';
+
+        // Measure actual rendered height AFTER showing (layout is synchronous here).
+        var popW = pop.offsetWidth  || 380;
+        var popH = pop.offsetHeight || 320;
+        var vw   = window.innerWidth;
+        var vh   = window.innerHeight;
+        var margin = 8;
+
+        // Prefer right of anchor, flip left if no room.
+        var left = rect.right + margin;
+        if (left + popW > vw - margin) left = rect.left - popW - margin;
+        // Clamp horizontally.
+        left = Math.max(margin, Math.min(left, vw - popW - margin));
+
+        // Prefer top-aligned with anchor, flip up if overflows bottom.
+        var top = rect.top;
+        if (top + popH > vh - margin) top = rect.bottom - popH;
+        // Clamp vertically.
+        top = Math.max(margin, Math.min(top, vh - popH - margin));
+
+        pop.style.left = left + 'px';
+        pop.style.top  = top  + 'px';
+        // preventScroll: no jump in the time grid when focusing.
+        pop.focus({ preventScroll: true });
+      }
+
+      function closePopover() {
+        elPopover.classList.add('hidden');
+        elBackdrop.classList.add('hidden');
+        setSelection(null); // clear highlight in place — no rebuild/scroll jump
+      }
+
+      elPopClose.addEventListener('click', closePopover);
+      elPopover.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closePopover();
+      });
+      // Backdrop click closes popover (prevents click reaching grid underneath).
+      elBackdrop.addEventListener('click', closePopover);
+      // Popover itself must not propagate to backdrop.
+      elPopover.addEventListener('click', function (e) { e.stopPropagation(); });
+
+      /* ── Render dispatch ──────────────────────────────────────────── */
+      function renderCalArea() {
+        // Update view-switcher active tab.
+        Array.prototype.forEach.call(elViewSwitch.querySelectorAll('.view-tab'), function (tab) {
+          tab.classList.toggle('is-active', tab.dataset.view === view);
+        });
+
+        if (!connected) {
+          // Disconnected state — show connect prompt.
+          var disc = el('div', 'state-panel');
+          var ico = el('div', 'state-icon');
+          ico.innerHTML = icon('calendar-x', 20);
+          disc.appendChild(ico);
+          disc.appendChild(txt('div', 'state-title', 'Connect your calendar'));
+          disc.appendChild(txt('div', 'state-desc',
+            'Link Google Calendar to see your schedule. Your credential never leaves this device.'));
+          var connectBtn = el('button', 'btn btn-accent');
+          connectBtn.type = 'button';
+          connectBtn.textContent = connecting ? 'Connecting…' : 'Connect Google Calendar';
+          connectBtn.disabled = connecting;
+          connectBtn.addEventListener('click', doConnect);
+          disc.appendChild(connectBtn);
+          elCalArea.innerHTML = '';
+          elCalArea.appendChild(disc);
+          return;
+        }
+
+        if (loadError) {
+          var errPanel = el('div', 'state-panel');
+          var eIco = el('div', 'state-icon');
+          eIco.innerHTML = icon('alert-circle', 20);
+          errPanel.appendChild(eIco);
+          errPanel.appendChild(txt('div', 'state-title', 'Failed to load events'));
+          errPanel.appendChild(txt('div', 'state-error-msg', loadError));
+          var retryBtn = el('button', 'btn btn-ghost');
+          retryBtn.type = 'button';
+          retryBtn.textContent = 'Retry';
+          retryBtn.addEventListener('click', loadEvents);
+          errPanel.appendChild(retryBtn);
+          elCalArea.innerHTML = '';
+          elCalArea.appendChild(errPanel);
+          return;
+        }
+
+        var range = rangeForView();
+
+        // Agenda header label: "Upcoming · this week" for current week; otherwise range string.
+        if (view === 'agenda') {
+          elRangeLabel.textContent = offset === 0 ? 'Upcoming · this week' : range.label;
+        } else {
+          elRangeLabel.textContent = range.label;
+        }
+
+        // Tab descriptor — updates on every render (updateTab is no-op when unchanged).
+        if (window.soamView && window.soamView.setTabDescription) {
+          var tabDesc;
+          if (view === 'agenda' || view === 'week') {
+            // "Wk of Jun 15"
+            tabDesc = 'Wk of ' + MONTH_NAMES_SHORT[range.from.getMonth()] + ' ' + range.from.getDate();
+          } else if (view === 'day') {
+            // "17 Jun"
+            tabDesc = range.from.getDate() + ' ' + MONTH_NAMES_SHORT[range.from.getMonth()];
+          } else {
+            // "Jun 2026"
+            tabDesc = MONTH_NAMES_SHORT[range.from.getMonth()] + ' ' + range.from.getFullYear();
+          }
+          window.soamView.setTabDescription(tabDesc);
+        }
+
+        var body;
+        if (view === 'agenda') {
+          body = renderAgenda(range);
+        } else if (view === 'day') {
+          body = renderDay(range);
+        } else if (view === 'week') {
+          body = renderWeek(range);
+        } else {
+          body = renderMonth(range);
+        }
+
+        elCalArea.innerHTML = '';
+        elCalArea.appendChild(body);
       }
 
       function showLoading() {
-        eventsArea.innerHTML = '<div class="state-msg">Loading events…</div>';
+        elCalArea.innerHTML = '';
+        var row = el('div', 'loading-row');
+        row.innerHTML = '<span class="spinner"></span> Loading events…';
+        elCalArea.appendChild(row);
       }
 
-      function showError(msg) {
-        eventsArea.innerHTML = '<div class="state-msg state-error">' + msg + '</div>';
-      }
-
-      // ── Load events ────────────────────────────────────────────
+      /* ── Load events ──────────────────────────────────────────────── */
       function loadEvents() {
         if (!calCap || !connected) return;
-        var range = weekRange();
-        rangeLabel.textContent = fmtWeekLabel(range.from, range.to);
-
-        if (loading) return;
-        loading = true;
+        loadError = null;
         showLoading();
+
+        var range = rangeForView();
+        elRangeLabel.textContent = (view === 'agenda' && offset === 0) ? 'Upcoming · this week' : range.label;
 
         calCap.call('listEvents', range.from.toISOString(), range.to.toISOString())
           .then(function (evs) {
-            loading = false;
             events = evs || [];
-            renderEvents(events, range);
+            renderCalArea();
           })
           .catch(function (err) {
-            loading = false;
             var msg = err && err.message ? err.message : String(err);
             if (msg.indexOf('calendar.not_connected') !== -1 || msg.indexOf('not connected') !== -1) {
-              setConnectedUI(false);
+              connected = false;
             } else {
-              showError('Failed to load events: ' + msg);
+              loadError = msg;
             }
+            renderCalArea();
           });
       }
 
-      // ── Connect / disconnect ───────────────────────────────────
+      /* ── Connect / disconnect ─────────────────────────────────────── */
       function doConnect() {
-        if (!calCap) return;
-        btnConnect.disabled = true;
-        btnConnInner.disabled = true;
-        btnConnect.textContent = 'Connecting…';
-        btnConnInner.textContent = 'Connecting…';
+        if (!calCap || connecting) return;
+        connecting = true;
+        renderCalArea();
 
         calCap.call('connect', [])
           .then(function (result) {
-            btnConnect.disabled = false;
-            btnConnInner.disabled = false;
-            btnConnect.textContent = 'Connect Google Calendar';
-            btnConnInner.textContent = 'Connect Google Calendar';
+            connecting = false;
             if (result && result.ok) {
-              setConnectedUI(true);
+              connected = true;
+              loadEvents();
             } else {
-              var err = (result && result.error) ? result.error : 'Unknown error';
-              showError('Connection failed: ' + err);
-              connectProm.style.display = '';
+              loadError = 'Connection failed: ' + ((result && result.error) || 'Unknown error');
+              renderCalArea();
             }
           })
           .catch(function (err) {
-            btnConnect.disabled = false;
-            btnConnInner.disabled = false;
-            btnConnect.textContent = 'Connect Google Calendar';
-            btnConnInner.textContent = 'Connect Google Calendar';
-            showError('Connection failed: ' + (err.message || String(err)));
-            connectProm.style.display = '';
+            connecting = false;
+            loadError = 'Connection failed: ' + ((err && err.message) || String(err));
+            renderCalArea();
           });
       }
 
       function doDisconnect() {
         if (!calCap) return;
         calCap.call('disconnect', [])
-          .then(function () { setConnectedUI(false); })
-          .catch(function () { setConnectedUI(false); });
+          .then(function () { connected = false; events = []; renderCalArea(); })
+          .catch(function () { connected = false; events = []; renderCalArea(); });
       }
 
-      // ── Bootstrap ──────────────────────────────────────────────
-      boot.awaitBridge().then(function (sv) {
-        bridge = sv;
-        bridgeWait.classList.add('hidden');
-        root.style.display = '';
+      /* ── Date nav ─────────────────────────────────────────────────── */
+      function updateRangeLabel() {
+        var range = rangeForView();
+        elRangeLabel.textContent = range.label;
+      }
+
+      elBtnPrev.addEventListener('click', function () {
+        offset--;
+        if (connected) loadEvents(); else updateRangeLabel();
+      });
+      elBtnNext.addEventListener('click', function () {
+        offset++;
+        if (connected) loadEvents(); else updateRangeLabel();
+      });
+      elBtnToday.addEventListener('click', function () {
+        offset = 0;
+        if (connected) loadEvents(); else updateRangeLabel();
+      });
+
+      /* ── View switcher ───────────────────────────────────────────── */
+      Array.prototype.forEach.call(elViewSwitch.querySelectorAll('.view-tab'), function (tab) {
+        tab.addEventListener('click', function () {
+          if (view === tab.dataset.view) return;
+          view = tab.dataset.view;
+          offset = 0;
+          selectedId = null;
+          elPopover.classList.add('hidden');
+          if (connected) loadEvents(); else renderCalArea();
+        });
+      });
+
+      /* ── Bootstrap ───────────────────────────────────────────────── */
+      var boot = window.__viewBoot;
+
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (!d || d.__soamView !== true) return;
+        boot.applyTheme(d);
+      });
+
+      boot.awaitBridge().then(function (soamView) {
+        _soamView = soamView;
+        window.soamView = soamView;
+
+        elBridgeWait.classList.add('hidden');
+        elRoot.style.display = '';
+
         boot.applyCodicons();
+        elPopClose.innerHTML = icon('x', 14);
 
-        // Wire nav buttons before cap is ready (they just set state; loadEvents
-        // is called after the cap is bound below).
-        btnPrev.addEventListener('click', function () { weekOffset--; loadEvents(); });
-        btnNext.addEventListener('click', function () { weekOffset++; loadEvents(); });
-        btnToday.addEventListener('click', function () { weekOffset = 0; loadEvents(); });
+        // Render initial state (disconnected).
+        updateRangeLabel();
+        renderCalArea();
 
-        // Bind the schedule.calendar query cap.
-        // bindQuery returns a Promise that resolves to the proxy handle.
-        return sv.bindQuery('schedule.calendar', '1.0').then(function (cap) {
+        // Bind capability.
+        soamView.bindQuery('schedule.calendar', '1.0').then(function (cap) {
           calCap = cap;
 
-          // Wire connect/disconnect buttons
-          btnConnect.addEventListener('click', doConnect);
-          btnConnInner.addEventListener('click', doConnect);
-          btnDisconn.addEventListener('click', doDisconnect);
+          soamView.events.onActivate(function () {
+            cap.call('getStatus', [])
+              .then(function (status) {
+                var wasConnected = connected;
+                connected = !!(status && status.connected);
+                if (connected && !wasConnected) {
+                  loadEvents();
+                } else if (!connected) {
+                  renderCalArea();
+                }
+              })
+              .catch(function () {
+                connected = false;
+                renderCalArea();
+              });
+          });
 
-          // Check connection status on load
-          return calCap.call('getStatus', [])
-            .then(function (status) {
-              setConnectedUI(!!(status && status.connected));
-            })
-            .catch(function () {
-              setConnectedUI(false);
-            });
+        }).catch(function (err) {
+          loadError = 'Capability error: ' + ((err && err.message) || String(err));
+          renderCalArea();
         });
+
       }).catch(function (err) {
-        bridgeWait.classList.remove('hidden');
-        bridgeWait.textContent = 'Bridge error: ' + (err && err.message ? err.message : String(err));
+        elBridgeWait.textContent = 'Bridge error: ' + ((err && err.message) ? err.message : String(err));
       });
 
     })();

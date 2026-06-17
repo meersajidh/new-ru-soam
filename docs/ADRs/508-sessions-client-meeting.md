@@ -6,7 +6,7 @@
 **Layer:** domain
 **Supersedes:** —
 **Superseded by:** —
-**Related:** [Product Scope](../Product/Product_Scope.md) (Sessions = `ru-soam.sessions`), ADR-507 (Schedule — the storeless UI half), ADR-506 (domain module CQRS + ownership — the authoring rule this follows), ADR-505 / `record.patient` (identity authority), ADR-313 (PHI gradient — localizes to the sync here), ADR-302/307/452 (local + protected store), ADR-305/203/418 (provider plugins, brokered, trust), ADR-311 (System-B provider tokens), ADR-502 (audit ledger), ADR-310 (Google Calendar/Meet). **Design journal:** [`docs/Activities/schedule/schedule-design-log.md`](../Activities/schedule/schedule-design-log.md) (SD-9..SD-13).
+**Related:** [Product Scope](../Product/Product_Scope.md) (Sessions = `ru-soam.sessions`), ADR-507 (Schedule — the storeless UI half; §10 = provider-residency split), ADR-506 (+Am1) (domain module CQRS + ownership — the authoring rule this follows; Am1 = provider-connectivity base caps), ADR-505 / `record.patient` (identity authority), ADR-313 (PHI gradient — localizes to the sync here), ADR-302/307/452 (local + protected store), ADR-305/203/418 (provider plugins, brokered, trust), ADR-311 (System-B provider tokens), ADR-502 (audit ledger), ADR-310 (Google Calendar/Meet). **Design journal:** [`docs/Activities/schedule/schedule-design-log.md`](../Activities/schedule/schedule-design-log.md) (SD-9..SD-13).
 
 ## Context
 
@@ -85,9 +85,12 @@ the provider**.
 ### 6. `MeetingProvider` port — online meetings (Meet / Zoom / …) (NEW, SD-6/7/8 discipline)
 
 A Client Meeting may include an **online meeting**. Video providers (Google Meet, Zoom, …) follow the
-**same provider-port pattern** as the calendar (ADR-507 §2–4): a provider-agnostic **`MeetingProvider`
-port** (create/get/cancel a meeting, return a join link), **one bundle per provider**, first-party trust,
-brokered via Main (ADR-203), Flow-A OS-keychain creds (System-B, ADR-311).
+**same provider-port pattern** as the calendar (ADR-507 §2–4 **+ §10**, ADR-506 Am1): a provider-agnostic
+**`MeetingProvider` port** (create/get/cancel a meeting, return a join link), **one bundle per provider**,
+first-party trust. Same **residency split** as the calendar adapter: adapter logic → **FP-Host bundle**;
+it **consumes the A1.1 base caps** — the provider-agnostic credential broker (Flow-A OS-keychain creds,
+System-B, ADR-311/305) + the Main **brokered-fetch** base cap (manifest `apiHosts` allowlist, ADR-203/410).
+Credential/KEK/egress never enter the bundle; no FP-Host raw egress.
 
 - **Google Meet rides the Calendar API** (`conferenceData`) — a Google adapter may implement **both**
   `CalendarProvider` + `MeetingProvider` via **one grant**. **Zoom** = its own adapter + own grant.

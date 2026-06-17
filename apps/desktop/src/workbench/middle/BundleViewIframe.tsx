@@ -243,6 +243,10 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           overviewViewMode.setMode(m.mode as 'dense' | 'focused' | 'timeline');
           break;
         }
+        case 'request.setTabDescription': {
+          editor.updateTab(instanceId, { description: m.text as string });
+          break;
+        }
         case 'request.focusAspect': {
           layout.setVisibility(SlotId.AuxSideBar, true);
           aspectFocus.request(m.sectionId as string);

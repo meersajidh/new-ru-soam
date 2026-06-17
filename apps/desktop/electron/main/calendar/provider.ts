@@ -11,7 +11,31 @@
  * to the renderer or the FP-Host bundle.
  */
 
-/** A single calendar event returned by the provider. PHI-free in P0 (no resolution). */
+/**
+ * A participant in a calendar event.
+ *
+ * May carry PHI (attendee names/emails). Rides the existing `phi:true`
+ * lock-gated capability path into the renderer — a trusted PHI peer per
+ * ADR-418. No new trust-zone crossing; same read path, wider field set.
+ */
+export interface CalendarAttendee {
+  readonly name?: string;
+  readonly email?: string;
+  /** Provider response status: 'accepted' | 'declined' | 'tentative' | 'needsAction' */
+  readonly responseStatus?: string;
+  /** True when this attendee is the event organizer. */
+  readonly organizer?: boolean;
+  /** True when this attendee is the authenticated user. */
+  readonly self?: boolean;
+}
+
+/**
+ * A single calendar event returned by the provider.
+ *
+ * PHI note: `title`, `location`, `organizer`, and `attendees` CAN carry PHI
+ * (attendee names/emails, venue details). They ride the existing `phi:true`
+ * lock-gated `calendar.provider@1.0` capability — no new trust-zone crossing.
+ */
 export interface CalendarEvent {
   /** Provider-assigned event id. Opaque string — do not parse. */
   readonly id: string;
@@ -26,6 +50,20 @@ export interface CalendarEvent {
   readonly calendarId: string;
   /** Display name of the calendar (e.g. "My Calendar"). */
   readonly calendarName: string;
+  /** Physical or virtual location string from the provider. May carry PHI. */
+  readonly location?: string;
+  /**
+   * Video-call join URL (Google Meet, Zoom, etc.).
+   * Derived from `hangoutLink` (preferred) or the first `video` conference entry point.
+   */
+  readonly meetingLink?: string;
+  /** Organizer identity. May carry PHI (name/email). */
+  readonly organizer?: {
+    readonly name?: string;
+    readonly email?: string;
+  };
+  /** All attendees including the organizer. May carry PHI. */
+  readonly attendees?: ReadonlyArray<CalendarAttendee>;
 }
 
 /** Range for event queries — ISO-8601 date or datetime strings. */

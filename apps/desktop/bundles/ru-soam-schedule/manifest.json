@@ -7,6 +7,7 @@
     { "name": "schedule.calendar", "version": "1.0", "kind": "query" }
   ],
   "views": [
+    { "id": "nav", "path": "nav.html" },
     { "id": "schedule", "path": "schedule.html" }
   ],
   "dependencies": {
@@ -27,7 +28,7 @@
       {
         "id": "ru-soam-schedule.container",
         "title": "Schedule",
-        "view": "schedule",
+        "view": "nav",
         "location": "primary"
       }
     ],

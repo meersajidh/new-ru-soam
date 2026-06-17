@@ -65,6 +65,9 @@ export default function EditorGroupView({ groupId, isFocused }: Props) {
               }}
             >
               <span className="editor-tab-title">{tab.title}</span>
+              {tab.description && (
+                <span className="editor-tab-description">{tab.description}</span>
+              )}
               <button
                 className={`editor-tab-close${tab.isDirty ? ' editor-tab-close--dirty' : ''}`}
                 onClick={(e) => {

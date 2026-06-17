@@ -272,7 +272,22 @@ export class GoogleCalendarAdapter implements CalendarProvider {
         summary?: string;
         start?: { dateTime?: string; date?: string };
         end?: { dateTime?: string; date?: string };
+        location?: string;
+        hangoutLink?: string;
+        conferenceData?: {
+          entryPoints?: Array<{
+            entryPointType?: string;
+            uri?: string;
+          }>;
+        };
         organizer?: { displayName?: string; email?: string };
+        attendees?: Array<{
+          displayName?: string;
+          email?: string;
+          responseStatus?: string;
+          organizer?: boolean;
+          self?: boolean;
+        }>;
       }>;
       summary?: string;
     };
@@ -283,6 +298,42 @@ export class GoogleCalendarAdapter implements CalendarProvider {
       const startRaw = item.start?.dateTime ?? item.start?.date ?? '';
       const endRaw = item.end?.dateTime ?? item.end?.date ?? '';
       const allDay = !item.start?.dateTime;
+
+      // Resolve meeting link: hangoutLink (simpler, legacy) preferred;
+      // fall back to first 'video' conferenceData entry point.
+      let meetingLink: string | undefined;
+      if (item.hangoutLink) {
+        meetingLink = item.hangoutLink;
+      } else {
+        const videoEntry = item.conferenceData?.entryPoints?.find(
+          (ep) => ep.entryPointType === 'video',
+        );
+        if (videoEntry?.uri) meetingLink = videoEntry.uri;
+      }
+
+      // Organizer — omit if both name and email absent.
+      let organizer: { name?: string; email?: string } | undefined;
+      if (item.organizer?.displayName || item.organizer?.email) {
+        organizer = {
+          ...(item.organizer.displayName !== undefined
+            ? { name: item.organizer.displayName }
+            : {}),
+          ...(item.organizer.email !== undefined ? { email: item.organizer.email } : {}),
+        };
+      }
+
+      // Attendees — omit empty arrays.
+      const attendees =
+        item.attendees && item.attendees.length > 0
+          ? item.attendees.map((a) => ({
+              ...(a.displayName !== undefined ? { name: a.displayName } : {}),
+              ...(a.email !== undefined ? { email: a.email } : {}),
+              ...(a.responseStatus !== undefined ? { responseStatus: a.responseStatus } : {}),
+              ...(a.organizer !== undefined ? { organizer: a.organizer } : {}),
+              ...(a.self !== undefined ? { self: a.self } : {}),
+            }))
+          : undefined;
+
       return {
         id: item.id,
         title: item.summary ?? '(No title)',
@@ -291,6 +342,10 @@ export class GoogleCalendarAdapter implements CalendarProvider {
         allDay,
         calendarId: 'primary',
         calendarName,
+        ...(item.location ? { location: item.location } : {}),
+        ...(meetingLink ? { meetingLink } : {}),
+        ...(organizer ? { organizer } : {}),
+        ...(attendees ? { attendees } : {}),
       };
     });
   }

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'; font-src data:"
+    />
+    <title>Schedule</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
+
+      :root {
+        color-scheme: light dark;
+        --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --color-surface-base:     #161618;
+        --color-surface-panel:    #1c1c1f;
+        --color-surface-elevated: #232326;
+        --color-surface-active:   #2a2d26;
+        --color-fg-primary:   #f2f2f7;
+        --color-fg-secondary: #aeaeb2;
+        --color-fg-muted:     #636366;
+        --color-border:       #3a3a3c;
+        --color-border-focus: #5ac85a;
+        --color-accent:         #5ac85a;
+        --color-accent-fg:      #1c1c1e;
+        --color-accent-hover:   #6bd46b;
+        --color-accent-pressed: #4ab44a;
+        --radius-sm: 4px;
+        --radius-md: 7px;
+        --transition: 130ms ease;
+      }
+
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.5;
+        background: var(--color-surface-panel);
+        color: var(--color-fg-primary);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 24px;
+      }
+
+      #bridge-wait {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-panel);
+        z-index: 100;
+        font-size: 12px;
+        color: var(--color-fg-muted);
+      }
+      #bridge-wait.hidden { display: none; }
+
+      .open-label {
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        text-align: center;
+      }
+
+      .btn-open {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 500;
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+        cursor: pointer;
+        transition: background var(--transition);
+        border: none;
+      }
+      .btn-open:hover { background: var(--color-accent-hover); }
+      .btn-open:active { background: var(--color-accent-pressed); }
+      .btn-open:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bridge-wait">Connecting…</div>
+    <div id="root" style="display:none">
+      <div class="open-label">Calendar opens in the editor area.</div>
+      <button class="btn-open" id="btn-open" type="button">
+        Open calendar
+      </button>
+    </div>
+
+    <script>
+    (function () {
+      'use strict';
+
+      var boot = window.__viewBoot;
+      var bridgeWait = document.getElementById('bridge-wait');
+      var root = document.getElementById('root');
+      var btnOpen = document.getElementById('btn-open');
+
+      function openCalendar() {
+        if (window.soamView) {
+          window.soamView.openInEditor('schedule', {
+            query: 'id=schedule',
+            title: 'Schedule',
+            entityId: 'schedule',
+          });
+        }
+      }
+
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (!d || d.__soamView !== true) return;
+        boot.applyTheme(d);
+      });
+
+      boot.awaitBridge().then(function (soamView) {
+        window.soamView = soamView;
+        bridgeWait.classList.add('hidden');
+        root.style.display = '';
+
+        boot.applyCodicons();
+
+        btnOpen.addEventListener('click', openCalendar);
+
+        // Auto-open the calendar editor tab on first activation.
+        soamView.events.onActivate(function () {
+          openCalendar();
+        });
+      }).catch(function (err) {
+        bridgeWait.textContent = 'Bridge error: ' + (err && err.message ? err.message : String(err));
+      });
+
+    })();
+    </script>
+  </body>
+</html>

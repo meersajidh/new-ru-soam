@@ -6,6 +6,7 @@ export interface EditorInstance {
   id: string;
   resource: string;
   title: string;
+  description?: string;
   isDirty: boolean;
   entityId?: string | null;
   isPreview?: boolean;
@@ -18,11 +19,12 @@ export interface EditorGroup {
 }
 
 export interface IEditorService {
-  open(resource: string, options?: { groupId?: string; title?: string; entityId?: string | null; preview?: boolean }): string;
+  open(resource: string, options?: { groupId?: string; title?: string; description?: string; entityId?: string | null; preview?: boolean }): string;
   close(instanceId: string): void;
   splitGroup(groupId: string, direction: 'horizontal' | 'vertical'): string;
   moveTab(instanceId: string, targetGroupId: string): void;
   setActiveTab(groupId: string, instanceId: string): void;
+  updateTab(instanceId: string, patch: { title?: string; description?: string }): void;
   getLayout(): EditorLayoutNode;
   getGroup(groupId: string): EditorGroup | undefined;
   getGroups(): EditorGroup[];
@@ -46,7 +48,7 @@ export class EditorService implements IEditorService {
     this._focusedGroupId = id;
   }
 
-  open(resource: string, options?: { groupId?: string; title?: string; entityId?: string | null; preview?: boolean }): string {
+  open(resource: string, options?: { groupId?: string; title?: string; description?: string; entityId?: string | null; preview?: boolean }): string {
     const targetId = options?.groupId ?? this._focusedGroupId ?? this._firstGroupId();
     const group = this._groups.get(targetId);
     if (!group) throw new Error(`Group ${targetId} not found`);
@@ -59,10 +61,11 @@ export class EditorService implements IEditorService {
     );
 
     if (existing) {
-      // Update title + entityId in place; if preview:false, pin it.
+      // Update title + description + entityId in place; if preview:false, pin it.
       const updated: EditorInstance = {
         ...existing,
         ...(options?.title != null ? { title: options.title } : {}),
+        ...(options?.description !== undefined ? { description: options.description } : {}),
         ...(options?.entityId !== undefined ? { entityId: options.entityId } : {}),
         ...(options?.preview === false ? { isPreview: false } : {}),
       };
@@ -95,16 +98,37 @@ export class EditorService implements IEditorService {
     // New tab.
     const id = `instance-${++this._instanceCounter}`;
     const title = options?.title ?? this._titleFromResource(resource);
+    const description = options?.description;
     const entityId = incomingEntityId;
     const isPreview = options?.preview;
     this._groups.set(targetId, {
       ...group,
-      tabs: [...group.tabs, { id, resource, title, isDirty: false, entityId, isPreview }],
+      tabs: [...group.tabs, { id, resource, title, description, isDirty: false, entityId, isPreview }],
       activeTabId: id,
     });
     this._focusedGroupId = targetId;
     this._emit();
     return id;
+  }
+
+  updateTab(instanceId: string, patch: { title?: string; description?: string }): void {
+    const groupId = this._findGroupContaining(instanceId);
+    if (!groupId) return;
+    const group = this._groups.get(groupId);
+    if (!group) return;
+    const tab = group.tabs.find(t => t.id === instanceId);
+    if (!tab) return;
+    // No-op when nothing changes — avoids redundant re-render loops.
+    const titleChanged = patch.title !== undefined && patch.title !== tab.title;
+    const descChanged = patch.description !== undefined && patch.description !== tab.description;
+    if (!titleChanged && !descChanged) return;
+    const updated: EditorInstance = {
+      ...tab,
+      ...(titleChanged ? { title: patch.title! } : {}),
+      ...(descChanged ? { description: patch.description } : {}),
+    };
+    this._groups.set(groupId, { ...group, tabs: group.tabs.map(t => (t.id === instanceId ? updated : t)) });
+    this._emit();
   }
 
   close(instanceId: string): void {
