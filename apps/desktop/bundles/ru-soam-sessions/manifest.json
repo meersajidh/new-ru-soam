@@ -1,0 +1,59 @@
+{
+  "id": "ru-soam-sessions",
+  "version": "0.1.0",
+  "entry": "index.mjs",
+  "activationEvents": ["lazy"],
+  "residency": "protected",
+  "capabilities": [
+    { "name": "sessions.meeting.query", "version": "1.0", "phi": true, "kind": "query" },
+    { "name": "sessions.meeting", "version": "1.0", "phi": true, "kind": "command" }
+  ],
+  "views": [
+    { "id": "meetings", "path": "meetings.html" }
+  ],
+  "ownedTables": ["client_meeting"],
+  "migrations": [
+    {
+      "version": 1,
+      "description": "Sessions: client_meeting table (ADR-508)",
+      "sql": "CREATE TABLE IF NOT EXISTS client_meeting (\n  id                TEXT PRIMARY KEY,\n  patient_id        TEXT NOT NULL,\n  kind              TEXT NOT NULL DEFAULT 'session',\n  status            TEXT NOT NULL DEFAULT 'scheduled',\n  modality          TEXT,\n  starts_at         INTEGER NOT NULL,\n  ends_at           INTEGER,\n  source_origin     TEXT NOT NULL DEFAULT 'app',\n  sync_state        TEXT NOT NULL DEFAULT 'local',\n  provider_id       TEXT,\n  provider_event_id TEXT,\n  calendar_id       TEXT,\n  created_at        INTEGER NOT NULL,\n  updated_at        INTEGER NOT NULL\n);\nCREATE INDEX IF NOT EXISTS idx_meeting_patient  ON client_meeting(patient_id, starts_at DESC);\nCREATE INDEX IF NOT EXISTS idx_meeting_upcoming ON client_meeting(starts_at);\nCREATE INDEX IF NOT EXISTS idx_meeting_provider ON client_meeting(provider_id, provider_event_id);"
+    }
+  ],
+  "queryTemplates": [
+    {
+      "id": "meeting.get",
+      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       created_at, updated_at\nFROM client_meeting WHERE id = @id"
+    },
+    {
+      "id": "meeting.listForPatient",
+      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       created_at, updated_at\nFROM client_meeting WHERE patient_id = @patientId ORDER BY starts_at DESC"
+    },
+    {
+      "id": "meeting.listUpcoming",
+      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       created_at, updated_at\nFROM client_meeting WHERE starts_at >= @from ORDER BY starts_at ASC LIMIT 100"
+    }
+  ],
+  "dependencies": {
+    "capabilities": ["store.write@1.0", "store.query@1.0", "record.patient.query@1.0"]
+  },
+  "contributes": {
+    "activityBar.items": [
+      {
+        "id": "ru-soam-sessions.activity",
+        "label": "Sessions",
+        "icon": "calendar",
+        "viewContainer": "ru-soam-sessions.container",
+        "group": "top",
+        "when": "workspace.activeId"
+      }
+    ],
+    "viewContainers": [
+      {
+        "id": "ru-soam-sessions.container",
+        "title": "Sessions",
+        "view": "meetings",
+        "location": "primary"
+      }
+    ]
+  }
+}

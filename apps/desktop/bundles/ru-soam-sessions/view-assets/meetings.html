@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'; font-src data:"
+    />
+    <title>Sessions — Meetings</title>
+    <style>
+
+      /* ── Reset ───────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      /* ── Design tokens (defaults — host overrides via postMessage) ─────── */
+      :root {
+        color-scheme: light dark;
+
+        --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+
+        /* Surface */
+        --color-surface-base:     #161618;
+        --color-surface-panel:    #1c1c1f;
+        --color-surface-elevated: #232326;
+        --color-surface-active:   #2a2d26;
+        /* Foreground */
+        --color-fg-primary:   #f2f2f7;
+        --color-fg-secondary: #aeaeb2;
+        --color-fg-muted:     #636366;
+        /* Borders */
+        --color-border:       #3a3a3c;
+        --color-border-focus: #5ac85a;
+        /* Accent */
+        --color-accent:         #5ac85a;
+        --color-accent-fg:      #1c1c1e;
+        --color-accent-hover:   #6bd46b;
+        --color-accent-pressed: #4ab44a;
+        /* Semantic */
+        --color-success: #5ac85a;
+        --color-warning: #f4a623;
+        --color-error:   #e05252;
+
+        --radius-sm: 4px;
+        --radius-md: 7px;
+        --transition: 130ms ease;
+      }
+
+      /* ── Base ────────────────────────────────────────── */
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.5;
+        background: var(--color-surface-panel);
+        color: var(--color-fg-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+
+      /* ── Root layout ─────────────────────────────────── */
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* ── Bridge wait ─────────────────────────────────── */
+      #bridge-wait {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-panel);
+        z-index: 100;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--color-fg-muted);
+      }
+      .spinner {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ── Header row ──────────────────────────────────── */
+      #panel-header {
+        display: flex;
+        align-items: center;
+        height: 35px;
+        padding: 0 12px;
+        flex-shrink: 0;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      #panel-title {
+        font-family: var(--font-sans);
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--color-fg-muted);
+        user-select: none;
+        line-height: 1;
+      }
+
+      /* ── Status message ──────────────────────────────── */
+      #status-msg {
+        font-size: 11px;
+        padding: 5px 10px;
+        background: color-mix(in srgb, var(--color-error) 9%, transparent);
+        color: var(--color-error);
+        font-weight: 500;
+        display: none;
+        flex-shrink: 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+      }
+      #status-msg.visible { display: block; }
+
+      /* ── Scroll body ─────────────────────────────────── */
+      #meetings-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+        padding-bottom: 8px;
+      }
+
+      /* ── Group header ────────────────────────────────── */
+      .group-header {
+        padding: 9px 14px 3px;
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--color-fg-muted);
+        user-select: none;
+      }
+
+      /* ── Meeting list ────────────────────────────────── */
+      .meetings-list {
+        list-style: none;
+        padding: 0 5px;
+        margin: 0 0 2px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      /* ── Meeting row ─────────────────────────────────── */
+      .meeting-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        padding: 8px 10px 8px 9px;
+        border-radius: var(--radius-sm);
+        border-left: 2px solid transparent;
+        outline: none;
+        transition: background var(--transition), border-left-color var(--transition);
+        user-select: none;
+      }
+
+      /* ── Date/time column ────────────────────────────── */
+      .meeting-time {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        min-width: 44px;
+        padding-top: 1px;
+      }
+      .meeting-date {
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--color-fg-secondary);
+        font-family: var(--font-mono);
+        white-space: nowrap;
+        line-height: 1.3;
+      }
+      .meeting-clock {
+        font-size: 10px;
+        color: var(--color-fg-muted);
+        font-family: var(--font-mono);
+        white-space: nowrap;
+        line-height: 1.3;
+      }
+      .meeting-duration {
+        font-size: 9.5px;
+        color: var(--color-fg-muted);
+        font-family: var(--font-mono);
+        white-space: nowrap;
+        line-height: 1.3;
+      }
+
+      /* ── Meeting body ────────────────────────────────── */
+      .meeting-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .meeting-client {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-fg-secondary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+      }
+      .meeting-meta {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .meeting-kind {
+        font-size: 10.5px;
+        color: var(--color-fg-muted);
+        text-transform: capitalize;
+        line-height: 1.3;
+      }
+
+      /* ── Status badge ────────────────────────────────── */
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        font-size: 9.5px;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        line-height: 1.4;
+      }
+      .status-badge.scheduled {
+        background: color-mix(in srgb, var(--color-accent) 13%, transparent);
+        color: var(--color-accent);
+        border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+      }
+      .status-badge.completed {
+        background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
+        color: var(--color-fg-muted);
+        border: 1px solid color-mix(in srgb, var(--color-fg-muted) 25%, transparent);
+      }
+      .status-badge.cancelled {
+        background: color-mix(in srgb, var(--color-error) 10%, transparent);
+        color: var(--color-error);
+        border: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+      }
+      .status-badge.no_show {
+        background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+        color: var(--color-warning);
+        border: 1px solid color-mix(in srgb, var(--color-warning) 25%, transparent);
+      }
+
+      /* ── Modality icon ───────────────────────────────── */
+      .modality-icon {
+        display: inline-flex;
+        align-items: center;
+        color: var(--color-fg-muted);
+        flex-shrink: 0;
+      }
+
+      /* ── Empty / locked states ───────────────────────── */
+      #meetings-empty {
+        padding: 28px 16px 20px;
+        text-align: center;
+        display: none;
+      }
+      #meetings-empty.visible { display: block; }
+
+      .empty-graphic {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
+        margin: 0 auto 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .empty-graphic svg {
+        opacity: 0.3;
+        color: var(--color-fg-primary);
+      }
+      #meetings-empty strong {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--color-fg-secondary);
+        margin-bottom: 5px;
+      }
+      #meetings-empty p {
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: var(--color-fg-muted);
+        max-width: 200px;
+        margin: 0 auto;
+        font-style: italic;
+      }
+
+      #meetings-locked {
+        padding: 16px;
+        text-align: center;
+        display: none;
+      }
+      #meetings-locked.visible { display: block; }
+      #meetings-locked p {
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: var(--color-error);
+        opacity: 0.8;
+        font-weight: 500;
+      }
+
+      /* ── List container ──────────────────────────────── */
+      #meetings-content { display: none; }
+      #meetings-content.visible { display: block; }
+
+    </style>
+  </head>
+  <body>
+    <div id="bridge-wait">
+      <span class="spinner"></span>
+      Loading…
+    </div>
+
+    <div id="root" style="display:none">
+
+      <!-- Header -->
+      <div id="panel-header">
+        <span id="panel-title">Upcoming Meetings</span>
+      </div>
+
+      <!-- Status / error banner -->
+      <div id="status-msg" role="alert"></div>
+
+      <!-- Scroll body -->
+      <div id="meetings-body">
+
+        <!-- Locked -->
+        <div id="meetings-locked">
+          <p>Workspace locked — unlock to view meetings.</p>
+        </div>
+
+        <!-- Empty -->
+        <div id="meetings-empty">
+          <div class="empty-graphic">
+            <span data-codicon="calendar" data-size="18"></span>
+          </div>
+          <strong>No meetings yet</strong>
+          <p>Meetings appear here once calendar sync lands in P1.</p>
+        </div>
+
+        <!-- Live list -->
+        <div id="meetings-content"></div>
+
+      </div><!-- #meetings-body -->
+
+    </div><!-- #root -->
+
+    <script>
+      (function () {
+        'use strict';
+
+        /* ── State ───────────────────────────────────────── */
+        var _meetingProxy = null;
+        var _patientProxy = null;
+        var _meetings     = [];
+        var _clientMap    = {};   // id → displayName
+
+        /* ── Element refs ────────────────────────────────── */
+        var elBridgeWait      = document.getElementById('bridge-wait');
+        var elRoot            = document.getElementById('root');
+        var elStatusMsg       = document.getElementById('status-msg');
+        var elMeetingsContent = document.getElementById('meetings-content');
+        var elMeetingsEmpty   = document.getElementById('meetings-empty');
+        var elMeetingsLocked  = document.getElementById('meetings-locked');
+
+        /* ── Helpers ─────────────────────────────────────── */
+        function isLockedError(err) {
+          return window.__viewBoot.isLockedError(err);
+        }
+
+        function showStatus(msg) {
+          elStatusMsg.textContent = msg;
+          elStatusMsg.classList.add('visible');
+        }
+        function clearStatus() {
+          elStatusMsg.classList.remove('visible');
+          elStatusMsg.textContent = '';
+        }
+
+        /* ── Date/time formatting ────────────────────────── */
+        var DATE_FMT = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+        var TIME_FMT = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
+
+        function fmtDate(ms) {
+          try { return DATE_FMT.format(new Date(ms)); } catch (e) { return '—'; }
+        }
+        function fmtTime(ms) {
+          try { return TIME_FMT.format(new Date(ms)); } catch (e) { return ''; }
+        }
+        function fmtDuration(startMs, endMs) {
+          if (!endMs) return null;
+          var mins = Math.round((endMs - startMs) / 60000);
+          if (mins <= 0) return null;
+          if (mins < 60) return mins + ' min';
+          var h = Math.floor(mins / 60);
+          var m = mins % 60;
+          return m > 0 ? h + 'h ' + m + 'm' : h + 'h';
+        }
+
+        /* ── Render ──────────────────────────────────────── */
+        function renderMeetings() {
+          elMeetingsEmpty.classList.remove('visible');
+          elMeetingsLocked.classList.remove('visible');
+          elMeetingsContent.classList.remove('visible');
+          elMeetingsContent.innerHTML = '';
+
+          if (_meetings.length === 0) {
+            elMeetingsEmpty.classList.add('visible');
+            return;
+          }
+
+          elMeetingsContent.classList.add('visible');
+
+          var hdr = document.createElement('div');
+          hdr.className = 'group-header';
+          hdr.textContent = 'Upcoming · ' + _meetings.length;
+          elMeetingsContent.appendChild(hdr);
+
+          var ul = document.createElement('ul');
+          ul.className = 'meetings-list';
+          ul.setAttribute('role', 'list');
+
+          _meetings.forEach(function (m) {
+            ul.appendChild(buildMeetingRow(m));
+          });
+
+          elMeetingsContent.appendChild(ul);
+        }
+
+        function buildMeetingRow(m) {
+          var li = document.createElement('li');
+          li.className = 'meeting-row';
+          li.setAttribute('role', 'listitem');
+
+          // ── Time column ──
+          var timeCol = document.createElement('div');
+          timeCol.className = 'meeting-time';
+          timeCol.setAttribute('aria-hidden', 'true');
+
+          var dateEl = document.createElement('div');
+          dateEl.className = 'meeting-date';
+          dateEl.textContent = fmtDate(m.startsAt);
+          timeCol.appendChild(dateEl);
+
+          var clockEl = document.createElement('div');
+          clockEl.className = 'meeting-clock';
+          clockEl.textContent = fmtTime(m.startsAt);
+          timeCol.appendChild(clockEl);
+
+          var dur = fmtDuration(m.startsAt, m.endsAt);
+          if (dur) {
+            var durEl = document.createElement('div');
+            durEl.className = 'meeting-duration';
+            durEl.textContent = dur;
+            timeCol.appendChild(durEl);
+          }
+
+          // ── Main body ──
+          var mainEl = document.createElement('div');
+          mainEl.className = 'meeting-main';
+
+          // Client name — PHI-safe via textContent
+          var clientEl = document.createElement('div');
+          clientEl.className = 'meeting-client';
+          var displayName = _clientMap[m.patientId];
+          clientEl.textContent = displayName || m.patientId;
+          mainEl.appendChild(clientEl);
+
+          // Meta row: kind + status badge + modality icon
+          var metaEl = document.createElement('div');
+          metaEl.className = 'meeting-meta';
+
+          var kindEl = document.createElement('span');
+          kindEl.className = 'meeting-kind';
+          kindEl.textContent = m.kind || 'session';
+          metaEl.appendChild(kindEl);
+
+          var badge = document.createElement('span');
+          badge.className = 'status-badge ' + (m.status || 'scheduled');
+          badge.textContent = (m.status || 'scheduled').replace('_', ' ');
+          metaEl.appendChild(badge);
+
+          if (m.modality === 'online') {
+            var modEl = document.createElement('span');
+            modEl.className = 'modality-icon';
+            modEl.setAttribute('title', 'Online');
+            modEl.setAttribute('aria-label', 'Online');
+            var codiconOnline = document.createElement('span');
+            codiconOnline.setAttribute('data-codicon', 'device-camera-video');
+            codiconOnline.setAttribute('data-size', '12');
+            modEl.appendChild(codiconOnline);
+            metaEl.appendChild(modEl);
+          } else if (m.modality === 'in_person') {
+            var modElP = document.createElement('span');
+            modElP.className = 'modality-icon';
+            modElP.setAttribute('title', 'In person');
+            modElP.setAttribute('aria-label', 'In person');
+            var codiconInPerson = document.createElement('span');
+            codiconInPerson.setAttribute('data-codicon', 'location');
+            codiconInPerson.setAttribute('data-size', '12');
+            modElP.appendChild(codiconInPerson);
+            metaEl.appendChild(modElP);
+          }
+
+          mainEl.appendChild(metaEl);
+
+          li.appendChild(timeCol);
+          li.appendChild(mainEl);
+
+          // Build accessible label (PHI-safe — displayName already resolved from map)
+          var label = (displayName || m.patientId) + ', ' + (m.kind || 'session') +
+            ', ' + (m.status || 'scheduled') + ', ' + fmtDate(m.startsAt) + ' ' + fmtTime(m.startsAt);
+          li.setAttribute('aria-label', label);
+
+          return li;
+        }
+
+        /* ── Load ────────────────────────────────────────── */
+        function loadMeetings() {
+          if (!_meetingProxy) return;
+          clearStatus();
+
+          var now = Date.now();
+
+          // Fetch patient list for name resolution + meetings in parallel
+          var patientsP = _patientProxy
+            ? _patientProxy.call('list')
+            : Promise.resolve([]);
+
+          var meetingsP = _meetingProxy.call('listUpcoming', now);
+
+          Promise.all([patientsP, meetingsP]).then(function (results) {
+            var patients = Array.isArray(results[0]) ? results[0] : [];
+            var meetings = Array.isArray(results[1]) ? results[1] : [];
+
+            // Build client map
+            _clientMap = {};
+            patients.forEach(function (p) {
+              _clientMap[p.id] = p.displayName || p.id;
+            });
+
+            _meetings = meetings;
+            renderMeetings();
+          }).catch(function (err) {
+            if (isLockedError(err)) {
+              elMeetingsContent.classList.remove('visible');
+              elMeetingsContent.innerHTML = '';
+              elMeetingsEmpty.classList.remove('visible');
+              elMeetingsLocked.classList.add('visible');
+            } else {
+              showStatus('Failed to load: ' + (err && err.message));
+            }
+          });
+        }
+
+        /* ── Bridge ──────────────────────────────────────── */
+        window.addEventListener('message', function (e) {
+          var d = e.data;
+          if (!d || d.__soamView !== true) return;
+          window.__viewBoot.applyTheme(d);
+        });
+
+        window.__viewBoot.awaitBridge().then(function (soamView) {
+          elBridgeWait.style.display = 'none';
+          elRoot.style.display = '';
+
+          soamView.events.onActivate(function () {
+            if (_meetingProxy) {
+              loadMeetings();
+              return;
+            }
+
+            // Bind both caps; patient query is best-effort (for name resolution).
+            var meetingsBindP = soamView.bindQuery('sessions.meeting.query', '1.0');
+            var patientBindP  = soamView.bindQuery('record.patient.query',   '1.0')
+              .catch(function () { return null; }); // graceful — names fall back to ids
+
+            Promise.all([meetingsBindP, patientBindP]).then(function (proxies) {
+              _meetingProxy = proxies[0];
+              _patientProxy = proxies[1];
+              loadMeetings();
+            }).catch(function (err) {
+              if (isLockedError(err)) {
+                elMeetingsLocked.classList.add('visible');
+              } else {
+                showStatus('Bridge error: ' + (err && err.message));
+              }
+            });
+          });
+
+          // Reload when client_meeting table changes.
+          soamView.events.onStoreChange(function (payload) {
+            if (!payload) return;
+            if (payload.table === 'client_meeting') {
+              loadMeetings();
+            }
+          });
+        });
+
+      })();
+    </script>
+  </body>
+</html>

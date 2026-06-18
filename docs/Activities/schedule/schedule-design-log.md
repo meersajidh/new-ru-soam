@@ -281,6 +281,33 @@ GCAL → events render). **Arg convention confirmed:** host→Main `bindCapabili
 passes the array straight through (NOT spread); renderer→cap `bindQuery().call(method, a, b)` IS spread.
 Remaining O485 (provider-origin sync, identity resolution, calendar writes) = later P1 slices.
 
+### SD-15 — Sessions Client Meeting store (P1 slice 2) → BUILT + live-verified (2026-06-18)
+
+First persistence in the whole Schedule/Sessions pair (ADR-508): new `ru-soam-sessions` first-party
+FP-Host bundle, authored to the ADR-506 rule (CQRS-explicit, FP-Host-resident, manifest-declared) by
+mirroring `record.patient`. **Zero Main TS** — a manifest with `residency:"protected"` + `ownedTables` +
+`migrations` self-registers ownership + protected residency through the existing store-cap discovery path.
+
+- **Caps:** `sessions.meeting.query` (kind `query`: get/listForPatient/listUpcoming) + `sessions.meeting`
+  (kind `command`: create/update/setStatus/delete), both `phi:true`. Persists via base
+  `store.write`/`store.query`. Audit detail = enums only (`{kind,status}`), never `patient_id`/times/text.
+- **Table `client_meeting`** (`protected`) — SQ-2 shape fixed (see ADR-508 §SQ-2); provider/sync columns
+  present but inert (slice 2 writes only `source_origin='app'`/`sync_state='local'`).
+- **Surface:** standalone Sessions **Activity** (activity-bar item + primary view) — a **read-only**
+  "Upcoming Meetings" list. The manual-create form + client-picker (originally planned) was **dropped on
+  user call** — the real creation path is provider-origin sync (slice 4), so a hand-create UI would be
+  throwaway-ish; the list renders what slices 3/4 populate.
+- **Cross-bundle FK decision:** `patient_id` is a plain column, **no `REFERENCES patients(id)`** — a hard
+  cross-bundle FK would break Practice's patient-erase cascade. Cost = orphaned `client_meeting` rows on
+  client erasure → cross-bundle DPDP erase cascade tracked **O490**.
+- **Verified** via CDP (the empty-state list proves the query path + migration; a scripted
+  create→list→setStatus→delete→relist round-trip proves the command path + store.write ownership gate;
+  no `cap.denied`/`kind_mismatch`).
+
+**Next P1 slices:** identity resolution (`record.patient.resolveParticipant` + alias enrich + hashed
+suppression, ADR-508 §4) → provider-origin discovery/sync (pull→resolve→mint, orphan-on-delete, §3) →
+calendar writes. These light up the inert provider/sync columns + the classification stubs.
+
 ## Open queue (not yet concluded)
 
 - **SQ-2 — Concept model: Schedule entities vs Sessions entities (NEXT — stay at concept level, no fields yet).**

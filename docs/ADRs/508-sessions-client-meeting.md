@@ -137,3 +137,26 @@ opaque-block vs PHI-block. The score (O483) is computed from what this sync expo
 - **O484** — Client Meeting → Practice / Billing projection interfaces.
 - **O483** — PHI ramp + Safety Score on the sync (ADR-313).
 - **SQ-2 (design log)** — the Client Meeting field/status-enum shape is fixed at build time here.
+  **RESOLVED (P1 slice 2, 2026-06-18).** `client_meeting` table (residency `protected`): `id`,
+  `patient_id` (plain column — **no cross-bundle FK**, see below), `kind`
+  (`intake|session|review|consult|other`, default `session`), `status`
+  (`scheduled|completed|cancelled|no_show`, default `scheduled`), `modality` (`in_person|online|null`),
+  `starts_at`/`ends_at` (epoch ms; `ends_at` nullable), `source_origin` (`app|provider`),
+  `sync_state` (`local|linked|orphaned`), `provider_id`/`provider_event_id`/`calendar_id` (null until
+  slice 4), `created_at`/`updated_at`. **No free-text PHI columns** (no event title, no notes — the
+  client's name comes from *our* roster per §2; notes = O487). The provider/sync columns are present
+  from the start (so no slice-4 migration churn) but slice 2 only writes `app`/`local`.
+
+## Build status
+
+- **P1 Slice 2 — Sessions Client Meeting store + standalone Sessions Activity: BUILT + live-verified
+  2026-06-18 (O485).** New `ru-soam-sessions` first-party FP-Host bundle (zero Main TS), CQRS-explicit
+  per ADR-506: `sessions.meeting.query` (kind `query`: get/listForPatient/listUpcoming) +
+  `sessions.meeting` (kind `command`: create/update/setStatus/delete), both `phi:true`; persists via the
+  base `store.write`/`store.query` caps; activity-bar item + a read-only "Upcoming Meetings" list view
+  (manual-create form intentionally dropped — the real creation path is provider-origin sync, slice 4).
+  CRUD round-trip verified end-to-end via CDP. **`patient_id` has no `REFERENCES patients(id)`** — a hard
+  cross-bundle FK would break Practice's patient-erase cascade (which only covers Practice-owned tables);
+  the cost is that erasing a client leaves orphaned `client_meeting` rows → cross-bundle DPDP erase cascade
+  tracked **O490** (must close before clients are linked to meetings in production). §4 identity resolution
+  + §3 provider sync (the columns above light up) land in slices 3/4.
