@@ -9,7 +9,8 @@
     { "name": "sessions.meeting", "version": "1.0", "phi": true, "kind": "command" }
   ],
   "views": [
-    { "id": "meetings", "path": "meetings.html" }
+    { "id": "meetings", "path": "meetings.html" },
+    { "id": "needs-linking", "path": "needs-linking.html" }
   ],
   "ownedTables": ["client_meeting"],
   "migrations": [
@@ -50,6 +51,16 @@
     ]
   },
   "contributes": {
+    "panel.views": [
+      {
+        "id": "ru-soam-sessions.needs-linking",
+        "title": "Needs Linking",
+        "icon": "link",
+        "view": "needs-linking",
+        "when": "workspace.activeId",
+        "priority": 90
+      }
+    ],
     "activityBar.items": [
       {
         "id": "ru-soam-sessions.activity",

@@ -103,6 +103,9 @@ const REGISTRY: Record<SemanticIconId, CodiconGlyph> = {
   'circle-large-filled': 'circle-large-filled',
   'circle-filled': 'circle-filled',
 
+  // Linking / relations
+  'link': 'link',
+
   // ActivityBar manifest vocabulary (stable contract — O435 controls bundle icons)
   'users': 'organization',
   'calendar': 'calendar',

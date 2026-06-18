@@ -174,3 +174,33 @@ opaque-block vs PHI-block. The score (O483) is computed from what this sync expo
   unsalted SHA-256 — acceptable for MVP (table lives in the KEK-encrypted protected store); keyed/salted =
   later hardening. **Sessions orchestration** (calling the resolver on provider events to mint Client
   Meetings) lands in slice 4 — this slice built only the owned authority.
+- **P1 Slice 4a — provider-origin auto-link sync: BUILT + live-verified 2026-06-18 (O485).** Sessions
+  is now the orchestrator (§4): `sessions.meeting.sync` consumes — cross-bundle, FP-Host→Main→FP-Host —
+  `schedule.calendar.query.listEvents` (Schedule) + `record.patient.query.resolveParticipant` (Practice),
+  both first-party `phi:true` (cross-bundle consume is sanctioned: the loader registers every bundle's
+  caps in the Main registry with a host-forwarding handler; deps declared in the manifest). Pull
+  `now → +90d`; per event resolve participants (attendees `!self` + organizer); a **single distinct
+  strong-id match auto-links** via a shared `linkEvent` upsert keyed on `provider_event_id` — insert =
+  `linked`, re-pull = `reconciled` (**time snapshot only**; `kind`/`status` stay local-authoritative =
+  field-partitioned, no LWW, §3). Linked rows whose event left the **pulled window** are flagged
+  `orphaned`, never deleted (orphan scan is window-scoped so past / far-future linked meetings are not
+  falsely orphaned). Ambiguous / unmatched / suppressed events ride a **transient in-memory
+  `needsLinking[]` report to the renderer — never persisted** (a persisted queue would store non-client
+  PII at rest, the very thing §4 hashed suppression avoids). "Sync now" button + orphaned affordance in
+  the meetings view. Audit enum-only. Verified on a real Google Calendar (auto-link, reconcile-no-dup,
+  ambiguous→candidates).
+- **P1 Slice 4b — "Needs Linking" triage panel: BUILT 2026-06-18 (O485).** A `panel.view` contributed by
+  Sessions (`needs-linking.html`, `when: workspace.activeId`) renders the **transient `needsLinking[]`** from
+  the last `sync` (its own "Refresh" button re-runs `sync`; nothing about unmatched participants is ever
+  persisted). Per unmatched participant, renderer-coordinated actions through the slice-3 resolver caps:
+  **confirm-candidate** → `record.patient.addAlias(clientId,{email})` then `sessions.meeting.linkProviderEvent(event,clientId)`;
+  **promote** → `record.patient.create({givenName,contactEmail})` then link; **exclude** →
+  `record.patient.suppressParticipant({email})`. New command `sessions.meeting.linkProviderEvent(event,clientId)`
+  validates the client via `record.patient.query.get` then reuses the shared `linkEvent` (audit detail
+  `{source:'provider', via:'triage'}`); `linkEvent` now reads `event.id ?? event.providerEventId` so auto + manual
+  paths share it, and `sync`'s `needsLinking[]` entries carry `meetingLink` for modality. Resolved cards are
+  removed by `providerEventId` (not index — concurrency-safe). All event/participant text rendered via
+  `textContent` (PHI-safe); audit enum-only. **Live-verified:** panel registers + iframe mounts + bridge up +
+  auto-sync renders the all-linked/empty state clean on a real calendar; card-render + the three mutating
+  actions code-reviewed (queue is closure-private + no in-window unmatched event to stage non-destructively).
+  Schedule classification colors (§6, ADR-507) + ADR-313 consent ramp + calendar writes remain later slices.

@@ -62,10 +62,11 @@ export function activate(ctx) {
 
   // ── linkEvent — shared upsert keyed on provider_event_id ─────────────────
 
-  async function linkEvent(event, clientId) {
+  async function linkEvent(event, clientId, auditDetail = { source: 'provider' }) {
+    const eventId = event.id ?? event.providerEventId;
     const rows = await storeQuery.call('run', [
       'meeting.getByProviderEventId',
-      { providerId: 'google-calendar', eventId: event.id },
+      { providerId: 'google-calendar', eventId },
     ]);
 
     const startsAt = isoToMs(event.start);
@@ -89,7 +90,7 @@ export function activate(ctx) {
           source_origin:     'provider',
           sync_state:        'linked',
           provider_id:       'google-calendar',
-          provider_event_id: event.id,
+          provider_event_id: eventId,
           calendar_id:       event.calendarId ?? null,
           created_at:        now,
           updated_at:        now,
@@ -98,7 +99,7 @@ export function activate(ctx) {
           event:      'sessions.meeting.linked',
           recordType: 'client_meeting',
           recordId:   id,
-          detail:     { source: 'provider' },
+          detail:     auditDetail,
         },
       ]);
       return { action: 'linked', id };
@@ -121,7 +122,7 @@ export function activate(ctx) {
         event:      'sessions.meeting.reconciled',
         recordType: 'client_meeting',
         recordId:   existing.id,
-        detail:     { source: 'provider' },
+        detail:     auditDetail,
       },
     ]);
     return { action: 'reconciled', id: existing.id };
@@ -456,6 +457,7 @@ export function activate(ctx) {
               start:           event.start,
               end:             event.end,
               title:           event.title,
+              meetingLink:     event.meetingLink ?? null,
               participants:    participantsWithOutcomes,
             });
           }
@@ -486,6 +488,31 @@ export function activate(ctx) {
         }
 
         return { linked, reconciled, orphaned, needsLinking };
+      }
+
+      case 'linkProviderEvent': {
+        const event    = args[0];
+        const clientId = args[1];
+
+        if (!event || typeof event !== 'object') {
+          throw new Error('sessions.meeting.linkProviderEvent: event must be an object');
+        }
+        const evId = event.providerEventId ?? event.id;
+        if (typeof evId !== 'string' || evId.length === 0) {
+          throw new Error('sessions.meeting.linkProviderEvent: event must have a non-empty providerEventId');
+        }
+        if (typeof clientId !== 'string' || clientId.length === 0) {
+          throw new Error('sessions.meeting.linkProviderEvent: clientId must be a non-empty string');
+        }
+
+        // Validate client exists.
+        const rec = await recordPatientQuery.call('get', [clientId]);
+        if (!rec) {
+          throw notFound('sessions.meeting.linkProviderEvent: client not found: ' + clientId);
+        }
+
+        const r = await linkEvent(event, clientId, { source: 'provider', via: 'triage' });
+        return r;
       }
 
       default:

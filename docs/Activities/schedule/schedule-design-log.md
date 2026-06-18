@@ -340,6 +340,75 @@ events to resolve yet).
 mint Client Meeting (Sessions orchestrates); field-partitioned reconcile, orphan-on-delete; lights up the
 inert provider/sync columns + classification/needs-linking. Then calendar writes (app-origin push).
 
+### SD-17 — Provider-origin auto-link sync (P1 slice 4a) → BUILT + live-verified (2026-06-18)
+
+Sessions becomes the orchestrator (SD-10 / §4). User chose option 2 (auto-link **+** triage), split into
+**4a = engine** (this) and **4b = triage panel**.
+
+- **Cross-bundle host→host orchestration is sanctioned + now used.** The Main loader
+  (`electron/main/fp-host/loader.ts` `registerRoutingHandlers`) registers *every* bundle's caps into the
+  one Main registry with a host-forwarding + lazy-activation handler; `invokeCapability` resolves any, and
+  the PHI gate passes for `trustClass:'first-party'` (all in-package bundles). So Sessions FP-Host consumes
+  `schedule.calendar.query` + `record.patient.query` — **declared in manifest `dependencies`** (validated
+  at activation). Reusable pattern for any cross-domain consume.
+- **`sessions.meeting.sync`:** pull `listEvents(now,+90d)` → per event, participants = attendees `!self` +
+  organizer (deduped by email) → `resolveParticipant` each → **exactly one distinct `match` ⇒ auto-link**;
+  else → transient `needsLinking[]`.
+- **`linkEvent(event,clientId)` (shared, 4b reuses):** upsert keyed on `provider_event_id` — insert =
+  `linked`; re-pull = `reconciled`, **time snapshot only** (`kind`/`status` local-authoritative =
+  field-partitioned, no LWW). Orphan scan **window-scoped** to the pulled `[from,to]` (else past /
+  far-future linked rows would be falsely orphaned — caught in review); absent events → `orphaned`, never
+  deleted.
+- **PHI:** `needsLinking[]` (titles + participant emails/names) is a **transient return value to the
+  renderer, never persisted** — a stored queue would put non-client PII at rest, exactly what §4's hashed
+  suppression avoids. Audit detail enum-only.
+- **Verified** on a real Google Calendar (raw CDP): single-match auto-link (`linked:2`), reconcile re-sync
+  no-dup (`reconciled:2`), ambiguous shared-email → `candidates` → `needsLinking`. Orphan code-reviewed,
+  not live-fired. No `cap.denied`/`kind_mismatch`/`locked`.
+
+**Next = slice 4b:** "Needs linking" triage panel (renders the transient report; confirm→`addAlias`,
+promote→`create`, exclude→`suppressParticipant`, + `linkProviderEvent`). Then Schedule §6 classification
+colors (Schedule-side), ADR-313 ramp (O483/P2), calendar writes.
+
+### SD-18 — "Needs Linking" triage panel (P1 slice 4b) → BUILT (2026-06-18)
+
+The triage half of option 2 (SD-17). A `panel.view` contributed by Sessions (`needs-linking.html`,
+`when: workspace.activeId`, priority 90).
+
+- **Self-contained, no cross-iframe state.** The panel holds NO shared state with `meetings.html`. It binds
+  `sessions.meeting` (command), `record.patient` (command), `record.patient.query` (for the candidate
+  name-map) via the view-bridge — cross-bundle renderer binds, no manifest command-dep needed (the bridge
+  isn't gated by the bundle's host dependency list). Its own "Refresh" button re-runs `sessions.meeting.sync`
+  and renders `report.needsLinking`; auto-runs once on first activate. **Re-run sync to refresh — nothing
+  persisted.**
+- **Actions (renderer-coordinated, through the slice-3 resolver caps):** candidate → `addAlias(clientId,{email})`
+  then `linkProviderEvent`; promote → `create({givenName:name, contactEmail:email})` then `linkProviderEvent`;
+  exclude → `suppressParticipant({email})`. Suppressed participants render greyed, no actions.
+- **`sessions.meeting.linkProviderEvent(event,clientId)`** (new): validates client via `record.patient.query.get`,
+  reuses the shared `linkEvent` with audit detail `{source:'provider', via:'triage'}`. `linkEvent` made
+  origin-tolerant (`event.id ?? event.providerEventId`) so auto + manual share it; `sync` entries now carry
+  `meetingLink` so manual link derives modality. Shell `icon-registry` gained `link` for the panel chrome.
+- **PHI:** event titles + unmatched-participant names/emails arrive only in the transient report and render via
+  `textContent` — never written to a table, never logged. `suppressParticipant` stores only the sha256 hash
+  (host-side). Audit enum-only. Resolved cards removed by `providerEventId` (not array index) → concurrency-safe
+  if two in-flight actions resolve before re-render.
+- **Verified:** panel registers, iframe mounts (`view://ru-soam-sessions/needs-linking.html`), bridge up,
+  auto-sync renders. Initially the all-linked/empty state; later live-verified **with 2 real unmatched events**
+  rendering correctly (raw CDP dump + screenshot).
+- **UI (reworked 2026-06-18 to match the approved prototype — was nested cards, looked heavy):** **flat,
+  one-row-per-event** — status dot (amber=candidate / grey=no-match) + compact `Wkday Day · time` (no AM/PM,
+  drop `:00`) + bold title + muted derived subline (`Name matches "<Client>" in roster` / `Multiple roster
+  matches` / `No roster match — likely personal`) + right-aligned actions. **Single candidate → one-click
+  `Confirm <FirstName>`** (filled-accent primary). **Multi / no-match → `Link to client`** opens an **inline
+  picker** (roster search list + "New client name" input → `create` + link). **`Not a client`** (ghost) →
+  `suppressParticipant`, rendered only when the rep participant has email/phone. One event collapses to a single
+  representative participant (`pickRep`: first `candidates`, else first `none`; all-suppressed/match → row
+  skipped). Filled primary follows the host accent token (theme-driven).
+
+**Next:** Schedule §6 classification colors (Schedule-side — reads Sessions via `meeting.getByProviderEventId`),
+ADR-313 ramp + PHI Safety Score (O483/P2), calendar **writes** (app-origin push), O490 cross-bundle erase cascade
+(now relevant — 4a/4b link real clients to provider events).
+
 ## Open queue (not yet concluded)
 
 - **SQ-2 — Concept model: Schedule entities vs Sessions entities (NEXT — stay at concept level, no fields yet).**
