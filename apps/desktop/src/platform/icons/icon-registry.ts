@@ -106,6 +106,7 @@ const REGISTRY: Record<SemanticIconId, CodiconGlyph> = {
   // ActivityBar manifest vocabulary (stable contract — O435 controls bundle icons)
   'users': 'organization',
   'calendar': 'calendar',
+  'clockface': 'clockface',
   'clipboard-list': 'checklist',
   'book-open': 'book',
   'check-square': 'checklist',

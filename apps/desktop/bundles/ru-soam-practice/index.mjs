@@ -13,7 +13,10 @@ import manifest from './manifest.json' with { type: 'json' };
 // is patient_id (FK child of patients.id). Derived from the manifest so the erase
 // cascade auto-covers tables added in future phases — no "remember to extend a
 // list" trap. `patients` is deleted last (FK order).
-const OWNED_ADJUNCT_TABLES = (manifest.ownedTables ?? []).filter((t) => t !== 'patients');
+// participant_suppression has no patient_id column (hashed non-client data, intentionally
+// survives a client erase — no PII to cascade; deleteWhere by patient_id would throw).
+const NON_PATIENT_KEYED = new Set(['patients', 'participant_suppression']);
+const OWNED_ADJUNCT_TABLES = (manifest.ownedTables ?? []).filter((t) => !NON_PATIENT_KEYED.has(t));
 
 // ── Lifecycle stage definitions (static domain data, no SQL) ─────────────────
 // Copied from electron/main/domain/lifecycle-stages.ts — same values, no import.
@@ -220,6 +223,31 @@ function mapSafetyPlan(row) {
   };
 }
 
+// ── Identity-resolution helpers (ADR-508 §4) ──────────────────────────────────
+
+function normalizeEmail(e) {
+  return String(e).trim().toLowerCase();
+}
+
+function normalizePhone(p) {
+  return String(p).replace(/\D/g, '');
+}
+
+async function sha256hex(s) {
+  const buf = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function mapAlias(row) {
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    kind: row.kind,
+    valueNorm: row.value_norm,
+    createdAt: row.created_at,
+  };
+}
+
 // ── Error helpers ─────────────────────────────────────────────────────────────
 
 function notFound(message) {
@@ -377,6 +405,67 @@ export function activate(ctx) {
           });
         }
         return out;
+      }
+
+      case 'resolveParticipant': {
+        const input = args[0] || {};
+        const email = input.email != null ? normalizeEmail(input.email) : null;
+        const phone = input.phone != null ? normalizePhone(input.phone) : null;
+        const name = input.name != null ? String(input.name).trim().toLowerCase() : null;
+
+        if (!email && !phone && !name) {
+          return { outcome: 'none' };
+        }
+
+        // Suppression check — hashed, no audit tag (identifiers are PHI).
+        for (const [kind, val] of [['email', email], ['phone', phone]]) {
+          if (val == null) continue;
+          const h = await sha256hex(kind + ':' + val);
+          const suppRows = await storeQuery.call('run', ['patient.suppressionCheck', { hash: h }]);
+          if (suppRows.length > 0) {
+            return { outcome: 'suppressed' };
+          }
+        }
+
+        // Strong-id match. Attach audit tag to the first executed lookup only.
+        const ids = new Set();
+        let firstLookupDone = false;
+
+        if (email) {
+          const auditTag = { event: 'record.patient.participant.resolved', recordType: 'patients' };
+          const emailRows = await storeQuery.call('run', ['patient.resolveByEmail', { email }, auditTag]);
+          firstLookupDone = true;
+          emailRows.forEach((r) => ids.add(r.id));
+        }
+        if (phone) {
+          const phoneArgs = firstLookupDone
+            ? ['patient.resolveByPhone', { phone }]
+            : ['patient.resolveByPhone', { phone }, { event: 'record.patient.participant.resolved', recordType: 'patients' }];
+          const phoneRows = await storeQuery.call('run', phoneArgs);
+          firstLookupDone = true;
+          phoneRows.forEach((r) => ids.add(r.id));
+        }
+
+        if (ids.size === 1) return { outcome: 'match', clientId: [...ids][0] };
+        if (ids.size > 1) return { outcome: 'candidates', candidates: [...ids] };
+
+        // Name fallback.
+        if (name) {
+          const nameArgs = firstLookupDone
+            ? ['patient.resolveByName', { name }]
+            : ['patient.resolveByName', { name }, { event: 'record.patient.participant.resolved', recordType: 'patients' }];
+          const nameRows = await storeQuery.call('run', nameArgs);
+          const cand = [...new Set(nameRows.map((r) => r.id))];
+          if (cand.length > 0) return { outcome: 'candidates', candidates: cand };
+        }
+
+        return { outcome: 'none' };
+      }
+
+      case 'getAliases': {
+        const clientId = args[0];
+        const rows = await storeQuery.call('run', ['patient.getAliases', { id: clientId }]);
+        return rows.map(mapAlias);
       }
 
       default:
@@ -1393,6 +1482,86 @@ export function activate(ctx) {
         await blobWrite.call('delete', [blobId]);
 
         return { removed: docId };
+      }
+
+      case 'addAlias': {
+        const clientId = args[0];
+        const input = args[1] || {};
+        if (typeof clientId !== 'string') {
+          throw new Error('record.patient.addAlias: clientId must be a string');
+        }
+        if (input.email == null && input.phone == null) {
+          throw new Error('record.patient.addAlias: email or phone required');
+        }
+
+        // Patient existence check — no audit tag.
+        const existRowsAlias = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        if (!existRowsAlias.length) {
+          throw notFound('record.patient.addAlias: patient not found: ' + clientId);
+        }
+
+        for (const [kind, val] of [
+          ['email', input.email != null ? normalizeEmail(input.email) : null],
+          ['phone', input.phone != null ? normalizePhone(input.phone) : null],
+        ]) {
+          if (val == null) continue;
+          // Dedup check — no audit tag.
+          const dedupRows = await storeQuery.call('run', ['patient.aliasExists', { id: clientId, kind, value: val }]);
+          if (dedupRows.length > 0) continue;
+          await storeWrite.call('insert', [
+            'patient_identity_alias',
+            {
+              id: globalThis.crypto.randomUUID(),
+              patient_id: clientId,
+              kind,
+              value_norm: val,
+              created_at: Date.now(),
+            },
+            {
+              event: 'record.patient.alias.added',
+              recordType: 'patient_identity_alias',
+              recordId: clientId,
+              detail: { kind },
+            },
+          ]);
+        }
+
+        const aliasRows = await storeQuery.call('run', ['patient.getAliases', { id: clientId }]);
+        return aliasRows.map(mapAlias);
+      }
+
+      case 'suppressParticipant': {
+        const input = args[0] || {};
+        if (input.email == null && input.phone == null) {
+          throw new Error('record.patient.suppressParticipant: email or phone required');
+        }
+
+        for (const [kind, val] of [
+          ['email', input.email != null ? normalizeEmail(input.email) : null],
+          ['phone', input.phone != null ? normalizePhone(input.phone) : null],
+        ]) {
+          if (val == null) continue;
+          const h = await sha256hex(kind + ':' + val);
+          // Dedup check — no audit tag.
+          const dedupRows = await storeQuery.call('run', ['patient.suppressionCheck', { hash: h }]);
+          if (dedupRows.length > 0) continue;
+          await storeWrite.call('insert', [
+            'participant_suppression',
+            {
+              id_hash: h,
+              kind,
+              created_at: Date.now(),
+            },
+            {
+              event: 'record.patient.participant.suppressed',
+              recordType: 'participant_suppression',
+              recordId: h,
+              detail: { kind },
+            },
+          ]);
+        }
+
+        return { suppressed: true };
       }
 
       default:

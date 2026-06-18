@@ -17,7 +17,7 @@
     { "id": "safety-plan", "path": "safety-plan.html" },
     { "id": "intake", "path": "intake.html" }
   ],
-  "ownedTables": ["patients", "patient_profile", "patient_lifecycle", "patient_circle_member", "patient_consent_state", "patient_risk_event", "patient_safety_plan", "patient_document"],
+  "ownedTables": ["patients", "patient_profile", "patient_lifecycle", "patient_circle_member", "patient_consent_state", "patient_risk_event", "patient_safety_plan", "patient_document", "patient_identity_alias", "participant_suppression"],
   "migrations": [
     {
       "version": 1,
@@ -58,6 +58,16 @@
       "version": 8,
       "description": "Practice P3: patient_document table — protected blob-backed (O454/ADR-505 P3)",
       "sql": "CREATE TABLE IF NOT EXISTS patient_document (\n  id            TEXT PRIMARY KEY,\n  patient_id    TEXT NOT NULL REFERENCES patients(id),\n  kind          TEXT NOT NULL DEFAULT 'document',\n  title         TEXT NOT NULL,\n  storage_ref   TEXT NOT NULL,\n  mime_type     TEXT,\n  sha256        TEXT,\n  linked_kind   TEXT,\n  linked_id     TEXT,\n  created_at    INTEGER NOT NULL\n);\nCREATE INDEX IF NOT EXISTS idx_document_patient ON patient_document(patient_id, created_at DESC);"
+    },
+    {
+      "version": 9,
+      "description": "Practice: patient_identity_alias table (ADR-508 §4)",
+      "sql": "CREATE TABLE IF NOT EXISTS patient_identity_alias (\n  id           TEXT PRIMARY KEY,\n  patient_id   TEXT NOT NULL REFERENCES patients(id),\n  kind         TEXT NOT NULL,\n  value_norm   TEXT NOT NULL,\n  created_at   INTEGER NOT NULL\n);\nCREATE INDEX IF NOT EXISTS idx_alias_patient ON patient_identity_alias(patient_id);\nCREATE INDEX IF NOT EXISTS idx_alias_lookup  ON patient_identity_alias(kind, value_norm);"
+    },
+    {
+      "version": 10,
+      "description": "Practice: participant_suppression hashed set (ADR-508 §4)",
+      "sql": "CREATE TABLE IF NOT EXISTS participant_suppression (\n  id_hash      TEXT PRIMARY KEY,\n  kind         TEXT NOT NULL,\n  created_at   INTEGER NOT NULL\n);"
     }
   ],
   "queryTemplates": [
@@ -108,6 +118,30 @@
     {
       "id": "patient.attentionScan",
       "sql": "SELECT\n  p.id AS patient_id,\n  p.given_name AS given_name,\n  p.family_name AS family_name,\n  COALESCE(pl.stage, 'active') AS stage,\n  pl.stage_updated_at AS stage_updated_at,\n  p.status AS status,\n  (p.given_name IS NOT NULL AND length(trim(p.given_name)) > 0\n    AND p.dob IS NOT NULL AND length(trim(p.dob)) > 0\n    AND (p.contact_phone IS NOT NULL OR p.contact_email IS NOT NULL)) AS has_demographics,\n  (pp.preferred_language IS NOT NULL AND length(trim(pp.preferred_language)) > 0) AS has_language,\n  (pp.diagnosis IS NOT NULL AND length(trim(pp.diagnosis)) > 0) AS has_diagnosis,\n  EXISTS(SELECT 1 FROM patient_circle_member cm WHERE cm.patient_id = p.id) AS has_circle,\n  EXISTS(SELECT 1 FROM patient_circle_member cm WHERE cm.patient_id = p.id AND cm.is_primary_nr = 1) AS has_nr,\n  (cs.informed_consent_status IS NOT NULL AND length(trim(cs.informed_consent_status)) > 0) AS has_informed_consent,\n  (cs.tele_consent_mode IS NOT NULL AND length(trim(cs.tele_consent_mode)) > 0) AS has_tele_consent,\n  (cs.capacity_status IS NOT NULL AND cs.capacity_status NOT IN ('', 'unassessed')) AS has_capacity,\n  (cs.advance_directive_status IS NOT NULL AND length(trim(cs.advance_directive_status)) > 0) AS has_ad,\n  (EXISTS(SELECT 1 FROM patient_risk_event re WHERE re.patient_id = p.id)\n    OR (sp.status IS NOT NULL AND sp.status <> 'none')) AS has_risk_screen,\n  EXISTS(SELECT 1 FROM patient_document d WHERE d.patient_id = p.id) AS has_documents\nFROM patients p\nLEFT JOIN patient_profile pp ON pp.patient_id = p.id\nLEFT JOIN patient_lifecycle pl ON pl.patient_id = p.id\nLEFT JOIN patient_consent_state cs ON cs.patient_id = p.id\nLEFT JOIN patient_safety_plan sp ON sp.patient_id = p.id\nORDER BY p.family_name ASC, p.given_name ASC"
+    },
+    {
+      "id": "patient.resolveByEmail",
+      "sql": "SELECT id FROM patients WHERE contact_email IS NOT NULL AND lower(trim(contact_email)) = @email\nUNION\nSELECT patient_id AS id FROM patient_identity_alias WHERE kind='email' AND value_norm = @email"
+    },
+    {
+      "id": "patient.resolveByPhone",
+      "sql": "SELECT id FROM patients WHERE contact_phone IS NOT NULL AND replace(replace(replace(replace(replace(contact_phone,' ',''),'-',''),'(',''),')',''),'+','') = @phone\nUNION\nSELECT patient_id AS id FROM patient_identity_alias WHERE kind='phone' AND value_norm = @phone"
+    },
+    {
+      "id": "patient.resolveByName",
+      "sql": "SELECT id FROM patients WHERE lower(trim(given_name || ' ' || COALESCE(family_name,''))) = @name OR lower(trim(COALESCE(family_name,'') || ' ' || given_name)) = @name OR lower(trim(given_name)) = @name"
+    },
+    {
+      "id": "patient.suppressionCheck",
+      "sql": "SELECT id_hash FROM participant_suppression WHERE id_hash = @hash"
+    },
+    {
+      "id": "patient.aliasExists",
+      "sql": "SELECT id FROM patient_identity_alias WHERE patient_id = @id AND kind = @kind AND value_norm = @value"
+    },
+    {
+      "id": "patient.getAliases",
+      "sql": "SELECT id, patient_id, kind, value_norm, created_at FROM patient_identity_alias WHERE patient_id = @id"
     }
   ],
   "dependencies": {

@@ -41,7 +41,7 @@
       {
         "id": "ru-soam-sessions.activity",
         "label": "Sessions",
-        "icon": "calendar",
+        "icon": "clockface",
         "viewContainer": "ru-soam-sessions.container",
         "group": "top",
         "when": "workspace.activeId"
