@@ -107,6 +107,7 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
         organizer = {};
         if (item.organizer.displayName !== undefined) organizer.name  = item.organizer.displayName;
         if (item.organizer.email       !== undefined) organizer.email = item.organizer.email;
+        if (item.organizer.self        !== undefined) organizer.self  = item.organizer.self;
       }
 
       // Attendees — omit empty arrays.

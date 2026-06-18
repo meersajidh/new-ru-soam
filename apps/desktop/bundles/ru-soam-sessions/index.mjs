@@ -168,6 +168,25 @@ export function activate(ctx) {
         return rows.map(mapMeeting);
       }
 
+      case 'listLinkedProvider': {
+        const arg = args[0] || {};
+        const { providerId, from, to } = arg;
+        if (typeof providerId !== 'string' || providerId.length === 0) {
+          throw new Error('sessions.meeting.query.listLinkedProvider: providerId must be a non-empty string');
+        }
+        if (typeof from !== 'number') {
+          throw new Error('sessions.meeting.query.listLinkedProvider: from must be a number');
+        }
+        if (typeof to !== 'number') {
+          throw new Error('sessions.meeting.query.listLinkedProvider: to must be a number');
+        }
+        const rows = await storeQuery.call('run', [
+          'meeting.listLinkedProvider',
+          { providerId, from, to },
+        ]);
+        return rows;
+      }
+
       default:
         throw new Error('sessions.meeting.query: unknown method ' + method);
     }
