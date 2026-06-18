@@ -125,7 +125,17 @@ Main-broker vs FP-Host-logic residency" to this ADR. Resolved into three pieces:
 This makes the provider bundle a true ADR-506 vertical slice: domain logic in FP-Host, key/credential/egress
 **mechanism** consumed from base.
 
-#### P0 build deviation (to correct in P1 / O485)
+#### P0 build deviation (CORRECTED in P1 slice 1 / O485, 2026-06-18)
+
+**Resolved.** The four-part refactor below landed and was verified end-to-end (compile/lint
+green; live Google grant → events render through the new base caps). (a) the Google adapter
+logic moved into the `ru-soam-schedule` FP-Host bundle (`google-calendar-adapter.mjs`);
+(b) the provider-agnostic `credential.broker@1.0` + `net.brokeredFetch@1.0` base caps were
+added (`electron/main/capability/`); (c) the view cap was split into `schedule.calendar.query`
+(`kind: query`) + `schedule.calendar` (`kind: command`); (d) `electron/main/calendar/` was
+deleted, so the stale comment is gone and **Main is pure-base again**. The remaining O485 work
+(provider-origin sync, identity resolution, calendar writes) is unaffected by this slice. Original
+deviation note retained below for history.
 
 The shipped P0 (`apps/desktop/bundles/ru-soam-schedule` + `electron/main/calendar/`) predates this decision:
 the Google adapter (OAuth, token store, `listEvents` fetch, event mapping) and the `calendar.provider@1.0`

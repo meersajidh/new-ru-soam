@@ -280,11 +280,10 @@ Raised by the Schedule review (ADR-507 §10). Two clarifications, no change to t
   vertical slice: its adapter logic runs in FP-Host and *consumes* these base caps; the
   credential/KEK/egress never enter the bundle.
 
-- **A1.2 — the calendar P0 build is a known, temporary exception to "pure-base Main REACHED."**
-  Schedule P0 (`electron/main/calendar/`) runs a Google adapter + the `calendar.provider@1.0`
-  PHI cap **as Main code** — exactly the ADR-504 anti-pattern this ADR retired. It is contained
-  (cap is `phi:true` + lock-gated + first-party-only) and **scheduled for correction in
-  Schedule P1 (O485)** per ADR-507 §10's "P0 build deviation": adapter logic → FP-Host bundle,
-  connectivity → the A1.1 base caps. Until then the "pure-base Main REACHED" claim in *Phasing /
-  current state* holds **for the patient record only** — calendar is the lone outstanding
-  domain-in-Main cap.
+- **A1.2 — the calendar P0 Main-residency exception is CLOSED (2026-06-18).**
+  Schedule P0 (`electron/main/calendar/`) ran a Google adapter + the `calendar.provider@1.0`
+  PHI cap **as Main code** — exactly the ADR-504 anti-pattern this ADR retired. **Corrected in
+  Schedule P1 slice 1 (O485)** per ADR-507 §10: adapter logic moved into the `ru-soam-schedule`
+  FP-Host bundle, connectivity replaced by the A1.1 base caps (`credential.broker@1.0` +
+  `net.brokeredFetch@1.0`), and `electron/main/calendar/` deleted. **"pure-base Main REACHED" now
+  holds without exception** — no domain cap remains in Main.

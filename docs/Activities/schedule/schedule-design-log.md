@@ -270,6 +270,17 @@ retired. Resolved (LOCKED):
 - **P0 deviation tracked to O485 (P1):** move adapter → FP-Host, add the base broker + brokered-fetch caps,
   split `schedule.calendar` query/command (CQRS), fix the stale "not renderer-visible" comment.
 
+**BUILT + verified — O485/P1 slice 1, 2026-06-18 (committed).** The full residency split landed: NEW
+`credential.broker@1.0` + `net.brokeredFetch@1.0` provider-agnostic Main base caps (`phi:true`); Google
+adapter moved into `bundles/ru-soam-schedule/google-calendar-adapter.mjs`; `electron/main/calendar/`
+deleted (**Main pure-base again**); view cap CQRS-split (`schedule.calendar.query` + `schedule.calendar`);
+manifest `apiHosts` allowlist (first use — base mechanism per ADR-506 Am1.1). Chose "Y" as designed —
+egress brokered by Main. Found-in-review: broker now drops a `tokenUrl`-less/expired stored token
+gracefully (P0-era grants need one re-connect). Live-verified end-to-end via CDP (grant → brokered-fetch →
+GCAL → events render). **Arg convention confirmed:** host→Main `bindCapability().call(method, argsArray)`
+passes the array straight through (NOT spread); renderer→cap `bindQuery().call(method, a, b)` IS spread.
+Remaining O485 (provider-origin sync, identity resolution, calendar writes) = later P1 slices.
+
 ## Open queue (not yet concluded)
 
 - **SQ-2 — Concept model: Schedule entities vs Sessions entities (NEXT — stay at concept level, no fields yet).**
