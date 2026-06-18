@@ -41,7 +41,8 @@ import { installLockChannel, createAutoLockHandleRef, rebindAutoLock } from './i
 import { installAppChannel } from './ipc/app-channel';
 import { registerUpdateCapability } from './ipc/update-channel';
 import { registerCommandsCapability } from './capability/commands';
-import { registerCalendarProviderCapability } from './calendar/calendar-cap';
+import { registerCredentialBrokerCapability } from './capability/credential-broker';
+import { registerBrokeredFetchCapability, registerApiHostsFromBundles } from './capability/brokered-fetch';
 import { initUpdater } from './updater/index';
 import { registerQuiesceHook } from './updater/db-quiesce';
 import { SOAM_EVENT_CHANNEL } from '../shared/ipc-protocol';
@@ -154,6 +155,10 @@ app.whenReady().then(() => {
   // Discover bundles ONCE early — the same list is shared across migration registration,
   // query-template registration, and activation (rung F / O445 — no double-discovery).
   const discovered = discoverBundles(resolveBundlesDirectory());
+
+  // Wire apiHosts allowlist from discovered manifests — must run before capability
+  // registrations so that net.brokeredFetch can resolve caller allowlists at boot.
+  registerApiHostsFromBundles(discovered);
 
   // Bundle migration sets MUST be registered before any store.open / runMigrations.
   // Migration sets have no capability/lock dependency — they are pure DDL descriptors
@@ -327,7 +332,8 @@ app.whenReady().then(() => {
 
   registerUpdateCapability();
   registerCommandsCapability();
-  registerCalendarProviderCapability();
+  registerCredentialBrokerCapability();
+  registerBrokeredFetchCapability();
 
   // Bundle query templates — rung F / O445.
   // Must come after registerStoreQueryCapability() (already called above)

@@ -172,6 +172,13 @@ export interface BundleManifest {
    * Base never inspects *what* a domain keeps there — the domain opts in here.
    */
   readonly residency?: 'operational' | 'protected';
+  /**
+   * Outbound API hosts this bundle is permitted to reach via `net.brokeredFetch@1.0`
+   * (ADR-203, ADR-506 Am1.1). Each entry is a bare hostname, e.g. "www.googleapis.com".
+   * Requests to unlisted hosts are rejected with `cap.denied`.
+   * OAuth token/revoke endpoints are Main-internal (credential-broker) — not listed here.
+   */
+  readonly apiHosts?: ReadonlyArray<string>;
 }
 
 export interface DiscoveredBundle {
@@ -806,6 +813,28 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
     residency = m.residency as 'operational' | 'protected';
   }
 
+  // ── apiHosts (optional) ───────────────────────────────────────────────────
+  let apiHosts: string[] | undefined;
+  if (m.apiHosts !== undefined) {
+    if (!Array.isArray(m.apiHosts)) {
+      throw new ManifestError(manifestPath, '`apiHosts` must be an array if present');
+    }
+    apiHosts = [];
+    for (const h of m.apiHosts) {
+      if (typeof h !== 'string' || h.trim().length === 0) {
+        throw new ManifestError(manifestPath, '`apiHosts` entries must be non-empty strings');
+      }
+      // Validate bare hostname — no scheme, no path.
+      if (h.includes('/') || h.includes(':')) {
+        throw new ManifestError(
+          manifestPath,
+          `\`apiHosts\` entry "${h}" must be a bare hostname (no scheme, no path, no port)`,
+        );
+      }
+      apiHosts.push(h);
+    }
+  }
+
   return {
     id: m.id,
     version: m.version,
@@ -826,6 +855,7 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
     queryTemplates: queryTemplates,
     dependencies: dependencies,
     residency: residency,
+    apiHosts: apiHosts,
   };
 }
 

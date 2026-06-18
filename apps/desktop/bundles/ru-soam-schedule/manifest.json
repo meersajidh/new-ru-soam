@@ -4,15 +4,17 @@
   "entry": "index.mjs",
   "activationEvents": ["lazy"],
   "capabilities": [
-    { "name": "schedule.calendar", "version": "1.0", "kind": "query" }
+    { "name": "schedule.calendar.query", "version": "1.0", "kind": "query", "phi": true },
+    { "name": "schedule.calendar",       "version": "1.0", "kind": "command", "phi": true }
   ],
   "views": [
     { "id": "nav", "path": "nav.html" },
     { "id": "schedule", "path": "schedule.html" }
   ],
   "dependencies": {
-    "capabilities": ["calendar.provider@1.0"]
+    "capabilities": ["credential.broker@1.0", "net.brokeredFetch@1.0"]
   },
+  "apiHosts": ["www.googleapis.com"],
   "contributes": {
     "activityBar.items": [
       {

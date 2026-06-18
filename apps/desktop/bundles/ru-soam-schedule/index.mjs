@@ -1,51 +1,58 @@
 // ru-soam-schedule bundle entry point.
 //
-// P0: storeless UI over Google Calendar (ADR-507 §1).
+// P1 (F1 residency refactor): domain adapter now lives here in the FP-Host bundle.
+// Consumes two provider-agnostic Main base caps (ADR-506 Am1.1):
+//   - credential.broker@1.0  (OAuth2 Flow-A lifecycle)
+//   - net.brokeredFetch@1.0  (Main-brokered outbound calls, apiHosts-gated)
 //
-// This bundle exposes `schedule.calendar@1.0` (query cap). The FP-Host
-// side holds NO credentials and makes NO outbound calls — it delegates
-// every provider operation to the Main-resident `calendar.provider@1.0`
-// capability via ctx.bindCapability (O449 rung-0 host→Main consume channel,
-// ADR-203 brokered networking, ADR-304/305 Flow-A credential).
+// Exposes two CQRS-split caps (mirrors practice module pattern):
+//   - schedule.calendar.query@1.0  kind:query   → getStatus, listEvents
+//   - schedule.calendar@1.0        kind:command  → connect, disconnect
 //
-// schedule.calendar methods (relayed to calendar.provider):
-//   getStatus()                  → { connected: boolean; providerName: string }
-//   connect()                    → { ok: boolean; error?: string }
-//   disconnect()                 → void
-//   listEvents(from: string, to: string) → CalendarEvent[]
-//
-// CalendarEvent shape (P0 minimal, storeless):
-//   { id, title, start, end, allDay, calendarId, calendarName }
+// The view uses:
+//   soamView.bindQuery('schedule.calendar.query', '1.0')   for getStatus / listEvents
+//   soamView.bindCommand('schedule.calendar', '1.0')        for connect / disconnect
+
+import { createGoogleCalendarAdapter } from './google-calendar-adapter.mjs';
 
 export function activate(ctx) {
-  // Bind to the Main-resident calendar provider capability (O449 host.consume.invoke).
-  // The credential stays in Main; this bundle is a transparent relay.
-  const providerCap = ctx.bindCapability('calendar.provider', '1.0');
+  // Bind Main base caps — no credentials or egress in the bundle.
+  const broker   = ctx.bindCapability('credential.broker', '1.0');
+  const netFetch = ctx.bindCapability('net.brokeredFetch', '1.0');
 
-  ctx.registerCapability('schedule.calendar', '1.0', async (method, args) => {
+  // Instantiate the Google Calendar adapter with the bound caps.
+  const adapter = createGoogleCalendarAdapter(broker, netFetch);
+
+  // ── Query cap (read-only: getStatus, listEvents) ──────────────────────────
+  ctx.registerCapability('schedule.calendar.query', '1.0', async (method, args) => {
     switch (method) {
       case 'getStatus': {
-        return providerCap.call('getStatus', []);
-      }
-
-      case 'connect': {
-        return providerCap.call('connect', []);
-      }
-
-      case 'disconnect': {
-        return providerCap.call('disconnect', []);
+        return adapter.getStatus();
       }
 
       case 'listEvents': {
         const from = args[0];
-        const to = args[1];
-        if (typeof from !== 'string' || typeof to !== 'string') {
-          throw Object.assign(
-            new Error('schedule.calendar.listEvents: from and to must be ISO date strings'),
-            { code: 'cap.handler_threw' },
-          );
-        }
-        return providerCap.call('listEvents', [from, to]);
+        const to   = args[1];
+        return adapter.listEvents(from, to);
+      }
+
+      default:
+        throw Object.assign(
+          new Error(`schedule.calendar.query: unknown method: ${method}`),
+          { code: 'cap.method_not_found' },
+        );
+    }
+  });
+
+  // ── Command cap (mutating: connect, disconnect) ───────────────────────────
+  ctx.registerCapability('schedule.calendar', '1.0', async (method, args) => {
+    switch (method) {
+      case 'connect': {
+        return adapter.connect();
+      }
+
+      case 'disconnect': {
+        return adapter.disconnect();
       }
 
       default:

@@ -1415,7 +1415,8 @@
       var offset       = 0;       // week/day/month offset from today
       var view         = 'week';  // 'agenda' | 'day' | 'week' | 'month'
       var selectedId   = null;
-      var calCap       = null;
+      var queryCap     = null;  // schedule.calendar.query@1.0 (bindQuery)
+      var cmdCap       = null;  // schedule.calendar@1.0       (bindCommand)
       var _soamView    = null;
 
       /* ── DOM refs ─────────────────────────────────────────────────── */
@@ -2293,14 +2294,14 @@
 
       /* ── Load events ──────────────────────────────────────────────── */
       function loadEvents() {
-        if (!calCap || !connected) return;
+        if (!queryCap || !connected) return;
         loadError = null;
         showLoading();
 
         var range = rangeForView();
         elRangeLabel.textContent = (view === 'agenda' && offset === 0) ? 'Upcoming · this week' : range.label;
 
-        calCap.call('listEvents', range.from.toISOString(), range.to.toISOString())
+        queryCap.call('listEvents', range.from.toISOString(), range.to.toISOString())
           .then(function (evs) {
             events = evs || [];
             renderCalArea();
@@ -2318,11 +2319,11 @@
 
       /* ── Connect / disconnect ─────────────────────────────────────── */
       function doConnect() {
-        if (!calCap || connecting) return;
+        if (!cmdCap || connecting) return;
         connecting = true;
         renderCalArea();
 
-        calCap.call('connect', [])
+        cmdCap.call('connect', [])
           .then(function (result) {
             connecting = false;
             if (result && result.ok) {
@@ -2341,8 +2342,8 @@
       }
 
       function doDisconnect() {
-        if (!calCap) return;
-        calCap.call('disconnect', [])
+        if (!cmdCap) return;
+        cmdCap.call('disconnect', [])
           .then(function () { connected = false; events = []; renderCalArea(); })
           .catch(function () { connected = false; events = []; renderCalArea(); });
       }
@@ -2401,12 +2402,18 @@
         updateRangeLabel();
         renderCalArea();
 
-        // Bind capability.
-        soamView.bindQuery('schedule.calendar', '1.0').then(function (cap) {
-          calCap = cap;
+        // Bind CQRS-split caps:
+        //   schedule.calendar.query@1.0  (kind:query)   → getStatus, listEvents
+        //   schedule.calendar@1.0        (kind:command)  → connect, disconnect
+        Promise.all([
+          soamView.bindQuery('schedule.calendar.query', '1.0'),
+          soamView.bindCommand('schedule.calendar', '1.0'),
+        ]).then(function (caps) {
+          queryCap = caps[0];
+          cmdCap   = caps[1];
 
           soamView.events.onActivate(function () {
-            cap.call('getStatus', [])
+            queryCap.call('getStatus', [])
               .then(function (status) {
                 var wasConnected = connected;
                 connected = !!(status && status.connected);
