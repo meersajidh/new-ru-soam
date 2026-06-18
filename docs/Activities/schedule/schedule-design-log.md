@@ -308,6 +308,38 @@ mirroring `record.patient`. **Zero Main TS** — a manifest with `residency:"pro
 suppression, ADR-508 §4) → provider-origin discovery/sync (pull→resolve→mint, orphan-on-delete, §3) →
 calendar writes. These light up the inert provider/sync columns + the classification stubs.
 
+### SD-16 — Identity resolver + alias + hashed suppression (P1 slice 3) → BUILT + live-verified (2026-06-18)
+
+The owned half of SD-10: identity authority added to `record.patient` (Practice). **Zero Main TS** — two
+files in `ru-soam-practice` (manifest + index.mjs). Sessions orchestration is **slice 4** (no provider
+events to resolve yet).
+
+- **`record.patient.query`:** `resolveParticipant({email?,phone?,name?})` →
+  `{outcome:'match'|'candidates'|'none'|'suppressed'}` (+ `clientId`/`candidates`). Order: suppression
+  check → strong-id exact (email/phone, base contact ∪ alias) → name fallback. An explicit `outcome`
+  discriminant was added atop ADR-508's `{match}|{candidates}|{none}` shape (clearer for the slice-4
+  orchestrator). `+ getAliases(clientId)`.
+- **`record.patient` command:** `addAlias(clientId,{email?,phone?})` (confirm-candidate enrichment →
+  deterministic next time) + `suppressParticipant({email?,phone?})` (exclude).
+- **Two new owned tables:** `patient_identity_alias` (PHI, patient-keyed → erase-cascaded) +
+  `participant_suppression` (**sha256-hashed `kind:value` only, NO patient_id, NO plaintext** →
+  intentionally survives a client erase; the erase loop's `OWNED_ADJUNCT_TABLES` filter now excludes it,
+  since a `deleteWhere({patient_id})` would throw on the missing column).
+- **Normalization:** email lower+trim; phone digit-strip (`\D`→''), with a nested-`replace()` digit-strip
+  in the base-contact phone SQL so formatted stored numbers match. Hashing = WebCrypto
+  `subtle.digest('SHA-256')` (no `node:` import — matches the file's `globalThis.crypto`/`Buffer` idiom).
+- **PHI:** alias value (PHI) lives only in the protected store; audit detail enum-only (`{kind}`);
+  resolver returns clientIds only — no PHI crosses out. **ADR-313 PHI-read opt-in NOT enforced here** —
+  the gate is upstream at the provider read (slice 4). Unsalted hash = MVP-acceptable (KEK-encrypted
+  store); keyed/salted = later hardening OI.
+- **Verified** via CDP (synthetic patient, erased after): match (email/base-phone/alias-email/alias-phone),
+  none, candidates (name), addAlias→re-match, suppress→suppressed, erase cascade clean (alias dropped,
+  suppression survived). No `cap.denied`/`kind_mismatch`/`locked`.
+
+**Next = slice 4:** provider-origin discovery/sync — pull Schedule events → call `resolveParticipant` →
+mint Client Meeting (Sessions orchestrates); field-partitioned reconcile, orphan-on-delete; lights up the
+inert provider/sync columns + classification/needs-linking. Then calendar writes (app-origin push).
+
 ## Open queue (not yet concluded)
 
 - **SQ-2 — Concept model: Schedule entities vs Sessions entities (NEXT — stay at concept level, no fields yet).**

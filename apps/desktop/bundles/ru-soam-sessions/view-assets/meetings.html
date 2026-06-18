@@ -111,6 +111,55 @@
         color: var(--color-fg-muted);
         user-select: none;
         line-height: 1;
+        flex: 1 1 auto;
+      }
+
+      /* ── Sync button ─────────────────────────────────── */
+      #sync-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        background: transparent;
+        color: var(--color-fg-secondary);
+        font-family: var(--font-sans);
+        font-size: 10.5px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background var(--transition), color var(--transition);
+        flex-shrink: 0;
+        user-select: none;
+        outline: none;
+      }
+      #sync-btn:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
+        color: var(--color-fg-primary);
+      }
+      #sync-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      /* ── Sync summary line ───────────────────────────── */
+      #sync-summary {
+        font-size: 10.5px;
+        padding: 4px 12px;
+        color: var(--color-fg-muted);
+        flex-shrink: 0;
+        display: none;
+        border-bottom: 1px solid var(--color-border);
+        line-height: 1.4;
+      }
+      #sync-summary.visible { display: block; }
+
+      /* ── Orphaned affordance ─────────────────────────── */
+      .meeting-orphaned {
+        font-size: 10px;
+        color: var(--color-fg-muted);
+        font-style: italic;
+        margin-top: 1px;
       }
 
       /* ── Status message ──────────────────────────────── */
@@ -342,7 +391,14 @@
       <!-- Header -->
       <div id="panel-header">
         <span id="panel-title">Upcoming Meetings</span>
+        <button id="sync-btn" type="button" title="Sync with calendar provider">
+          <span data-codicon="sync" data-size="11"></span>
+          Sync
+        </button>
       </div>
+
+      <!-- Sync summary -->
+      <div id="sync-summary"></div>
 
       <!-- Status / error banner -->
       <div id="status-msg" role="alert"></div>
@@ -376,10 +432,12 @@
         'use strict';
 
         /* ── State ───────────────────────────────────────── */
-        var _meetingProxy = null;
-        var _patientProxy = null;
-        var _meetings     = [];
-        var _clientMap    = {};   // id → displayName
+        var _meetingProxy  = null;
+        var _patientProxy  = null;
+        var _commandProxy  = null;
+        var _meetings      = [];
+        var _clientMap     = {};   // id → displayName
+        var _syncInFlight  = false;
 
         /* ── Element refs ────────────────────────────────── */
         var elBridgeWait      = document.getElementById('bridge-wait');
@@ -388,6 +446,8 @@
         var elMeetingsContent = document.getElementById('meetings-content');
         var elMeetingsEmpty   = document.getElementById('meetings-empty');
         var elMeetingsLocked  = document.getElementById('meetings-locked');
+        var elSyncBtn         = document.getElementById('sync-btn');
+        var elSyncSummary     = document.getElementById('sync-summary');
 
         /* ── Helpers ─────────────────────────────────────── */
         function isLockedError(err) {
@@ -401,6 +461,51 @@
         function clearStatus() {
           elStatusMsg.classList.remove('visible');
           elStatusMsg.textContent = '';
+        }
+
+        /* ── Sync ────────────────────────────────────────── */
+        function runSync(soamView) {
+          if (_syncInFlight) return;
+          _syncInFlight = true;
+          elSyncBtn.disabled = true;
+          elSyncSummary.classList.remove('visible');
+          clearStatus();
+
+          var bindP = _commandProxy
+            ? Promise.resolve(_commandProxy)
+            : soamView.bindCommand('sessions.meeting', '1.0').then(function (p) {
+                _commandProxy = p;
+                return p;
+              });
+
+          bindP
+            .then(function (proxy) {
+              return proxy.call('sync');
+            })
+            .then(function (report) {
+              var parts = [
+                report.linked + ' linked',
+                report.reconciled + ' reconciled',
+                report.orphaned + ' orphaned',
+              ];
+              elSyncSummary.textContent = parts.join(' · ');
+              elSyncSummary.classList.add('visible');
+              loadMeetings();
+            })
+            .catch(function (err) {
+              if (isLockedError(err)) {
+                elMeetingsContent.classList.remove('visible');
+                elMeetingsContent.innerHTML = '';
+                elMeetingsEmpty.classList.remove('visible');
+                elMeetingsLocked.classList.add('visible');
+              } else {
+                showStatus('Sync failed: ' + (err && err.message));
+              }
+            })
+            .finally(function () {
+              _syncInFlight = false;
+              elSyncBtn.disabled = false;
+            });
         }
 
         /* ── Date/time formatting ────────────────────────── */
@@ -530,6 +635,14 @@
 
           mainEl.appendChild(metaEl);
 
+          // Orphaned affordance — event removed from provider feed.
+          if (m.syncState === 'orphaned') {
+            var orphanEl = document.createElement('div');
+            orphanEl.className = 'meeting-orphaned';
+            orphanEl.textContent = 'event removed';
+            mainEl.appendChild(orphanEl);
+          }
+
           li.appendChild(timeCol);
           li.appendChild(mainEl);
 
@@ -589,6 +702,10 @@
         window.__viewBoot.awaitBridge().then(function (soamView) {
           elBridgeWait.style.display = 'none';
           elRoot.style.display = '';
+
+          elSyncBtn.addEventListener('click', function () {
+            runSync(soamView);
+          });
 
           soamView.events.onActivate(function () {
             if (_meetingProxy) {

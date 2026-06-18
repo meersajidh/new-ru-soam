@@ -40,6 +40,14 @@ function notFound(message) {
   return Object.assign(new Error(message), { code: 'cap.not_found' });
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function isoToMs(iso) {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime();
+  return Number.isNaN(ms) ? null : ms;
+}
+
 // ── Capability handler ────────────────────────────────────────────────────────
 
 export function activate(ctx) {
@@ -47,6 +55,77 @@ export function activate(ctx) {
   const storeQuery = ctx.bindCapability('store.query', '1.0');
   // Bind store.write@1.0 — FP-Host consumer channel.
   const storeWrite = ctx.bindCapability('store.write', '1.0');
+  // Bind schedule.calendar.query@1.0 — cross-bundle, pull calendar events.
+  const calendarQuery = ctx.bindCapability('schedule.calendar.query', '1.0');
+  // Bind record.patient.query@1.0 — cross-bundle, participant resolution.
+  const recordPatientQuery = ctx.bindCapability('record.patient.query', '1.0');
+
+  // ── linkEvent — shared upsert keyed on provider_event_id ─────────────────
+
+  async function linkEvent(event, clientId) {
+    const rows = await storeQuery.call('run', [
+      'meeting.getByProviderEventId',
+      { providerId: 'google-calendar', eventId: event.id },
+    ]);
+
+    const startsAt = isoToMs(event.start);
+    const endsAt = isoToMs(event.end);
+    const modality = event.meetingLink ? 'online' : 'in_person';
+
+    if (rows.length === 0) {
+      // Insert new linked row.
+      const id = globalThis.crypto.randomUUID();
+      const now = Date.now();
+      await storeWrite.call('insert', [
+        'client_meeting',
+        {
+          id,
+          patient_id:        clientId,
+          kind:              'session',
+          status:            'scheduled',
+          modality,
+          starts_at:         startsAt,
+          ends_at:           endsAt,
+          source_origin:     'provider',
+          sync_state:        'linked',
+          provider_id:       'google-calendar',
+          provider_event_id: event.id,
+          calendar_id:       event.calendarId ?? null,
+          created_at:        now,
+          updated_at:        now,
+        },
+        {
+          event:      'sessions.meeting.linked',
+          recordType: 'client_meeting',
+          recordId:   id,
+          detail:     { source: 'provider' },
+        },
+      ]);
+      return { action: 'linked', id };
+    }
+
+    // Reconcile — time snapshot only; do NOT touch kind/status.
+    const existing = rows[0];
+    const now = Date.now();
+    await storeWrite.call('update', [
+      'client_meeting',
+      existing.id,
+      {
+        starts_at:  startsAt,
+        ends_at:    endsAt,
+        modality,
+        sync_state: 'linked',
+        updated_at: now,
+      },
+      {
+        event:      'sessions.meeting.reconciled',
+        recordType: 'client_meeting',
+        recordId:   existing.id,
+        detail:     { source: 'provider' },
+      },
+    ]);
+    return { action: 'reconciled', id: existing.id };
+  }
 
   // ── sessions.meeting.query (read cap) ─────────────────────────────────────
 
@@ -282,6 +361,133 @@ export function activate(ctx) {
         return { deleted: id };
       }
 
+      case 'sync': {
+        const fromMs = Date.now();
+        const toMs = fromMs + 90 * 24 * 60 * 60 * 1000;
+        const from = new Date(fromMs).toISOString();
+        const to = new Date(toMs).toISOString();
+
+        let events;
+        try {
+          events = await calendarQuery.call('listEvents', [from, to]);
+        } catch (_err) {
+          return { linked: 0, reconciled: 0, orphaned: 0, needsLinking: [] };
+        }
+
+        if (!Array.isArray(events) || events.length === 0) {
+          return { linked: 0, reconciled: 0, orphaned: 0, needsLinking: [] };
+        }
+
+        const pulledIds = new Set();
+        let linked = 0;
+        let reconciled = 0;
+        const needsLinking = [];
+
+        for (const event of events) {
+          pulledIds.add(event.id);
+
+          // Collect participants: attendees (!self) + organizer (deduped by email).
+          const participantMap = new Map();
+
+          if (Array.isArray(event.attendees)) {
+            for (const a of event.attendees) {
+              if (a.self) continue;
+              const key = a.email || a.name || '';
+              if (key && !participantMap.has(key)) {
+                participantMap.set(key, { email: a.email, name: a.name });
+              }
+            }
+          }
+
+          if (event.organizer) {
+            // Include organizer unless their email matches an attendee marked self.
+            const selfEmail = Array.isArray(event.attendees)
+              ? (event.attendees.find((a) => a.self)?.email ?? null)
+              : null;
+            const orgEmail = event.organizer.email;
+            if (!orgEmail || orgEmail !== selfEmail) {
+              const key = orgEmail || event.organizer.name || '';
+              if (key && !participantMap.has(key)) {
+                participantMap.set(key, { email: orgEmail, name: event.organizer.name });
+              }
+            }
+          }
+
+          const participants = Array.from(participantMap.values()).filter(
+            (p) => p.email || p.name,
+          );
+
+          // Resolve each participant.
+          const resolvedClientIds = new Set();
+          const participantsWithOutcomes = [];
+
+          for (const p of participants) {
+            let resolution;
+            try {
+              resolution = await recordPatientQuery.call('resolveParticipant', [
+                { email: p.email, name: p.name },
+              ]);
+            } catch (_err) {
+              resolution = { outcome: 'none' };
+            }
+            participantsWithOutcomes.push({
+              name:       p.name,
+              email:      p.email,
+              outcome:    resolution.outcome,
+              candidates: resolution.candidates ?? undefined,
+            });
+            if (resolution.outcome === 'match') {
+              resolvedClientIds.add(resolution.clientId);
+            }
+          }
+
+          if (resolvedClientIds.size === 1) {
+            const [clientId] = resolvedClientIds;
+            const r = await linkEvent(event, clientId);
+            if (r.action === 'linked') {
+              linked++;
+            } else {
+              reconciled++;
+            }
+          } else {
+            needsLinking.push({
+              providerEventId: event.id,
+              calendarId:      event.calendarId ?? null,
+              start:           event.start,
+              end:             event.end,
+              title:           event.title,
+              participants:    participantsWithOutcomes,
+            });
+          }
+        }
+
+        // Orphan pass — flag rows whose provider event is no longer in pull window.
+        // Scoped to the SAME [from,to] window as the pull: a linked meeting in the
+        // past or beyond the window was never pulled, so its absence ≠ orphaned.
+        const linkedRows = await storeQuery.call('run', [
+          'meeting.listLinkedProvider',
+          { providerId: 'google-calendar', from: fromMs, to: toMs },
+        ]);
+        let orphaned = 0;
+        for (const row of linkedRows) {
+          if (!pulledIds.has(row.provider_event_id)) {
+            await storeWrite.call('update', [
+              'client_meeting',
+              row.id,
+              { sync_state: 'orphaned', updated_at: Date.now() },
+              {
+                event:      'sessions.meeting.orphaned',
+                recordType: 'client_meeting',
+                recordId:   row.id,
+              },
+            ]);
+            orphaned++;
+          }
+        }
+
+        return { linked, reconciled, orphaned, needsLinking };
+      }
+
       default:
         throw new Error('sessions.meeting: unknown method ' + method);
     }
@@ -291,6 +497,8 @@ export function activate(ctx) {
     dispose() {
       storeQuery.dispose();
       storeWrite.dispose();
+      calendarQuery.dispose();
+      recordPatientQuery.dispose();
     },
   };
 }

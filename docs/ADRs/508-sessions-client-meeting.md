@@ -160,3 +160,17 @@ opaque-block vs PHI-block. The score (O483) is computed from what this sync expo
   the cost is that erasing a client leaves orphaned `client_meeting` rows → cross-bundle DPDP erase cascade
   tracked **O490** (must close before clients are linked to meetings in production). §4 identity resolution
   + §3 provider sync (the columns above light up) land in slices 3/4.
+- **P1 Slice 3 — identity resolver + alias enrichment + hashed suppression: BUILT + live-verified
+  2026-06-18 (O485).** The §4 *resolver* (owned by `record.patient`, Practice = identity authority;
+  zero Main TS, two files in `ru-soam-practice`): `record.patient.query.resolveParticipant({email?,phone?,name?})`
+  → `{outcome:'match'|'candidates'|'none'|'suppressed'}` (an explicit `outcome` discriminant atop the
+  `{match}|{candidates}|{none}` shape in §4) `+ getAliases`; commands `addAlias` (confirm-candidate →
+  alias enrichment) + `suppressParticipant` (exclude). Two new Practice-owned protected tables:
+  `patient_identity_alias` (PHI, patient-keyed, erase-cascaded) + `participant_suppression`
+  (SHA-256-hashed `kind:value` only — no `patient_id`, no plaintext; intentionally survives a client erase,
+  so excluded from the per-patient erase cascade). Audit detail enum-only; resolver returns clientIds only.
+  **ADR-313 PHI-read opt-in is NOT enforced at the resolver** (it operates on already-extracted identifiers
+  + our own roster) — the opt-in gates the upstream *provider read* (slice 4). The suppression hash is
+  unsalted SHA-256 — acceptable for MVP (table lives in the KEK-encrypted protected store); keyed/salted =
+  later hardening. **Sessions orchestration** (calling the resolver on provider events to mint Client
+  Meetings) lands in slice 4 — this slice built only the owned authority.
