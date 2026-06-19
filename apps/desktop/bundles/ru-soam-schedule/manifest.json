@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "entry": "index.mjs",
   "activationEvents": ["lazy"],
+  "residency": "protected",
   "capabilities": [
     { "name": "schedule.calendar.query", "version": "1.0", "kind": "query", "phi": true },
     { "name": "schedule.calendar",       "version": "1.0", "kind": "command", "phi": true }
@@ -11,8 +12,51 @@
     { "id": "nav", "path": "nav.html" },
     { "id": "schedule", "path": "schedule.html" }
   ],
+  "ownedTables": ["provider_account", "calendar"],
+  "migrations": [
+    {
+      "version": 1,
+      "description": "Schedule: provider_account + calendar tables (ADR-507 Am1, ADR-314)",
+      "sql": "CREATE TABLE IF NOT EXISTS provider_account (\n  id                   TEXT PRIMARY KEY,\n  provider_type        TEXT NOT NULL,\n  external_account_id  TEXT NOT NULL,\n  email                TEXT,\n  display_name         TEXT,\n  connection_state     TEXT NOT NULL DEFAULT 'connected',\n  created_at           INTEGER,\n  updated_at           INTEGER,\n  UNIQUE (provider_type, external_account_id)\n);\nCREATE TABLE IF NOT EXISTS calendar (\n  id                   TEXT PRIMARY KEY,\n  account_id           TEXT NOT NULL,\n  provider_calendar_id TEXT NOT NULL,\n  display_name         TEXT NOT NULL,\n  color                TEXT NOT NULL,\n  is_primary           INTEGER,\n  read_only            INTEGER,\n  selected             INTEGER NOT NULL DEFAULT 1,\n  added_at             INTEGER,\n  created_at           INTEGER,\n  updated_at           INTEGER,\n  UNIQUE (account_id, provider_calendar_id)\n);\nCREATE INDEX IF NOT EXISTS idx_calendar_account  ON calendar(account_id);\nCREATE INDEX IF NOT EXISTS idx_calendar_selected ON calendar(selected);"
+    }
+  ],
+  "queryTemplates": [
+    {
+      "id": "account.list",
+      "sql": "SELECT id, provider_type, external_account_id, email, display_name, connection_state, created_at, updated_at FROM provider_account ORDER BY created_at ASC"
+    },
+    {
+      "id": "account.getById",
+      "sql": "SELECT id, provider_type, external_account_id, email, display_name, connection_state, created_at, updated_at FROM provider_account WHERE id = @id"
+    },
+    {
+      "id": "account.getByExternal",
+      "sql": "SELECT id, provider_type, external_account_id, email, display_name, connection_state, created_at, updated_at FROM provider_account WHERE provider_type = @providerType AND external_account_id = @externalId"
+    },
+    {
+      "id": "calendar.list",
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at FROM calendar ORDER BY added_at ASC"
+    },
+    {
+      "id": "calendar.getById",
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at FROM calendar WHERE id = @id"
+    },
+    {
+      "id": "calendar.listSelected",
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at FROM calendar WHERE selected = 1 ORDER BY added_at ASC"
+    },
+    {
+      "id": "calendar.listForAccount",
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at FROM calendar WHERE account_id = @accountId ORDER BY added_at ASC"
+    }
+  ],
   "dependencies": {
-    "capabilities": ["credential.broker@1.0", "net.brokeredFetch@1.0"]
+    "capabilities": [
+      "credential.broker@1.0",
+      "net.brokeredFetch@1.0",
+      "store.write@1.0",
+      "store.query@1.0"
+    ]
   },
   "apiHosts": ["www.googleapis.com"],
   "contributes": {
