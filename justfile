@@ -60,6 +60,13 @@ dev-db-sql name query:
 dev-db-psql name query:
     @cd apps/desktop && pnpm exec electron --no-sandbox scripts/dev-localstore.mjs {{name}} --protected --sql "{{query}}"
 
+# Run a WRITE statement against a workspace PROTECTED (PHI) DB (dev only). DESTRUCTIVE — opens
+# the DB read-write and prints the changed row count. No audit, no cascade — raw sqlite. Use only
+# for dev fixups (e.g. orphaned rows from cross-bundle erase gaps). Passphrase via env:
+#   export RU_SOAM_DEV_PASSPHRASE='…' && just dev-db-pexec meersh "DELETE FROM client_meeting WHERE patient_id='…'"
+dev-db-pexec name query:
+    @cd apps/desktop && pnpm exec electron --no-sandbox scripts/dev-localstore.mjs {{name}} --protected --exec --sql "{{query}}"
+
 # Build packaged release (.deb on Linux, .exe on Windows)
 build-desktop:
     @cd apps/desktop && pnpm run dist

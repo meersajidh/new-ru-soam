@@ -77,6 +77,7 @@ function parseArgs(argv) {
   let sql = null;
   let useProtected = false;
   let passphrase = null;
+  let exec = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--list') {
@@ -91,13 +92,15 @@ function parseArgs(argv) {
       sql = args[++i] ?? null;
     } else if (a === '--protected') {
       useProtected = true;
+    } else if (a === '--exec') {
+      exec = true;
     } else if (a === '--passphrase') {
       passphrase = args[++i] ?? null;
     } else if (!a.startsWith('--') && target === null) {
       target = a;
     }
   }
-  return { target, mode, sql, useProtected, passphrase };
+  return { target, mode, sql, useProtected, passphrase, exec };
 }
 
 // ── Workspace helpers ─────────────────────────────────────────────────────────
@@ -299,7 +302,7 @@ async function deriveProtectedKey(userData, workspaceId, passphrase) {
  * @param {string|null} sql - required when mode === 'sql'
  * @param {string} label    - 'operational' | 'protected' (for display)
  */
-function runDbMode(ws, dbPath, keyBuf, mode, sql, label) {
+function runDbMode(ws, dbPath, keyBuf, mode, sql, label, exec = false) {
   const hex = keyBuf.toString('hex');
   try {
     if (mode === 'info') {
@@ -326,15 +329,18 @@ function runDbMode(ws, dbPath, keyBuf, mode, sql, label) {
       die(`DB not found: ${dbPath}`);
     }
     const Database = requireCjs('better-sqlite3');
-    const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+    const db = new Database(dbPath, { readonly: !exec, fileMustExist: true });
     try {
       db.pragma(`key = "x'${hex}'"`);
       db.pragma('foreign_keys = ON');
       const stmt = db.prepare(sql);
       if (stmt.reader) {
         console.log(JSON.stringify(stmt.all(), null, 2));
+      } else if (exec) {
+        const info = stmt.run();
+        console.log(JSON.stringify({ changes: info.changes }, null, 2));
       } else {
-        die('only read-only queries are allowed (this tool opens the DB read-only).');
+        die('only read-only queries are allowed by default — pass --exec to run a write.');
       }
     } finally {
       db.close();
@@ -360,7 +366,8 @@ async function main() {
   }
 
   const userData = app.getPath('userData');
-  const { target, mode, sql, useProtected, passphrase: passphraseFlag } = parseArgs(process.argv);
+  const { target, mode, sql, useProtected, passphrase: passphraseFlag, exec } =
+    parseArgs(process.argv);
   const workspaces = listWorkspaces(userData);
 
   if (mode === 'list' || target === null) {
@@ -397,7 +404,7 @@ async function main() {
     let protectedKey = null;
     try {
       protectedKey = await deriveProtectedKey(userData, ws.id, pp);
-      runDbMode(ws, dbPath, protectedKey, mode, sql, 'protected');
+      runDbMode(ws, dbPath, protectedKey, mode, sql, 'protected', exec);
       protectedKey = null; // zeroed inside runDbMode
     } finally {
       if (protectedKey) protectedKey.fill(0);
@@ -410,7 +417,7 @@ async function main() {
     const key = readOperationalDbKey(userData, ws.id);
     if (!key) die(`no DB key in credential store for ${ws.id} (decrypt failed or absent).`);
 
-    runDbMode(ws, dbPath, key, mode, sql, 'operational');
+    runDbMode(ws, dbPath, key, mode, sql, 'operational', exec);
     // key is zeroed inside runDbMode
   }
 
