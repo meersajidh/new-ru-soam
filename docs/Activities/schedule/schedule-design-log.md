@@ -445,3 +445,26 @@ Built from the Claude Design handoff (`schedule-ui-build-plan.md`). **Scope = P-
 - **Editor-tab descriptor (new renderer/bridge surface, no ADR — UI verb + renderer-only field, not persisted/cross-zone):** `EditorTab.description` + `EditorService.updateTab(instanceId, patch)` (immutable replace + idempotent no-op) + `EditorGroup` render + `.editor-tab-description` CSS + new `soamView.setTabDescription` view-bridge verb (mirrors `setOverviewViewMode`; `BundleViewIframe` resolves it against its `instanceId` = tab id). Calendar sets it per view → tab shows "Schedule" + muted "Wk of Jun 15" / "17 Jun" / "Jun 2026", updating on navigation.
 - **Platform codicon set extended** (`electron/main/fp-host/view-codicons.ts` `PATHS`, real `@vscode/codicons` paths): `copy` / `link` / `layers` / `close` / `warning` / `debug-disconnect` / `globe` / `clockface` — also fixed several views' silently-blank icons (popover close `x`, the time-row clock). ADR-413 Am1 = platform owns the icon set (single swap point).
 - **Still INERT (P1/O485):** classification (all `unclassified`), client-linking, needs-linking. **Follow-ups:** O488 = real aux detail slot remainder; **O489 = one-click Join launch** (`soamView.openExternal` verb → existing `shell.openExternal` cap; copy-link is the interim).
+
+## SD-20 — Multi-account / multi-calendar (2026-06-19) — design committed, build pending
+
+**Trigger:** the nav redesign (user-labelled, color-coded, multi-calendar UX). Forced lifting two
+incremental invariants. **Decisions (ADR-promoted):**
+
+- **ADR-507 Am1** — Schedule **owns tables** (overrides §1 storeless for two `protected` tables only:
+  `provider_account` + `calendar`; events stay un-cached/live-fetched). Port becomes **account-aware**.
+- **ADR-314** — broker **account-keyed** grants (`{providerType, externalAccountId}`), Main-only,
+  identity broker-discovered (unspoofable); **System A (identity) ≠ System B (provider)** even at the
+  same Google address.
+- **Calendar = a handle** (user's framing): a stable local row → `{account_id, provider_calendar_id}`
+  + user name/color/`selected`. **Connect ≠ Add.**
+- **Cross-bundle:** event-id must be qualified by account+calendar → Sessions link-key (O493) +
+  erase (O490) coordination required before linking multi-account events.
+- **Revisits P-B:** `calendar.selected` replaces localStorage `calVisibility`; nav view-switcher
+  buttons dropped (redundant with work-header).
+
+**Canonical spec:** [`schedule-multical-spec.md`](./schedule-multical-spec.md) (tables, port, CQRS caps,
+event-identity, 6 build slices). **Open Items:** O491 (nav classifications), O492 (broker account-keying),
+O493 (link-key qualification), O494 (tables+port+caps), O495 (live-fetch aggregation). **Status: no
+code yet** — design phase. The generic green-field input (`schedule-multical-design.md`, user research)
+is adapted, not adopted wholesale (trust-zone-blind; see spec header).

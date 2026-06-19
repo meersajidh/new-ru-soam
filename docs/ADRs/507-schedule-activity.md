@@ -177,3 +177,57 @@ lock-gated + first-party-only, so PHI exposure is unchanged.
 - **O483** — PHI ramp + Safety Score on the sync (P2, ADR-313).
 - **SQ-6 (design log)** — MVP cut / build order. Working plan: **P0 = Sessions Client Meeting spine (provider-less)**, P1 = Google provider, P2 = PHI ramp.
 - Provider-event field shape is **provider-defined** (we don't model it) — SQ-2 concerns only the persisted Client Meeting (ADR-508).
+
+---
+
+## Amendment 1 — Schedule owns a thin account/calendar model (multi-account) — 2026-06-19
+
+**Status:** Draft. **Context:** the multi-account, user-labelled, color-coded calendar UX (nav redesign)
+needs the user's connected **accounts** and added **calendars** (with user name + color + selection) to
+survive restarts and be a stable handle. The original §1 "owns no tables / persists nothing" was an
+**incremental-build invariant, not a permanent one** — we now lift it for this thin layer. Full data
+model: [`docs/Activities/schedule/schedule-multical-spec.md`](../Activities/schedule/schedule-multical-spec.md).
+
+**A1.1 — Overrides §1 (storeless) for two tables only.** Schedule now owns, as an ADR-506 FP-Host
+domain module, exactly two tables, both **`residency: 'protected'`** (a provider calendar name can carry
+PII — e.g. a calendar named after a client — and account emails are PII; conservative residency):
+
+- **`provider_account`** — a connected System-B provider account (`providerType`, broker-discovered
+  `external_account_id`, `email`, `display_name`, `connection_state` label). **No tokens** — those stay
+  Main-only (ADR-314).
+- **`calendar`** — the **handle** the nav row points at: `{account_id, provider_calendar_id}` plus the
+  user-assigned `display_name` + `color`, `is_primary` / `read_only` (provider-derived), and `selected`
+  (the visibility/overlay checkbox, **now persisted here — replaces P-B's localStorage `calVisibility`**).
+  A `calendar` row exists only for a calendar the user has **Added** (Add ≠ Connect): provider calendars
+  discovered but not added are listed transiently from the adapter, not persisted.
+
+**Events remain un-cached (still honors §1's spirit).** §1's "provider is the master of events" stands:
+v1 **live-fetches** events per visible calendar and overlays them in memory (no `event` table). A local
+event cache + incremental sync (sync tokens / delta) is **deferred** to a later phase with its own
+residency + sync-metadata design (re-opens O23 — out of scope here).
+
+**A1.2 — Extends §2: the `CalendarProvider` port is account-aware.** The port gains the account
+dimension specified by ADR-314: `authenticate() → ProviderAccount` (delegates the grant to the Main
+broker; returns account metadata, **never tokens**), `listCalendars(accountId)`,
+`listEvents(accountId, calendarIds, range)`; writes (`createEvent`/…(accountId, calendarId, …)) later.
+Aggregation across accounts/calendars happens in the FP-Host bundle (ADR-507 §10 residency unchanged).
+
+**A1.3 — Credentials per ADR-314.** Grants are account-keyed (`{providerType, externalAccountId}`),
+Main-only, broker-discovered identity. System A (identity) and System B (provider) stay strictly
+separate even at the same Google address.
+
+**A1.4 — Cross-bundle: event-identity qualification.** Multi-account makes a bare `provider_event_id`
+non-unique. Sessions' link key (ADR-508; `client_meeting.provider_event_id` + existing `calendar_id`)
+must be qualified by account + provider calendar. Tracked as **O493**, coordinated with ADR-508 + O490
+(erase). Do not change ADR-508's key without that coordination.
+
+**A1.5 — Revisits the committed P-B nav.** The P-B `ScheduleViewStateService` localStorage
+`calVisibility` is superseded by `calendar.selected` (persisted, server-of-truth). The channel keeps
+carrying `view` (work-header) or selected-calendar ids; the P-B nav view-switcher buttons are removed
+(redundant with the work-area header). See the spec's build slices.
+
+**New Open Items:** **O492** (broker account-keying + migration — ADR-314), **O493** (Sessions
+link-key qualification), **O494** (`provider_account` / `calendar` tables + account-aware port +
+revised CQRS caps — the Schedule data slice), **O495** (event live-fetch aggregation + in-memory
+overlay across selected calendars), **O491** (nav classifications section: counts + filter — the
+cross-bundle classify lift, from the P-B trim).

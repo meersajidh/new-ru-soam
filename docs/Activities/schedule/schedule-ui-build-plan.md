@@ -1,13 +1,33 @@
 # Schedule Activity — UI build plan (from the Claude Design handoff)
 
-**Status:** Proposed — awaiting review.
-**Date:** 2026-06-17
+**Status:** In progress — see §0 build status.
+**Date:** 2026-06-17 (status tracked inline; last updated 2026-06-19)
 **Source design:** Claude Design handoff bundle `Schedule Activity.dc.html` (+ `Schedule_Brief.md`,
 chat transcript). The mockup renders the **full vision** of the Schedule Activity as a VS Code–style
 shell. This plan maps that vision onto our real workbench slots and codebase.
 **Related:** ADR-507 (Schedule = storeless UI over provider), ADR-508 (Sessions / Client Meeting),
 ADR-313 (PHI gradient + Safety Score), `schedule-design-log.md` (SD-1..13), Practice IA + build plan
 (the slot/aspect pattern we mirror).
+
+---
+
+## 0. Build status (live tracker)
+
+| Phase | Scope | Status |
+|---|---|---|
+| **P-A** | Calendar work-area editor view (`schedule.html`: header, 4 views, 6 states, selection, inline popover) | ✅ **DONE** — committed, user-verified "perfect"; §6 classification colours/badges layered on top later (SD-19, `2620f39`). |
+| **P-B** | Primary `nav.html` + `ScheduleViewStateService` channel + connection block | 🔨 **BUILT (trimmed) — now SUPERSEDED by the multi-cal redesign.** 2026-06-19: channel (mirrors O455) + Week/Day/Agenda/Month switcher + calendars list/toggles (derived from events) + connection block; compile+lint green, code-reviewed clean. **Superseded the same day** by the multi-account/multi-calendar work (SD-20, ADR-507 Am1 + ADR-314): view-switcher buttons are being dropped, localStorage `calVisibility` → persisted `calendar.selected`, single-connection → multi-account. The P-B channel/connection scaffolding is reused; the nav UI is rebuilt under `schedule-multical-spec.md` slices 2–5. **Do not dogfood P-B as final.** |
+| **P-C** | Panel `triage.html` (Needs-linking + Today's-agenda) via `panel.views` | ⚠️ **SUPERSEDED / partial** — the **real** Needs-linking panel shipped from the **Sessions** bundle (slice 4b, SD-18, `18ab656`), better than the planned stub. Remaining: a "Today's agenda" tab (low value; reassess after P-B). The Schedule-bundle `triage.html` is **not** being built. |
+| **P-D** | Status-bar PHI Safety Score entry + command + popover | ⬜ **BLOCKED on O483** — correctly deferred; the score *value* is meaningless until the ADR-313 PHI opt-ins exist. Do not build the chrome before the engine. |
+
+**Legend:** ✅ done · 🔨 in progress · ⚠️ superseded/partial · ⬜ not started.
+
+> **Note on "O485 / P1":** O485-as-data-realization (provider sync + identity resolution that makes
+> classification / client-linking / needs-linking *real*) is **largely DONE** via the Sessions
+> workstream — slices 4a (auto-link sync, SD-17) + 4b (needs-linking panel, SD-18) + §6
+> (classification colours, SD-19). The P-A inert stubs are now live. What remains under this *UI* plan
+> is P-B (above) and the deferred bits in O491 / P-C / P-D. Sessions-side scope + status now has its
+> own tracker: `docs/Activities/sessions/sessions-activity-plan.md`.
 
 ---
 
@@ -111,17 +131,23 @@ back gracefully via the `--font-display`/`--font-mono` tokens (CSP forbids the f
 
 ---
 
-## 4. Build phases (delegate per phase; review between)
+## 4. Build phases (delegate per phase; review between) — see §0 for live status
 
-- **P-A — Calendar work-area view.** Manifest move + `schedule.html` rewrite (header, 4 views, 6
+- ✅ **P-A — Calendar work-area view.** Manifest move + `schedule.html` rewrite (header, 4 views, 6
   states, selection, inline detail). All real/local. *Exit:* open Schedule → connect → switch
-  Agenda/Day/Week/Month over real events; all states reachable; event click shows detail.
-- **P-B — Primary `nav.html` + `ScheduleViewStateService` channel + connection block.** *Exit:* sidebar
-  lenses / filters / calendar toggles drive the calendar; connect/disconnect works from the sidebar.
-- **P-C — Panel `triage.html`** + `panel.views`. *Exit:* panel shows Needs-linking (stub) + Today
-  (real); badge count matches.
-- **P-D — Status-bar PHI Safety Score** entry + command + popover. *Exit:* chip visible unlocked,
-  hidden on lock, click opens the popover.
+  Agenda/Day/Week/Month over real events; all states reachable; event click shows detail. **DONE.**
+- 🔨 **P-B — Primary `nav.html` + `ScheduleViewStateService` channel + connection block (TRIMMED).**
+  *In scope:* the renderer view-state channel (mirrors O455 overview-view-mode), the Agenda/Day/Week/Month
+  switcher, the calendars list (derived from events) + visibility toggles, and the connection block
+  (real `getStatus` / `connect` / `disconnect` + email + dot). *Exit:* sidebar switcher + calendar
+  toggles drive the calendar (kept in sync with the work-header switcher via the channel); hiding a
+  calendar removes its events; connect/disconnect works from the sidebar. *Deferred → **O491:**
+  classification filters +counts, needs-linking badge.*
+- ⚠️ **P-C — Panel.** **Superseded** by the Sessions Needs-linking panel (slice 4b). A "Today's agenda"
+  tab is the only remnant — low value, reassess after P-B. The Schedule-bundle `triage.html` is dropped.
+- ⬜ **P-D — Status-bar PHI Safety Score** entry + command + popover. **Blocked on O483** (ADR-313 PHI
+  opt-ins) — the score value is static/meaningless until the engine exists. *Exit (when unblocked):*
+  chip visible unlocked, hidden on lock, click opens the popover.
 
 ---
 
@@ -145,7 +171,14 @@ back gracefully via the `--font-display`/`--font-mono` tokens (CSP forbids the f
 - **O488 (new)** — faithful real aux event-detail slot + Google-adapter extension
   (location / conferenceData-join / attendees / derived modality) + cross-iframe selection bus +
   `schedule.activeEvent` context key. (Target placement chosen; implementation to be discussed.)
+- **O491 (new, from P-B trim)** — `nav.html` **classification filters (+counts)** and the
+  **needs-linking badge**. Both now require cross-bundle work that did not exist when this plan was
+  written: the filter counts need the §6 classify logic (binds Sessions + Practice) either duplicated
+  into the nav iframe or lifted to a shared renderer service; the badge re-derives Sessions sync data
+  (the real triage UI already lives in the Sessions panel, slice 4b). Defer until either a shared
+  classify service exists or the nav→Sessions coupling is deemed worth it.
 - **O485 (P1)** — provider sync + identity resolution makes classification / client-linking /
-  needs-linking real; the inert stubs built here become live.
-- **O483 (P2)** — ADR-313 PHI opt-ins make the Safety Score value real.
+  needs-linking real. **Largely DONE** via the Sessions workstream (slices 4a/4b + §6); the inert P-A
+  stubs are now live. Tracked in `docs/Activities/sessions/sessions-activity-plan.md`.
+- **O483 (P2)** — ADR-313 PHI opt-ins make the Safety Score value real (unblocks P-D).
 - After build: update `schedule-design-log.md`, CLAUDE.md Architecture Log, and the memory pointer.

@@ -98,6 +98,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-311](ADRs/311-cloud-backend-identity-service.md) — Cloud Backend identity service (verify ID-token + session JWT + usage telemetry). _(Accepted)_
 - [ADR-312](ADRs/312-usage-telemetry-base-and-domain-tiers.md) — Usage telemetry: base mechanism + domain vocabulary, PHI-free by construction. _(Accepted)_
 - [ADR-313](ADRs/313-phi-egress-to-user-controlled-providers.md) — PHI egress to user-controlled providers: the consented, audited, default-off, score-driven **interim** gradient + the PHI Safety Score. Refines ADR-301 (narrows one carve-out; 301's core invariant against *our* cloud stays Final). _(Accepted)_
+- [ADR-314](ADRs/314-multi-account-provider-credentials.md) — Multi-account provider credentials: account-keyed (`{providerType, accountId}`) grants, Main-only, broker-discovered identity; System A (identity) vs System B (provider) stay separate. Realizes the keying ADR-507 §10 specified. _(Draft)_
 
 #### Workbench / UI composition (400–499)
 
