@@ -92,6 +92,25 @@ export class CredentialStore {
   }
 
   /**
+   * Return every ref stored under ru-soam.<workspaceId>.<type>.<ref>.
+   *
+   * Prefix-slices — does NOT split on "." — so email refs (containing dots) are
+   * preserved verbatim. The legacy no-ref key (ru-soam.<ws>.<type>, no trailing
+   * dot) is excluded by the prefix check requiring a dot after <type>.
+   */
+  listRefs(workspaceId: string, type: CredentialType): string[] {
+    const prefix = `ru-soam.${workspaceId}.${type}.`;
+    const store = readStore();
+    const refs: string[] = [];
+    for (const key of Object.keys(store)) {
+      if (key.startsWith(prefix)) {
+        refs.push(key.slice(prefix.length));
+      }
+    }
+    return refs;
+  }
+
+  /**
    * Remove every credential whose key begins with `ru-soam.<workspaceId>.`.
    * Future-proofs against new credential types added beyond `local-store-db-key`.
    */

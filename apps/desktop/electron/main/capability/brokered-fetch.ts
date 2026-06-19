@@ -48,6 +48,7 @@ interface FetchArgs {
   method?: string;
   headers?: Record<string, string>;
   body?: string;
+  accountId?: string; // ADR-314: which account's token to inject
 }
 
 export function registerBrokeredFetchCapability(): void {
@@ -61,7 +62,7 @@ export function registerBrokeredFetchCapability(): void {
         });
       }
 
-      const { provider, url, method: httpMethod = 'GET', headers = {}, body } =
+      const { provider, url, method: httpMethod = 'GET', headers = {}, body, accountId } =
         args[0] as FetchArgs;
 
       // 1. Resolve caller allowlist.
@@ -92,7 +93,7 @@ export function registerBrokeredFetchCapability(): void {
       }
 
       // 2. Resolve access token — never returned to the bundle.
-      const accessToken = await getValidAccessToken(provider);
+      const accessToken = await getValidAccessToken(provider, accountId);
       if (!accessToken) {
         throw Object.assign(
           new Error(`net.brokeredFetch: provider "${provider}" not connected`),
@@ -114,7 +115,7 @@ export function registerBrokeredFetchCapability(): void {
 
       // 4. On 401, clear stored credential.
       if (resp.status === 401) {
-        clearToken(provider);
+        clearToken(provider, accountId);
       }
 
       // 5. Parse body — try JSON first, fall back to text.
