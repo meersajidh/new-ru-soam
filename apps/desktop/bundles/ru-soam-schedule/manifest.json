@@ -10,7 +10,8 @@
   ],
   "views": [
     { "id": "nav", "path": "nav.html" },
-    { "id": "schedule", "path": "schedule.html" }
+    { "id": "schedule", "path": "schedule.html" },
+    { "id": "calendar-setup", "path": "calendar-setup.html" }
   ],
   "ownedTables": ["provider_account", "calendar"],
   "migrations": [
@@ -80,7 +81,18 @@
     ],
     "panel.views": [],
     "commands": [],
-    "menus": {},
+    "menus": {
+      "ru-soam-schedule/calendar/context": [
+        { "command": "ru-soam-schedule.calendar.edit",      "group": "1_edit@1" },
+        { "command": "ru-soam-schedule.calendar.reconnect", "group": "1_edit@2", "when": "schedule.calendarAccountErrored" },
+        { "command": "ru-soam-schedule.calendar.delete",    "group": "9_danger@1" }
+      ],
+      "ru-soam-schedule/account/context": [
+        { "command": "ru-soam-schedule.account.disconnect", "group": "0_state@1", "when": "schedule.accountConnected" },
+        { "command": "ru-soam-schedule.account.reconnect",  "group": "0_state@1", "when": "!schedule.accountConnected" },
+        { "command": "ru-soam-schedule.account.delete",     "group": "9_danger@1" }
+      ]
+    },
     "keybindings": []
   }
 }

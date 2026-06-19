@@ -339,6 +339,24 @@ export function activate(ctx) {
           },
         ]);
 
+        // Uncheck all selected calendars of this account so they drop from the aggregate grid.
+        const calRows = await storeQuery.call('run', ['calendar.listForAccount', { accountId: localAccountId }]);
+        const uncheckedAt = Date.now();
+        for (const cal of calRows) {
+          if (cal.selected) {
+            await storeWrite.call('update', [
+              'calendar',
+              cal.id,
+              { selected: 0, updated_at: uncheckedAt },
+              {
+                event:      'schedule.calendar.updated',
+                recordType: 'calendar',
+                recordId:   cal.id,
+              },
+            ]);
+          }
+        }
+
         return { ok: true };
       }
 
@@ -478,6 +496,50 @@ export function activate(ctx) {
           throw new Error(`schedule.calendar.updateCalendar: record disappeared after write: ${id}`);
         }
         return mapCalendar(updRows[0]);
+      }
+
+      case 'deleteAccount': {
+        const localAccountId = args[0];
+        if (typeof localAccountId !== 'string' || localAccountId.length === 0) {
+          throw new Error('schedule.calendar.deleteAccount: localAccountId must be a non-empty string');
+        }
+        const row = await getAccountOrThrow(localAccountId);
+        const a = getAdapter(row.provider_type);
+
+        // Revoke credential (broker revoke; tolerate error — still delete local records).
+        try {
+          await a.disconnectAccount(row.external_account_id);
+        } catch (_err) {
+          // Best-effort revoke — proceed with local delete regardless.
+        }
+
+        // Cascade-delete all calendars of this account.
+        const calRows = await storeQuery.call('run', ['calendar.listForAccount', { accountId: localAccountId }]);
+        for (const cal of calRows) {
+          await storeWrite.call('delete', [
+            'calendar',
+            cal.id,
+            {
+              event:      'schedule.calendar.removed',
+              recordType: 'calendar',
+              recordId:   cal.id,
+            },
+          ]);
+        }
+
+        // Delete the account row. Audit detail PII-free (no email).
+        await storeWrite.call('delete', [
+          'provider_account',
+          localAccountId,
+          {
+            event:      'schedule.account.deleted',
+            recordType: 'provider_account',
+            recordId:   localAccountId,
+            detail:     { providerType: row.provider_type },
+          },
+        ]);
+
+        return { deleted: localAccountId };
       }
 
       case 'removeCalendar': {

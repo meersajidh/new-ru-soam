@@ -2,15 +2,24 @@
  * Schedule view-state channel — localStorage-backed, mirrors OverviewViewModeService pattern.
  *
  * Controls which calendar view (agenda/day/week/month) schedule.html renders,
- * and which calendars are hidden (by calendarId). BundleViewIframe pushes
- * scheduleViewState on init + on change; the iframe reads it from the init
- * payload and the dedicated 'scheduleViewState' message.
+ * and signals cross-iframe data refresh via a monotonic `calRev` counter.
+ * BundleViewIframe pushes scheduleViewState on init + on change; the iframe reads it
+ * from the init payload and the dedicated 'scheduleViewState' message.
  *
- * calVisibility: keyed by calendarId; a MISSING key means visible —
- * only an explicit `false` hides a calendar.
+ * calRev: opaque monotonic integer. nav.html bumps it on any account/calendar mutation
+ * (connect, disconnect, calendar selected-toggle). schedule.html refetches
+ * listAggregatedEvents whenever calRev changes. schedule.html never resets calRev —
+ * it preserves the last-seen value when writing back its own view change.
  *
- * Note: a `filter` field (classification filter) is intentionally absent here;
- * deferred to O491.
+ * Calendar selection (which calendars are shown) is now persisted in the `calendar`
+ * table (slice 2, ADR-507 Am1) and enforced server-side by listAggregatedEvents —
+ * the old client-side calVisibility filter is gone.
+ *
+ * classFilter: which classification ids are VISIBLE. A missing key means visible
+ * (default all visible); explicit `false` means hidden. Keys are the 5 classification
+ * ids: 'client_session', 'probable_client_session', 'not_client_session', 'personal',
+ * 'unclassified'. schedule.html applies this as a client-side render filter — no
+ * refetch. Default `{}` = all visible.
  */
 
 const STORAGE_KEY = 'soam.scheduleViewState';
@@ -19,22 +28,26 @@ export type ScheduleView = 'agenda' | 'day' | 'week' | 'month';
 
 export interface ScheduleViewState {
   view: ScheduleView;
-  calVisibility: Record<string, boolean>;
+  calRev: number;
+  classFilter: Record<string, boolean>;
 }
 
 const VALID_VIEWS = new Set<string>(['agenda', 'day', 'week', 'month']);
 
-const DEFAULT_STATE: ScheduleViewState = { view: 'week', calVisibility: {} };
+const DEFAULT_STATE: ScheduleViewState = { view: 'week', calRev: 0, classFilter: {} };
 
-function deepEqual(a: ScheduleViewState, b: ScheduleViewState): boolean {
-  if (a.view !== b.view) return false;
-  const aKeys = Object.keys(a.calVisibility);
-  const bKeys = Object.keys(b.calVisibility);
+function shallowEqualClassFilter(a: Record<string, boolean>, b: Record<string, boolean>): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
   if (aKeys.length !== bKeys.length) return false;
   for (const k of aKeys) {
-    if (a.calVisibility[k] !== b.calVisibility[k]) return false;
+    if (a[k] !== b[k]) return false;
   }
   return true;
+}
+
+function deepEqual(a: ScheduleViewState, b: ScheduleViewState): boolean {
+  return a.view === b.view && a.calRev === b.calRev && shallowEqualClassFilter(a.classFilter, b.classFilter);
 }
 
 export interface IScheduleViewStateService {
@@ -57,7 +70,7 @@ export class ScheduleViewStateService implements IScheduleViewStateService {
 
   setState(s: ScheduleViewState): void {
     if (deepEqual(this._state, s)) return;
-    this._state = { view: s.view, calVisibility: { ...s.calVisibility } };
+    this._state = { view: s.view, calRev: s.calRev, classFilter: { ...s.classFilter } };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this._state));
     } catch {
@@ -83,22 +96,32 @@ export function readPersistedScheduleViewState(): ScheduleViewState {
         typeof parsed === 'object' &&
         'view' in parsed &&
         typeof (parsed as { view: unknown }).view === 'string' &&
-        VALID_VIEWS.has((parsed as { view: string }).view) &&
-        'calVisibility' in parsed &&
-        typeof (parsed as { calVisibility: unknown }).calVisibility === 'object' &&
-        (parsed as { calVisibility: unknown }).calVisibility !== null
+        VALID_VIEWS.has((parsed as { view: string }).view)
       ) {
-        const p = parsed as { view: string; calVisibility: Record<string, unknown> };
-        // Validate calVisibility entries are boolean
-        const calVis: Record<string, boolean> = {};
-        for (const [k, v] of Object.entries(p.calVisibility)) {
-          if (typeof v === 'boolean') calVis[k] = v;
+        const p = parsed as { view: string; calRev?: unknown; classFilter?: unknown };
+        const calRev = typeof p.calRev === 'number' ? p.calRev : 0;
+        // Validate classFilter: must be an object of boolean values; default {} if absent/invalid.
+        let classFilter: Record<string, boolean> = {};
+        if (
+          p.classFilter !== null &&
+          p.classFilter !== undefined &&
+          typeof p.classFilter === 'object' &&
+          !Array.isArray(p.classFilter)
+        ) {
+          const cf = p.classFilter as Record<string, unknown>;
+          const valid: Record<string, boolean> = {};
+          let ok = true;
+          for (const k of Object.keys(cf)) {
+            if (typeof cf[k] !== 'boolean') { ok = false; break; }
+            valid[k] = cf[k] as boolean;
+          }
+          if (ok) classFilter = valid;
         }
-        return { view: p.view as ScheduleView, calVisibility: calVis };
+        return { view: p.view as ScheduleView, calRev, classFilter };
       }
     }
   } catch {
     /* storage unavailable or JSON invalid */
   }
-  return { view: 'week', calVisibility: {} };
+  return { view: 'week', calRev: 0, classFilter: {} };
 }

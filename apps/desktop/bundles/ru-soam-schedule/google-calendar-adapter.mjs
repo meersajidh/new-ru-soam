@@ -31,6 +31,18 @@ const GCAL_API_BASE = 'https://www.googleapis.com/calendar/v3';
 // ── Shared event mapper (extract for reuse between listEvents and listEventsForCalendars) ──
 
 /**
+ * Returns true if the organizer email is a Google Calendar resource address
+ * (secondary/shared/holiday calendars) rather than a real person's email.
+ * Resource emails: <hash>@group.calendar.google.com or contain '#' (e.g. holiday feeds).
+ */
+function isResourceOrganizer(email) {
+  return typeof email === 'string' && (
+    /@group(\.v)?\.calendar\.google\.com$/i.test(email) ||
+    email.indexOf('#') !== -1
+  );
+}
+
+/**
  * Map a single Google Calendar API event item to a CalendarEvent shape.
  *
  * @param {object} item               - Raw Google API event item
@@ -61,6 +73,13 @@ function mapEvent(item, calendarId, calendarName) {
     if (item.organizer.displayName !== undefined) organizer.name  = item.organizer.displayName;
     if (item.organizer.email       !== undefined) organizer.email = item.organizer.email;
     if (item.organizer.self        !== undefined) organizer.self  = item.organizer.self;
+    // Resource organizer fix: secondary/holiday calendars use a resource email
+    // (e.g. <hash>@group.calendar.google.com, en.indian#holiday@group.v.calendar.google.com).
+    // Replace with the calendar's human name; drop the resource email so UI never shows a hash.
+    if (organizer.email && isResourceOrganizer(organizer.email)) {
+      organizer.name = calendarName;
+      delete organizer.email;
+    }
   }
 
   // Attendees — omit empty arrays.

@@ -189,14 +189,17 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     setScheduleViewState: function (state) {
       send({ __soamView: true, kind: 'request.setScheduleViewState', state: state });
     },
+    setScheduleCounts: function (counts) {
+      send({ __soamView: true, kind: 'request.setScheduleCounts', counts: counts });
+    },
     setTabDescription: function (text) {
       send({ __soamView: true, kind: 'request.setTabDescription', text: text });
     },
     focusAspect: function (sectionId) {
       send({ __soamView: true, kind: 'request.focusAspect', sectionId: sectionId });
     },
-    requestContextMenu: function (menuId, x, y, context) {
-      send({ __soamView: true, kind: 'request.contextMenu', menuId: menuId, x: x, y: y, context: context });
+    requestContextMenu: function (menuId, x, y, context, contextOverrides) {
+      send({ __soamView: true, kind: 'request.contextMenu', menuId: menuId, x: x, y: y, context: context, contextOverrides: contextOverrides || undefined });
     },
     ready: ready
   });

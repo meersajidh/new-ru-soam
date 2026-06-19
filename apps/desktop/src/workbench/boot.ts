@@ -46,6 +46,8 @@ import {
   readPersistedScheduleViewState,
 } from '../platform/view-mode/schedule-view-state';
 import { ScheduleViewStateServiceId } from '../platform/services/ids';
+import { ScheduleCountsService } from '../platform/view-mode/schedule-counts';
+import { ScheduleCountsServiceId } from '../platform/services/ids';
 import { TelemetryModeService } from '../platform/telemetry/telemetry-mode-service';
 import type { TelemetryMode } from '../platform/telemetry/telemetry-mode-service';
 import { TelemetryModeServiceId } from '../platform/services/ids';
@@ -151,9 +153,13 @@ export function boot(): ServiceRegistry {
   const overviewViewMode = new OverviewViewModeService(readPersistedOverviewViewMode());
   registry.register(OverviewViewModeServiceId, overviewViewMode);
 
-  // Schedule view-state — localStorage-backed; default { view: 'week', calVisibility: {} }.
+  // Schedule view-state — localStorage-backed; default { view: 'week', calRev: 0, classFilter: {} }.
   const scheduleViewState = new ScheduleViewStateService(readPersistedScheduleViewState());
   registry.register(ScheduleViewStateServiceId, scheduleViewState);
+
+  // Schedule counts — non-persisted; relayed from schedule.html after classify pass.
+  const scheduleCounts = new ScheduleCountsService();
+  registry.register(ScheduleCountsServiceId, scheduleCounts);
 
   // Telemetry mode — prefs-cap-backed; default 'off'. Reloads on workspace change.
   const telemetryMode = new TelemetryModeService();

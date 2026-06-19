@@ -1637,9 +1637,16 @@
       var events         = [];
       var offset         = 0;       // week/day/month offset from today
       var view           = 'week';  // 'agenda' | 'day' | 'week' | 'month'
-      /* calVisibility: keyed by calendarId; missing key = visible; false = hidden.
-       * Driven by inbound scheduleViewState channel (P-B). Do NOT mutate locally. */
-      var calVisibility  = {};
+      /* calRev: last-seen value from scheduleViewState channel.
+       * When calRev changes on an inbound state push, re-fetch listAggregatedEvents.
+       * Calendar selection (which calendars are visible) is now persisted server-side
+       * in the calendar table — filtered by listAggregatedEvents, not client-side. */
+      var _lastCalRev    = 0;
+      /* classFilter: last-seen value from scheduleViewState channel.
+       * Missing key = visible; explicit false = hidden. Client-side render filter —
+       * never triggers a network refetch. Sent back on every setScheduleViewState write. */
+      var _classFilter   = {};
+      var _lastClassFilter = {};
       var selectedId     = null;
       var queryCap       = null;  // schedule.calendar.query@1.0 (bindQuery)
       var cmdCap         = null;  // schedule.calendar@1.0       (bindCommand)
@@ -1692,6 +1699,23 @@
         return CLS_LABEL[c] || 'UNCLASSIFIED';
       }
 
+      /* ── Classification counts publisher ────────────────────────── */
+      /* Counts all loaded events (independent of classFilter — filter only hides).  *
+       * All 5 classification ids always present (0 if none). Published after every  *
+       * classify pass via soamView.setScheduleCounts (non-null bridge).             */
+      var CLS_IDS = ['client_session', 'probable_client_session', 'not_client_session', 'personal', 'unclassified'];
+      function publishCounts() {
+        if (!_soamView || !_soamView.setScheduleCounts) return;
+        var counts = {};
+        CLS_IDS.forEach(function (id) { counts[id] = 0; });
+        events.forEach(function (ev) {
+          var c = ev.classification || 'unclassified';
+          if (counts[c] !== undefined) counts[c]++;
+          else counts['unclassified']++;
+        });
+        _soamView.setScheduleCounts(counts);
+      }
+
       /* ── Range computation ───────────────────────────────────────── */
       function rangeForView() {
         var base = new Date();
@@ -1724,20 +1748,19 @@
         return { from: from, to: to, label: label };
       }
 
-      /* ── Calendar visibility filter ─────────────────────────────── */
-      /* Returns true if the event's calendar should be shown.          *
-       * A missing calVisibility key means visible (only false = hidden). */
-      function calVisible(ev) {
-        if (!ev.calendarId) return true;
-        return calVisibility[ev.calendarId] !== false;
-      }
-
       /* ── Events for a date ───────────────────────────────────────── */
+      /* No client-side calendar visibility filter: listAggregatedEvents only        *
+       * returns events from selected calendars (server-side, calendar.selected DB). *
+       * classFilter: missing key = visible; explicit false = hidden (client-side).  */
+      function isClassVisible(ev) {
+        var cls = ev.classification || 'unclassified';
+        /* A missing key means visible; only explicit false hides. */
+        return _classFilter[cls] !== false;
+      }
       function eventsForDay(d) {
         return events.filter(function (ev) {
-          if (!calVisible(ev)) return false;
           var evD = evDate(ev.start, ev.allDay);
-          return sameDay(evD, d);
+          return sameDay(evD, d) && isClassVisible(ev);
         }).sort(function (a, b) {
           if (a.allDay && !b.allDay) return -1;
           if (!a.allDay && b.allDay) return 1;
@@ -1787,6 +1810,10 @@
         var isAllDay = ev.allDay || (!ev.start || ev.start.length <= 10);
         var card = el('div', 'event-card' + (ev.id === selectedId ? ' is-selected' : ''));
         card.dataset.evId = ev.id;
+        /* Calendar-color tint: low-alpha wash under SD-19 classification border/badges. */
+        if (ev.calendarColor) {
+          card.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
+        }
 
         /* Left: time */
         var timeCol = txt('div', 'event-time-col' + (isAllDay ? ' allday-label' : ''), fmtTimeShort(ev));
@@ -1946,6 +1973,10 @@
           block.dataset.evId = ev.id;
           block.style.top    = topPx + 'px';
           block.style.height = hPx + 'px';
+          /* Calendar-color tint: low-alpha wash under SD-19 classification border/badges. */
+          if (ev.calendarColor) {
+            block.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
+          }
           // Override left/right with lane percentages when multiple lanes.
           if (item.totalLanes > 1) {
             block.style.left  = 'calc(' + leftPct + '% + 3px)';
@@ -2062,6 +2093,10 @@
               hasAllDay = true;
               var pill = txt('div', 'tg-allday-pill ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : ''), ev.title || '(No title)');
               pill.dataset.evId = ev.id;
+              /* Calendar-color tint: low-alpha wash under SD-19 classification border/badges. */
+              if (ev.calendarColor) {
+                pill.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
+              }
               pill.addEventListener('click', function (e) {
                 e.stopPropagation();
                 openPopover(ev, pill);
@@ -2191,6 +2226,10 @@
           dayEvs.slice(0, maxPills).forEach(function (ev) {
             var pill = txt('div', 'month-event-pill ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : ''), ev.title || '(No title)');
             pill.dataset.evId = ev.id;
+            /* Calendar-color tint: low-alpha wash under SD-19 classification border/badges. */
+            if (ev.calendarColor) {
+              pill.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
+            }
             pill.addEventListener('click', function (e) {
               e.stopPropagation();
               openPopover(ev, pill);
@@ -2561,7 +2600,7 @@
         var range = rangeForView();
         elRangeLabel.textContent = (view === 'agenda' && offset === 0) ? 'Upcoming · this week' : range.label;
 
-        queryCap.call('listEvents', range.from.toISOString(), range.to.toISOString())
+        queryCap.call('listAggregatedEvents', range.from.toISOString(), range.to.toISOString())
           .then(function (evs) {
             if (loadSeq !== _loadSeq) return; // stale — newer load superseded this one
             evs = evs || [];
@@ -2570,6 +2609,7 @@
             evs.forEach(function (ev) { ev.classification = 'unclassified'; });
             events = evs;
             renderCalArea();
+            publishCounts(); // initial publish — all 'unclassified'
 
             /* Step 2: if either classify cap missing, stop. */
             if (!sessionsQuery || !recordQuery) return;
@@ -2665,11 +2705,12 @@
                   return resolveNext(0, 'unclassified');
                 });
 
-                /* Wait for all events to classify, then repaint. */
+                /* Wait for all events to classify, then repaint + publish counts. */
                 Promise.all(classifyPromises).then(function (results) {
                   if (loadSeq !== _loadSeq) return; // stale guard
                   results.forEach(function (r) { r.ev.classification = r.cls; });
                   renderCalArea();
+                  publishCounts(); // final publish — classifications fully resolved
                 }).catch(function () {
                   /* If bulk Promise.all fails somehow, leave unclassified — already painted. */
                 });
@@ -2738,15 +2779,17 @@
       });
 
       /* ── View switcher ───────────────────────────────────────────── */
-      /* Clicks round-trip through ScheduleViewStateService (P-B channel).     *
-       * Do NOT mutate `view` here — the inbound scheduleViewState push drives  *
-       * the actual view change to avoid double-render (O455 mirror pattern).   */
+      /* Clicks round-trip through ScheduleViewStateService (P-B channel).         *
+       * Do NOT mutate `view` here — the inbound scheduleViewState push drives      *
+       * the actual view change to avoid double-render (O455 mirror pattern).       *
+       * Preserve _lastCalRev when writing; never reset it (would trigger spurious  *
+       * refetch / fight with nav.html's authoritative calRev counter).             */
       Array.prototype.forEach.call(elViewSwitch.querySelectorAll('.view-tab'), function (tab) {
         tab.addEventListener('click', function () {
           var v = tab.dataset.view;
           if (view === v) return;
           if (window.soamView && window.soamView.setScheduleViewState) {
-            window.soamView.setScheduleViewState({ view: v, calVisibility: calVisibility });
+            window.soamView.setScheduleViewState({ view: v, calRev: _lastCalRev, classFilter: _lastClassFilter });
           } else {
             /* Fallback if bridge verb unavailable: apply locally (graceful degradation). */
             view = v;
@@ -2759,26 +2802,45 @@
       });
 
       /* ── Apply inbound scheduleViewState ────────────────────────── */
-      /* Called on init, context, and dedicated scheduleViewState pushes.        *
-       * Drives the active view + calVisibility filter.                          *
-       * A view change resets offset+selection to avoid stale grid state.        */
+      /* Called on init, context, and dedicated scheduleViewState pushes.          *
+       * Drives the active view; triggers listAggregatedEvents refetch on calRev   *
+       * change (nav.html bumps calRev on any account/calendar mutation).           *
+       * A view change resets offset+selection to avoid stale grid state.           */
+      function shallowEqualFilter(a, b) {
+        var aKeys = Object.keys(a);
+        var bKeys = Object.keys(b);
+        if (aKeys.length !== bKeys.length) return false;
+        for (var i = 0; i < aKeys.length; i++) {
+          if (a[aKeys[i]] !== b[aKeys[i]]) return false;
+        }
+        return true;
+      }
+
       function applyScheduleViewState(state) {
         if (!state || typeof state.view !== 'string') return;
-        var newView = state.view;
-        var newVis  = state.calVisibility || {};
-        var viewChanged = newView !== view;
-        /* Shallow-compare calVisibility. */
-        var visChanged = JSON.stringify(newVis) !== JSON.stringify(calVisibility);
-        if (!viewChanged && !visChanged) return; // no-op on equal state
-        calVisibility = newVis;
+        var newView    = state.view;
+        var newRev     = typeof state.calRev === 'number' ? state.calRev : 0;
+        var newFilter  = (state.classFilter && typeof state.classFilter === 'object' && !Array.isArray(state.classFilter))
+                         ? state.classFilter : {};
+        var viewChanged   = newView !== view;
+        var revChanged    = newRev !== _lastCalRev;
+        var filterChanged = !shallowEqualFilter(newFilter, _classFilter);
+        if (!viewChanged && !revChanged && !filterChanged) return; // no-op on equal state
+        _lastCalRev      = newRev;
+        _classFilter     = newFilter;
+        _lastClassFilter = newFilter;
         if (viewChanged) {
           view = newView;
           offset = 0;
           selectedId = null;
           if (elPopover) elPopover.classList.add('hidden');
+          /* view change always refetches (new range likely) */
+          if (connected) loadEvents(); else renderCalArea();
+        } else if (revChanged) {
+          /* calRev changed — re-fetch events (selected calendars may have changed). */
           if (connected) loadEvents(); else renderCalArea();
         } else {
-          /* Only visibility changed — re-render without refetching. */
+          /* classFilter changed only — re-render in place, no network fetch. */
           renderCalArea();
         }
       }

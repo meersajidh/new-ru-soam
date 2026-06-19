@@ -11,7 +11,7 @@
  */
 
 import type { ServiceRegistry } from '../platform/services/registry';
-import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId, CommandServiceId } from '../platform/services/ids';
+import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId, CommandServiceId, ScheduleViewStateServiceId } from '../platform/services/ids';
 import { PRODUCT_TAGLINE, DELETE_WARNING_ADDENDUM } from './product';
 import { showClientErase } from './clientEraseState';
 
@@ -170,6 +170,165 @@ export function domainBootstrap(registry: ServiceRegistry): void {
       showClientErase(clientId, name);
     },
     { category: 'Practice' },
+  );
+
+  // ── Schedule renderer-domain commands ────────────────────────────────────
+  // These run in the renderer (not FP-Host) so they can call EditorService directly.
+  // PHI never enters Bundle Host: cap calls go through window.soam only.
+  // ctx is the untrusted forwarded menu context object from the calendar nav iframe.
+
+  function bumpScheduleCalRev(): void {
+    const svc = registry.get(ScheduleViewStateServiceId);
+    const s = svc.getState();
+    svc.setState({ view: s.view, calRev: s.calRev + 1, classFilter: s.classFilter });
+  }
+
+  commands.register(
+    'ru-soam-schedule.calendar.edit',
+    'Edit Calendar…',
+    async (ctx: unknown) => {
+      const c = ctx as Record<string, unknown>;
+      const calendarId = c?.calendarId;
+      if (typeof calendarId !== 'string' || calendarId.length === 0) {
+        console.warn('[schedule] edit: missing or invalid calendarId in ctx', ctx);
+        return;
+      }
+      const views = await window.soam.bindCapability('platform.views', '1.0');
+      try {
+        const res = (await views.call('resolve', 'ru-soam-schedule', 'calendar-setup')) as {
+          found?: boolean;
+          url?: string;
+        };
+        if (res?.found && res.url) {
+          registry.get(EditorServiceId).open(res.url + '?mode=edit&id=' + calendarId, {
+            title: 'Edit calendar',
+            entityId: 'cal-edit-' + calendarId,
+          });
+        } else {
+          console.error('[schedule] edit: calendar-setup view not found');
+        }
+      } catch (err) {
+        console.error('[schedule] edit failed:', err);
+      } finally {
+        views.dispose();
+      }
+    },
+    { category: 'Schedule' },
+  );
+
+  commands.register(
+    'ru-soam-schedule.calendar.delete',
+    'Delete Calendar',
+    async (ctx: unknown) => {
+      const c = ctx as Record<string, unknown>;
+      const calendarId = c?.calendarId;
+      if (typeof calendarId !== 'string' || calendarId.length === 0) {
+        console.warn('[schedule] delete: missing or invalid calendarId in ctx', ctx);
+        return;
+      }
+      const proxy = await window.soam.bindCommand('schedule.calendar', '1.0');
+      try {
+        await proxy.call('removeCalendar', calendarId);
+        bumpScheduleCalRev();
+      } catch (err) {
+        console.error('[schedule] delete failed:', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Schedule' },
+  );
+
+  commands.register(
+    'ru-soam-schedule.calendar.reconnect',
+    'Reconnect Account',
+    async (ctx: unknown) => {
+      const c = ctx as Record<string, unknown>;
+      const accountId = c?.accountId;
+      if (typeof accountId !== 'string' || accountId.length === 0) {
+        console.warn('[schedule] reconnect: missing or invalid accountId in ctx', ctx);
+        return;
+      }
+      const proxy = await window.soam.bindCommand('schedule.calendar', '1.0');
+      try {
+        await proxy.call('reconnectAccount', accountId);
+        bumpScheduleCalRev();
+      } catch (err) {
+        console.error('[schedule] reconnect failed:', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Schedule' },
+  );
+
+  commands.register(
+    'ru-soam-schedule.account.disconnect',
+    'Disconnect Account',
+    async (ctx: unknown) => {
+      const c = ctx as Record<string, unknown>;
+      const accountId = c?.accountId;
+      if (typeof accountId !== 'string' || accountId.length === 0) {
+        console.warn('[schedule] account.disconnect: missing or invalid accountId in ctx', ctx);
+        return;
+      }
+      const proxy = await window.soam.bindCommand('schedule.calendar', '1.0');
+      try {
+        await proxy.call('disconnectAccount', accountId);
+        bumpScheduleCalRev();
+      } catch (err) {
+        console.error('[schedule] account.disconnect failed:', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Schedule' },
+  );
+
+  commands.register(
+    'ru-soam-schedule.account.reconnect',
+    'Reconnect Account',
+    async (ctx: unknown) => {
+      const c = ctx as Record<string, unknown>;
+      const accountId = c?.accountId;
+      if (typeof accountId !== 'string' || accountId.length === 0) {
+        console.warn('[schedule] account.reconnect: missing or invalid accountId in ctx', ctx);
+        return;
+      }
+      const proxy = await window.soam.bindCommand('schedule.calendar', '1.0');
+      try {
+        await proxy.call('reconnectAccount', accountId);
+        bumpScheduleCalRev();
+      } catch (err) {
+        console.error('[schedule] account.reconnect failed:', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Schedule' },
+  );
+
+  commands.register(
+    'ru-soam-schedule.account.delete',
+    'Delete Account',
+    async (ctx: unknown) => {
+      const c = ctx as Record<string, unknown>;
+      const accountId = c?.accountId;
+      if (typeof accountId !== 'string' || accountId.length === 0) {
+        console.warn('[schedule] account.delete: missing or invalid accountId in ctx', ctx);
+        return;
+      }
+      const proxy = await window.soam.bindCommand('schedule.calendar', '1.0');
+      try {
+        await proxy.call('deleteAccount', accountId);
+        bumpScheduleCalRev();
+      } catch (err) {
+        console.error('[schedule] account.delete failed:', err);
+      } finally {
+        proxy.dispose();
+      }
+    },
+    { category: 'Schedule' },
   );
 
   // Wire editor active-instance changes → patient.activeId / record.activeId context keys.

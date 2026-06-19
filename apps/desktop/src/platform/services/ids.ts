@@ -18,6 +18,7 @@ import type { IActivityBarDensityService } from '../activity-bar/density-service
 import type { IMaturityHighlightService } from '../maturity/maturity-highlight';
 import type { IOverviewViewModeService } from '../view-mode/overview-view-mode';
 import type { IScheduleViewStateService } from '../view-mode/schedule-view-state';
+import type { IScheduleCountsService } from '../view-mode/schedule-counts';
 import type { ITelemetryModeService } from '../telemetry/telemetry-mode-service';
 import type { ICloudSessionService } from '../cloud/cloud-session-service';
 import { createContext } from 'react';
@@ -73,8 +74,11 @@ export const MaturityHighlightServiceId = serviceId<IMaturityHighlightService>('
 // Overview view-mode (dense/focused/timeline, O455)
 export const OverviewViewModeServiceId = serviceId<IOverviewViewModeService>('workbench.overviewViewMode');
 
-// Schedule view-state (agenda/day/week/month + calVisibility, P-B)
+// Schedule view-state (agenda/day/week/month + calRev cross-iframe refresh signal)
 export const ScheduleViewStateServiceId = serviceId<IScheduleViewStateService>('workbench.scheduleViewState');
+
+// Schedule counts — non-persisted per-classification event counts relayed from schedule.html
+export const ScheduleCountsServiceId = serviceId<IScheduleCountsService>('workbench.scheduleCounts');
 
 // Telemetry mode (off/online-only/on, prefs-backed, shared source of truth)
 export const TelemetryModeServiceId = serviceId<ITelemetryModeService>('workbench.telemetryMode');
