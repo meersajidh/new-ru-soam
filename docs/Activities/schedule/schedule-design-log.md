@@ -465,6 +465,50 @@ incremental invariants. **Decisions (ADR-promoted):**
 
 **Canonical spec:** [`schedule-multical-spec.md`](./schedule-multical-spec.md) (tables, port, CQRS caps,
 event-identity, 6 build slices). **Open Items:** O491 (nav classifications), O492 (broker account-keying),
-O493 (link-key qualification), O494 (tables+port+caps), O495 (live-fetch aggregation). **Status: no
-code yet** — design phase. The generic green-field input (`schedule-multical-design.md`, user research)
-is adapted, not adopted wholesale (trust-zone-blind; see spec header).
+O493 (link-key qualification), O494 (tables+port+caps), O495 (live-fetch aggregation). **Status: BUILT —
+slices 1–3 committed + dogfood-verified (`668d957`, 2026-06-20); see SD-21.** The generic green-field input
+(`schedule-multical-design.md`, user research) is adapted, not adopted wholesale (trust-zone-blind; see spec header).
+
+## SD-21 — Multi-account / multi-calendar BUILD (slices 1–3) → COMMITTED + dogfood-verified (2026-06-19 → 06-20)
+
+**Slice 1 (O492, broker account-keying — `8c7cfdf`).** `credential-broker.ts` keyed `{providerType, externalAccountId}`
+via the existing credentialStore `ref` dimension (no `CredentialType` union change); `grant` does broker-internal
+account-discovery (Google `calendars/primary` → id=email=externalId; Main-internal fetch, not apiHosts-gated) +
+returns `{ok, account}`; `status/revoke/getValidAccessToken/clearToken` + `net.brokeredFetch` gain optional `accountId`;
+idempotent legacy single-grant migration (refresh→discover→re-key→drop legacy; leave-as-is on fail = forces re-grant);
+`credentials/index.ts` += `listRefs` (prefix-slice, dot-safe email refs). No-`accountId` callers resolve the single
+account (>1 ⇒ null). CDP-verified migration (account-keyed token, zero legacy keys).
+
+**Slice 2 (O494, Schedule data — `f7720e6`) ADDITIVE.** `ru-soam-schedule` manifest += `residency:protected` /
+`ownedTables:[provider_account,calendar]` / migration-v1 / 7 queryTemplates / `store.{write,query}` deps; adapter +=
+`providerType:'google'` + 5 account-aware methods + shared `mapEvent`; index.mjs += registry + 5 query + 6 command.
+Store-writes in index.mjs (adapter = pure port); audit detail PII-free. `connectAccount` upserts by external id;
+`listAggregatedEvents` remaps provider-cal-id → local `cal_<uuid>` + attaches color; `selected=0` filters out. CDP-verified
+full CRUD path on real Google Calendar.
+
+**Slice 3 (O495, nav redesign — `668d957`) — the visible UX; absorbed slices 4 + 5.** Built as the user's prototype
+redesign (Phases A→B→C + revisions). `nav.html` rewrite: CALENDARS colored-tick list (toggle → `updateCalendar(selected)`
+→ calRev refetch) + title-row codicon buttons (`open-in-window` reopen aggregate tab + `add` open wizard) + FILTER BY
+CLASSIFICATION (5-state live counts via new non-persisted `ScheduleCountsService` relay + `classFilter` on `ScheduleViewState`,
+client-side visibility no-refetch — **closes O491**) + bottom-pinned multi-account ACCOUNTS section (connected = active
+highlight; right-click Disconnect/Reconnect/Delete, no inline buttons) + per-cal right-click Edit/Delete/Reconnect (manifest
+`menus` + renderer-domain cmds in `src/domain/bootstrap.ts`, `window.soam` positional + calRev bump) + per-row `email /
+calendar` tooltip + cal/acct rows share classif hover/active. **Add-calendar wizard** = `calendar-setup.html` work-area tab
+(connect → choose account [no "Use" label] → pick provider calendar [dedupe, Primary/Read-only badges] → name + 10-swatch
+color → `addCalendar`; edit-mode `?mode=edit&id=` reuses name+color → `updateCalendar`). `disconnectAccount` now unchecks the
+account's calendars; new `deleteAccount` = full forget (broker revoke → cascade-delete calendars → delete account row,
+audit PII-free). **Organiser-hash fix** (`mapEvent`): secondary/holiday calendars return resource-id `organizer.email`
+(`@group.calendar.google.com` / `@group.v.calendar.google.com` / contains `#`) → show calendar name, drop hash.
+`view-codicons.ts` gains multi-path + `fill-rule` support + `open-in-window`. `view-bridge` += `setScheduleCounts` +
+`requestContextMenu` `contextOverrides` (validated plain-primitive obj in `BundleViewIframe`; blast-radius = own menu visibility).
+
+**Dropped in-session (net zero — do NOT reintroduce):** per-calendar scoped tabs / "Open in New Tab" — user killed it
+("checkbox overlay supersedes separate tabs"); editor-tab color-dot infra (`EditorInstance.color`, EditorGroup dot,
+view-bridge/iframe color) + `schedule.html` `?id=cal_*` scope filter all built then fully reverted.
+
+**3 cap-call conventions (keep straight):** index.mjs/adapter internal caps = ARRAY-wrapped (`storeWrite.call('delete',[...])`);
+renderer-domain `window.soam` + view `soamView` = POSITIONAL.
+
+**NEXT:** cross-bundle **O493** (Sessions link-key qualify by `external_account_id` + `provider_calendar_id` +
+`provider_event_id`) + **O490** (erase cascade) — coordinate ADR-508, before linking multi-account events / before prod.
+Then slice 6 (event cache + incremental sync; Microsoft/Apple/CalDAV [O486]; calendar writes [O483 / ADR-313 ramp]).

@@ -16,7 +16,7 @@ ADR-313 (PHI gradient + Safety Score), `schedule-design-log.md` (SD-1..13), Prac
 | Phase | Scope | Status |
 |---|---|---|
 | **P-A** | Calendar work-area editor view (`schedule.html`: header, 4 views, 6 states, selection, inline popover) | ✅ **DONE** — committed, user-verified "perfect"; §6 classification colours/badges layered on top later (SD-19, `2620f39`). |
-| **P-B** | Primary `nav.html` + `ScheduleViewStateService` channel + connection block | 🔨 **BUILT (trimmed) — now SUPERSEDED by the multi-cal redesign.** 2026-06-19: channel (mirrors O455) + Week/Day/Agenda/Month switcher + calendars list/toggles (derived from events) + connection block; compile+lint green, code-reviewed clean. **Superseded the same day** by the multi-account/multi-calendar work (SD-20, ADR-507 Am1 + ADR-314): view-switcher buttons are being dropped, localStorage `calVisibility` → persisted `calendar.selected`, single-connection → multi-account. The P-B channel/connection scaffolding is reused; the nav UI is rebuilt under `schedule-multical-spec.md` slices 2–5. **Do not dogfood P-B as final.** |
+| **P-B** | Primary `nav.html` + `ScheduleViewStateService` channel + connection block | 🔨 **BUILT (trimmed) — now SUPERSEDED by the multi-cal redesign.** 2026-06-19: channel (mirrors O455) + Week/Day/Agenda/Month switcher + calendars list/toggles (derived from events) + connection block; compile+lint green, code-reviewed clean. **Superseded the same day** by the multi-account/multi-calendar work (SD-20, ADR-507 Am1 + ADR-314): view-switcher buttons are being dropped, localStorage `calVisibility` → persisted `calendar.selected`, single-connection → multi-account. The P-B channel/connection scaffolding is reused; the nav UI is rebuilt under `schedule-multical-spec.md`. **→ REPLACED: multi-cal nav redesign (spec slices 1–3) BUILT + committed + dogfood-verified 2026-06-20 (`668d957`)** — CALENDARS colored-tick list + add-calendar wizard (work-area tab) + classification filter w/ counts + bottom-pinned ACCOUNTS section (right-click Disconnect/Reconnect/Delete) + per-cal right-click Edit/Delete/Reconnect + organiser-hash fix + `add`/`open-in-window` codicon title-row buttons. |
 | **P-C** | Panel `triage.html` (Needs-linking + Today's-agenda) via `panel.views` | ⚠️ **SUPERSEDED / partial** — the **real** Needs-linking panel shipped from the **Sessions** bundle (slice 4b, SD-18, `18ab656`), better than the planned stub. Remaining: a "Today's agenda" tab (low value; reassess after P-B). The Schedule-bundle `triage.html` is **not** being built. |
 | **P-D** | Status-bar PHI Safety Score entry + command + popover | ⬜ **BLOCKED on O483** — correctly deferred; the score *value* is meaningless until the ADR-313 PHI opt-ins exist. Do not build the chrome before the engine. |
 
@@ -143,6 +143,13 @@ back gracefully via the `--font-display`/`--font-mono` tokens (CSP forbids the f
   toggles drive the calendar (kept in sync with the work-header switcher via the channel); hiding a
   calendar removes its events; connect/disconnect works from the sidebar. *Deferred → **O491:**
   classification filters +counts, needs-linking badge.*
+  **→ DONE / REPLACED by multi-cal slices 1–3 (`668d957`, dogfood-verified 2026-06-20):** P-B channel +
+  connection scaffolding reused; `nav.html` rebuilt — colored-tick CALENDARS list, classification
+  filter +counts (closes O491), bottom-pinned multi-account ACCOUNTS section + context menus
+  (Disconnect/Reconnect/Delete), per-cal Edit/Delete/Reconnect, add-calendar wizard (work-area tab),
+  `add`/`open-in-window` codicon header buttons. View-switcher buttons dropped; `calVisibility` →
+  persisted `calendar.selected`. Per-cal scoped tabs were built then **dropped** (checkbox overlay
+  supersedes — do not reintroduce).
 - ⚠️ **P-C — Panel.** **Superseded** by the Sessions Needs-linking panel (slice 4b). A "Today's agenda"
   tab is the only remnant — low value, reassess after P-B. The Schedule-bundle `triage.html` is dropped.
 - ⬜ **P-D — Status-bar PHI Safety Score** entry + command + popover. **Blocked on O483** (ADR-313 PHI
@@ -171,12 +178,12 @@ back gracefully via the `--font-display`/`--font-mono` tokens (CSP forbids the f
 - **O488 (new)** — faithful real aux event-detail slot + Google-adapter extension
   (location / conferenceData-join / attendees / derived modality) + cross-iframe selection bus +
   `schedule.activeEvent` context key. (Target placement chosen; implementation to be discussed.)
-- **O491 (new, from P-B trim)** — `nav.html` **classification filters (+counts)** and the
-  **needs-linking badge**. Both now require cross-bundle work that did not exist when this plan was
-  written: the filter counts need the §6 classify logic (binds Sessions + Practice) either duplicated
-  into the nav iframe or lifted to a shared renderer service; the badge re-derives Sessions sync data
-  (the real triage UI already lives in the Sessions panel, slice 4b). Defer until either a shared
-  classify service exists or the nav→Sessions coupling is deemed worth it.
+- **O491 — ✅ CLOSED (multi-cal slice 3, `668d957`, 2026-06-20).** `nav.html` **classification filters
+  (+counts)** shipped: a non-persisted `ScheduleCountsService` relays per-classification counts from
+  `schedule.html` (which already binds Sessions + Practice for §6 classify) → nav, plus a `classFilter`
+  field on `ScheduleViewState` for client-side visibility (no refetch). No shared classify service was
+  needed — counts ride the existing view→renderer→nav channel. The **needs-linking badge** stays
+  deferred (the real triage UI lives in the Sessions panel, slice 4b).
 - **O485 (P1)** — provider sync + identity resolution makes classification / client-linking /
   needs-linking real. **Largely DONE** via the Sessions workstream (slices 4a/4b + §6); the inert P-A
   stubs are now live. Tracked in `docs/Activities/sessions/sessions-activity-plan.md`.

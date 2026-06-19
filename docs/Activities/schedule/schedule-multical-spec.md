@@ -1,6 +1,6 @@
 # Schedule — multi-account / multi-calendar spec
 
-**Status:** Draft (Phase D — design). **Date:** 2026-06-19.
+**Status:** Slices 1–3 BUILT + committed + dogfood-verified (`668d957`, 2026-06-20); slices 4 + 5 absorbed into slice 3; slice 6 + cross-bundle O493/O490 pending. **Date:** 2026-06-19 (design) / 2026-06-20 (build).
 **Canonical for:** the account/calendar data model, the account-aware provider port, the revised CQRS
 caps, and the build slices for multi-account calendars.
 **ADRs:** [ADR-507 Am1](../../ADRs/507-schedule-activity.md#amendment-1--schedule-owns-a-thin-accountcalendar-model-multi-account--2026-06-19)
@@ -119,19 +119,25 @@ colors (§6 of P-A) are render-time derivations, never stored, never written to 
 
 ## 8. Build slices (design-first done; these are code, review + dogfood each)
 
-1. **Broker account-keying + migration** (O492, ADR-314) — `credential-broker.ts` + `brokered-fetch.ts`
-   account dimension; single-grant migration. Headless / CDP-verified.
-2. **Schedule data slice** (O494) — `provider_account` + `calendar` tables, account-aware port (Google),
-   revised CQRS caps, registry. Replaces P0 caps. CDP-verified.
-3. **Nav redesign** (the visible UX) — activity title (month/year), drop view buttons, accounts +
-   calendars list with colored-tick checkboxes (Image #3), Connect-account + Add-calendar flow
-   (name + color picker), chip tinting by calendar color, event live-fetch aggregation across selected
-   calendars (O495).
-4. **Classifications section** (O491) — counts + filter (the §6 classify lift, shared service or nav
-   bind) + filter channel field.
-5. **Per-calendar context menu + tabs + overlay** (ADR-417 menu channel) — open-in-own-tab (title +
-   color dot), connect/disconnect, delete.
-6. **Later** — event cache + incremental sync; Microsoft / Apple / CalDAV (O486); calendar writes (ADR-313 ramp).
+1. ✅ **Broker account-keying + migration** (O492, ADR-314) — COMMITTED + CDP-verified. `credential-broker.ts`
+   + `brokered-fetch.ts` account dimension; single-grant migration.
+2. ✅ **Schedule data slice** (O494) — COMMITTED + CDP-verified. `provider_account` + `calendar` tables,
+   account-aware port (Google), revised CQRS caps, registry. Additive (kept P0 caps + Sessions runnable).
+3. ✅ **Nav redesign** (O495) — COMMITTED + dogfood-verified 2026-06-20 (`668d957`). Colored-tick CALENDARS
+   list, add-calendar wizard (work-area tab, name + 10-swatch color), bottom-pinned multi-account ACCOUNTS
+   section + context menus, per-cal Edit/Delete/Reconnect, chip tinting by calendar color, organiser-hash
+   fix, `add`/`open-in-window` codicon buttons, event live-fetch aggregation across `selected` calendars.
+   **Absorbed slices 4 + 5.**
+4. ✅ **Classifications section** (O491) — DONE (folded into slice 3): per-classification counts via a
+   non-persisted `ScheduleCountsService` relay + a `classFilter` field on `ScheduleViewState` (client-side
+   visibility, no refetch). No shared classify service needed — `schedule.html` (binds Sessions + Practice
+   for §6 classify) relays counts to nav over the existing channel.
+5. ✅ **Per-calendar context menu** (ADR-417) — DONE (folded into slice 3): calendar + account right-click
+   menus. **Per-cal open-in-own-tab DROPPED** (checkbox overlay supersedes — editor-tab color-dot infra
+   built then reverted; do not reintroduce).
+6. ⬜ **Later** — event cache + incremental sync; Microsoft / Apple / CalDAV (O486); calendar writes
+   (ADR-313 ramp). **Plus cross-bundle O493 (Sessions link-key qualify by account + calendar) + O490
+   (erase cascade) — before linking multi-account events / before prod.**
 
 ## 9. Open Items
 
