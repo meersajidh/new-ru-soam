@@ -477,33 +477,18 @@ export function registerCredentialBrokerCapability(): void {
           const wsId = getWorkspaceId();
           if (!wsId) return null;
 
-          if (accountId) {
-            const token = readToken(wsId, provider, accountId);
-            deleteToken(wsId, provider, accountId);
+          // accountId direct, else resolve the single account via migration.
+          const ref = accountId ?? (await resolveSingleAccountRef(wsId, provider));
+          const token = ref ? readToken(wsId, provider, ref) : null;
+          if (ref) deleteToken(wsId, provider, ref);
 
-            if (token && revokeUrl) {
-              try {
-                await fetch(`${revokeUrl}?token=${encodeURIComponent(token.refreshToken)}`, {
-                  method: 'POST',
-                });
-              } catch {
-                // Best-effort; local credential already cleared.
-              }
-            }
-          } else {
-            // No accountId: resolve single account via migration.
-            const ref = await resolveSingleAccountRef(wsId, provider);
-            const token = ref ? readToken(wsId, provider, ref) : null;
-            if (ref) deleteToken(wsId, provider, ref);
-
-            if (token && revokeUrl) {
-              try {
-                await fetch(`${revokeUrl}?token=${encodeURIComponent(token.refreshToken)}`, {
-                  method: 'POST',
-                });
-              } catch {
-                // Best-effort; local credential already cleared.
-              }
+          if (token && revokeUrl) {
+            try {
+              await fetch(`${revokeUrl}?token=${encodeURIComponent(token.refreshToken)}`, {
+                method: 'POST',
+              });
+            } catch {
+              // Best-effort; local credential already cleared.
             }
           }
           return null;
