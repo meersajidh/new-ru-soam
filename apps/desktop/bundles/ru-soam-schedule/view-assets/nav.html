@@ -11,46 +11,15 @@
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
 
-      :root {
-        color-scheme: light dark;
-        --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-        --color-surface-base:     #161618;
-        --color-surface-panel:    #1c1c1f;
-        --color-surface-elevated: #232326;
-        --color-surface-active:   #2a2d26;
-        --color-fg-primary:   #f2f2f7;
-        --color-fg-secondary: #aeaeb2;
-        --color-fg-muted:     #636366;
-        --color-border:       #3a3a3c;
-        --color-border-focus: #5ac85a;
-        --color-accent:         #5ac85a;
-        --color-accent-fg:      #1c1c1e;
-        --color-accent-hover:   #6bd46b;
-        --color-accent-pressed: #4ab44a;
-        --radius-sm: 4px;
-        --radius-md: 7px;
-        --transition: 130ms ease;
-      }
-
       html, body {
         height: 100%;
         overflow: hidden;
-        font-family: var(--font-sans);
+        font-family: var(--font-sans, 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
         font-size: 13px;
         line-height: 1.5;
-        background: var(--color-surface-panel);
-        color: var(--color-fg-primary);
+        background: var(--color-surface-panel, #1c1c1f);
+        color: var(--color-fg-primary, #f2f2f7);
         -webkit-font-smoothing: antialiased;
-      }
-
-      #root {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        padding: 24px;
       }
 
       #bridge-wait {
@@ -59,59 +28,293 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-surface-panel);
+        background: var(--color-surface-panel, #1c1c1f);
         z-index: 100;
         font-size: 12px;
-        color: var(--color-fg-muted);
+        color: var(--color-fg-muted, #636366);
       }
       #bridge-wait.hidden { display: none; }
 
-      .open-label {
-        font-size: 12px;
-        color: var(--color-fg-muted);
-        text-align: center;
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
       }
+      #root.hidden { display: none; }
 
-      .btn-open {
-        display: inline-flex;
+      /* ── Section header ────────────────────────────── */
+      .section-header {
+        display: flex;
         align-items: center;
         gap: 6px;
-        padding: 6px 14px;
-        border-radius: var(--radius-sm);
-        font-size: 12px;
-        font-weight: 500;
-        background: var(--color-accent);
-        color: var(--color-accent-fg);
-        cursor: pointer;
-        transition: background var(--transition);
-        border: none;
+        padding: 10px 12px 6px;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--color-fg-muted, #636366);
+        border-bottom: 1px solid var(--color-border, #3a3a3c);
       }
-      .btn-open:hover { background: var(--color-accent-hover); }
-      .btn-open:active { background: var(--color-accent-pressed); }
+
+      /* ── Connection block ──────────────────────────── */
+      #conn-block {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--color-border, #3a3a3c);
+        flex-shrink: 0;
+      }
+      .conn-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 7px;
+      }
+      .conn-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: var(--color-fg-muted, #636366);
+      }
+      .conn-dot.connected {
+        background: var(--color-accent, #5ac85a);
+      }
+      .conn-email {
+        font-size: 12px;
+        color: var(--color-fg-secondary, #aeaeb2);
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .btn-conn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm, 4px);
+        font-size: 11.5px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 130ms ease, opacity 130ms ease;
+        border: 1px solid var(--color-border, #3a3a3c);
+        background: transparent;
+        color: var(--color-fg-secondary, #aeaeb2);
+        width: 100%;
+        justify-content: center;
+      }
+      .btn-conn:hover:not(:disabled) {
+        background: var(--color-surface-active, #2a2d26);
+        color: var(--color-fg-primary, #f2f2f7);
+      }
+      .btn-conn.accent {
+        background: var(--color-accent, #5ac85a);
+        color: var(--color-accent-fg, #1c1c1e);
+        border-color: transparent;
+      }
+      .btn-conn.accent:hover:not(:disabled) {
+        background: var(--color-accent-hover, #6bd46b);
+      }
+      .btn-conn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-conn:focus-visible {
+        outline: 2px solid var(--color-border-focus, #5ac85a);
+        outline-offset: 2px;
+      }
+
+      /* ── Activity title ────────────────────────────── */
+      #activity-title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 12px 12px 10px;
+        border-bottom: 1px solid var(--color-border, #3a3a3c);
+        flex-shrink: 0;
+      }
+      .activity-title-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-fg-secondary, #aeaeb2);
+      }
+      .activity-title-period {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--color-fg-muted, #636366);
+      }
+
+      /* ── Calendars block ───────────────────────────── */
+      #cals-block {
+        flex: 1;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted, #636366) 30%, transparent) transparent;
+      }
+      .cals-empty {
+        padding: 16px 12px;
+        font-size: 11.5px;
+        color: var(--color-fg-muted, #636366);
+        font-style: italic;
+      }
+      .cal-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        cursor: pointer;
+        transition: background 130ms ease;
+      }
+      .cal-row:hover { background: var(--color-surface-active, #2a2d26); }
+      .cal-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+      .cal-name {
+        flex: 1;
+        min-width: 0;
+        font-size: 12px;
+        color: var(--color-fg-secondary, #aeaeb2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cal-toggle {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        border: 1px solid var(--color-border, #3a3a3c);
+        background: transparent;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 130ms ease, border-color 130ms ease;
+      }
+      .cal-toggle.on {
+        background: var(--color-accent, #5ac85a);
+        border-color: var(--color-accent, #5ac85a);
+      }
+      .cal-toggle.on::after {
+        content: '';
+        display: block;
+        width: 7px;
+        height: 4px;
+        border-left: 1.5px solid var(--color-accent-fg, #1c1c1e);
+        border-bottom: 1.5px solid var(--color-accent-fg, #1c1c1e);
+        transform: rotate(-45deg) translateY(-1px);
+      }
+
+      /* ── Open calendar footer ──────────────────────── */
+      #open-block {
+        padding: 10px 12px;
+        border-top: 1px solid var(--color-border, #3a3a3c);
+        flex-shrink: 0;
+      }
+      .btn-open {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        width: 100%;
+        padding: 5px 0;
+        border-radius: var(--radius-sm, 4px);
+        font-size: 11.5px;
+        font-weight: 500;
+        background: transparent;
+        color: var(--color-fg-secondary, #aeaeb2);
+        border: 1px solid var(--color-border, #3a3a3c);
+        cursor: pointer;
+        transition: background 130ms ease, color 130ms ease;
+      }
+      .btn-open:hover {
+        background: var(--color-surface-active, #2a2d26);
+        color: var(--color-fg-primary, #f2f2f7);
+      }
       .btn-open:focus-visible {
-        outline: 2px solid var(--color-border-focus);
+        outline: 2px solid var(--color-border-focus, #5ac85a);
         outline-offset: 2px;
       }
     </style>
   </head>
   <body>
     <div id="bridge-wait">Connecting…</div>
-    <div id="root" style="display:none">
-      <div class="open-label">Calendar opens in the editor area.</div>
-      <button class="btn-open" id="btn-open" type="button">
-        Open calendar
-      </button>
+    <div id="root" class="hidden">
+
+      <!-- Activity title -->
+      <div id="activity-title">
+        <span class="activity-title-label">Schedule</span>
+        <span class="activity-title-period" id="activity-period"></span>
+      </div>
+
+      <!-- Connection block -->
+      <div id="conn-block">
+        <div class="conn-row">
+          <div class="conn-dot" id="conn-dot"></div>
+          <div class="conn-email" id="conn-email">Not connected</div>
+        </div>
+        <button class="btn-conn" id="btn-conn" type="button">Connect Google Calendar</button>
+      </div>
+
+      <!-- Calendars -->
+      <div id="cals-block">
+        <!-- populated dynamically -->
+      </div>
+
+      <!-- Open calendar footer -->
+      <div id="open-block">
+        <button class="btn-open" id="btn-open" type="button">Open calendar</button>
+      </div>
+
     </div>
 
     <script>
     (function () {
       'use strict';
 
-      var boot = window.__viewBoot;
-      var bridgeWait = document.getElementById('bridge-wait');
-      var root = document.getElementById('root');
-      var btnOpen = document.getElementById('btn-open');
+      /* ── State ─────────────────────────────────────────────────────── */
+      /* currentState is the module-level canonical copy of scheduleViewState.  *
+       * It is the SINGLE SOURCE that view buttons and calendar toggles read.   *
+       * Do NOT apply state locally on click — call setScheduleViewState and    *
+       * let the inbound push drive the render (round-trip pattern, O455 mirror).*/
+      var currentState = { view: 'week', calVisibility: {} };
+      var connected    = false;
+      var connecting   = false;
+      var accountEmail = '';
+      var queryCap     = null;
+      var cmdCap       = null;
+      /* Known calendars derived from events (calendarId → calendarName).       *
+       * Note: calendars with no events in the load window won't appear here —  *
+       * a listCalendars cap is a future improvement (not this slice).           */
+      var knownCals    = {}; // calendarId → calendarName
+      var boot         = window.__viewBoot;
 
+      /* ── DOM refs ───────────────────────────────────────────────────── */
+      var elBridgeWait = document.getElementById('bridge-wait');
+      var elRoot       = document.getElementById('root');
+      var elConnDot    = document.getElementById('conn-dot');
+      var elConnEmail  = document.getElementById('conn-email');
+      var elBtnConn    = document.getElementById('btn-conn');
+      var elPeriod     = document.getElementById('activity-period');
+      var elCalsBlock  = document.getElementById('cals-block');
+      var elBtnOpen    = document.getElementById('btn-open');
+
+      /* ── Deterministic hue from calendarId string hash ─────────────── */
+      function calHue(id) {
+        var h = 0;
+        for (var i = 0; i < id.length; i++) {
+          h = (Math.imul(31, h) + id.charCodeAt(i)) | 0;
+        }
+        return ((h >>> 0) % 360);
+      }
+      function calColor(id) {
+        return 'hsl(' + calHue(id) + ',55%,58%)';
+      }
+
+      /* ── Open calendar helper ───────────────────────────────────────── */
       function openCalendar() {
         if (window.soamView) {
           window.soamView.openInEditor('schedule', {
@@ -122,27 +325,236 @@
         }
       }
 
+      /* ── Render connection block ────────────────────────────────────── */
+      function renderConn() {
+        elConnDot.className = 'conn-dot' + (connected ? ' connected' : '');
+        /* textContent safe: accountEmail is non-PHI provider account identifier */
+        elConnEmail.textContent = connected ? (accountEmail || 'Connected') : 'Not connected';
+        if (connecting) {
+          elBtnConn.textContent = 'Connecting…';
+          elBtnConn.disabled = true;
+          elBtnConn.className = 'btn-conn';
+        } else if (connected) {
+          elBtnConn.textContent = 'Disconnect';
+          elBtnConn.disabled = false;
+          elBtnConn.className = 'btn-conn';
+        } else {
+          elBtnConn.textContent = 'Connect Google Calendar';
+          elBtnConn.disabled = false;
+          elBtnConn.className = 'btn-conn accent';
+        }
+      }
+
+      /* ── Render calendars list ──────────────────────────────────────── */
+      function renderCals() {
+        elCalsBlock.innerHTML = '';
+        var ids = Object.keys(knownCals);
+        if (ids.length === 0) {
+          if (connected) {
+            var em = document.createElement('div');
+            em.className = 'cals-empty';
+            em.textContent = 'No calendars found in the loaded window.';
+            elCalsBlock.appendChild(em);
+          }
+          return;
+        }
+        ids.forEach(function (calId) {
+          var name    = knownCals[calId] || calId;
+          var visible = currentState.calVisibility[calId] !== false;
+
+          var row = document.createElement('div');
+          row.className = 'cal-row';
+          row.dataset.calId = calId;
+
+          var swatch = document.createElement('div');
+          swatch.className = 'cal-swatch';
+          swatch.style.background = calColor(calId);
+
+          var label = document.createElement('div');
+          label.className = 'cal-name';
+          /* textContent safe: calendar name is non-PHI provider metadata */
+          label.textContent = name;
+
+          var tog = document.createElement('div');
+          tog.className = 'cal-toggle' + (visible ? ' on' : '');
+
+          row.appendChild(swatch);
+          row.appendChild(label);
+          row.appendChild(tog);
+
+          row.addEventListener('click', function () {
+            var newVis = Object.assign({}, currentState.calVisibility);
+            /* Toggle: if currently visible (absent or true), set false; else delete key (=visible). */
+            if (newVis[calId] === false) {
+              delete newVis[calId];
+            } else {
+              newVis[calId] = false;
+            }
+            if (window.soamView && window.soamView.setScheduleViewState) {
+              window.soamView.setScheduleViewState({ view: currentState.view, calVisibility: newVis });
+            }
+          });
+
+          elCalsBlock.appendChild(row);
+        });
+      }
+
+      /* ── Apply inbound scheduleViewState ────────────────────────────── */
+      function applyViewState(state) {
+        if (!state || typeof state.view !== 'string') return;
+        currentState = { view: state.view, calVisibility: state.calVisibility || {} };
+        renderCals();
+      }
+
+      /* ── Load status + calendar list ────────────────────────────────── */
+      function loadStatus() {
+        if (!queryCap) return;
+        queryCap.call('getStatus', [])
+          .then(function (status) {
+            var wasConnected = connected;
+            connected    = !!(status && status.connected);
+            accountEmail = (status && status.email) || '';
+            renderConn();
+            renderCals();
+            if (connected && !wasConnected) {
+              loadCalendars();
+            }
+          })
+          .catch(function () {
+            connected = false;
+            accountEmail = '';
+            renderConn();
+            renderCals();
+          });
+      }
+
+      /* Derive calendar list from a time window: now-7d … now+30d.
+       * Calendars with no events in this window won't appear (see comment on knownCals). */
+      function loadCalendars() {
+        if (!queryCap || !connected) return;
+        var now  = new Date();
+        var from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        var to   = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        queryCap.call('listEvents', from.toISOString(), to.toISOString())
+          .then(function (evs) {
+            evs = evs || [];
+            var seen = {};
+            evs.forEach(function (ev) {
+              if (ev.calendarId && !seen[ev.calendarId]) {
+                seen[ev.calendarId] = ev.calendarName || ev.calendarId;
+              }
+            });
+            knownCals = seen;
+            renderCals();
+          })
+          .catch(function () {
+            /* Best-effort — leave knownCals empty on error. */
+          });
+      }
+
+      /* ── Connect / disconnect ───────────────────────────────────────── */
+      function doConnect() {
+        if (!cmdCap || connecting) return;
+        connecting = true;
+        renderConn();
+        cmdCap.call('connect', [])
+          .then(function (result) {
+            connecting = false;
+            if (result && result.ok) {
+              connected = true;
+              loadStatus();
+              loadCalendars();
+            } else {
+              connected = false;
+              renderConn();
+            }
+          })
+          .catch(function () {
+            connecting = false;
+            renderConn();
+          });
+      }
+
+      function doDisconnect() {
+        if (!cmdCap) return;
+        cmdCap.call('disconnect', [])
+          .then(function () {
+            connected = false;
+            accountEmail = '';
+            knownCals = {};
+            renderConn();
+            renderCals();
+          })
+          .catch(function () {
+            connected = false;
+            accountEmail = '';
+            knownCals = {};
+            renderConn();
+            renderCals();
+          });
+      }
+
+      /* ── Message handler ────────────────────────────────────────────── */
       window.addEventListener('message', function (e) {
         var d = e.data;
         if (!d || d.__soamView !== true) return;
+        /* Always apply theme tokens from every message. */
         boot.applyTheme(d);
+        /* Consume scheduleViewState from init + context messages. */
+        if ((d.kind === 'init' || d.kind === 'context') && d.scheduleViewState) {
+          applyViewState(d.scheduleViewState);
+        }
+        /* Dedicated push from onDidChange. */
+        if (d.kind === 'scheduleViewState' && d.state) {
+          applyViewState(d.state);
+        }
       });
 
+      /* ── Bridge bootstrap ───────────────────────────────────────────── */
       boot.awaitBridge().then(function (soamView) {
         window.soamView = soamView;
-        bridgeWait.classList.add('hidden');
-        root.style.display = '';
+        elBridgeWait.classList.add('hidden');
+        elRoot.classList.remove('hidden');
 
         boot.applyCodicons();
 
-        btnOpen.addEventListener('click', openCalendar);
+        /* Activity title period — current month/year (static; work-area nav
+         * tracking is a future channel enhancement, multi-cal slice 3). */
+        elPeriod.textContent = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
-        // Auto-open the calendar editor tab on first activation.
-        soamView.events.onActivate(function () {
-          openCalendar();
+        /* Wire connect/disconnect. */
+        elBtnConn.addEventListener('click', function () {
+          if (connected) doDisconnect(); else doConnect();
         });
+
+        /* Wire open-calendar button. */
+        elBtnOpen.addEventListener('click', openCalendar);
+
+        /* Bind caps then load status. */
+        Promise.all([
+          soamView.bindQuery('schedule.calendar.query', '1.0'),
+          soamView.bindCommand('schedule.calendar', '1.0'),
+        ]).then(function (caps) {
+          queryCap = caps[0];
+          cmdCap   = caps[1];
+          loadStatus();
+
+          /* Auto-open calendar editor tab + refresh status on each activation. */
+          soamView.events.onActivate(function () {
+            openCalendar();
+            loadStatus();
+          });
+        }).catch(function () {
+          /* Caps unavailable — show disconnected state. */
+          renderConn();
+        });
+
+        /* Initial renders with defaults (will be overwritten by init message). */
+        renderConn();
+        renderCals();
+
       }).catch(function (err) {
-        bridgeWait.textContent = 'Bridge error: ' + (err && err.message ? err.message : String(err));
+        elBridgeWait.textContent = 'Bridge error: ' + (err && err.message ? err.message : String(err));
       });
 
     })();

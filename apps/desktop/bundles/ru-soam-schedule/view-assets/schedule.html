@@ -1637,6 +1637,9 @@
       var events         = [];
       var offset         = 0;       // week/day/month offset from today
       var view           = 'week';  // 'agenda' | 'day' | 'week' | 'month'
+      /* calVisibility: keyed by calendarId; missing key = visible; false = hidden.
+       * Driven by inbound scheduleViewState channel (P-B). Do NOT mutate locally. */
+      var calVisibility  = {};
       var selectedId     = null;
       var queryCap       = null;  // schedule.calendar.query@1.0 (bindQuery)
       var cmdCap         = null;  // schedule.calendar@1.0       (bindCommand)
@@ -1721,9 +1724,18 @@
         return { from: from, to: to, label: label };
       }
 
+      /* ── Calendar visibility filter ─────────────────────────────── */
+      /* Returns true if the event's calendar should be shown.          *
+       * A missing calVisibility key means visible (only false = hidden). */
+      function calVisible(ev) {
+        if (!ev.calendarId) return true;
+        return calVisibility[ev.calendarId] !== false;
+      }
+
       /* ── Events for a date ───────────────────────────────────────── */
       function eventsForDay(d) {
         return events.filter(function (ev) {
+          if (!calVisible(ev)) return false;
           var evD = evDate(ev.start, ev.allDay);
           return sameDay(evD, d);
         }).sort(function (a, b) {
@@ -2726,16 +2738,50 @@
       });
 
       /* ── View switcher ───────────────────────────────────────────── */
+      /* Clicks round-trip through ScheduleViewStateService (P-B channel).     *
+       * Do NOT mutate `view` here — the inbound scheduleViewState push drives  *
+       * the actual view change to avoid double-render (O455 mirror pattern).   */
       Array.prototype.forEach.call(elViewSwitch.querySelectorAll('.view-tab'), function (tab) {
         tab.addEventListener('click', function () {
-          if (view === tab.dataset.view) return;
-          view = tab.dataset.view;
-          offset = 0;
-          selectedId = null;
-          elPopover.classList.add('hidden');
-          if (connected) loadEvents(); else renderCalArea();
+          var v = tab.dataset.view;
+          if (view === v) return;
+          if (window.soamView && window.soamView.setScheduleViewState) {
+            window.soamView.setScheduleViewState({ view: v, calVisibility: calVisibility });
+          } else {
+            /* Fallback if bridge verb unavailable: apply locally (graceful degradation). */
+            view = v;
+            offset = 0;
+            selectedId = null;
+            elPopover.classList.add('hidden');
+            if (connected) loadEvents(); else renderCalArea();
+          }
         });
       });
+
+      /* ── Apply inbound scheduleViewState ────────────────────────── */
+      /* Called on init, context, and dedicated scheduleViewState pushes.        *
+       * Drives the active view + calVisibility filter.                          *
+       * A view change resets offset+selection to avoid stale grid state.        */
+      function applyScheduleViewState(state) {
+        if (!state || typeof state.view !== 'string') return;
+        var newView = state.view;
+        var newVis  = state.calVisibility || {};
+        var viewChanged = newView !== view;
+        /* Shallow-compare calVisibility. */
+        var visChanged = JSON.stringify(newVis) !== JSON.stringify(calVisibility);
+        if (!viewChanged && !visChanged) return; // no-op on equal state
+        calVisibility = newVis;
+        if (viewChanged) {
+          view = newView;
+          offset = 0;
+          selectedId = null;
+          if (elPopover) elPopover.classList.add('hidden');
+          if (connected) loadEvents(); else renderCalArea();
+        } else {
+          /* Only visibility changed — re-render without refetching. */
+          renderCalArea();
+        }
+      }
 
       /* ── Bootstrap ───────────────────────────────────────────────── */
       var boot = window.__viewBoot;
@@ -2744,6 +2790,14 @@
         var d = e.data;
         if (!d || d.__soamView !== true) return;
         boot.applyTheme(d);
+        /* Consume scheduleViewState from init + context messages. */
+        if ((d.kind === 'init' || d.kind === 'context') && d.scheduleViewState) {
+          applyScheduleViewState(d.scheduleViewState);
+        }
+        /* Dedicated push from onDidChange. */
+        if (d.kind === 'scheduleViewState' && d.state) {
+          applyScheduleViewState(d.state);
+        }
       });
 
       boot.awaitBridge().then(function (soamView) {

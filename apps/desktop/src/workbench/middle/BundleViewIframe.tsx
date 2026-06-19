@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useService } from '../../platform/services/hooks';
-import { EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ThemeServiceId } from '../../platform/services/ids';
+import { EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
 import { SlotId } from '../../platform/layout/slots';
 import { aspectFocus } from '../../platform/views/aspect-focus';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
+import type { ScheduleViewState } from '../../platform/view-mode/schedule-view-state';
 
 /**
  * Renderer relay for ADR-411 bundle views.
@@ -54,6 +55,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
   const menu = useService(MenuServiceId);
   const maturity = useService(MaturityHighlightServiceId);
   const overviewViewMode = useService(OverviewViewModeServiceId);
+  const scheduleViewState = useService(ScheduleViewStateServiceId);
   const layout = useService(LayoutServiceId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   // Ref so the view.ready handler always sees the latest entityId without re-running main effect.
@@ -127,7 +129,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
         case 'view.ready': {
           viewReadyRef.current = true;
           clearTimeout(readyTimeout);
-          post({ __soamView: true, kind: 'init', theme: appearance(), maturityHighlight: maturity.isEnabled(), overviewViewMode: overviewViewMode.getMode() });
+          post({ __soamView: true, kind: 'init', theme: appearance(), maturityHighlight: maturity.isEnabled(), overviewViewMode: overviewViewMode.getMode(), scheduleViewState: scheduleViewState.getState() });
           if (!activated) {
             activated = true;
             // Include entityId in activate payload so view gets it on first load.
@@ -137,7 +139,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           // Include overviewViewMode here (not just init) because this context message is
           // replayed on DOMContentLoaded by the bridge — large docs whose listener registers
           // after init fires would otherwise silently revert to the default mode.
-          post({ __soamView: true, kind: 'context', entityId: entityIdRef.current ?? null, overviewViewMode: overviewViewMode.getMode() });
+          post({ __soamView: true, kind: 'context', entityId: entityIdRef.current ?? null, overviewViewMode: overviewViewMode.getMode(), scheduleViewState: scheduleViewState.getState() });
           // If a focus request is already pending (e.g. aspects iframe freshly mounted after
           // "Open record" set patient.activeId for the first time), deliver it now.
           if (focusSectionRef.current) {
@@ -243,6 +245,10 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           overviewViewMode.setMode(m.mode as 'dense' | 'focused' | 'timeline');
           break;
         }
+        case 'request.setScheduleViewState': {
+          scheduleViewState.setState(m.state as ScheduleViewState);
+          break;
+        }
         case 'request.setTabDescription': {
           editor.updateTab(instanceId, { description: m.text as string });
           break;
@@ -280,6 +286,9 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
     const offViewMode = overviewViewMode.onDidChange((mode) =>
       requestAnimationFrame(() => post({ __soamView: true, kind: 'overviewViewMode', mode })),
     );
+    const offScheduleViewState = scheduleViewState.onDidChange((state) =>
+      requestAnimationFrame(() => post({ __soamView: true, kind: 'scheduleViewState', state })),
+    );
 
     return () => {
       disposed = true;
@@ -292,12 +301,13 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
       offFont();
       offMaturity();
       offViewMode();
+      offScheduleViewState();
       for (const p of proxyCache.values()) {
         p.then((proxy) => proxy.dispose()).catch(() => undefined);
       }
       proxyCache.clear();
     };
-  }, [resource, instanceId, theme, font, editor, menu, maturity, overviewViewMode, layout, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
+  }, [resource, instanceId, theme, font, editor, menu, maturity, overviewViewMode, scheduleViewState, layout, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
 
   // Separate effect: push context message when entityId changes while mounted.
   // Does NOT trigger re-handshake — only sends a lightweight context update.
