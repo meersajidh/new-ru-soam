@@ -8,7 +8,12 @@ import { createWorkbenchWindow } from './window-factory';
 import { installSoamChannel } from './ipc/soam-channel';
 import { registerPlatformWindow } from './ipc/sender-validate';
 import { shutdownHost } from './fp-host/manager';
-import { installBundleCrashEventBridge, loadAndActivateBundles, resolveBundlesDirectory } from './fp-host/loader';
+import {
+  installBundleCrashEventBridge,
+  loadAndActivateBundles,
+  registerDiscoveredBundles,
+  resolveBundlesDirectory,
+} from './fp-host/loader';
 import { discoverBundles } from './fp-host/manifest';
 import { registerBundleMigrations, registerBundleQueryTemplates } from './fp-host/bundle-schema';
 import { registerViewProtocol } from './fp-host/view-protocol';
@@ -339,6 +344,15 @@ app.whenReady().then(() => {
   // Must come after registerStoreQueryCapability() (already called above)
   // so the template registry module is initialised.
   registerBundleQueryTemplates(discovered);
+
+  // Register routing handlers, views, and manifest contributions for ALL discovered
+  // bundles synchronously, BEFORE window creation — so the renderer's one-shot
+  // `platform.contributions.list` seed always observes the complete snapshot. Must
+  // come after the base capability registrations above (bundle routing handlers may
+  // forward to base caps) and before the window exists (the renderer's IPC seed
+  // races the loader otherwise — empty Activity Bar on slower hosts). Eager
+  // activation itself stays deferred — see loadAndActivateBundles below.
+  registerDiscoveredBundles(discovered);
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);

@@ -91,7 +91,35 @@ export interface LoaderResult {
 }
 
 /**
- * Load, wire, and eagerly-activate bundles from the pre-discovered list.
+ * Synchronously register every discovered bundle's routing handlers, view
+ * protocol entries, and manifest contributions (activityBar items, view
+ * containers, commands, menus, keybindings) into the Main-side registries.
+ *
+ * MUST run before the renderer issues its one-shot `platform.contributions.list`
+ * seed (boot.ts `reseedContributions`) AND before window creation — otherwise the
+ * snapshot can be read mid-population and the Activity Bar renders empty. This was
+ * a Windows-only race: registration used to live inside `loadAndActivateBundles`,
+ * which is fired deferred and `await`s the first eager activation mid-loop, so
+ * lazy domain bundles (practice/schedule/sessions) registered only after that
+ * await yielded — the renderer's IPC seed could win the race on slower hosts.
+ *
+ * Pure registry population: no bundle code runs here (that is activation). Idempotent
+ * per boot — call exactly once. Keep this prior to and separate from
+ * `loadAndActivateBundles`, which now performs eager activation ONLY.
+ */
+export function registerDiscoveredBundles(discovered: ReadonlyArray<DiscoveredBundle>): void {
+  for (const bundle of discovered) {
+    registerRoutingHandlers(bundle);
+    registerBundleViews(bundle);
+    registerBundleContributions(bundle.manifest.id, bundle.manifest.contributes);
+  }
+}
+
+/**
+ * Eagerly-activate bundles from the pre-discovered list. Routing handlers, views,
+ * and contributions are registered separately and earlier by
+ * `registerDiscoveredBundles` — this function only runs bundle activation code for
+ * `eager` bundles (lazy bundles activate on first capability invocation).
  *
  * Accepts the already-discovered bundle list from the caller (index.ts) so that
  * the same list is shared between the migration step (`registerBundleMigrations`),
@@ -112,10 +140,6 @@ export async function loadAndActivateBundles(
   const failed: { bundleId: string; reason: string }[] = [];
 
   for (const bundle of discovered) {
-    registerRoutingHandlers(bundle);
-    registerBundleViews(bundle);
-    registerBundleContributions(bundle.manifest.id, bundle.manifest.contributes);
-
     if (!bundle.manifest.activationEvents.includes('eager')) continue;
 
     try {
