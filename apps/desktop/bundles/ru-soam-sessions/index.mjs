@@ -57,8 +57,11 @@ export function activate(ctx) {
   const storeQuery = ctx.bindCapability('store.query', '1.0');
   // Bind store.write@1.0 — FP-Host consumer channel.
   const storeWrite = ctx.bindCapability('store.write', '1.0');
-  // Bind schedule.calendar.query@1.0 — cross-bundle, pull calendar events.
+  // Bind schedule.calendar.query@1.0 — cross-bundle, pull calendar events from cache.
   const calendarQuery = ctx.bindCapability('schedule.calendar.query', '1.0');
+  // Bind schedule.calendar@1.0 — cross-bundle command cap; used to freshen event cache
+  // before reading listAggregatedEvents (ADR-507 Am2 ordering constraint).
+  const calendarCommand = ctx.bindCapability('schedule.calendar', '1.0');
   // Bind record.patient.query@1.0 — cross-bundle, participant resolution.
   const recordPatientQuery = ctx.bindCapability('record.patient.query', '1.0');
 
@@ -446,8 +449,18 @@ export function activate(ctx) {
         const from = new Date(fromMs).toISOString();
         const to = new Date(toMs).toISOString();
 
-        // Use listAggregatedEvents — covers all selected calendars across all accounts.
-        // Events carry externalAccountId + providerCalendarId (stamped by slice 2 index.mjs).
+        // ADR-507 Am2 ordering constraint: freshen the schedule event cache BEFORE
+        // reading listAggregatedEvents (which now reads from the event table, not live Google).
+        // If syncEvents fails (offline / error) — fall through to read whatever is cached.
+        // Non-fatal: eventual consistency is acceptable here.
+        try {
+          await calendarCommand.call('syncEvents', []);
+        } catch (_syncErr) {
+          // Offline or transient error — proceed with cached events.
+        }
+
+        // Use listAggregatedEvents (now reads event cache) — selected calendars across all accounts.
+        // Events carry externalAccountId + providerCalendarId (from cache rows).
         let events;
         try {
           events = await calendarQuery.call('listAggregatedEvents', [from, to]);
@@ -634,6 +647,7 @@ export function activate(ctx) {
       storeQuery.dispose();
       storeWrite.dispose();
       calendarQuery.dispose();
+      calendarCommand.dispose();
       recordPatientQuery.dispose();
     },
   };

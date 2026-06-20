@@ -13,12 +13,17 @@
     { "id": "schedule", "path": "schedule.html" },
     { "id": "calendar-setup", "path": "calendar-setup.html" }
   ],
-  "ownedTables": ["provider_account", "calendar"],
+  "ownedTables": ["provider_account", "calendar", "event"],
   "migrations": [
     {
       "version": 1,
       "description": "Schedule: provider_account + calendar tables (ADR-507 Am1, ADR-314)",
       "sql": "CREATE TABLE IF NOT EXISTS provider_account (\n  id                   TEXT PRIMARY KEY,\n  provider_type        TEXT NOT NULL,\n  external_account_id  TEXT NOT NULL,\n  email                TEXT,\n  display_name         TEXT,\n  connection_state     TEXT NOT NULL DEFAULT 'connected',\n  created_at           INTEGER,\n  updated_at           INTEGER,\n  UNIQUE (provider_type, external_account_id)\n);\nCREATE TABLE IF NOT EXISTS calendar (\n  id                   TEXT PRIMARY KEY,\n  account_id           TEXT NOT NULL,\n  provider_calendar_id TEXT NOT NULL,\n  display_name         TEXT NOT NULL,\n  color                TEXT NOT NULL,\n  is_primary           INTEGER,\n  read_only            INTEGER,\n  selected             INTEGER NOT NULL DEFAULT 1,\n  added_at             INTEGER,\n  created_at           INTEGER,\n  updated_at           INTEGER,\n  UNIQUE (account_id, provider_calendar_id)\n);\nCREATE INDEX IF NOT EXISTS idx_calendar_account  ON calendar(account_id);\nCREATE INDEX IF NOT EXISTS idx_calendar_selected ON calendar(selected);"
+    },
+    {
+      "version": 2,
+      "description": "Schedule: event cache table + sync-bookkeeping cols on calendar (ADR-507 Am2, O495)",
+      "sql": "CREATE TABLE IF NOT EXISTS event (\n  id                   TEXT PRIMARY KEY,\n  account_id           TEXT NOT NULL,\n  calendar_id          TEXT NOT NULL,\n  external_account_id  TEXT NOT NULL,\n  provider_calendar_id TEXT NOT NULL,\n  provider_event_id    TEXT NOT NULL,\n  title                TEXT NOT NULL,\n  start                TEXT NOT NULL,\n  end                  TEXT,\n  all_day              INTEGER NOT NULL DEFAULT 0,\n  location             TEXT,\n  meeting_link         TEXT,\n  organizer_email      TEXT,\n  organizer_name       TEXT,\n  organizer_self       INTEGER,\n  attendees            TEXT,\n  status               TEXT,\n  updated_at           INTEGER,\n  synced_at            INTEGER NOT NULL,\n  UNIQUE (external_account_id, provider_calendar_id, provider_event_id)\n);\nCREATE INDEX IF NOT EXISTS idx_event_calendar_start ON event(calendar_id, start);\nCREATE INDEX IF NOT EXISTS idx_event_window ON event(external_account_id, provider_calendar_id, start);\nALTER TABLE calendar ADD COLUMN sync_token TEXT;\nALTER TABLE calendar ADD COLUMN last_synced_at INTEGER;\nALTER TABLE calendar ADD COLUMN sync_status TEXT;\nALTER TABLE calendar ADD COLUMN sync_window_min INTEGER NOT NULL DEFAULT 7776000000;"
     }
   ],
   "queryTemplates": [
@@ -36,19 +41,31 @@
     },
     {
       "id": "calendar.list",
-      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at FROM calendar ORDER BY added_at ASC"
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min FROM calendar ORDER BY added_at ASC"
     },
     {
       "id": "calendar.getById",
-      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at FROM calendar WHERE id = @id"
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min FROM calendar WHERE id = @id"
     },
     {
       "id": "calendar.listSelected",
-      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at FROM calendar WHERE selected = 1 ORDER BY added_at ASC"
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min FROM calendar WHERE selected = 1 ORDER BY added_at ASC"
     },
     {
       "id": "calendar.listForAccount",
-      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at FROM calendar WHERE account_id = @accountId ORDER BY added_at ASC"
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min FROM calendar WHERE account_id = @accountId ORDER BY added_at ASC"
+    },
+    {
+      "id": "event.listForWindow",
+      "sql": "SELECT e.id, e.account_id, e.calendar_id, e.external_account_id, e.provider_calendar_id, e.provider_event_id, e.title, e.start, e.end, e.all_day, e.location, e.meeting_link, e.organizer_email, e.organizer_name, e.organizer_self, e.attendees, e.status, e.updated_at, e.synced_at, c.color AS calendar_color, c.display_name AS calendar_display_name FROM event e JOIN calendar c ON c.id = e.calendar_id WHERE e.start >= @from AND e.start < @to ORDER BY e.start ASC"
+    },
+    {
+      "id": "event.listForWindowFiltered",
+      "sql": "SELECT e.id, e.account_id, e.calendar_id, e.external_account_id, e.provider_calendar_id, e.provider_event_id, e.title, e.start, e.end, e.all_day, e.location, e.meeting_link, e.organizer_email, e.organizer_name, e.organizer_self, e.attendees, e.status, e.updated_at, e.synced_at, c.color AS calendar_color, c.display_name AS calendar_display_name FROM event e JOIN calendar c ON c.id = e.calendar_id WHERE e.start >= @from AND e.start < @to AND c.selected = 1 ORDER BY e.start ASC"
+    },
+    {
+      "id": "event.getSyncToken",
+      "sql": "SELECT id, sync_token, last_synced_at, sync_status, sync_window_min FROM calendar WHERE id = @calendarId"
     }
   ],
   "dependencies": {

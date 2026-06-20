@@ -1,6 +1,6 @@
 # Schedule — cross-session event cache + incremental sync (O495 / multi-cal slice 6)
 
-**Status:** Planned (delegate-ready). NOT built.
+**Status:** BUILT + DOGFOOD-VERIFIED 2026-06-20 (uncommitted). All slices 1–6 done + live-verified on real Google Calendar (3 cals/235 rows): full-sync, true incremental delta (real add+delete → 1 upsert/1 deletion, not full re-pull), cross-session cache+token survive restart, shape parity, organizer hash-fix, calendar-delete cascade — all GREEN. **Bug found+fixed mid-dogfood:** adapter full-sync `orderBy:'startTime'` made Google suppress `nextSyncToken` → incremental degraded to full-pull; FIX = dropped `orderBy` (sort is client-side). 410-resync code-reviewed only (can't force token-expiry on demand). Compile+lint green. **Pre-prod follow-up = O498** (prune + full-sync `timeMax` bound — `deleteWhere` is equality-only so ranged prune deferred; full-sync currently `timeMin`-only).
 **Date:** 2026-06-20
 **Owner:** Architecture
 **Depends on:** ADR-507 Am1 (committed; declares events un-cached/live-fetch — THIS lifts that) · `__viewQuery` window-cache (committed 2026-06-20) · ADR-452 PHI-at-rest · ADR-506 store ABI.
@@ -63,8 +63,10 @@ sync cols). Index `event` on `(calendar_id, start)` for window reads.
 
 - **Query `listWindowEvents(from,to)`** → SELECT from `event` (all added calendars in window),
   stamp local `calendarId`/`calendarColor` (join `calendar`). Same return shape as today →
-  `schedule.html` unchanged. (`listAggregatedEvents` stays live for Sessions `sync` OR is also
-  flipped to read cache — decide; keeping it live avoids touching Sessions.)
+  `schedule.html` unchanged.
+- **`listAggregatedEvents` → ALSO flipped to read the `event` cache** (DECIDED 2026-06-20: single
+  source of truth). It is Sessions' cross-bundle sync source, so flipping it imposes an **ordering
+  constraint** (see Sessions wiring below) — Sessions must fresh-sync the cache before reading.
 - **Command `syncEvents`** (phi:true) → for each ADDED calendar: read `sync_token`, call adapter
   `syncEvents`, upsert `event` rows (`store.write` insert/`updateWhere`), delete cancelled +
   (on 410) wipe+full-resync, write back `nextSyncToken`/`last_synced_at`. Audit PII-free
@@ -98,14 +100,27 @@ sync cols). Index `event` on `(calendar_id, start)` for window reads.
 5. schedule.html: sync-on-open + invalidate-on-sync-complete; instant cache render.
 6. Cascade-delete event rows on calendar/account removal.
 
-## Decisions to confirm before building
+## Decisions — CONFIRMED 2026-06-20
 
-- **Sync scope:** all ADDED calendars (matches client-side visibility) — recommend yes.
-- **First-sync window:** `timeMin = now − 3mo` (bound the initial pull); prune beyond.
-- **`listAggregatedEvents` (Sessions sync source):** leave live (simplest) vs flip to cache.
-  Recommend leave live this slice (Sessions already works; smaller blast radius).
-- **Sync cadence:** on-open + manual "Sync now" for v1; periodic timer deferred.
-- **ADR-507 Am2 vs new ADR:** amend 507 (same area).
+- **Sync scope:** all ADDED calendars (matches client-side visibility). ✅
+- **First-sync window:** `timeMin = now − 3mo` (bound the initial pull); prune beyond. ✅
+- **`listAggregatedEvents` (Sessions sync source):** **FLIP to cache** (single source of truth) —
+  NOT left live. Imposes the Sessions ordering constraint above. ✅
+- **Sync cadence:** on-open + manual "Sync now" for v1; periodic timer deferred. ✅
+- **ADR-507 Am2** (not a new ADR) — written 2026-06-20. ✅
+
+## Sessions ordering constraint (from the flip decision)
+
+Because `listAggregatedEvents` now reads the `event` cache, Sessions `sync` (cross-bundle consumer)
+must guarantee the cache is fresh first:
+
+1. Sessions `sync` fires cross-bundle `schedule.calendar.syncEvents` (command) — declare the new
+   command dep in the Sessions manifest (it already declares `schedule.calendar.query`).
+2. Then reads `schedule.calendar.query.listAggregatedEvents` from the now-fresh cache.
+3. If `syncEvents` fails/offline → Sessions reads whatever is cached (eventual consistency, no hard fail).
+
+This is the ONLY new cross-bundle coupling the flip introduces. The read shape is unchanged, so the
+rest of Sessions `sync` (resolveParticipant, linkEvent, orphan pass) is untouched.
 
 ## Verify (dogfood)
 

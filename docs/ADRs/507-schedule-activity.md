@@ -231,3 +231,50 @@ link-key qualification), **O494** (`provider_account` / `calendar` tables + acco
 revised CQRS caps — the Schedule data slice), **O495** (event live-fetch aggregation + in-memory
 overlay across selected calendars), **O491** (nav classifications section: counts + filter — the
 cross-bundle classify lift, from the P-B trim).
+
+## Amendment 2 — Schedule owns a cross-session event cache + incremental sync (O495 slice 6) — 2026-06-20
+
+**Status:** Draft. **Context:** Am1's in-memory live-fetch (the `__viewQuery` window-cache, committed
+2026-06-20) is **in-session only** — every launch / iframe remount is a cold Google pull of the whole
+window. This amendment **reverses A1.1's "events remain un-cached"** and authorises a persistent local
+event cache so launch renders instantly from disk and sync is incremental (provider delta tokens).
+Delegate-ready design: [`docs/Activities/schedule/event-cache-plan.md`](../Activities/schedule/event-cache-plan.md).
+
+**A2.1 — Reverses A1.1 "events un-cached."** Schedule now owns a third `protected` table, **`event`**,
+as part of the same ADR-506 FP-Host domain module. Residency `protected` because event titles /
+attendees / locations are PHI (same conservative stance as `calendar`). The `provider`/`calendar`
+rows stay the master *handles*; `event` rows are a **read-only cache of provider truth**, keyed
+`UNIQUE(external_account_id, provider_calendar_id, provider_event_id)` (mirrors ADR-508 Am1 / O493).
+Sync bookkeeping (`sync_token`, `last_synced_at`, `sync_status`, `sync_window_min`) lives on the
+`calendar` row (or a `calendar_sync` adjunct).
+
+**A2.2 — No LWW (O23 stays closed).** Schedule is **read-only** (provider authoritative; write-back is
+the later ADR-313 ramp). Sync is therefore a **pure upsert of provider truth** — there is no local
+write to conflict, so no last-writer-wins / merge. Cancelled provider events → row delete.
+Field-partitioning (ADR-508) still governs only the *Sessions* link, never the `event` cache.
+This is the narrow condition under which a local event cache does NOT re-open O23, contra A1.1's
+parenthetical — the bar is read-only, and we are still read-only.
+
+**A2.3 — Port gains `syncEvents`.** The account-aware `CalendarProvider` port (A1.2) adds
+`syncEvents(externalAccountId, providerCalendarId, { syncToken?, timeMin? }) → { upserts[], deletions[],
+nextSyncToken }`. No token ⇒ full list bounded by `timeMin` (v1: `now − 3mo`), page through, capture
+`nextSyncToken`. With token ⇒ incremental; provider `410 Gone` ⇒ clear token + full-resync.
+
+**A2.4 — Read path flips to the cache, including Sessions.** The query `listWindowEvents(from,to)` and
+`listAggregatedEvents` (Sessions' cross-bundle sync source) both **read the `event` table** instead of
+live Google (decided 2026-06-20: single source of truth, fewer Google calls). **Consequence /
+ordering constraint:** Sessions `sync` must ensure the cache is fresh before it reads — it fires the
+cross-bundle `schedule.calendar.syncEvents` command *before* consuming `listAggregatedEvents` (Sessions
+already does host→host cross-bundle calls; add the dep). The live-Google reach now exists ONLY inside
+`syncEvents`.
+
+**A2.5 — Cache lifecycle / erase.** Calendar delete / account disconnect / `deleteAccount` cascade-delete
+the calendar's `event` rows (`deleteWhere({calendar_id})` / by `external_account_id`) — this is the PHI
+cleanup path for cached titles. `event` carries no `patient_id` (client linking is Sessions' layer) so
+roster-erase (O490) is unaffected. Sync prunes events older than the rolling `sync_window_min`.
+
+**A2.6 — Cadence.** v1 = sync on activity open + manual "Sync now". Periodic background timer deferred.
+
+**New Open Items:** **O495** flips from "live-fetch aggregation" to **partially built** — in-session
+window-cache done (committed 2026-06-20), this persistent-cache half is the remaining work (slices 2–6
+of the plan doc).

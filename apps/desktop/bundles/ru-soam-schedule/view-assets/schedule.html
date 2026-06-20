@@ -2895,6 +2895,26 @@
         });
       }
 
+      /* ── Background sync (slice 6) ──────────────────────────────────── */
+      /* Fire syncEvents non-blocking after first paint from cache.
+       * If sync produces changes (upserts or deletions > 0), invalidate the
+       * window-events cache so the view refetches and repaints from the updated DB.
+       * Safe to call multiple times — each call is independent; stale calls ignored. */
+      function triggerBackgroundSync() {
+        if (!cmdCap) return;
+        cmdCap.call('syncEvents', [])
+          .then(function (result) {
+            if (!result) return;
+            var changed = (result.upserts > 0 || result.deletions > 0);
+            if (changed && window.__viewQuery) {
+              window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
+            }
+          })
+          .catch(function () {
+            /* Sync failure is non-fatal — cached events remain visible. */
+          });
+      }
+
       /* ── Connect / disconnect ─────────────────────────────────────── */
       function doConnect() {
         if (!cmdCap || connecting) return;
@@ -2907,6 +2927,8 @@
             if (result && result.ok) {
               connected = true;
               loadEvents();
+              /* After connecting, do an initial full sync to populate the cache. */
+              triggerBackgroundSync();
             } else {
               loadError = 'Connection failed: ' + ((result && result.error) || 'Unknown error');
               renderCalArea();
@@ -3016,8 +3038,11 @@
                  * calendar set. INVALIDATE (not destroy+reload): the live observer
                  * refetches the same window key with the updated calendar.list. A plain
                  * destroy+loadEvents would re-subscribe to the still-fresh cached query
-                 * and miss the new calendar's events until staleTime expired. */
+                 * and miss the new calendar's events until staleTime expired.
+                 * Slice 6: also trigger a background sync so the newly-added calendar's
+                 * events are populated into the event cache; invalidate again on completion. */
                 window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
+                triggerBackgroundSync();
               } else if (diff.visibilityChanged) {
                 /* Selected flags changed only — instant client-side re-render. */
                 renderCalArea();
@@ -3095,8 +3120,21 @@
                 if (connected && !wasConnected) {
                   /* Wait for visibility seed before first loadEvents so the initial
                    * render has correct _calVisibility (best-effort; catch is no-op). */
-                  visibilitySeedDone.then(function () { loadEvents(); }).catch(function () { loadEvents(); });
-                } else if (!connected) {
+                  visibilitySeedDone.then(function () {
+                    loadEvents();
+                    /* Slice 6: trigger background sync AFTER first paint from cache.
+                     * loadEvents now reads from the event table instantly; sync
+                     * refreshes the cache in the background and invalidates on changes. */
+                    triggerBackgroundSync();
+                  }).catch(function () {
+                    loadEvents();
+                    triggerBackgroundSync();
+                  });
+                } else if (connected) {
+                  /* Already was connected (re-activate) — paint from cache then re-sync. */
+                  loadEvents();
+                  triggerBackgroundSync();
+                } else {
                   renderCalArea();
                 }
               })

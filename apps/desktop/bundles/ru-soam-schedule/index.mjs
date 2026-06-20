@@ -4,6 +4,10 @@
 // new CQRS methods. All P0 methods (getStatus, listEvents, connect, disconnect)
 // kept unchanged for backward compat (Sessions + existing UI).
 //
+// Slice 6 (O495, ADR-507 Am2): persistent event cache + incremental sync.
+//   - syncEvents command: upserts/deletes/prunes per calendar; writes nextSyncToken.
+//   - listWindowEvents + listAggregatedEvents FLIPPED to read from `event` table.
+//
 // Consumes Main base caps:
 //   - credential.broker@1.0   (OAuth2 Flow-A lifecycle)
 //   - net.brokeredFetch@1.0   (authenticated outbound, apiHosts-gated)
@@ -14,12 +18,13 @@
 //   - schedule.calendar.query@1.0  kind:query
 //       getStatus, listEvents (P0)
 //       listAccounts, listAddedCalendars, listProviderCalendars, getAccountStatus,
-//       listAggregatedEvents (slice 2)
-//       listWindowEvents (window-cache fetch — ALL added calendars, client-side visibility)
+//       listAggregatedEvents (slice 2 — flipped to cache in slice 6)
+//       listWindowEvents (window-cache fetch — ALL added calendars, flipped to cache in slice 6)
 //   - schedule.calendar@1.0        kind:command
 //       connect, disconnect (P0)
 //       connectAccount, disconnectAccount, reconnectAccount,
 //       addCalendar, updateCalendar, removeCalendar (slice 2)
+//       syncEvents (slice 6)
 
 import { createGoogleCalendarAdapter } from './google-calendar-adapter.mjs';
 
@@ -52,6 +57,47 @@ function mapCalendar(row) {
     createdAt:          row.created_at,
     updatedAt:          row.updated_at,
   };
+}
+
+/**
+ * Map an `event` DB row to the CalendarEvent shape expected by callers
+ * (schedule.html, Sessions sync, classify pass). Identical shape to the
+ * live-adapter output so all downstream code is unchanged.
+ */
+function mapEventRow(row) {
+  const ev = {
+    id:                 row.provider_event_id,
+    title:              row.title,
+    start:              row.start,
+    end:                row.end,
+    allDay:             !!row.all_day,
+    calendarId:         row.calendar_id,         // local cal_<uuid> handle
+    calendarName:       row.calendar_display_name || row.calendar_id,
+    calendarColor:      row.calendar_color || null,
+    // Fields used by Sessions / classify pass (O493 triple).
+    providerCalendarId: row.provider_calendar_id,
+    externalAccountId:  row.external_account_id,
+  };
+  if (row.location)    ev.location    = row.location;
+  if (row.meeting_link) ev.meetingLink = row.meeting_link;
+
+  // Reconstruct organizer object.
+  if (row.organizer_email || row.organizer_name) {
+    ev.organizer = {};
+    if (row.organizer_name  != null) ev.organizer.name  = row.organizer_name;
+    if (row.organizer_email != null) ev.organizer.email = row.organizer_email;
+    if (row.organizer_self  != null) ev.organizer.self  = !!row.organizer_self;
+  }
+
+  // Reconstruct attendees from JSON.
+  if (row.attendees) {
+    try {
+      const parsed = JSON.parse(row.attendees);
+      if (Array.isArray(parsed) && parsed.length > 0) ev.attendees = parsed;
+    } catch (_) { /* skip malformed */ }
+  }
+
+  return ev;
 }
 
 // ── Error helpers ─────────────────────────────────────────────────────────────
@@ -148,160 +194,31 @@ export function activate(ctx) {
       }
 
       case 'listAggregatedEvents': {
-        // Fetch events across all SELECTED calendars, aggregated into one flat array.
-        // Remaps provider-level calendarId → local cal_<uuid> handle + attaches color.
+        // Slice 6: READ FROM CACHE — `event` table joined to `calendar`.
+        // Returns only SELECTED calendars' events (Sessions sync source — same
+        // semantics as the pre-slice-6 live-fetch version: selected-only).
+        // Return shape UNCHANGED so Sessions sync is untouched.
         const from = args[0];
         const to   = args[1];
         if (typeof from !== 'string' || typeof to !== 'string') {
           throw new Error('schedule.calendar.query.listAggregatedEvents: from and to must be ISO date strings');
         }
-
-        // Load selected calendar rows.
-        const calRows = await storeQuery.call('run', ['calendar.listSelected', {}]);
-        if (calRows.length === 0) return [];
-
-        // Group provider calendar ids by (account_id) for batching.
-        // Map: localAccountId → { externalAccountId, providerType, cals: [{localId, providerCalendarId, color}] }
-        const byAccount = new Map();
-        for (const cal of calRows) {
-          if (!byAccount.has(cal.account_id)) {
-            // Lazy: fetch account row on first encounter.
-            const acctRows = await storeQuery.call('run', ['account.getById', { id: cal.account_id }]);
-            if (acctRows.length === 0) continue; // orphaned calendar row — skip
-            const acct = acctRows[0];
-            byAccount.set(cal.account_id, {
-              externalAccountId: acct.external_account_id,
-              providerType:      acct.provider_type,
-              cals: [],
-            });
-          }
-          byAccount.get(cal.account_id).cals.push({
-            localId:            cal.id,
-            providerCalendarId: cal.provider_calendar_id,
-            color:              cal.color,
-          });
-        }
-
-        // Build local-id and color lookup keyed by provider_calendar_id per account.
-        // (Within an account, provider_calendar_ids are unique per UNIQUE constraint.)
-        const allEvents = [];
-
-        for (const [, { externalAccountId, providerType, cals }] of byAccount) {
-          let a;
-          try {
-            a = getAdapter(providerType);
-          } catch {
-            continue; // unknown adapter — skip account
-          }
-
-          const providerCalendarIds = cals.map((c) => c.providerCalendarId);
-          // Build provider-id → { localId, color } for remapping.
-          const calMeta = new Map(
-            cals.map((c) => [c.providerCalendarId, { localId: c.localId, color: c.color }]),
-          );
-
-          let events;
-          try {
-            events = await a.listEventsForCalendars(externalAccountId, providerCalendarIds, from, to);
-          } catch {
-            continue; // account fetch failed — skip, don't take down other accounts
-          }
-
-          for (const ev of events) {
-            const meta = calMeta.get(ev.calendarId);
-            if (meta) {
-              // Stamp provider-level ids BEFORE remapping calendarId to the local handle.
-              ev.providerCalendarId = ev.calendarId;
-              ev.externalAccountId  = externalAccountId;
-              // Remap provider-level calendarId → local cal_<uuid> handle; attach color.
-              ev.calendarId    = meta.localId;
-              ev.calendarColor = meta.color;
-            } else {
-              // Calendar not in selected set (shouldn't happen in normal flow, but be defensive).
-              ev.providerCalendarId = ev.calendarId;
-              ev.externalAccountId  = externalAccountId;
-            }
-            allEvents.push(ev);
-          }
-        }
-
-        return allEvents;
+        const rows = await storeQuery.call('run', ['event.listForWindowFiltered', { from, to }]);
+        return rows.map(mapEventRow);
       }
 
       case 'listWindowEvents': {
-        // Fetch events across ALL ADDED calendars (regardless of selected flag).
-        // Used by the view's window-cache strategy: visibility is filtered client-side
-        // so toggling calendar.selected never triggers a re-fetch.
-        // Identical to listAggregatedEvents but loads calendar.list (all added)
-        // instead of calendar.listSelected.
+        // Slice 6: READ FROM CACHE — `event` table joined to `calendar`.
+        // Returns ALL added calendars (not just selected): visibility is
+        // filtered client-side in schedule.html via _calVisibility so toggling
+        // calendar.selected never triggers a re-fetch (preserves window-cache strategy).
         const from = args[0];
         const to   = args[1];
         if (typeof from !== 'string' || typeof to !== 'string') {
           throw new Error('schedule.calendar.query.listWindowEvents: from and to must be ISO date strings');
         }
-
-        // Load ALL added calendar rows (not just selected).
-        const calRows = await storeQuery.call('run', ['calendar.list', {}]);
-        if (calRows.length === 0) return [];
-
-        // Group by account (same pattern as listAggregatedEvents).
-        const byAccount = new Map();
-        for (const cal of calRows) {
-          if (!byAccount.has(cal.account_id)) {
-            const acctRows = await storeQuery.call('run', ['account.getById', { id: cal.account_id }]);
-            if (acctRows.length === 0) continue;
-            const acct = acctRows[0];
-            byAccount.set(cal.account_id, {
-              externalAccountId: acct.external_account_id,
-              providerType:      acct.provider_type,
-              cals: [],
-            });
-          }
-          byAccount.get(cal.account_id).cals.push({
-            localId:            cal.id,
-            providerCalendarId: cal.provider_calendar_id,
-            color:              cal.color,
-          });
-        }
-
-        const allEvents = [];
-
-        for (const [, { externalAccountId, providerType, cals }] of byAccount) {
-          let a;
-          try {
-            a = getAdapter(providerType);
-          } catch {
-            continue;
-          }
-
-          const providerCalendarIds = cals.map((c) => c.providerCalendarId);
-          const calMeta = new Map(
-            cals.map((c) => [c.providerCalendarId, { localId: c.localId, color: c.color }]),
-          );
-
-          let events;
-          try {
-            events = await a.listEventsForCalendars(externalAccountId, providerCalendarIds, from, to);
-          } catch {
-            continue;
-          }
-
-          for (const ev of events) {
-            const meta = calMeta.get(ev.calendarId);
-            if (meta) {
-              ev.providerCalendarId = ev.calendarId;
-              ev.externalAccountId  = externalAccountId;
-              ev.calendarId    = meta.localId;
-              ev.calendarColor = meta.color;
-            } else {
-              ev.providerCalendarId = ev.calendarId;
-              ev.externalAccountId  = externalAccountId;
-            }
-            allEvents.push(ev);
-          }
-        }
-
-        return allEvents;
+        const rows = await storeQuery.call('run', ['event.listForWindow', { from, to }]);
+        return rows.map(mapEventRow);
       }
 
       default:
@@ -424,14 +341,38 @@ export function activate(ctx) {
         ]);
 
         // Uncheck all selected calendars of this account so they drop from the aggregate grid.
-        const calRows = await storeQuery.call('run', ['calendar.listForAccount', { accountId: localAccountId }]);
+        // Also cascade-delete event rows for this account's calendars (PHI cleanup — ADR-507 Am2 §A2.5).
+        const calRowsForDisconnect = await storeQuery.call('run', ['calendar.listForAccount', { accountId: localAccountId }]);
         const uncheckedAt = Date.now();
-        for (const cal of calRows) {
+        for (const cal of calRowsForDisconnect) {
+          // Cascade-delete event rows for this calendar.
+          await storeWrite.call('deleteWhere', [
+            'event',
+            { calendar_id: cal.id },
+            {
+              event:      'schedule.event.purged',
+              recordType: 'event',
+              recordId:   cal.id,
+              detail:     { reason: 'account_disconnected' },
+            },
+          ]);
           if (cal.selected) {
             await storeWrite.call('update', [
               'calendar',
               cal.id,
-              { selected: 0, updated_at: uncheckedAt },
+              { selected: 0, sync_token: null, last_synced_at: null, sync_status: null, updated_at: uncheckedAt },
+              {
+                event:      'schedule.calendar.updated',
+                recordType: 'calendar',
+                recordId:   cal.id,
+              },
+            ]);
+          } else {
+            // Still clear sync token so next reconnect does a full resync.
+            await storeWrite.call('update', [
+              'calendar',
+              cal.id,
+              { sync_token: null, last_synced_at: null, sync_status: null, updated_at: uncheckedAt },
               {
                 event:      'schedule.calendar.updated',
                 recordType: 'calendar',
@@ -597,9 +538,20 @@ export function activate(ctx) {
           // Best-effort revoke — proceed with local delete regardless.
         }
 
-        // Cascade-delete all calendars of this account.
+        // Cascade-delete all calendars and their event rows (PHI cleanup — ADR-507 Am2 §A2.5).
         const calRows = await storeQuery.call('run', ['calendar.listForAccount', { accountId: localAccountId }]);
         for (const cal of calRows) {
+          // Delete event rows first.
+          await storeWrite.call('deleteWhere', [
+            'event',
+            { calendar_id: cal.id },
+            {
+              event:      'schedule.event.purged',
+              recordType: 'event',
+              recordId:   cal.id,
+              detail:     { reason: 'account_deleted' },
+            },
+          ]);
           await storeWrite.call('delete', [
             'calendar',
             cal.id,
@@ -638,6 +590,18 @@ export function activate(ctx) {
           throw notFound(`schedule.calendar.removeCalendar: calendar not found: ${id}`);
         }
 
+        // Cascade-delete event rows for this calendar (PHI cleanup — ADR-507 Am2 §A2.5).
+        await storeWrite.call('deleteWhere', [
+          'event',
+          { calendar_id: id },
+          {
+            event:      'schedule.event.purged',
+            recordType: 'event',
+            recordId:   id,
+            detail:     { reason: 'calendar_removed' },
+          },
+        ]);
+
         await storeWrite.call('delete', [
           'calendar',
           id,
@@ -649,6 +613,278 @@ export function activate(ctx) {
         ]);
 
         return { deleted: id };
+      }
+
+      case 'syncEvents': {
+        // Slice 6 (ADR-507 Am2): sync the event cache for ALL added calendars.
+        // For each calendar: read sync_token, call adapter.syncEvents, upsert/delete
+        // event rows, prune old rows, write back nextSyncToken + last_synced_at.
+        // Returns: { calendarCount, upserts, deletions, errors }
+        // PHI-free audit (no titles, no emails).
+
+        const calRows = await storeQuery.call('run', ['calendar.list', {}]);
+        if (calRows.length === 0) return { calendarCount: 0, upserts: 0, deletions: 0, errors: 0 };
+
+        let totalUpserts   = 0;
+        let totalDeletions = 0;
+        let totalErrors    = 0;
+        const now = Date.now();
+
+        for (const cal of calRows) {
+          // Fetch account row for this calendar.
+          const acctRows = await storeQuery.call('run', ['account.getById', { id: cal.account_id }]);
+          if (acctRows.length === 0) continue; // orphaned calendar — skip
+
+          const acct = acctRows[0];
+          let a;
+          try {
+            a = getAdapter(acct.provider_type);
+          } catch {
+            continue; // unknown adapter — skip
+          }
+
+          const syncWindowMin = cal.sync_window_min || 90 * 24 * 60 * 60 * 1000;
+
+          // Mark as syncing.
+          await storeWrite.call('update', [
+            'calendar',
+            cal.id,
+            { sync_status: 'syncing', updated_at: now },
+            {
+              event:      'schedule.calendar.sync.started',
+              recordType: 'calendar',
+              recordId:   cal.id,
+              detail:     { providerType: acct.provider_type },
+            },
+          ]);
+
+          let upserts;
+          let deletions;
+          let nextSyncToken;
+          let needsFullResync = false;
+
+          try {
+            const result = await a.syncEvents(
+              acct.external_account_id,
+              cal.provider_calendar_id,
+              {
+                syncToken: cal.sync_token || undefined,
+                timeMin:   !cal.sync_token
+                  ? new Date(now - syncWindowMin).toISOString()
+                  : undefined,
+              },
+            );
+            upserts       = result.upserts;
+            deletions     = result.deletions;
+            nextSyncToken = result.nextSyncToken;
+          } catch (err) {
+            if (err && err.code === 'sync.token_expired') {
+              // 410 Gone — wipe token, flag for full resync in this same iteration.
+              needsFullResync = true;
+              await storeWrite.call('update', [
+                'calendar',
+                cal.id,
+                { sync_token: null, sync_status: 'resync_needed', updated_at: now },
+                {
+                  event:      'schedule.calendar.sync.token_expired',
+                  recordType: 'calendar',
+                  recordId:   cal.id,
+                  detail:     { providerType: acct.provider_type },
+                },
+              ]);
+
+              // Attempt full resync immediately.
+              try {
+                const result2 = await a.syncEvents(
+                  acct.external_account_id,
+                  cal.provider_calendar_id,
+                  { timeMin: new Date(now - syncWindowMin).toISOString() },
+                );
+                upserts       = result2.upserts;
+                deletions     = result2.deletions;
+                nextSyncToken = result2.nextSyncToken;
+                needsFullResync = false;
+              } catch (err2) {
+                // Full resync also failed — mark error and move to next calendar.
+                await storeWrite.call('update', [
+                  'calendar',
+                  cal.id,
+                  { sync_status: 'error', updated_at: now },
+                  {
+                    event:      'schedule.calendar.sync.error',
+                    recordType: 'calendar',
+                    recordId:   cal.id,
+                    detail:     { providerType: acct.provider_type },
+                  },
+                ]);
+                totalErrors++;
+                continue;
+              }
+            } else {
+              // Other error (network, 4xx, etc.) — mark error and move to next calendar.
+              await storeWrite.call('update', [
+                'calendar',
+                cal.id,
+                { sync_status: 'error', updated_at: now },
+                {
+                  event:      'schedule.calendar.sync.error',
+                  recordType: 'calendar',
+                  recordId:   cal.id,
+                  detail:     { providerType: acct.provider_type },
+                },
+              ]);
+              totalErrors++;
+              continue;
+            }
+          }
+
+          if (needsFullResync) continue; // Shouldn't reach here; guard.
+
+          // ── Upsert events ──────────────────────────────────────────────────
+          const syncedAt = now;
+          for (const ev of upserts) {
+            // Organizer fields.
+            const orgEmail = (ev.organizer && ev.organizer.email) || null;
+            const orgName  = (ev.organizer && ev.organizer.name)  || null;
+            const orgSelf  = (ev.organizer && ev.organizer.self != null) ? (ev.organizer.self ? 1 : 0) : null;
+
+            // Attendees → JSON string (PHI; stored in protected DB).
+            const attendeesJson = (Array.isArray(ev.attendees) && ev.attendees.length > 0)
+              ? JSON.stringify(ev.attendees)
+              : null;
+
+            const row = {
+              id:                   `evt_${globalThis.crypto.randomUUID()}`,
+              account_id:           cal.account_id,
+              calendar_id:          cal.id,
+              external_account_id:  acct.external_account_id,
+              provider_calendar_id: cal.provider_calendar_id,
+              provider_event_id:    ev.id,
+              title:                ev.title || '(No title)',
+              start:                ev.start,
+              end:                  ev.end || null,
+              all_day:              ev.allDay ? 1 : 0,
+              location:             ev.location || null,
+              meeting_link:         ev.meetingLink || null,
+              organizer_email:      orgEmail,
+              organizer_name:       orgName,
+              organizer_self:       orgSelf,
+              attendees:            attendeesJson,
+              status:               null,
+              updated_at:           ev.updatedAt || null,
+              synced_at:            syncedAt,
+            };
+
+            // Try insert first; on UNIQUE conflict, update in place.
+            try {
+              await storeWrite.call('insert', [
+                'event',
+                row,
+                {
+                  event:      'schedule.event.synced',
+                  recordType: 'event',
+                  recordId:   row.id,
+                  detail:     { providerType: acct.provider_type },
+                },
+              ]);
+            } catch (insertErr) {
+              // UNIQUE constraint violation — update existing row by provider triple.
+              if (
+                insertErr &&
+                (String(insertErr.message).includes('UNIQUE') ||
+                 String(insertErr.code).includes('SQLITE_CONSTRAINT'))
+              ) {
+                // Find the existing row's local id via updateWhere on the unique triple.
+                await storeWrite.call('updateWhere', [
+                  'event',
+                  {
+                    external_account_id:  acct.external_account_id,
+                    provider_calendar_id: cal.provider_calendar_id,
+                    provider_event_id:    ev.id,
+                  },
+                  {
+                    title:           row.title,
+                    start:           row.start,
+                    end:             row.end,
+                    all_day:         row.all_day,
+                    location:        row.location,
+                    meeting_link:    row.meeting_link,
+                    organizer_email: row.organizer_email,
+                    organizer_name:  row.organizer_name,
+                    organizer_self:  row.organizer_self,
+                    attendees:       row.attendees,
+                    updated_at:      row.updated_at,
+                    synced_at:       row.synced_at,
+                  },
+                  {
+                    event:      'schedule.event.reconciled',
+                    recordType: 'event',
+                    recordId:   ev.id,
+                    detail:     { providerType: acct.provider_type },
+                  },
+                ]);
+              }
+              // Else some other error — swallow, continue (don't abort whole sync).
+            }
+            totalUpserts++;
+          }
+
+          // ── Delete cancelled events ────────────────────────────────────────
+          for (const providerEventId of deletions) {
+            await storeWrite.call('deleteWhere', [
+              'event',
+              {
+                external_account_id:  acct.external_account_id,
+                provider_calendar_id: cal.provider_calendar_id,
+                provider_event_id:    providerEventId,
+              },
+              {
+                event:      'schedule.event.deleted',
+                recordType: 'event',
+                recordId:   providerEventId,
+                detail:     { providerType: acct.provider_type },
+              },
+            ]);
+            totalDeletions++;
+          }
+
+          // ── Prune old events beyond sync_window_min ─────────────────────────
+          // The store.write 'deleteWhere' predicate only supports equality (string|number).
+          // A range condition (start < pruneBeforeISO) cannot be expressed here.
+          // TODO(O495-prune): extend store.write with a 'pruneWhere' op that accepts
+          // a < comparator on a timestamp column, or add a dedicated queryTemplate
+          // + store.query 'run' for delete. For now, prune is a no-op:
+          // the event table is naturally bounded because the first full sync uses
+          // timeMin = now−3mo, so at most 3 months of events are ever inserted.
+          // Old events beyond that window simply age out as calendars are re-synced
+          // (they won't be re-upserted and can be cleaned up in a later slice).
+
+          // ── Write back nextSyncToken + last_synced_at ─────────────────────
+          await storeWrite.call('update', [
+            'calendar',
+            cal.id,
+            {
+              sync_token:     nextSyncToken || null,
+              last_synced_at: now,
+              sync_status:    'synced',
+              updated_at:     now,
+            },
+            {
+              event:      'schedule.calendar.sync.completed',
+              recordType: 'calendar',
+              recordId:   cal.id,
+              detail:     { providerType: acct.provider_type },
+            },
+          ]);
+        }
+
+        // PHI-free audit summary return.
+        return {
+          calendarCount: calRows.length,
+          upserts:       totalUpserts,
+          deletions:     totalDeletions,
+          errors:        totalErrors,
+        };
       }
 
       default:

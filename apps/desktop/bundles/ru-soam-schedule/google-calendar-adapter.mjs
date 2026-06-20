@@ -299,6 +299,113 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
     return results;
   }
 
+  // ── Slice 6: syncEvents (ADR-507 Am2, O495) ─────────────────────────────────
+
+  /**
+   * Sync events for a single provider calendar.
+   *
+   * Full sync (no syncToken): fetches all events with start >= timeMin, pages
+   * through all pages, returns { upserts[], deletions[], nextSyncToken }.
+   *
+   * Incremental sync (syncToken provided): fetches only changed/cancelled events.
+   * Cancelled events (status:'cancelled') land in deletions[].
+   *
+   * 410 Gone: token expired — callers must wipe the token and run a full resync.
+   * Throws an error with code 'sync.token_expired' to signal this.
+   *
+   * @param {string} externalAccountId       - Google account id (broker key)
+   * @param {string} providerCalendarId      - Provider-level calendar id to sync
+   * @param {{ syncToken?: string, timeMin?: string }} opts
+   * @returns {{ upserts: object[], deletions: string[], nextSyncToken: string }}
+   */
+  async function syncEvents(externalAccountId, providerCalendarId, opts) {
+    opts = opts || {};
+    const syncToken = opts.syncToken || null;
+    const timeMin   = opts.timeMin   || null;
+
+    const upserts   = [];
+    const deletions = [];
+    let   nextSyncToken = null;
+    let   pageToken = null;
+
+    // Build initial params.
+    const baseParams = {
+      singleEvents: 'true',
+      maxResults:   '250',
+    };
+    if (syncToken) {
+      // Incremental sync — syncToken replaces timeMin/timeMax (Google API requirement).
+      baseParams.syncToken = syncToken;
+    } else {
+      // Full sync — bound by timeMin (default: now − 3mo).
+      // NOTE: do NOT set `orderBy` here — Google suppresses `nextSyncToken` on any
+      // list request that uses `orderBy`, which would break incremental sync
+      // (every sync would re-pull the full window). Events are sorted client-side.
+      const tMin = timeMin || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      baseParams.timeMin   = tMin;
+    }
+
+    const calUrl = `${GCAL_API_BASE}/calendars/${encodeURIComponent(providerCalendarId)}/events`;
+    let calendarName = providerCalendarId; // Will be replaced on first page response.
+
+    do {
+      const params = new URLSearchParams(baseParams);
+      if (pageToken) params.set('pageToken', pageToken);
+
+      let resp;
+      try {
+        resp = await netFetch.call('fetch', [
+          {
+            provider,
+            accountId: externalAccountId,
+            url:       `${calUrl}?${params}`,
+            method:    'GET',
+          },
+        ]);
+      } catch (err) {
+        throw Object.assign(
+          new Error(`syncEvents: network error for ${providerCalendarId}: ${err && err.message}`),
+          { code: 'sync.network_error' },
+        );
+      }
+
+      if (!resp.ok) {
+        if (resp.status === 410) {
+          // Gone — sync token expired; signal caller to wipe + full-resync.
+          throw Object.assign(
+            new Error(`syncEvents: sync token expired for ${providerCalendarId} (410 Gone)`),
+            { code: 'sync.token_expired' },
+          );
+        }
+        throw Object.assign(
+          new Error(`syncEvents: Google Calendar API error ${resp.status} for ${providerCalendarId}`),
+          { code: 'sync.api_error' },
+        );
+      }
+
+      const data = resp.body;
+      if (data && data.summary) calendarName = data.summary;
+
+      const items = (data && data.items) ? data.items : [];
+      for (const item of items) {
+        if (item.status === 'cancelled') {
+          // Deleted / cancelled event — record provider_event_id for deletion.
+          if (item.id) deletions.push(item.id);
+        } else {
+          // Active event — map and collect.
+          upserts.push(mapEvent(item, providerCalendarId, calendarName));
+        }
+      }
+
+      // nextPageToken = more pages; nextSyncToken = only on LAST page.
+      pageToken     = (data && data.nextPageToken) || null;
+      nextSyncToken = (data && data.nextSyncToken) || nextSyncToken;
+
+    } while (pageToken);
+
+    return { upserts, deletions, nextSyncToken: nextSyncToken || '' };
+  }
+
   return {
     providerType: 'google',
     // P0 legacy
@@ -312,5 +419,7 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
     disconnectAccount,
     listCalendars,
     listEventsForCalendars,
+    // Slice 6: event cache sync
+    syncEvents,
   };
 }
