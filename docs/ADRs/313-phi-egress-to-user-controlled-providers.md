@@ -104,5 +104,64 @@ Reading provider PHI pulls it into our process — we become a processor of it. 
 
 ## Open Items
 
-- **O483** — PHI Safety Score scale design: what it measures, the number, how each opt-in moves it, deviation flagging. Lands with the PHI ramp (Schedule P2).
+- **O483** — PHI ramp build. **Scale design = RESOLVED here (Amendment 1).** Read-half (PHI-read opt-in + gate + score engine + P-D status-bar chrome) builds in Schedule P2; **write-half** (calendar write-back + PHI-write opt-in + the `writeOptIn`/`E<M` score paths) deferred to **O499**.
 - Downstream homes: the gradient mechanism is exercised by ADR-507 (Schedule UI) + ADR-508 (Sessions↔provider sync, where the ramp localizes).
+
+---
+
+## Amendment 1 — PHI Safety Score scale (resolves §3 / O483 scale design) — 2026-06-20
+
+§3 fixed the score as a first-class, gradient-closing **engine** but left the metric open (O483). This
+amendment fixes the metric. It does **not** change §1 (cloud = absolute) or the default-off / double-opt-in /
+audit / honesty posture.
+
+### A1.1 — The metric: 0–100, "% of clinical scheduling PHI kept local"
+
+100 = the ADR-301 end state (the provider holds only PHI-free scheduling substrate; the app introduces no
+provider-resident client PHI). The number falls as provider-resident client PHI exists and as PHI-bearing
+opt-ins are enabled. It is computed in the **Sessions FP-Host bundle** (owns `client_meeting`); the output is a
+**PHI-free aggregate** (a number + counts), so it crosses to the renderer without a new trust crossing.
+
+**Factors:**
+
+| factor | source | note |
+|---|---|---|
+| `readOptIn` | pref `sessions.calendarPhiReadOptIn` (default `false`) | the **gate** — when OFF the app reads/links no provider PHI; nothing to measure |
+| `writeOptIn` | pref `sessions.calendarPhiWriteOptIn` (default `false`) | **always `false` until O499** (write-back deferred); reserved factor |
+| `M` | count of provider-origin linked `client_meeting` rows | the denominator |
+| `E` | of `M`, those whose provider event still carries client-identifying detail | **v1: `E = M`** — with no opaque-write path yet, every provider-linked meeting names its client. Reserved so O499 write-back lowers `E` and raises the score |
+
+### A1.2 — The formula
+
+```
+readOptIn = false                        → 100
+readOptIn = true                         → max(0, 100 − round(60 · E / max(M,1)) − (writeOptIn ? 40 : 0))
+```
+
+- read-off → **100** (default ADR-301 posture).
+- read-on, `M = 0` (opted in, nothing linked yet) → **100** (nothing exposed).
+- read-on, provider events name clients (`E = M`, the v1 norm) → **40** (a recorded deviation).
+- + write-on (O499) → toward **0** at max exposure, climbing back as write-back opaques events (`E` falls).
+
+The weights **`60 / 40`** are the single tunable; this amendment fixes them and they are revisited when O499
+lands. **Deviation flag = `readOptIn || writeOptIn`** (a non-100 posture that the P-D chrome surfaces).
+
+### A1.3 — Honesty rule binds the chrome copy
+
+The P-D popover (and any surface showing the score) states the posture as a **recorded, user-owned, actively-closing
+deviation**, never as "compliant." Concretely, when read-on with exposure it shows e.g. *"Accountable, not
+compliant — N client meetings carry identifying detail on your Google calendar."* (§ Decision honesty rule.)
+
+### A1.4 — The gate is a policy, not a single call site
+
+The PHI-read opt-in gates **every** provider→client matching path, not just one. As of build there are two:
+Sessions `sync` (the link/orphan engine) **and** the Schedule §6 render-time classification (`schedule.html`
+calls `record.patient.query.resolveParticipant` directly). Both must honor the same flag — when read-off, Sessions
+`sync` links nothing and classification renders every event `unclassified`. New matching paths added later inherit
+the same obligation.
+
+### A1.5 — Deferred to O499 (write-half)
+
+Calendar write-back (`createEvent`/`updateEvent`/`deleteEvent`, opaque "Busy" blocks per §4.2), the **PHI-write
+opt-in**, and the `writeOptIn = true` / `E < M` score paths. The factors are reserved here so the metric shape is
+stable when O499 lands.

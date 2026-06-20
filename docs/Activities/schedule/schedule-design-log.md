@@ -423,7 +423,8 @@ ADR-313 ramp + PHI Safety Score (O483/P2), calendar **writes** (app-origin push)
   same `resolveParticipant` seam). Design together.
 - **SQ-6 — MVP cut + build phases.** Likely: local event/Client-Meeting spine first (unblocks Practice P6),
   Google provider next slice, PHI ramp + score after.
-- **SQ-7 — PHI Safety Score scale design** (SD-2) — what it measures, the number, how each opt-in moves it.
+- **SQ-7 — PHI Safety Score scale design** (SD-2) — *RESOLVED 2026-06-20 (ADR-313 Am1 / SD-24).* 0–100 "% PHI
+  kept local"; `100 − 60·E/M − 40·writeOptIn` when read-on; weights = the one tunable; read opt-in is the gate.
 
 ### Decisions owed to other docs — DONE 2026-06-16
 - ✅ ADR-313 (refines Final ADR-301 — new ADR, not in-place amendment) + ADR-507 (Schedule) + ADR-508 (Sessions: Client Meeting + `MeetingProvider`).
@@ -594,3 +595,42 @@ bounding/hygiene, not correctness — read path always reads a bounded window.
 **Schedule data layer is now complete** (multi-cal accounts/calendars + classification + cross-bundle link-key + persistent
 cache + incremental sync). Remaining Schedule work is feature, not foundation: O486 (more providers), O483 (writes /
 ADR-313 PHI ramp), O488 (aux event-detail slot), P-D status-bar PHI Safety Score (blocked on O483).
+
+## SD-24 — PHI-read opt-in + Safety Score engine + P-D chrome (O483 read-half) → BUILT + dogfood-verified (2026-06-20)
+
+Resolves SQ-7. O483 bundled five sub-parts; this phase builds the **read-half** (read opt-in + gate + score engine
++ P-D status-bar chrome) and defers the **write-half** to **O499** (calendar write-back + PHI-write opt-in). No new
+PHI egress originates this phase — only a consent gate over reads + an honest score.
+
+**Score scale (ADR-313 Am1):** 0–100 "% of clinical scheduling PHI kept local." Computed in the **Sessions FP-Host
+bundle** (owns `client_meeting`; output = PHI-free aggregate). `readOptIn=false → 100`; `readOptIn=true →
+max(0, 100 − round(60·E/max(M,1)) − (writeOptIn?40:0))`, where `M` = provider-origin linked meetings, `E` = those whose
+provider event still carries client-identifying detail (**v1 `E=M`**, no opaque-write path yet). Weights `60/40` = the one
+tunable; `writeOptIn` always false until O499. Deviation flag = `readOptIn || writeOptIn`. Honesty copy binds the chrome
+("Accountable, not compliant — N meetings carry identifying detail," never "compliant").
+
+**The gate is a policy two consumers honor** (not one call site): Sessions `sync` short-circuits to the empty shape when
+read-off (before any `syncEvents` / `listAggregatedEvents` / `resolveParticipant`), **and** Schedule §6 classification
+(`schedule.html` `runClassifyPass`) skips `resolveParticipant` → all `unclassified` when read-off. One opt-in flag both
+read; do not duplicate the policy. Opt-in stored as pref `sessions.calendarPhiReadOptIn` (default-off, `cloud.telemetryMode`
+precedent); toggle audited (Sessions enum event + the auto `prefs.set` audit).
+
+**P-D chrome = shell-only** (no iframe view-state channel): `workbench.phi-safety` status-bar entry (`scope:'workspace'`,
+hides on lock) + a `usePopover` consent popover (mirrors `WorkspaceSwitcher`) showing the score, posture, honesty line, and
+the PHI-read consent toggle (PHI-write shown disabled / "coming soon"). Score fetched via `sessions.meeting.query`
+`getSafetyScore`; toggle via `sessions.meeting` `setPhiReadOptIn`.
+
+Build = 3 slices: A (this doc lock) · B (read opt-in + both gates + audit) · C (score query + P-D chrome). See the plan
+file + ADR-313 Am1.
+
+**BUILT + dogfood-verified (uncommitted, real Google Calendar, CDP :9333, 2026-06-20):** default-off → `getSafetyScore`
+100; `sync` while read-off returns the empty shape with **no** provider read; opt-in → `sync` reads provider (13
+`needsLinking`, 0 persisted); promote one event → client + `linkProviderEvent` → M=1 → **score 40** (`100−round(60·1/1)`);
+opt-out → `sync` empty + score 100; temp client/meeting erased clean. P-D entry shows the number at a glance (`scope:'workspace'`),
+popover renders score + posture + honesty line + working read toggle + disabled write row. **Bug found + fixed mid-dogfood:**
+the popover `fetchScore` bound `sessions.meeting` (the **command** cap) instead of `sessions.meeting.query` → `cap.kind_mismatch`
+→ "could not load score" + an empty entry (the mount-prefetch failed for the same reason). One-line cap-id fix → entry shows
+"100", popover loads. (Reusable lesson: a query-cap method called via `bindQuery('<bundle>.meeting', …)` instead of
+`'<bundle>.meeting.query'` fails CQRS kind-check — the bind succeeds, the `.call` throws.) Compile+lint green. Two accepted
+review calls: read-off blanks **all** classification incl. already-linked (clean consent-off state; rows still in the Sessions
+list); the score counts **orphaned** linked rows as exposure (more honest — still provider-resident).

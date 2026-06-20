@@ -1,8 +1,9 @@
 # Schedule Activity — UI build plan (from the Claude Design handoff)
 
 **Status:** Core complete — see §0 build status. Read-only multi-calendar Schedule (UI P-A/P-B + full data layer) is
-built, committed, and dogfood-verified. Remaining is deliberately deferred/blocked (P-D, P-C remnant) or feature scope
-(writes, more providers).
+built, committed, and dogfood-verified; **P-D PHI Safety Score (O483 read-half) BUILT + dogfood-verified 2026-06-20
+(uncommitted).** Remaining is deliberately deferred (P-C "today's agenda" remnant) or feature scope (calendar
+writes = O499, more providers = O486).
 **Date:** 2026-06-17 (status tracked inline; last updated 2026-06-20)
 **Source design:** Claude Design handoff bundle `Schedule Activity.dc.html` (+ `Schedule_Brief.md`,
 chat transcript). The mockup renders the **full vision** of the Schedule Activity as a VS Code–style
@@ -20,7 +21,7 @@ ADR-313 (PHI gradient + Safety Score), `schedule-design-log.md` (SD-1..13), Prac
 | **P-A** | Calendar work-area editor view (`schedule.html`: header, 4 views, 6 states, selection, inline popover) | ✅ **DONE** — committed, user-verified "perfect"; §6 classification colours/badges layered on top later (SD-19, `2620f39`). |
 | **P-B** | Primary `nav.html` + `ScheduleViewStateService` channel + connection block | 🔨 **BUILT (trimmed) — now SUPERSEDED by the multi-cal redesign.** 2026-06-19: channel (mirrors O455) + Week/Day/Agenda/Month switcher + calendars list/toggles (derived from events) + connection block; compile+lint green, code-reviewed clean. **Superseded the same day** by the multi-account/multi-calendar work (SD-20, ADR-507 Am1 + ADR-314): view-switcher buttons are being dropped, localStorage `calVisibility` → persisted `calendar.selected`, single-connection → multi-account. The P-B channel/connection scaffolding is reused; the nav UI is rebuilt under `schedule-multical-spec.md`. **→ REPLACED: multi-cal nav redesign (spec slices 1–3) BUILT + committed + dogfood-verified 2026-06-20 (`668d957`)** — CALENDARS colored-tick list + add-calendar wizard (work-area tab) + classification filter w/ counts + bottom-pinned ACCOUNTS section (right-click Disconnect/Reconnect/Delete) + per-cal right-click Edit/Delete/Reconnect + organiser-hash fix + `add`/`open-in-window` codicon title-row buttons. |
 | **P-C** | Panel `triage.html` (Needs-linking + Today's-agenda) via `panel.views` | ⚠️ **SUPERSEDED / partial** — the **real** Needs-linking panel shipped from the **Sessions** bundle (slice 4b, SD-18, `18ab656`), better than the planned stub. Remaining: a "Today's agenda" tab (low value; reassess after P-B). The Schedule-bundle `triage.html` is **not** being built. |
-| **P-D** | Status-bar PHI Safety Score entry + command + popover | ⬜ **BLOCKED on O483** — correctly deferred; the score *value* is meaningless until the ADR-313 PHI opt-ins exist. Do not build the chrome before the engine. |
+| **P-D** | Status-bar PHI Safety Score entry + command + popover | ✅ **DONE + dogfood-verified 2026-06-20 (O483 read-half, uncommitted).** ADR-313 **Am1** locked the metric (0–100 "% PHI kept local", `100−60·E/M−40·writeOptIn`). `workbench.phi-safety` status-bar entry (`scope:'workspace'`, hides on lock) + `usePopover` consent popover (score + posture + honesty copy + working PHI-read toggle; PHI-write row disabled = O499). Score from Sessions `getSafetyScore`. Live cycle verified on real Google Calendar: default-off→100, opt-in+link→40, opt-out→100; entry shows the number at a glance. Write-half = **O499**. |
 | **Data layer** | Multi-account/multi-calendar tables + port + broker keying + classification + cross-bundle link-key + **persistent event cache + incremental sync** | ✅ **DONE + committed + dogfood-verified 2026-06-20.** Multi-cal slices 1–3 (`668d957`) + O493 link-key + **O495 slice 6 event cache** (`e486dfc`, ADR-507 Am2): `event` table, `syncEvents` (full/incremental/410/cancelled), cache-backed reads, cascade-deletes, Sessions sync ordering. In-session `__viewQuery` window-cache also committed. See `schedule-design-log.md` SD-21/22/23 + `event-cache-plan.md`. **Pre-prod hygiene parked = O498** (prune + full-sync `timeMax`). |
 
 **Legend:** ✅ done · 🔨 in progress · ⚠️ superseded/partial · ⬜ not started.
@@ -155,9 +156,10 @@ back gracefully via the `--font-display`/`--font-mono` tokens (CSP forbids the f
   supersedes — do not reintroduce).
 - ⚠️ **P-C — Panel.** **Superseded** by the Sessions Needs-linking panel (slice 4b). A "Today's agenda"
   tab is the only remnant — low value, reassess after P-B. The Schedule-bundle `triage.html` is dropped.
-- ⬜ **P-D — Status-bar PHI Safety Score** entry + command + popover. **Blocked on O483** (ADR-313 PHI
-  opt-ins) — the score value is static/meaningless until the engine exists. *Exit (when unblocked):*
-  chip visible unlocked, hidden on lock, click opens the popover.
+- ✅ **P-D — Status-bar PHI Safety Score** entry + command + popover — **DONE + dogfood-verified
+  2026-06-20 (O483 read-half, uncommitted).** ADR-313 Am1 metric; `workbench.phi-safety` entry
+  (`scope:'workspace'`) + consent popover (score + honesty copy + PHI-read toggle; PHI-write disabled =
+  O499). Chip visible unlocked w/ the number, hidden on lock, click opens the popover. Write-half = O499.
 
 ---
 
@@ -190,5 +192,7 @@ back gracefully via the `--font-display`/`--font-mono` tokens (CSP forbids the f
 - **O485 (P1)** — provider sync + identity resolution makes classification / client-linking /
   needs-linking real. **Largely DONE** via the Sessions workstream (slices 4a/4b + §6); the inert P-A
   stubs are now live. Tracked in `docs/Activities/sessions/sessions-activity-plan.md`.
-- **O483 (P2)** — ADR-313 PHI opt-ins make the Safety Score value real (unblocks P-D).
+- **O483 (P2) — ✅ read-half DONE + dogfood-verified 2026-06-20 (uncommitted).** PHI-read opt-in
+  (default-off, gates Sessions `sync` + Schedule §6 classify) + Safety Score engine (ADR-313 Am1) + P-D
+  chrome. **Write-half deferred → O499** (calendar write-back + PHI-write opt-in).
 - After build: update `schedule-design-log.md`, CLAUDE.md Architecture Log, and the memory pointer.

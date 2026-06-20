@@ -2624,6 +2624,24 @@
         /* Step 2: if either classify cap missing, stop (already painted unclassified). */
         if (!sessionsQuery || !recordQuery) return;
 
+        /* ADR-313 Am1: PHI-read opt-in gate — default-off. Read on each pass so toggling
+         * takes effect on the next window fetch + classify. When disabled, skip
+         * resolveParticipant entirely; every event stays unclassified. */
+        sessionsQuery.call('getPhiReadOptIn', {})
+          .catch(function () { return { enabled: false }; })
+          .then(function (optIn) {
+            if (!optIn || !optIn.enabled) {
+              /* Opt-in off — events already painted unclassified by the fetch path;
+               * publish counts with all-unclassified and return. */
+              publishCounts();
+              return;
+            }
+            runClassifyPassInner(evs, range, classifySeq);
+          });
+      }
+
+      /* Inner classify pass — runs only when PHI-read opt-in is enabled. */
+      function runClassifyPassInner(evs, range, classifySeq) {
         /* Step 3: batch-fetch linked rows for this window (best-effort). */
         var fromMs = range.from.getTime();
         var toMs   = range.to.getTime();

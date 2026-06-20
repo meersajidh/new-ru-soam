@@ -49,12 +49,17 @@
     {
       "id": "meeting.listLinkedProvider",
       "sql": "SELECT id, provider_event_id, external_account_id, provider_calendar_id, starts_at FROM client_meeting WHERE provider_id = @providerId AND sync_state IN ('linked','orphaned') AND starts_at >= @from AND starts_at <= @to"
+    },
+    {
+      "id": "meeting.countLinkedProvider",
+      "sql": "SELECT COUNT(*) AS n FROM client_meeting WHERE source_origin = 'provider' AND sync_state IN ('linked','orphaned')"
     }
   ],
   "dependencies": {
     "capabilities": [
       "store.write@1.0",
       "store.query@1.0",
+      "prefs@1.0",
       "record.patient.query@1.0",
       "schedule.calendar.query@1.0",
       "schedule.calendar@1.0"

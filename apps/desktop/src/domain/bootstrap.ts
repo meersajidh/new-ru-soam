@@ -14,6 +14,7 @@ import type { ServiceRegistry } from '../platform/services/registry';
 import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId, CommandServiceId, ScheduleViewStateServiceId } from '../platform/services/ids';
 import { PRODUCT_TAGLINE, DELETE_WARNING_ADDENDUM } from './product';
 import { showClientErase } from './clientEraseState';
+import { requestOpenPhiSafetyPopover } from '../workbench/parts/phi-safety-events';
 
 export function domainBootstrap(registry: ServiceRegistry): void {
   const productConfig = registry.get(ProductConfigServiceId);
@@ -329,6 +330,16 @@ export function domainBootstrap(registry: ServiceRegistry): void {
       }
     },
     { category: 'Schedule' },
+  );
+
+  // ── PHI Safety Score — open popover command (ADR-313 Am1, P-D) ────────────
+  // The popover is owned by the StatusBar React tree. The command dispatches a
+  // custom DOM event that the mounted PhiSafetyPopover component picks up.
+  commands.register(
+    'workbench.phi-safety.show',
+    'PHI Safety Score: Show',
+    () => requestOpenPhiSafetyPopover(),
+    { category: 'View' },
   );
 
   // Wire editor active-instance changes → patient.activeId / record.activeId context keys.
