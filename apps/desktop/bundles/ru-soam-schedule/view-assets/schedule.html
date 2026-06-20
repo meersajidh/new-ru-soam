@@ -1652,8 +1652,24 @@
       var cmdCap         = null;  // schedule.calendar@1.0       (bindCommand)
       var sessionsQuery  = null;  // sessions.meeting.query@1.0  (bindQuery) — optional
       var recordQuery    = null;  // record.patient.query@1.0    (bindQuery) — optional
-      var _loadSeq       = 0;     // stale-response race guard; incremented per loadEvents call
+      var _loadSeq       = 0;     // stale-response race guard; incremented per classify pass
       var _soamView      = null;
+      /* __viewQuery observer lifecycle.
+       * _eventsObserver: active QueryObserver for the current WINDOW (month-grid).
+       * _eventsDataUpdatedAt: timestamp of last data we painted — gates scroll-jump-safe
+       *   re-render (only call renderCalArea when data actually changed, never on
+       *   status-only ticks with unchanged data, to preserve scroll-to-7AM position).
+       * _currentWindowKey: '[winFromISO,winToISO]' string — if view-switch lands in the
+       *   same window, skip the fetch and re-render client-side only.
+       * _calVisibility: Map<calendarId, bool> sourced from listAddedCalendars; updated on
+       *   calRev change without refetch (toggling selected is client-side only).
+       * _addedCalIds: sorted comma-joined string of all added calendarIds — change means
+       *   a calendar was ADDED or REMOVED (not just toggled), which requires a refetch. */
+      var _eventsObserver      = null;
+      var _eventsDataUpdatedAt = 0;
+      var _currentWindowKey    = '';
+      var _calVisibility       = {};   // calendarId → bool (true = visible)
+      var _addedCalIds         = '';   // sorted calendarIds joined — change = refetch
 
       /* ── DOM refs ─────────────────────────────────────────────────── */
       var elBridgeWait  = document.getElementById('bridge-wait');
@@ -1700,15 +1716,24 @@
       }
 
       /* ── Classification counts publisher ────────────────────────── */
-      /* Counts all loaded events (independent of classFilter — filter only hides).  *
-       * All 5 classification ids always present (0 if none). Published after every  *
-       * classify pass via soamView.setScheduleCounts (non-null bridge).             */
+      /* Counts events within the current visible range (rangeForView) ∩ visible       *
+       * calendar. Independent of classFilter — filter only hides, counts are raw.     *
+       * All 5 classification ids always present (0 if none). Published after every    *
+       * classify pass or calendar-visibility change via soamView.setScheduleCounts.   */
       var CLS_IDS = ['client_session', 'probable_client_session', 'not_client_session', 'personal', 'unclassified'];
       function publishCounts() {
         if (!_soamView || !_soamView.setScheduleCounts) return;
         var counts = {};
         CLS_IDS.forEach(function (id) { counts[id] = 0; });
+        var range = rangeForView();
+        var fromMs = range.from.getTime();
+        var toMs   = range.to.getTime();
         events.forEach(function (ev) {
+          /* Skip calendars toggled off client-side. */
+          if (_calVisibility[ev.calendarId] === false) return;
+          /* Only count events in the visible range. */
+          var evMs = new Date(ev.start).getTime();
+          if (evMs < fromMs || evMs >= toMs) return;
           var c = ev.classification || 'unclassified';
           if (counts[c] !== undefined) counts[c]++;
           else counts['unclassified']++;
@@ -1749,18 +1774,22 @@
       }
 
       /* ── Events for a date ───────────────────────────────────────── */
-      /* No client-side calendar visibility filter: listAggregatedEvents only        *
-       * returns events from selected calendars (server-side, calendar.selected DB). *
-       * classFilter: missing key = visible; explicit false = hidden (client-side).  */
+      /* Calendar visibility filtered client-side via _calVisibility (sourced from
+       * listAddedCalendars; updated on calRev without refetch when only selected
+       * flags changed). classFilter: missing key = visible; explicit false = hidden. */
       function isClassVisible(ev) {
         var cls = ev.classification || 'unclassified';
         /* A missing key means visible; only explicit false hides. */
         return _classFilter[cls] !== false;
       }
+      function isCalVisible(ev) {
+        /* A missing key means visible (defensive); explicit false hides. */
+        return _calVisibility[ev.calendarId] !== false;
+      }
       function eventsForDay(d) {
         return events.filter(function (ev) {
           var evD = evDate(ev.start, ev.allDay);
-          return sameDay(evD, d) && isClassVisible(ev);
+          return sameDay(evD, d) && isCalVisible(ev) && isClassVisible(ev);
         }).sort(function (a, b) {
           if (a.allDay && !b.allDay) return -1;
           if (!a.allDay && b.allDay) return 1;
@@ -2588,136 +2617,249 @@
         elCalArea.appendChild(row);
       }
 
+      /* ── Run SD-11 classify pass on a freshly-fetched event array ──── */
+      /* Separated so it can be called from the __viewQuery subscriber without
+       * re-fetching events from the cap (data already in hand). */
+      function runClassifyPass(evs, range, classifySeq) {
+        /* Step 2: if either classify cap missing, stop (already painted unclassified). */
+        if (!sessionsQuery || !recordQuery) return;
+
+        /* Step 3: batch-fetch linked rows for this window (best-effort). */
+        var fromMs = range.from.getTime();
+        var toMs   = range.to.getTime();
+        sessionsQuery.call('listLinkedProvider', { providerId: 'google-calendar', from: fromMs, to: toMs })
+          .catch(function () {
+            /* listLinkedProvider failed — proceed with empty linkedSet so resolver still runs. */
+            return [];
+          })
+          .then(function (rows) {
+            if (classifySeq !== _loadSeq) return; // stale guard
+            rows = rows || [];
+            var linkedSet = {};
+            rows.forEach(function (r) { linkedSet[r.provider_event_id] = true; });
+
+            /* Step 4: per-event resolve. */
+            /* Build array of promises — one per event. */
+            var classifyPromises = evs.map(function (ev) {
+              /* Already linked? Instant client_session. */
+              if (linkedSet[ev.id]) {
+                return Promise.resolve({ ev: ev, cls: 'client_session' });
+              }
+
+              /* Gather participants: non-self attendees + organizer (if email, non-self). */
+              var participants = [];
+              if (ev.attendees) {
+                ev.attendees.forEach(function (a) {
+                  if (!a.self && (a.email || a.name)) {
+                    participants.push({ email: a.email || null, name: a.name || null });
+                  }
+                });
+              }
+              if (ev.organizer && ev.organizer.email && !ev.organizer.self) {
+                /* Include organizer only when external (organizer.self !== true). */
+                var orgEmail = ev.organizer.email.toLowerCase();
+                var alreadySelf = ev.attendees && ev.attendees.some(function (a) {
+                  return a.self && (a.email || '').toLowerCase() === orgEmail;
+                });
+                if (!alreadySelf) {
+                  /* Check not already added via attendees */
+                  var alreadyAdded = participants.some(function (p) {
+                    return p.email && p.email.toLowerCase() === orgEmail;
+                  });
+                  if (!alreadyAdded) {
+                    participants.push({
+                      email: ev.organizer.email,
+                      name: ev.organizer.displayName || null,
+                    });
+                  }
+                }
+              }
+
+              if (participants.length === 0) {
+                return Promise.resolve({ ev: ev, cls: 'personal' });
+              }
+
+              /* Resolve participants sequentially; short-circuit on first match. */
+              /* Precedence: match > candidates > suppressed > none */
+              var PREC = { 'client_session': 3, 'probable_client_session': 2, 'not_client_session': 1, 'unclassified': 0 };
+
+              function resolveNext(idx, best) {
+                if (best === 'client_session') {
+                  /* Highest precedence — short-circuit. */
+                  return Promise.resolve({ ev: ev, cls: 'client_session' });
+                }
+                if (idx >= participants.length) {
+                  return Promise.resolve({ ev: ev, cls: best });
+                }
+                var p = participants[idx];
+                var query = {};
+                if (p.email) query.email = p.email;
+                if (p.name)  query.name  = p.name;
+                return recordQuery.call('resolveParticipant', query)
+                  .then(function (result) {
+                    var outcome = (result && result.outcome) || 'none';
+                    var cls;
+                    if (outcome === 'match')      cls = 'client_session';
+                    else if (outcome === 'candidates') cls = 'probable_client_session';
+                    else if (outcome === 'suppressed') cls = 'not_client_session';
+                    else                               cls = 'unclassified';
+                    var next = (PREC[cls] > PREC[best]) ? cls : best;
+                    return resolveNext(idx + 1, next);
+                  })
+                  .catch(function () {
+                    /* Resolver error → treat as unclassified for this participant. */
+                    return resolveNext(idx + 1, best);
+                  });
+              }
+
+              return resolveNext(0, 'unclassified');
+            });
+
+            /* Wait for all events to classify, then repaint + publish counts. */
+            Promise.all(classifyPromises).then(function (results) {
+              if (classifySeq !== _loadSeq) return; // stale guard
+              results.forEach(function (r) { r.ev.classification = r.cls; });
+              renderCalArea();
+              publishCounts(); // final publish — classifications fully resolved
+            }).catch(function () {
+              /* If bulk Promise.all fails somehow, leave unclassified — already painted. */
+            });
+          });
+      }
+
+      /* ── Tear down active events observer ───────────────────────── */
+      function destroyEventsObserver() {
+        if (_eventsObserver) {
+          _eventsObserver.destroy();
+          _eventsObserver = null;
+        }
+        _eventsDataUpdatedAt = 0;
+        _currentWindowKey    = '';
+      }
+
+      /* ── Compute month-grid window enclosing the current anchor ──── */
+      /* Returns { from, to, key } where:
+       *   from = startOfWeek(startOfMonth(anchor))   — Mon of the week that starts the grid
+       *   to   = startOfWeek(endOfMonth(anchor)) + 7 days  — Mon after the last grid week + 7
+       * This 6-week-ish window covers every Day/Week/Agenda range in the same month
+       * (including cross-month week edges). View-switches at offset 0 share the same
+       * window → same queryKey → single fetch, no re-fetch on view-switch.            */
+      function fetchWindow() {
+        var base = new Date();
+        /* anchor: for week/agenda/day views use the week/day anchor; for month use month. */
+        var anchor;
+        if (view === 'month') {
+          anchor = new Date(base);
+          anchor.setMonth(anchor.getMonth() + offset);
+        } else if (view === 'day') {
+          anchor = new Date(base);
+          anchor.setDate(anchor.getDate() + offset);
+        } else {
+          /* week / agenda */
+          anchor = new Date(base);
+          anchor.setDate(anchor.getDate() + offset * 7);
+        }
+        /* Month-grid window: Mon of first-grid-week → Mon after last-grid-week + 7 */
+        var winFrom = startOfWeek(startOfMonth(anchor));
+        var winTo   = addDays(startOfWeek(endOfMonth(anchor)), 7);
+        var fromISO = winFrom.toISOString();
+        var toISO   = winTo.toISOString();
+        return {
+          from:    winFrom,
+          to:      winTo,
+          fromISO: fromISO,
+          toISO:   toISO,
+          key:     fromISO + '|' + toISO,
+        };
+      }
+
+      /* ── Refresh _calVisibility + _addedCalIds from listAddedCalendars ─ */
+      /* Returns a Promise<{ visibilityChanged, addedSetChanged }>.           *
+       * visibilityChanged = at least one calendar's selected flag differed.  *
+       * addedSetChanged   = set of calendarIds itself changed (add/remove).  */
+      function refreshCalVisibility() {
+        if (!queryCap) return Promise.resolve({ visibilityChanged: false, addedSetChanged: false });
+        return queryCap.call('listAddedCalendars').then(function (cals) {
+          cals = cals || [];
+          var newVisibility = {};
+          var newIds = cals.map(function (c) { return c.id; }).sort().join(',');
+          cals.forEach(function (c) { newVisibility[c.id] = !!c.selected; });
+          var addedSetChanged = newIds !== _addedCalIds;
+          /* Visibility changed if any key/value differs. */
+          var visibilityChanged = addedSetChanged; // set change implies visibility change
+          if (!visibilityChanged) {
+            var oldKeys = Object.keys(_calVisibility).sort();
+            var newKeys = Object.keys(newVisibility).sort();
+            if (oldKeys.length !== newKeys.length) {
+              visibilityChanged = true;
+            } else {
+              for (var i = 0; i < oldKeys.length; i++) {
+                if (_calVisibility[oldKeys[i]] !== newVisibility[oldKeys[i]]) {
+                  visibilityChanged = true;
+                  break;
+                }
+              }
+            }
+          }
+          _calVisibility = newVisibility;
+          _addedCalIds   = newIds;
+          return { visibilityChanged: visibilityChanged, addedSetChanged: addedSetChanged };
+        }).catch(function () {
+          return { visibilityChanged: false, addedSetChanged: false };
+        });
+      }
+
       /* ── Load events + SD-11 classify pass ───────────────────────── */
+      /* Window-cache strategy:
+       *   - Computes a 6-week month-grid window from the current anchor.
+       *   - If window key matches _currentWindowKey → view-switch within same window:
+       *     just re-render + re-publish counts (NO fetch, NO spinner, NO classify).
+       *   - Else → new window: destroy old observer, show spinner, create new observer
+       *     for listWindowEvents (ALL added calendars), classify once on arrival.
+       *
+       * Calendar visibility: _calVisibility holds per-cal bool. eventsForDay() and
+       * publishCounts() both respect it. Toggling a calendar = client-side update only
+       * (handled in applyScheduleViewState revChanged branch).
+       *
+       * Scroll-jump-safe: renderCalArea() (rAF scroll-to-7AM) only called when data
+       * actually changed (dataUpdatedAt gate) or on explicit view/visibility change.
+       * setSelection() class-toggle never calls renderCalArea() — no scroll jump. */
       function loadEvents() {
         if (!queryCap || !connected) return;
         loadError = null;
-        showLoading();
 
-        /* Stale-response race guard: capture token at call time. */
-        var loadSeq = ++_loadSeq;
+        var range  = rangeForView();
+        var win    = fetchWindow();
 
-        var range = rangeForView();
+        /* Always update the range label (cheap, no fetch). */
         elRangeLabel.textContent = (view === 'agenda' && offset === 0) ? 'Upcoming · this week' : range.label;
 
-        queryCap.call('listAggregatedEvents', range.from.toISOString(), range.to.toISOString())
-          .then(function (evs) {
-            if (loadSeq !== _loadSeq) return; // stale — newer load superseded this one
-            evs = evs || [];
+        /* Same window: view-switch within current month — skip fetch entirely. */
+        if (win.key === _currentWindowKey && _eventsObserver !== null) {
+          renderCalArea();
+          publishCounts();
+          return;
+        }
 
-            /* Step 1: default all to unclassified; paint immediately. */
-            evs.forEach(function (ev) { ev.classification = 'unclassified'; });
-            events = evs;
-            renderCalArea();
-            publishCounts(); // initial publish — all 'unclassified'
+        /* New window: tear down old observer and start fresh. */
+        destroyEventsObserver();
+        _currentWindowKey = win.key;
 
-            /* Step 2: if either classify cap missing, stop. */
-            if (!sessionsQuery || !recordQuery) return;
+        showLoading();
 
-            /* Step 3: batch-fetch linked rows for this window (best-effort). */
-            var fromMs = range.from.getTime();
-            var toMs   = range.to.getTime();
-            sessionsQuery.call('listLinkedProvider', { providerId: 'google-calendar', from: fromMs, to: toMs })
-              .catch(function () {
-                /* listLinkedProvider failed — proceed with empty linkedSet so resolver still runs. */
-                return [];
-              })
-              .then(function (rows) {
-                if (loadSeq !== _loadSeq) return; // stale guard
-                rows = rows || [];
-                var linkedSet = {};
-                rows.forEach(function (r) { linkedSet[r.provider_event_id] = true; });
+        /* Create observer keyed by window bounds (not view/offset bounds).
+         * staleTime=5min: cached result serves all view-switches within this window
+         * without re-fetch. Events refetch only when the window changes (month nav). */
+        var obs = window.__viewQuery.observeQuery({
+          queryKey: ['schedule.calendar', 'windowEvents', win.fromISO, win.toISO],
+          queryFn: function () { return queryCap.call('listWindowEvents', win.fromISO, win.toISO); },
+          staleTime: 5 * 60 * 1000,
+        });
+        _eventsObserver = obs;
 
-                /* Step 4: per-event resolve. */
-                /* Build array of promises — one per event. */
-                var classifyPromises = evs.map(function (ev) {
-                  /* Already linked? Instant client_session. */
-                  if (linkedSet[ev.id]) {
-                    return Promise.resolve({ ev: ev, cls: 'client_session' });
-                  }
-
-                  /* Gather participants: non-self attendees + organizer (if email, non-self). */
-                  var participants = [];
-                  if (ev.attendees) {
-                    ev.attendees.forEach(function (a) {
-                      if (!a.self && (a.email || a.name)) {
-                        participants.push({ email: a.email || null, name: a.name || null });
-                      }
-                    });
-                  }
-                  if (ev.organizer && ev.organizer.email && !ev.organizer.self) {
-                    /* Include organizer only when external (organizer.self !== true). */
-                    var orgEmail = ev.organizer.email.toLowerCase();
-                    var alreadySelf = ev.attendees && ev.attendees.some(function (a) {
-                      return a.self && (a.email || '').toLowerCase() === orgEmail;
-                    });
-                    if (!alreadySelf) {
-                      /* Check not already added via attendees */
-                      var alreadyAdded = participants.some(function (p) {
-                        return p.email && p.email.toLowerCase() === orgEmail;
-                      });
-                      if (!alreadyAdded) {
-                        participants.push({
-                          email: ev.organizer.email,
-                          name: ev.organizer.displayName || null,
-                        });
-                      }
-                    }
-                  }
-
-                  if (participants.length === 0) {
-                    return Promise.resolve({ ev: ev, cls: 'personal' });
-                  }
-
-                  /* Resolve participants sequentially; short-circuit on first match. */
-                  /* Precedence: match > candidates > suppressed > none */
-                  var PREC = { 'client_session': 3, 'probable_client_session': 2, 'not_client_session': 1, 'unclassified': 0 };
-
-                  function resolveNext(idx, best) {
-                    if (best === 'client_session') {
-                      /* Highest precedence — short-circuit. */
-                      return Promise.resolve({ ev: ev, cls: 'client_session' });
-                    }
-                    if (idx >= participants.length) {
-                      return Promise.resolve({ ev: ev, cls: best });
-                    }
-                    var p = participants[idx];
-                    var query = {};
-                    if (p.email) query.email = p.email;
-                    if (p.name)  query.name  = p.name;
-                    return recordQuery.call('resolveParticipant', query)
-                      .then(function (result) {
-                        var outcome = (result && result.outcome) || 'none';
-                        var cls;
-                        if (outcome === 'match')      cls = 'client_session';
-                        else if (outcome === 'candidates') cls = 'probable_client_session';
-                        else if (outcome === 'suppressed') cls = 'not_client_session';
-                        else                               cls = 'unclassified';
-                        var next = (PREC[cls] > PREC[best]) ? cls : best;
-                        return resolveNext(idx + 1, next);
-                      })
-                      .catch(function () {
-                        /* Resolver error → treat as unclassified for this participant. */
-                        return resolveNext(idx + 1, best);
-                      });
-                  }
-
-                  return resolveNext(0, 'unclassified');
-                });
-
-                /* Wait for all events to classify, then repaint + publish counts. */
-                Promise.all(classifyPromises).then(function (results) {
-                  if (loadSeq !== _loadSeq) return; // stale guard
-                  results.forEach(function (r) { r.ev.classification = r.cls; });
-                  renderCalArea();
-                  publishCounts(); // final publish — classifications fully resolved
-                }).catch(function () {
-                  /* If bulk Promise.all fails somehow, leave unclassified — already painted. */
-                });
-              });
-          })
-          .catch(function (err) {
-            if (loadSeq !== _loadSeq) return;
+        obs.subscribe(function (result) {
+          if (result.status === 'error') {
+            var err = result.error;
             var msg = err && err.message ? err.message : String(err);
             if (msg.indexOf('calendar.not_connected') !== -1 || msg.indexOf('not connected') !== -1) {
               connected = false;
@@ -2725,7 +2867,32 @@
               loadError = msg;
             }
             renderCalArea();
-          });
+            return;
+          }
+
+          if (result.status === 'success') {
+            /* Gate on dataUpdatedAt: only repaint when data actually changed.
+             * Prevents renderCalArea() (which includes rAF scroll-to-7AM) from
+             * firing on status-only observer ticks — preserves scroll position. */
+            if (result.dataUpdatedAt <= _eventsDataUpdatedAt) return;
+            _eventsDataUpdatedAt = result.dataUpdatedAt;
+
+            /* Increment classify-sequence token (stale guard for classify pass). */
+            var classifySeq = ++_loadSeq;
+
+            var evs = result.data || [];
+
+            /* Step 1: default all to unclassified; paint immediately. */
+            evs.forEach(function (ev) { ev.classification = 'unclassified'; });
+            events = evs;
+            renderCalArea();
+            publishCounts(); // initial publish — all 'unclassified'
+
+            /* Step 2–4: async classify pass on whole window (mutates ev.classification).
+             * Classification cached on event objects; reused across view-switches in window. */
+            runClassifyPass(evs, win, classifySeq);
+          }
+        });
       }
 
       /* ── Connect / disconnect ─────────────────────────────────────── */
@@ -2755,8 +2922,8 @@
       function doDisconnect() {
         if (!cmdCap) return;
         cmdCap.call('disconnect', [])
-          .then(function () { connected = false; events = []; renderCalArea(); })
-          .catch(function () { connected = false; events = []; renderCalArea(); });
+          .then(function () { connected = false; events = []; destroyEventsObserver(); renderCalArea(); })
+          .catch(function () { connected = false; events = []; destroyEventsObserver(); renderCalArea(); });
       }
 
       /* ── Date nav ─────────────────────────────────────────────────── */
@@ -2834,11 +3001,33 @@
           offset = 0;
           selectedId = null;
           if (elPopover) elPopover.classList.add('hidden');
-          /* view change always refetches (new range likely) */
+          /* view change: loadEvents handles same-window fast-path or new window fetch. */
           if (connected) loadEvents(); else renderCalArea();
         } else if (revChanged) {
-          /* calRev changed — re-fetch events (selected calendars may have changed). */
-          if (connected) loadEvents(); else renderCalArea();
+          /* calRev changed — determine if calendar SET changed (add/remove account or
+           * calendar) vs only visibility (selected toggle).
+           *   - Set changed  → window cache is stale (missing added cal's events) →
+           *     invalidate window key, reload.
+           *   - Visibility only → update _calVisibility client-side, re-render — NO fetch. */
+          if (connected) {
+            refreshCalVisibility().then(function (diff) {
+              if (diff.addedSetChanged) {
+                /* Added/removed a calendar — the window cache no longer covers the new
+                 * calendar set. INVALIDATE (not destroy+reload): the live observer
+                 * refetches the same window key with the updated calendar.list. A plain
+                 * destroy+loadEvents would re-subscribe to the still-fresh cached query
+                 * and miss the new calendar's events until staleTime expired. */
+                window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
+              } else if (diff.visibilityChanged) {
+                /* Selected flags changed only — instant client-side re-render. */
+                renderCalArea();
+                publishCounts();
+              }
+              /* else: nothing changed (e.g. spurious calRev bump) — no-op. */
+            });
+          } else {
+            renderCalArea();
+          }
         } else {
           /* classFilter changed only — re-render in place, no network fetch. */
           renderCalArea();
@@ -2894,13 +3083,19 @@
           sessionsQuery = caps[2]; // null if not available
           recordQuery   = caps[3]; // null if not available
 
+          /* Seed _calVisibility before first loadEvents so eventsForDay/publishCounts
+           * have correct visibility state on the initial render pass. */
+          var visibilitySeedDone = refreshCalVisibility();
+
           soamView.events.onActivate(function () {
             queryCap.call('getStatus', [])
               .then(function (status) {
                 var wasConnected = connected;
                 connected = !!(status && status.connected);
                 if (connected && !wasConnected) {
-                  loadEvents();
+                  /* Wait for visibility seed before first loadEvents so the initial
+                   * render has correct _calVisibility (best-effort; catch is no-op). */
+                  visibilitySeedDone.then(function () { loadEvents(); }).catch(function () { loadEvents(); });
                 } else if (!connected) {
                   renderCalArea();
                 }

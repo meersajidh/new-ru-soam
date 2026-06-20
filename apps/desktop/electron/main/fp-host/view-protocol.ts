@@ -8,6 +8,8 @@ import { VIEW_BOOTSTRAP_SOURCE } from './view-bootstrap';
 import { VIEW_CODICONS_SOURCE } from './view-codicons';
 import { VIEW_FONTS_SOURCE } from './view-fonts';
 import { VIEW_MATURITY_CSS, VIEW_MATURITY_SOURCE } from './view-maturity';
+import { VIEW_QUERY_VENDOR_SOURCE } from './view-query-vendor';
+import { VIEW_QUERY_SOURCE } from './view-query';
 
 /**
  * `view://` protocol handler per ADR-411 (Phase 7 trimmed scope).
@@ -105,6 +107,12 @@ function injectBridgeAndCsp(html: string): string {
   // Shared view bootstrap (awaitBridge/isLockedError/parseQuery/applyTheme/
   // applyCodicons) — injected after codicons so window.codicon exists.
   const bootstrapTag = `<script>${VIEW_BOOTSTRAP_SOURCE}</script>`;
+  // TanStack Query Core vendor IIFE (sets window.__tanstackQueryCore).
+  // Injected after bootstrap so __viewBoot is available if needed.
+  const queryVendorTag = `<script>${VIEW_QUERY_VENDOR_SOURCE}</script>`;
+  // Platform query wrapper (sets window.__viewQuery using window.__tanstackQueryCore).
+  // Injected after vendor so __tanstackQueryCore is already set.
+  const queryTag = `<script>${VIEW_QUERY_SOURCE}</script>`;
   const maturityTag = `<script>${VIEW_MATURITY_SOURCE}</script>`;
   const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${VIEW_CSP}">`;
   const headOpen = /<head\b[^>]*>/i;
@@ -112,10 +120,10 @@ function injectBridgeAndCsp(html: string): string {
     return html.replace(
       headOpen,
       (m) =>
-        `${m}\n${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${bootstrapTag}\n${maturityTag}`,
+        `${m}\n${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${bootstrapTag}\n${queryVendorTag}\n${queryTag}\n${maturityTag}`,
     );
   }
-  return `${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${bootstrapTag}\n${maturityTag}\n${html}`;
+  return `${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${bootstrapTag}\n${queryVendorTag}\n${queryTag}\n${maturityTag}\n${html}`;
 }
 
 function withinRoot(root: string, target: string): boolean {

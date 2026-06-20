@@ -495,6 +495,10 @@
         var accountStateMap = {}; /* accountId -> connectionState */
         var accountEmailMap = {}; /* accountId -> email */
         var boot = window.__viewBoot;
+        /* __viewQuery observer handles for calendar list + accounts list.
+         * Created once after cap bind; destroyed + recreated if caps re-bind. */
+        var _accountsObs = null;
+        var _calsObs = null;
 
         /* ── DOM refs ─────────────────────────────────────────────────────────── */
         var elBridgeWait = document.getElementById('bridge-wait');
@@ -531,30 +535,65 @@
           renderClassifications();
         }
 
-        /* ── Load data from caps ─────────────────────────────────────────────── */
+        /* ── Load data from caps via __viewQuery observers ──────────────────── */
+        /* Each observer is keyed by cap namespace + operation.
+         * Both subscribe callbacks rebuild both panels so state stays consistent
+         * (accounts data needed by buildCalRow to check disabled state). */
+        function applyAccountsData(data) {
+          accounts = data || [];
+          accountStateMap = {};
+          accountEmailMap = {};
+          accounts.forEach(function (a) {
+            accountStateMap[a.id] = a.connectionState;
+            if (a.email) accountEmailMap[a.id] = a.email;
+          });
+          renderCalendars();
+          renderAccounts();
+        }
+
+        function applyCalsData(data) {
+          calendars = data || [];
+          renderCalendars();
+        }
+
+        function destroyDataObservers() {
+          if (_accountsObs) { _accountsObs.destroy(); _accountsObs = null; }
+          if (_calsObs) { _calsObs.destroy(); _calsObs = null; }
+        }
+
         function loadData() {
           if (!queryCap) return;
-          Promise.all([queryCap.call('listAccounts'), queryCap.call('listAddedCalendars')])
-            .then(function (results) {
-              accounts = results[0] || [];
-              accountStateMap = {};
-              accountEmailMap = {};
-              accounts.forEach(function (a) {
-                accountStateMap[a.id] = a.connectionState;
-                if (a.email) accountEmailMap[a.id] = a.email;
-              });
-              calendars = results[1] || [];
-              renderCalendars();
-              renderAccounts();
-            })
-            .catch(function () {
-              accounts = [];
-              accountStateMap = {};
-              accountEmailMap = {};
-              calendars = [];
-              renderCalendars();
-              renderAccounts();
-            });
+
+          /* Tear down any pre-existing observers before (re)creating. */
+          destroyDataObservers();
+
+          /* Accounts observer — staleTime 30s (account list changes infrequently). */
+          _accountsObs = window.__viewQuery.observeQuery({
+            queryKey: ['schedule.calendar', 'listAccounts'],
+            queryFn: function () { return queryCap.call('listAccounts'); },
+            staleTime: 30000,
+          });
+          _accountsObs.subscribe(function (result) {
+            if (result.status === 'success') {
+              applyAccountsData(result.data);
+            } else if (result.status === 'error') {
+              applyAccountsData([]);
+            }
+          });
+
+          /* Calendars observer — staleTime 30s. */
+          _calsObs = window.__viewQuery.observeQuery({
+            queryKey: ['schedule.calendar', 'listAddedCalendars'],
+            queryFn: function () { return queryCap.call('listAddedCalendars'); },
+            staleTime: 30000,
+          });
+          _calsObs.subscribe(function (result) {
+            if (result.status === 'success') {
+              applyCalsData(result.data);
+            } else if (result.status === 'error') {
+              applyCalsData([]);
+            }
+          });
         }
 
         /* ── Render flat calendar list ───────────────────────────────────────── */
@@ -586,20 +625,38 @@
           row.className = 'cal-row' + (disabled ? ' cal-row--disabled' : '') + (isOn && !disabled ? ' active' : '');
           row.title = tooltip;
 
-          /* Click row or checkbox → toggle selected (no-op when account disconnected) */
+          /* Click row or checkbox → toggle selected (no-op when account disconnected).
+           * Uses __viewQuery.runMutation for optimistic cache flip:
+           *   optimistic: flip cal.selected in listAddedCalendars cache → immediate UI update
+           *   on settle: invalidate ['schedule.calendar'] → observers refetch from source
+           *   bumpCalRev: kept after success — cross-iframe signal for schedule.html to
+           *               invalidate its events query (iframes don't share store.changed). */
           row.addEventListener('click', function () {
             if (disabled) return;
             if (!cmdCap) return;
             var newSelected = !cal.selected;
-            cmdCap
-              .call('updateCalendar', cal.id, { selected: newSelected })
-              .then(function () {
-                bumpCalRev();
-                loadData();
-              })
-              .catch(function () {
-                /* best-effort */
-              });
+            window.__viewQuery.runMutation({
+              run: function () { return cmdCap.call('updateCalendar', cal.id, { selected: newSelected }); },
+              optimistic: function (client) {
+                /* Patch the listAddedCalendars cache entry for instant UI feedback. */
+                var key = ['schedule.calendar', 'listAddedCalendars'];
+                var prev = client.getQueryData(key);
+                if (Array.isArray(prev)) {
+                  var patched = prev.map(function (c) {
+                    return c.id === cal.id ? Object.assign({}, c, { selected: newSelected }) : c;
+                  });
+                  client.setQueryData(key, patched);
+                  /* Return rollback fn to restore previous data on error. */
+                  return function () { client.setQueryData(key, prev); };
+                }
+              },
+              invalidateKeys: [['schedule.calendar']],
+            }).then(function () {
+              /* bumpCalRev: cross-iframe invalidation signal for schedule.html events query. */
+              bumpCalRev();
+            }).catch(function () {
+              /* Mutation failed; optimistic rollback already applied by runMutation. */
+            });
           });
 
           /* Right-click → context menu */
@@ -826,11 +883,17 @@
           if (typeof state.calRev === 'number') {
             var incomingRev = state.calRev;
             /* Reload calendar list when calRev increased externally (e.g. calendar-setup added one).
-             * Guard: only fire when rev actually grew AND caps are bound (loadData guards itself). */
+             * Guard: only fire when rev actually grew AND caps are bound (loadData guards itself).
+             * With __viewQuery observers active, invalidate triggers refetch without tearing
+             * down + recreating observers; fall back to loadData if observers not yet set up. */
             if (_lastSeenRev >= 0 && incomingRev > currentRev) {
               currentRev = incomingRev;
               _lastSeenRev = incomingRev;
-              loadData();
+              if (_accountsObs && _calsObs) {
+                window.__viewQuery.invalidate(['schedule.calendar']);
+              } else {
+                loadData();
+              }
             } else {
               currentRev = incomingRev;
               if (_lastSeenRev < 0) _lastSeenRev = incomingRev;
@@ -928,7 +991,13 @@
                       entityId: 'schedule',
                     });
                   }
-                  loadData();
+                  /* Refresh data on activity focus. Invalidate if observers exist (cheaper),
+                   * otherwise loadData creates them. */
+                  if (_accountsObs && _calsObs) {
+                    window.__viewQuery.invalidate(['schedule.calendar']);
+                  } else {
+                    loadData();
+                  }
                 });
               })
               .catch(function () {

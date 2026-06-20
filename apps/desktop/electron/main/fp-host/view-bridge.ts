@@ -68,6 +68,21 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     }
   }
 
+  // Apply the maturity-highlight body class safely. The 'init'/'theme' message
+  // can arrive while the parser is still in <head> (before <body> exists),
+  // especially as the injected head grows — guard document.body so a null
+  // deref never aborts the handler (which would skip resolvedReady() and hang
+  // awaitBridge()). Defer to DOMContentLoaded when body isn't ready yet.
+  function setMaturityHighlight(on) {
+    if (document.body) {
+      document.body.classList.toggle('maturity-highlight', on);
+    } else {
+      document.addEventListener('DOMContentLoaded', function () {
+        document.body.classList.toggle('maturity-highlight', on);
+      });
+    }
+  }
+
   window.addEventListener('message', function (e) {
     var m = e.data;
     if (!m || typeof m !== 'object' || m.__soamView !== true) return;
@@ -76,7 +91,7 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
         themeSnapshot = m.theme || {};
         applyTheme(themeSnapshot);
         if (typeof m.maturityHighlight === 'boolean') {
-          document.body.classList.toggle('maturity-highlight', m.maturityHighlight);
+          setMaturityHighlight(m.maturityHighlight);
         }
         resolvedReady();
         break;
@@ -92,7 +107,7 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
         themeSnapshot = m.theme || {};
         applyTheme(themeSnapshot);
         if (typeof m.maturityHighlight === 'boolean') {
-          document.body.classList.toggle('maturity-highlight', m.maturityHighlight);
+          setMaturityHighlight(m.maturityHighlight);
         }
         break;
       case 'context':

@@ -15,6 +15,7 @@
 //       getStatus, listEvents (P0)
 //       listAccounts, listAddedCalendars, listProviderCalendars, getAccountStatus,
 //       listAggregatedEvents (slice 2)
+//       listWindowEvents (window-cache fetch — ALL added calendars, client-side visibility)
 //   - schedule.calendar@1.0        kind:command
 //       connect, disconnect (P0)
 //       connectAccount, disconnectAccount, reconnectAccount,
@@ -217,6 +218,82 @@ export function activate(ctx) {
               ev.calendarColor = meta.color;
             } else {
               // Calendar not in selected set (shouldn't happen in normal flow, but be defensive).
+              ev.providerCalendarId = ev.calendarId;
+              ev.externalAccountId  = externalAccountId;
+            }
+            allEvents.push(ev);
+          }
+        }
+
+        return allEvents;
+      }
+
+      case 'listWindowEvents': {
+        // Fetch events across ALL ADDED calendars (regardless of selected flag).
+        // Used by the view's window-cache strategy: visibility is filtered client-side
+        // so toggling calendar.selected never triggers a re-fetch.
+        // Identical to listAggregatedEvents but loads calendar.list (all added)
+        // instead of calendar.listSelected.
+        const from = args[0];
+        const to   = args[1];
+        if (typeof from !== 'string' || typeof to !== 'string') {
+          throw new Error('schedule.calendar.query.listWindowEvents: from and to must be ISO date strings');
+        }
+
+        // Load ALL added calendar rows (not just selected).
+        const calRows = await storeQuery.call('run', ['calendar.list', {}]);
+        if (calRows.length === 0) return [];
+
+        // Group by account (same pattern as listAggregatedEvents).
+        const byAccount = new Map();
+        for (const cal of calRows) {
+          if (!byAccount.has(cal.account_id)) {
+            const acctRows = await storeQuery.call('run', ['account.getById', { id: cal.account_id }]);
+            if (acctRows.length === 0) continue;
+            const acct = acctRows[0];
+            byAccount.set(cal.account_id, {
+              externalAccountId: acct.external_account_id,
+              providerType:      acct.provider_type,
+              cals: [],
+            });
+          }
+          byAccount.get(cal.account_id).cals.push({
+            localId:            cal.id,
+            providerCalendarId: cal.provider_calendar_id,
+            color:              cal.color,
+          });
+        }
+
+        const allEvents = [];
+
+        for (const [, { externalAccountId, providerType, cals }] of byAccount) {
+          let a;
+          try {
+            a = getAdapter(providerType);
+          } catch {
+            continue;
+          }
+
+          const providerCalendarIds = cals.map((c) => c.providerCalendarId);
+          const calMeta = new Map(
+            cals.map((c) => [c.providerCalendarId, { localId: c.localId, color: c.color }]),
+          );
+
+          let events;
+          try {
+            events = await a.listEventsForCalendars(externalAccountId, providerCalendarIds, from, to);
+          } catch {
+            continue;
+          }
+
+          for (const ev of events) {
+            const meta = calMeta.get(ev.calendarId);
+            if (meta) {
+              ev.providerCalendarId = ev.calendarId;
+              ev.externalAccountId  = externalAccountId;
+              ev.calendarId    = meta.localId;
+              ev.calendarColor = meta.color;
+            } else {
               ev.providerCalendarId = ev.calendarId;
               ev.externalAccountId  = externalAccountId;
             }
