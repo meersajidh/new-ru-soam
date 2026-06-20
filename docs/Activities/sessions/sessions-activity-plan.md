@@ -1,6 +1,6 @@
 # Sessions Activity — build plan & status tracker
 
-**Status:** In progress — P1 slices 2 / 3 / 4a / 4b shipped; orchestration spine live on real Google Calendar.
+**Status:** In progress — P1 slices 2 / 3 / 4a / 4b + §6 shipped; **O483 read-half (PHI-read opt-in + Safety Score + P-D chrome) BUILT + dogfood-verified 2026-06-20 (committed `675225c`)**; orchestration spine live on real Google Calendar.
 **Created:** 2026-06-19 (to give Sessions its own home — the slice reasoning previously lived inside the
 **Schedule** design log, `docs/Activities/schedule/schedule-design-log.md` SD-15..19, which caused
 cross-Activity confusion).
@@ -39,6 +39,7 @@ resolution, Practice *owns* it (SD-10).
 | **4a — Auto-link sync** | `sessions.meeting.sync` consumes cross-bundle `schedule.calendar.query.listEvents` + `record.patient.query.resolveParticipant`; single distinct match ⇒ auto-link (upsert on `provider_event_id`); window-scoped orphan pass; ambiguous/none/suppressed ⇒ **transient `needsLinking[]`** (never persisted) | ✅ Built, live-verified on real Google Calendar | `f102704`, SD-17 |
 | **4b — Needs-linking triage panel** | Sessions `panel.view` (`needs-linking.html`) renders transient `needsLinking[]`; per-participant confirm→alias+link / promote→create+link / exclude→suppress; `linkProviderEvent(event,clientId)` | ✅ Built (card-render + 3 actions code-reviewed, not live-fired) | `18ab656`, SD-18 |
 | **§6 — Classification colours** *(Schedule-side, depends on Sessions data)* | 5-state render-time classification in `schedule.html` (CLIENT / PROBABLE / EXCLUDED / PERSONAL / UNCLASSIFIED); view-side derive binds `sessions.meeting.query` + `record.patient.query` | ✅ Built, all 5 states live-fired | `2620f39`, SD-19 |
+| **O483 read-half — PHI-read opt-in + Safety Score** *(Sessions owns the gate + engine)* | pref `sessions.calendarPhiReadOptIn` (default-off) gates `sync` (empty short-circuit) + Schedule §6 classify (via `getPhiReadOptIn` → skip `resolveParticipant`); new caps query `getPhiReadOptIn`/`getSafetyScore` + command `setPhiReadOptIn`; `prefs@1.0` dep; score = ADR-313 Am1 (`100−60·E/M−40·writeOptIn`); P-D status-bar chrome (shell). **Write-half = O499.** | ✅ Built + dogfood-verified 2026-06-20 (committed `675225c`) | SD-24 |
 
 **Cross-bundle host→host is sanctioned:** the loader registers every bundle's caps in the Main registry
 with a host-forwarding handler; first-party→first-party `phi:true` passes the gate; the consuming bundle
@@ -57,7 +58,11 @@ with a host-forwarding handler; first-party→first-party `phi:true` passes the 
   so a client erase must also cascade into Sessions. **Now genuinely needed — close before prod.**
 - **O486** — `MeetingProvider` port (Meet / Zoom) for meeting creation.
 - **O485-rest** — remaining Schedule UI surfaces (see schedule build-plan P-B / O491 / P-C / P-D).
-- **O483** — ADR-313 PHI opt-ins + PHI Safety Score value (gates Schedule P-D).
+- **O483 — ✅ read-half DONE + dogfood-verified 2026-06-20 (committed `675225c`, SD-24).** PHI-read opt-in +
+  Safety Score engine (ADR-313 Am1) + P-D chrome, all built; the gate + score live in this bundle.
+  **Write-half deferred → O499** (calendar write-back + PHI-write opt-in).
+- **O499** — PHI ramp write-half: calendar write-back (opaque "Busy" default) + PHI-write opt-in
+  (`sessions.calendarPhiWriteOptIn`) → activates the score's `writeOptIn` / `E<M` paths.
 
 ---
 

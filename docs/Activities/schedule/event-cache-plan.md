@@ -32,7 +32,8 @@ Two-tier read path:
 flips source **live-Google → event table**. Add: trigger sync on open + repaint when sync lands.
 
 **Read-only simplifies conflict:** Schedule is read-only (provider authoritative; write-back is
-later, ADR-313 ramp). So sync = pure upsert of provider truth — **no LWW** (O23 stays closed
+later — O499 / ADR-313 ramp write-half; the read-half PHI opt-in + Safety Score shipped 2026-06-20,
+SD-24, no writes). So sync = pure upsert of provider truth — **no LWW** (O23 stays closed
 until write-back). Field-partitioning (per ADR-508) only matters for the Sessions link, not here.
 
 ## Tables (owned by `ru-soam-schedule`, FP-Host, `residency:'protected'` — titles are PHI)

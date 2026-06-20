@@ -1,6 +1,6 @@
 # Schedule — multi-account / multi-calendar spec
 
-**Status:** Slices 1–6 BUILT + committed + dogfood-verified (slices 1–3 `668d957`; O493 link-key + slice-6 event cache `e486dfc`, 2026-06-20); slices 4 + 5 absorbed into slice 3. Cross-bundle O490 (erase cascade) parked pre-prod; remaining = O486 (more providers) + O483 (writes). **Date:** 2026-06-19 (design) / 2026-06-20 (build).
+**Status:** Slices 1–6 BUILT + committed + dogfood-verified (slices 1–3 `668d957`; O493 link-key + slice-6 event cache `e486dfc`, 2026-06-20); slices 4 + 5 absorbed into slice 3. Cross-bundle O490 (erase cascade) parked pre-prod; remaining = O486 (more providers) + O499 (calendar writes; O483 read-half PHI ramp BUILT 2026-06-20). **Date:** 2026-06-19 (design) / 2026-06-20 (build).
 **Canonical for:** the account/calendar data model, the account-aware provider port, the revised CQRS
 caps, and the build slices for multi-account calendars.
 **ADRs:** [ADR-507 Am1](../../ADRs/507-schedule-activity.md#amendment-1--schedule-owns-a-thin-accountcalendar-model-multi-account--2026-06-19)
@@ -103,7 +103,7 @@ Multi-account makes a bare `provider_event_id` non-unique. The globally-unique k
 store the **provider-level** triple (survives local `calendar` row delete/re-add), not the local
 `cal_<uuid>` handle.
 
-**RESOLVED (O493) — BUILT + dogfood-verified 2026-06-20 (uncommitted), formalized in ADR-508 Am1.**
+**RESOLVED (O493) — BUILT + dogfood-verified 2026-06-20 (committed `e486dfc`), formalized in ADR-508 Am1.**
 `client_meeting` gained `external_account_id` + `provider_calendar_id` (migration v2 + composite
 index); link key = `(provider_id, external_account_id, provider_calendar_id, provider_event_id)`,
 provider-level. Sessions `sync` consumes `schedule.calendar.query.listAggregatedEvents` (which now
@@ -124,7 +124,9 @@ remains open — close before prod** (build parked; seam + Option-1 recommendati
 
 Tables are `protected` (PII). Event titles stay `phi:true` + lock-gated (unchanged). Classification
 colors (§6 of P-A) are render-time derivations, never stored, never written to the provider (ADR-507
-§6). The PHI gradient (ADR-313) still localizes to writes/sync, not this model.
+§6). The PHI gradient (ADR-313) still localizes to writes/sync, not this model — its **read-half** (PHI-read
+opt-in gate + Safety Score, ADR-313 Am1 / O483) shipped 2026-06-20 in the Sessions sync + Schedule classify
+paths, not here; the **write-half** is O499.
 
 ## 8. Build slices (design-first done; these are code, review + dogfood each)
 
@@ -149,7 +151,7 @@ colors (§6 of P-A) are render-time derivations, never stored, never written to 
    Sessions sync ordering. See `event-cache-plan.md` + design-log SD-23. **Cross-bundle O493 (Sessions link-key
    qualify by account + calendar) DONE (`e486dfc`).** Pre-prod parked: O498 (prune + `timeMax`) · O490 (erase
    cascade). **Still later (feature, not foundation):** Microsoft / Apple / CalDAV (O486); calendar writes
-   (O483 / ADR-313 ramp).
+   (O499 / ADR-313 ramp write-half — read-half PHI opt-in + Safety Score BUILT 2026-06-20, SD-24).
 
 ## 9. Open Items
 

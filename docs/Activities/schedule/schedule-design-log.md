@@ -514,7 +514,7 @@ renderer-domain `window.soam` + view `soamView` = POSITIONAL.
 
 ## SD-22 — Cross-bundle gates: O493 link-key BUILT, O490 erase-cascade PARKED (2026-06-20)
 
-**O493 — Sessions link-key qualification → BUILT + dogfood-verified (uncommitted), formalized ADR-508 Am1.**
+**O493 — Sessions link-key qualification → BUILT + dogfood-verified (committed `e486dfc`), formalized ADR-508 Am1.**
 Bare `provider_event_id` collides across accounts/calendars (same Google event id appears on every attendee
 copy). Fix = provider-level triple, NOT the local `cal_<uuid>` handle (survives `calendar` row delete/re-add,
 no cross-bundle FK). `client_meeting` += `external_account_id` + `provider_calendar_id` (migration v2 = 2 `ALTER`
@@ -623,7 +623,7 @@ the PHI-read consent toggle (PHI-write shown disabled / "coming soon"). Score fe
 Build = 3 slices: A (this doc lock) · B (read opt-in + both gates + audit) · C (score query + P-D chrome). See the plan
 file + ADR-313 Am1.
 
-**BUILT + dogfood-verified (uncommitted, real Google Calendar, CDP :9333, 2026-06-20):** default-off → `getSafetyScore`
+**BUILT + dogfood-verified (committed `675225c`, real Google Calendar, CDP :9333, 2026-06-20):** default-off → `getSafetyScore`
 100; `sync` while read-off returns the empty shape with **no** provider read; opt-in → `sync` reads provider (13
 `needsLinking`, 0 persisted); promote one event → client + `linkProviderEvent` → M=1 → **score 40** (`100−round(60·1/1)`);
 opt-out → `sync` empty + score 100; temp client/meeting erased clean. P-D entry shows the number at a glance (`scope:'workspace'`),
