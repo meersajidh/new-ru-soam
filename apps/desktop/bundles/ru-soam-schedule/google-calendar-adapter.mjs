@@ -316,7 +316,8 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
    * @param {string} externalAccountId       - Google account id (broker key)
    * @param {string} providerCalendarId      - Provider-level calendar id to sync
    * @param {{ syncToken?: string, timeMin?: string }} opts
-   * @returns {{ upserts: object[], deletions: string[], nextSyncToken: string }}
+   * @returns {Promise<{ upserts: object[], deletions: string[], nextSyncToken: string }>}
+   *   Full sync: `timeMax` is auto-set to now+365d; incremental unchanged.
    */
   async function syncEvents(externalAccountId, providerCalendarId, opts) {
     opts = opts || {};
@@ -337,12 +338,16 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
       // Incremental sync — syncToken replaces timeMin/timeMax (Google API requirement).
       baseParams.syncToken = syncToken;
     } else {
-      // Full sync — bound by timeMin (default: now − 3mo).
+      // Full sync — bound by timeMin (default: now − 3mo) AND timeMax (now + 365d).
       // NOTE: do NOT set `orderBy` here — Google suppresses `nextSyncToken` on any
       // list request that uses `orderBy`, which would break incremental sync
       // (every sync would re-pull the full window). Events are sorted client-side.
+      // NOTE: `timeMin`/`timeMax` ARE compatible with obtaining a `nextSyncToken`
+      // (unlike `orderBy`). The returned token stays anchored to this first-sync window,
+      // so events beyond +12 mo need a future re-anchor (full resync) — acceptable v1.
       const tMin = timeMin || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       baseParams.timeMin   = tMin;
+      baseParams.timeMax   = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
     }
 
     const calUrl = `${GCAL_API_BASE}/calendars/${encodeURIComponent(providerCalendarId)}/events`;

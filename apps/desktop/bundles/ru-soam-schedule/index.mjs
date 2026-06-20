@@ -619,14 +619,15 @@ export function activate(ctx) {
         // Slice 6 (ADR-507 Am2): sync the event cache for ALL added calendars.
         // For each calendar: read sync_token, call adapter.syncEvents, upsert/delete
         // event rows, prune old rows, write back nextSyncToken + last_synced_at.
-        // Returns: { calendarCount, upserts, deletions, errors }
+        // Returns: { calendarCount, upserts, deletions, pruned, errors }
         // PHI-free audit (no titles, no emails).
 
         const calRows = await storeQuery.call('run', ['calendar.list', {}]);
-        if (calRows.length === 0) return { calendarCount: 0, upserts: 0, deletions: 0, errors: 0 };
+        if (calRows.length === 0) return { calendarCount: 0, upserts: 0, deletions: 0, pruned: 0, errors: 0 };
 
         let totalUpserts   = 0;
         let totalDeletions = 0;
+        let totalPruned    = 0;
         let totalErrors    = 0;
         const now = Date.now();
 
@@ -636,6 +637,7 @@ export function activate(ctx) {
           if (acctRows.length === 0) continue; // orphaned calendar — skip
 
           const acct = acctRows[0];
+          /** @type {ReturnType<typeof getAdapter>} */
           let a;
           try {
             a = getAdapter(acct.provider_type);
@@ -775,8 +777,45 @@ export function activate(ctx) {
               synced_at:            syncedAt,
             };
 
-            // Try insert first; on UNIQUE conflict, update in place.
-            try {
+            // Query-first upsert: deterministic, no UNIQUE-string matching.
+            const triple = {
+              externalAccountId:  acct.external_account_id,
+              providerCalendarId: cal.provider_calendar_id,
+              providerEventId:    ev.id,
+            };
+            const existing = await storeQuery.call('run', ['event.getByProviderTriple', triple]);
+            if (existing.length > 0) {
+              // Row exists — update mutable fields by provider triple.
+              await storeWrite.call('updateWhere', [
+                'event',
+                {
+                  external_account_id:  acct.external_account_id,
+                  provider_calendar_id: cal.provider_calendar_id,
+                  provider_event_id:    ev.id,
+                },
+                {
+                  title:           row.title,
+                  start:           row.start,
+                  end:             row.end,
+                  all_day:         row.all_day,
+                  location:        row.location,
+                  meeting_link:    row.meeting_link,
+                  organizer_email: row.organizer_email,
+                  organizer_name:  row.organizer_name,
+                  organizer_self:  row.organizer_self,
+                  attendees:       row.attendees,
+                  updated_at:      row.updated_at,
+                  synced_at:       row.synced_at,
+                },
+                {
+                  event:      'schedule.event.reconciled',
+                  recordType: 'event',
+                  recordId:   ev.id,
+                  detail:     { providerType: acct.provider_type },
+                },
+              ]);
+            } else {
+              // New row — insert.
               await storeWrite.call('insert', [
                 'event',
                 row,
@@ -787,44 +826,6 @@ export function activate(ctx) {
                   detail:     { providerType: acct.provider_type },
                 },
               ]);
-            } catch (insertErr) {
-              // UNIQUE constraint violation — update existing row by provider triple.
-              if (
-                insertErr &&
-                (String(insertErr.message).includes('UNIQUE') ||
-                 String(insertErr.code).includes('SQLITE_CONSTRAINT'))
-              ) {
-                // Find the existing row's local id via updateWhere on the unique triple.
-                await storeWrite.call('updateWhere', [
-                  'event',
-                  {
-                    external_account_id:  acct.external_account_id,
-                    provider_calendar_id: cal.provider_calendar_id,
-                    provider_event_id:    ev.id,
-                  },
-                  {
-                    title:           row.title,
-                    start:           row.start,
-                    end:             row.end,
-                    all_day:         row.all_day,
-                    location:        row.location,
-                    meeting_link:    row.meeting_link,
-                    organizer_email: row.organizer_email,
-                    organizer_name:  row.organizer_name,
-                    organizer_self:  row.organizer_self,
-                    attendees:       row.attendees,
-                    updated_at:      row.updated_at,
-                    synced_at:       row.synced_at,
-                  },
-                  {
-                    event:      'schedule.event.reconciled',
-                    recordType: 'event',
-                    recordId:   ev.id,
-                    detail:     { providerType: acct.provider_type },
-                  },
-                ]);
-              }
-              // Else some other error — swallow, continue (don't abort whole sync).
             }
             totalUpserts++;
           }
@@ -848,16 +849,29 @@ export function activate(ctx) {
             totalDeletions++;
           }
 
-          // ── Prune old events beyond sync_window_min ─────────────────────────
-          // The store.write 'deleteWhere' predicate only supports equality (string|number).
-          // A range condition (start < pruneBeforeISO) cannot be expressed here.
-          // TODO(O495-prune): extend store.write with a 'pruneWhere' op that accepts
-          // a < comparator on a timestamp column, or add a dedicated queryTemplate
-          // + store.query 'run' for delete. For now, prune is a no-op:
-          // the event table is naturally bounded because the first full sync uses
-          // timeMin = now−3mo, so at most 3 months of events are ever inserted.
-          // Old events beyond that window simply age out as calendars are re-synced
-          // (they won't be re-upserted and can be cleaned up in a later slice).
+          // ── Prune stale events older than sync_window_min ─────────────────
+          // event.listStaleIds uses a < comparison (in SQL) — queryTemplate handles
+          // range; deleteWhere equality-on-PK handles per-row deletion.
+          let calPruned = 0;
+          const cutoff = new Date(now - syncWindowMin).toISOString();
+          const staleRows = await storeQuery.call('run', [
+            'event.listStaleIds',
+            { calendarId: cal.id, cutoff },
+          ]);
+          for (const staleRow of staleRows) {
+            await storeWrite.call('deleteWhere', [
+              'event',
+              { id: staleRow.id },
+              {
+                event:      'schedule.event.pruned',
+                recordType: 'event',
+                recordId:   staleRow.id,
+                detail:     { providerType: acct.provider_type },
+              },
+            ]);
+            calPruned++;
+          }
+          totalPruned += calPruned;
 
           // ── Write back nextSyncToken + last_synced_at ─────────────────────
           await storeWrite.call('update', [
@@ -883,6 +897,7 @@ export function activate(ctx) {
           calendarCount: calRows.length,
           upserts:       totalUpserts,
           deletions:     totalDeletions,
+          pruned:        totalPruned,
           errors:        totalErrors,
         };
       }

@@ -1,6 +1,6 @@
 # Schedule — multi-account / multi-calendar spec
 
-**Status:** Slices 1–3 BUILT + committed + dogfood-verified (`668d957`, 2026-06-20); slices 4 + 5 absorbed into slice 3; slice 6 + cross-bundle O493/O490 pending. **Date:** 2026-06-19 (design) / 2026-06-20 (build).
+**Status:** Slices 1–6 BUILT + committed + dogfood-verified (slices 1–3 `668d957`; O493 link-key + slice-6 event cache `e486dfc`, 2026-06-20); slices 4 + 5 absorbed into slice 3. Cross-bundle O490 (erase cascade) parked pre-prod; remaining = O486 (more providers) + O483 (writes). **Date:** 2026-06-19 (design) / 2026-06-20 (build).
 **Canonical for:** the account/calendar data model, the account-aware provider port, the revised CQRS
 caps, and the build slices for multi-account calendars.
 **ADRs:** [ADR-507 Am1](../../ADRs/507-schedule-activity.md#amendment-1--schedule-owns-a-thin-accountcalendar-model-multi-account--2026-06-19)
@@ -144,9 +144,12 @@ colors (§6 of P-A) are render-time derivations, never stored, never written to 
 5. ✅ **Per-calendar context menu** (ADR-417) — DONE (folded into slice 3): calendar + account right-click
    menus. **Per-cal open-in-own-tab DROPPED** (checkbox overlay supersedes — editor-tab color-dot infra
    built then reverted; do not reintroduce).
-6. ⬜ **Later** — event cache + incremental sync; Microsoft / Apple / CalDAV (O486); calendar writes
-   (ADR-313 ramp). **Plus cross-bundle O493 (Sessions link-key qualify by account + calendar) + O490
-   (erase cascade) — before linking multi-account events / before prod.**
+6. ✅ **Event cache + incremental sync** (O495 slice 6, `e486dfc`) — DONE + dogfood-verified. Persistent
+   `protected` `event` table (ADR-507 Am2) + Google `syncToken` delta sync; cache-backed reads; cascade-deletes;
+   Sessions sync ordering. See `event-cache-plan.md` + design-log SD-23. **Cross-bundle O493 (Sessions link-key
+   qualify by account + calendar) DONE (`e486dfc`).** Pre-prod parked: O498 (prune + `timeMax`) · O490 (erase
+   cascade). **Still later (feature, not foundation):** Microsoft / Apple / CalDAV (O486); calendar writes
+   (O483 / ADR-313 ramp).
 
 ## 9. Open Items
 

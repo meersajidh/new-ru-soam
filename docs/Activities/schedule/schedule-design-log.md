@@ -548,4 +548,49 @@ auto-covered; base stays domain-free; open question = authority gate, proposal `
 `docs/Open_Items.md` O490 row. Needs an ADR before code.
 
 **NEXT:** commit O493 → (O490 parked, revisit before prod) → slice 6 (event cache + incremental sync;
-Microsoft/Apple/CalDAV [O486]; calendar writes [O483 / ADR-313 ramp]).
+Microsoft/Apple/CalDAV [O486]; calendar writes [O483 / ADR-313 ramp]). → see SD-23.
+
+## SD-23 — Query-core view data layer + persistent event cache (slice 6) → COMMITTED + dogfood-verified (2026-06-20)
+
+Two committed steps that finish the Schedule **data layer** (read-only, multi-cal).
+
+**(a) `__viewQuery` — query-core view data layer + in-session window-cache (committed `<query-core commit>`).**
+New platform seam: `@tanstack/query-core` injected into sandboxed iframes (`view-query.ts` + generated
+`view-query-vendor.ts` [Vite IIFE, **`mode:'production'` + `define` mandatory** else `process` undefined in the
+opaque sandbox] + `view-protocol.ts`) exposing `window.__viewQuery` (`observeQuery` / `runMutation` / `invalidate`,
+cap-agnostic). **Hard lesson:** `QueryObserver.subscribe` does NOT replay current state → a cached-fresh query never
+fires the listener → the view hangs on its spinner forever; the wrapper MUST emit `getCurrentResult()` once on
+subscribe. Schedule **window-cache:** events fetched ONCE per month-grid window (`listWindowEvents` = all added
+calendars), shared across Day/Week/Month/Agenda; render filters CLIENT-SIDE (range ∩ calendar-visibility ∩ classFilter);
+calendar toggle = client-side 0-fetch (was a 2-3s Google refetch); `runClassifyPass` once per window. `staleTime:5min`.
+Rollout to other views = O497; bundle-view tech-stack ADR = O496.
+
+**(b) Persistent event cache + incremental sync (slice 6, O495) → COMMITTED `e486dfc`, dogfood-verified.**
+The cross-session half. **ADR-507 Am2** reverses Am1's "events un-cached" and authorises a `protected` `event` table
+(read-only ⇒ **pure upsert of provider truth, no LWW — O23 stays closed**). `ru-soam-schedule` migration **v2** =
+`event` table (UNIQUE on the O493 triple `external_account_id, provider_calendar_id, provider_event_id`) + sync
+bookkeeping cols on `calendar` (`sync_token` / `last_synced_at` / `sync_status` / `sync_window_min`). Adapter
+`syncEvents(extAcct, provCal, {syncToken?, timeMin?})` = full list bounded by `timeMin = now−3mo` when no token /
+incremental delta when a token is present / `410 Gone` → wipe token + full-resync / `status:'cancelled'` → deletions.
+Command `syncEvents` (per added calendar: insert → `updateWhere`-on-UNIQUE upsert, cancelled-delete, persist
+`nextSyncToken`, PHI-free audit). **`listWindowEvents` + `listAggregatedEvents` BOTH FLIPPED to read the `event` cache**
+(single source of truth — user decided over the plan's "leave live" default; `mapEventRow` ≡ live shape incl. O493
+triple + color; live Google reached ONLY inside `syncEvents`). **Sessions ordering (Am2):** Sessions `sync` fires the
+cross-bundle `schedule.calendar.syncEvents` BEFORE reading `listAggregatedEvents` (offline-tolerant); manifest gains the
+`schedule.calendar@1.0` dep. Cascade-delete event rows on removeCalendar / disconnectAccount / deleteAccount (disconnect
+also clears the sync token). schedule.html: background sync on activate/connect/added-set change → invalidate the
+window-events query on change.
+
+**Bug found + fixed mid-dogfood:** the full-sync set `orderBy:'startTime'` — Google **suppresses `nextSyncToken`** on any
+list request that uses `orderBy`, so the token never persisted and incremental silently degraded to a full re-pull every
+sync (235 events each time). Fix = drop `orderBy` (events are sorted client-side anyway). Re-verified after restart:
+re-sync = 0 upserts; a real Google add+delete → exactly 1 upsert / 1 deletion (true delta); cache + token survive restart;
+calendar-delete cascade purges rows. 410-resync code-reviewed only (can't force token-expiry on demand).
+
+**Pre-prod follow-up = O498:** prune (events older than `sync_window_min` — `deleteWhere` is equality-only, can't express
+`start < cutoff`) + full-sync `timeMax` bound (open-ended `singleEvents` expansion of recurring series). Both are
+bounding/hygiene, not correctness — read path always reads a bounded window.
+
+**Schedule data layer is now complete** (multi-cal accounts/calendars + classification + cross-bundle link-key + persistent
+cache + incremental sync). Remaining Schedule work is feature, not foundation: O486 (more providers), O483 (writes /
+ADR-313 PHI ramp), O488 (aux event-detail slot), P-D status-bar PHI Safety Score (blocked on O483).

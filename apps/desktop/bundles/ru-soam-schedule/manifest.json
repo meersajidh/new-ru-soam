@@ -66,6 +66,14 @@
     {
       "id": "event.getSyncToken",
       "sql": "SELECT id, sync_token, last_synced_at, sync_status, sync_window_min FROM calendar WHERE id = @calendarId"
+    },
+    {
+      "id": "event.getByProviderTriple",
+      "sql": "SELECT id FROM event WHERE external_account_id = @externalAccountId AND provider_calendar_id = @providerCalendarId AND provider_event_id = @providerEventId"
+    },
+    {
+      "id": "event.listStaleIds",
+      "sql": "SELECT id FROM event WHERE calendar_id = @calendarId AND start < @cutoff"
     }
   ],
   "dependencies": {

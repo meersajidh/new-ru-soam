@@ -1,7 +1,9 @@
 # Schedule Activity — UI build plan (from the Claude Design handoff)
 
-**Status:** In progress — see §0 build status.
-**Date:** 2026-06-17 (status tracked inline; last updated 2026-06-19)
+**Status:** Core complete — see §0 build status. Read-only multi-calendar Schedule (UI P-A/P-B + full data layer) is
+built, committed, and dogfood-verified. Remaining is deliberately deferred/blocked (P-D, P-C remnant) or feature scope
+(writes, more providers).
+**Date:** 2026-06-17 (status tracked inline; last updated 2026-06-20)
 **Source design:** Claude Design handoff bundle `Schedule Activity.dc.html` (+ `Schedule_Brief.md`,
 chat transcript). The mockup renders the **full vision** of the Schedule Activity as a VS Code–style
 shell. This plan maps that vision onto our real workbench slots and codebase.
@@ -19,6 +21,7 @@ ADR-313 (PHI gradient + Safety Score), `schedule-design-log.md` (SD-1..13), Prac
 | **P-B** | Primary `nav.html` + `ScheduleViewStateService` channel + connection block | 🔨 **BUILT (trimmed) — now SUPERSEDED by the multi-cal redesign.** 2026-06-19: channel (mirrors O455) + Week/Day/Agenda/Month switcher + calendars list/toggles (derived from events) + connection block; compile+lint green, code-reviewed clean. **Superseded the same day** by the multi-account/multi-calendar work (SD-20, ADR-507 Am1 + ADR-314): view-switcher buttons are being dropped, localStorage `calVisibility` → persisted `calendar.selected`, single-connection → multi-account. The P-B channel/connection scaffolding is reused; the nav UI is rebuilt under `schedule-multical-spec.md`. **→ REPLACED: multi-cal nav redesign (spec slices 1–3) BUILT + committed + dogfood-verified 2026-06-20 (`668d957`)** — CALENDARS colored-tick list + add-calendar wizard (work-area tab) + classification filter w/ counts + bottom-pinned ACCOUNTS section (right-click Disconnect/Reconnect/Delete) + per-cal right-click Edit/Delete/Reconnect + organiser-hash fix + `add`/`open-in-window` codicon title-row buttons. |
 | **P-C** | Panel `triage.html` (Needs-linking + Today's-agenda) via `panel.views` | ⚠️ **SUPERSEDED / partial** — the **real** Needs-linking panel shipped from the **Sessions** bundle (slice 4b, SD-18, `18ab656`), better than the planned stub. Remaining: a "Today's agenda" tab (low value; reassess after P-B). The Schedule-bundle `triage.html` is **not** being built. |
 | **P-D** | Status-bar PHI Safety Score entry + command + popover | ⬜ **BLOCKED on O483** — correctly deferred; the score *value* is meaningless until the ADR-313 PHI opt-ins exist. Do not build the chrome before the engine. |
+| **Data layer** | Multi-account/multi-calendar tables + port + broker keying + classification + cross-bundle link-key + **persistent event cache + incremental sync** | ✅ **DONE + committed + dogfood-verified 2026-06-20.** Multi-cal slices 1–3 (`668d957`) + O493 link-key + **O495 slice 6 event cache** (`e486dfc`, ADR-507 Am2): `event` table, `syncEvents` (full/incremental/410/cancelled), cache-backed reads, cascade-deletes, Sessions sync ordering. In-session `__viewQuery` window-cache also committed. See `schedule-design-log.md` SD-21/22/23 + `event-cache-plan.md`. **Pre-prod hygiene parked = O498** (prune + full-sync `timeMax`). |
 
 **Legend:** ✅ done · 🔨 in progress · ⚠️ superseded/partial · ⬜ not started.
 
