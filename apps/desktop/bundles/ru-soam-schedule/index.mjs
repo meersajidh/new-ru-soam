@@ -209,9 +209,16 @@ export function activate(ctx) {
           for (const ev of events) {
             const meta = calMeta.get(ev.calendarId);
             if (meta) {
+              // Stamp provider-level ids BEFORE remapping calendarId to the local handle.
+              ev.providerCalendarId = ev.calendarId;
+              ev.externalAccountId  = externalAccountId;
               // Remap provider-level calendarId → local cal_<uuid> handle; attach color.
-              ev.calendarId = meta.localId;
+              ev.calendarId    = meta.localId;
               ev.calendarColor = meta.color;
+            } else {
+              // Calendar not in selected set (shouldn't happen in normal flow, but be defensive).
+              ev.providerCalendarId = ev.calendarId;
+              ev.externalAccountId  = externalAccountId;
             }
             allEvents.push(ev);
           }

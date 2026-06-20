@@ -18,28 +18,37 @@
       "version": 1,
       "description": "Sessions: client_meeting table (ADR-508)",
       "sql": "CREATE TABLE IF NOT EXISTS client_meeting (\n  id                TEXT PRIMARY KEY,\n  patient_id        TEXT NOT NULL,\n  kind              TEXT NOT NULL DEFAULT 'session',\n  status            TEXT NOT NULL DEFAULT 'scheduled',\n  modality          TEXT,\n  starts_at         INTEGER NOT NULL,\n  ends_at           INTEGER,\n  source_origin     TEXT NOT NULL DEFAULT 'app',\n  sync_state        TEXT NOT NULL DEFAULT 'local',\n  provider_id       TEXT,\n  provider_event_id TEXT,\n  calendar_id       TEXT,\n  created_at        INTEGER NOT NULL,\n  updated_at        INTEGER NOT NULL\n);\nCREATE INDEX IF NOT EXISTS idx_meeting_patient  ON client_meeting(patient_id, starts_at DESC);\nCREATE INDEX IF NOT EXISTS idx_meeting_upcoming ON client_meeting(starts_at);\nCREATE INDEX IF NOT EXISTS idx_meeting_provider ON client_meeting(provider_id, provider_event_id);"
+    },
+    {
+      "version": 2,
+      "description": "Sessions: composite provider link-key — external_account_id + provider_calendar_id (ADR-508 Am1, O493)",
+      "sql": "ALTER TABLE client_meeting ADD COLUMN external_account_id TEXT;\nALTER TABLE client_meeting ADD COLUMN provider_calendar_id TEXT;\nCREATE INDEX IF NOT EXISTS idx_meeting_provider_v2 ON client_meeting(provider_id, external_account_id, provider_calendar_id, provider_event_id);"
     }
   ],
   "queryTemplates": [
     {
       "id": "meeting.get",
-      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       created_at, updated_at\nFROM client_meeting WHERE id = @id"
+      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       external_account_id, provider_calendar_id,\n       created_at, updated_at\nFROM client_meeting WHERE id = @id"
     },
     {
       "id": "meeting.listForPatient",
-      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       created_at, updated_at\nFROM client_meeting WHERE patient_id = @patientId ORDER BY starts_at DESC"
+      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       external_account_id, provider_calendar_id,\n       created_at, updated_at\nFROM client_meeting WHERE patient_id = @patientId ORDER BY starts_at DESC"
     },
     {
       "id": "meeting.listUpcoming",
-      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       created_at, updated_at\nFROM client_meeting WHERE starts_at >= @from ORDER BY starts_at ASC LIMIT 100"
+      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       external_account_id, provider_calendar_id,\n       created_at, updated_at\nFROM client_meeting WHERE starts_at >= @from ORDER BY starts_at ASC LIMIT 100"
     },
     {
       "id": "meeting.getByProviderEventId",
-      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at, source_origin, sync_state, provider_id, provider_event_id, calendar_id, created_at, updated_at FROM client_meeting WHERE provider_id = @providerId AND provider_event_id = @eventId"
+      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       external_account_id, provider_calendar_id,\n       created_at, updated_at\nFROM client_meeting\nWHERE provider_id = @providerId\n  AND provider_event_id = @eventId\n  AND (external_account_id = @externalAccountId OR (external_account_id IS NULL AND @externalAccountId IS NULL))\n  AND (provider_calendar_id = @providerCalendarId OR (provider_calendar_id IS NULL AND @providerCalendarId IS NULL))"
+    },
+    {
+      "id": "meeting.getByProviderEventIdLegacy",
+      "sql": "SELECT id, patient_id, kind, status, modality, starts_at, ends_at,\n       source_origin, sync_state, provider_id, provider_event_id, calendar_id,\n       external_account_id, provider_calendar_id,\n       created_at, updated_at\nFROM client_meeting\nWHERE provider_id = @providerId\n  AND provider_event_id = @eventId\n  AND external_account_id IS NULL\n  AND provider_calendar_id IS NULL"
     },
     {
       "id": "meeting.listLinkedProvider",
-      "sql": "SELECT id, provider_event_id, starts_at FROM client_meeting WHERE provider_id = @providerId AND sync_state IN ('linked','orphaned') AND starts_at >= @from AND starts_at <= @to"
+      "sql": "SELECT id, provider_event_id, external_account_id, provider_calendar_id, starts_at FROM client_meeting WHERE provider_id = @providerId AND sync_state IN ('linked','orphaned') AND starts_at >= @from AND starts_at <= @to"
     }
   ],
   "dependencies": {

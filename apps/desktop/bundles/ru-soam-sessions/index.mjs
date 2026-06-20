@@ -17,20 +17,22 @@ const VALID_MODALITY = new Set(['in_person', 'online']);
 
 function mapMeeting(row) {
   return {
-    id:              row.id,
-    patientId:       row.patient_id,
-    kind:            row.kind,
-    status:          row.status,
-    modality:        row.modality,
-    startsAt:        row.starts_at,
-    endsAt:          row.ends_at,
-    sourceOrigin:    row.source_origin,
-    syncState:       row.sync_state,
-    providerId:      row.provider_id,
-    providerEventId: row.provider_event_id,
-    calendarId:      row.calendar_id,
-    createdAt:       row.created_at,
-    updatedAt:       row.updated_at,
+    id:                 row.id,
+    patientId:          row.patient_id,
+    kind:               row.kind,
+    status:             row.status,
+    modality:           row.modality,
+    startsAt:           row.starts_at,
+    endsAt:             row.ends_at,
+    sourceOrigin:       row.source_origin,
+    syncState:          row.sync_state,
+    providerId:         row.provider_id,
+    providerEventId:    row.provider_event_id,
+    calendarId:         row.calendar_id,
+    externalAccountId:  row.external_account_id,
+    providerCalendarId: row.provider_calendar_id,
+    createdAt:          row.created_at,
+    updatedAt:          row.updated_at,
   };
 }
 
@@ -60,13 +62,27 @@ export function activate(ctx) {
   // Bind record.patient.query@1.0 — cross-bundle, participant resolution.
   const recordPatientQuery = ctx.bindCapability('record.patient.query', '1.0');
 
-  // ── linkEvent — shared upsert keyed on provider_event_id ─────────────────
+  // ── linkEvent — shared upsert keyed on full provider triple (ADR-508 Am1, O493) ──
+  //
+  // Lookup order:
+  //   1. Full triple (provider_id, external_account_id, provider_calendar_id, provider_event_id)
+  //   2. Legacy fallback: bare provider_event_id with NULL qualifiers — upgrade in place.
+  // Insert always writes all four key fields (nullable for app-origin rows).
 
   async function linkEvent(event, clientId, auditDetail = { source: 'provider' }) {
-    const eventId = event.id ?? event.providerEventId;
+    const eventId           = event.id ?? event.providerEventId;
+    const externalAccountId = event.externalAccountId ?? null;
+    const providerCalendarId = event.providerCalendarId ?? null;
+
+    // 1. Full triple lookup.
     const rows = await storeQuery.call('run', [
       'meeting.getByProviderEventId',
-      { providerId: 'google-calendar', eventId },
+      {
+        providerId:         'google-calendar',
+        eventId,
+        externalAccountId,
+        providerCalendarId,
+      },
     ]);
 
     const startsAt = isoToMs(event.start);
@@ -74,26 +90,61 @@ export function activate(ctx) {
     const modality = event.meetingLink ? 'online' : 'in_person';
 
     if (rows.length === 0) {
-      // Insert new linked row.
+      // 2. Legacy backfill: check for a bare-event-id row with NULL qualifiers.
+      //    If found, upgrade it in place (fill the two new qualifier cols).
+      if (externalAccountId !== null || providerCalendarId !== null) {
+        const legacyRows = await storeQuery.call('run', [
+          'meeting.getByProviderEventIdLegacy',
+          { providerId: 'google-calendar', eventId },
+        ]);
+        if (legacyRows.length > 0) {
+          const legacy = legacyRows[0];
+          const now = Date.now();
+          await storeWrite.call('update', [
+            'client_meeting',
+            legacy.id,
+            {
+              external_account_id:  externalAccountId,
+              provider_calendar_id: providerCalendarId,
+              starts_at:            startsAt,
+              ends_at:              endsAt,
+              modality,
+              sync_state:           'linked',
+              updated_at:           now,
+            },
+            {
+              event:      'sessions.meeting.reconciled',
+              recordType: 'client_meeting',
+              recordId:   legacy.id,
+              detail:     auditDetail,
+            },
+          ]);
+          return { action: 'reconciled', id: legacy.id };
+        }
+      }
+
+      // No existing row — insert new linked row.
       const id = globalThis.crypto.randomUUID();
       const now = Date.now();
       await storeWrite.call('insert', [
         'client_meeting',
         {
           id,
-          patient_id:        clientId,
-          kind:              'session',
-          status:            'scheduled',
+          patient_id:           clientId,
+          kind:                 'session',
+          status:               'scheduled',
           modality,
-          starts_at:         startsAt,
-          ends_at:           endsAt,
-          source_origin:     'provider',
-          sync_state:        'linked',
-          provider_id:       'google-calendar',
-          provider_event_id: eventId,
-          calendar_id:       event.calendarId ?? null,
-          created_at:        now,
-          updated_at:        now,
+          starts_at:            startsAt,
+          ends_at:              endsAt,
+          source_origin:        'provider',
+          sync_state:           'linked',
+          provider_id:          'google-calendar',
+          provider_event_id:    eventId,
+          calendar_id:          event.calendarId ?? null,
+          external_account_id:  externalAccountId,
+          provider_calendar_id: providerCalendarId,
+          created_at:           now,
+          updated_at:           now,
         },
         {
           event:      'sessions.meeting.linked',
@@ -105,19 +156,27 @@ export function activate(ctx) {
       return { action: 'linked', id };
     }
 
-    // Reconcile — time snapshot only; do NOT touch kind/status.
+    // Reconcile — time snapshot + fill qualifiers if NULL; do NOT touch kind/status.
     const existing = rows[0];
     const now = Date.now();
+    const reconcilePatch = {
+      starts_at:  startsAt,
+      ends_at:    endsAt,
+      modality,
+      sync_state: 'linked',
+      updated_at: now,
+    };
+    // Fill qualifiers if the existing row had them as NULL (e.g. re-run after partial backfill).
+    if (existing.external_account_id == null && externalAccountId !== null) {
+      reconcilePatch.external_account_id = externalAccountId;
+    }
+    if (existing.provider_calendar_id == null && providerCalendarId !== null) {
+      reconcilePatch.provider_calendar_id = providerCalendarId;
+    }
     await storeWrite.call('update', [
       'client_meeting',
       existing.id,
-      {
-        starts_at:  startsAt,
-        ends_at:    endsAt,
-        modality,
-        sync_state: 'linked',
-        updated_at: now,
-      },
+      reconcilePatch,
       {
         event:      'sessions.meeting.reconciled',
         recordType: 'client_meeting',
@@ -387,9 +446,11 @@ export function activate(ctx) {
         const from = new Date(fromMs).toISOString();
         const to = new Date(toMs).toISOString();
 
+        // Use listAggregatedEvents — covers all selected calendars across all accounts.
+        // Events carry externalAccountId + providerCalendarId (stamped by slice 2 index.mjs).
         let events;
         try {
-          events = await calendarQuery.call('listEvents', [from, to]);
+          events = await calendarQuery.call('listAggregatedEvents', [from, to]);
         } catch (_err) {
           return { linked: 0, reconciled: 0, orphaned: 0, needsLinking: [] };
         }
@@ -398,13 +459,27 @@ export function activate(ctx) {
           return { linked: 0, reconciled: 0, orphaned: 0, needsLinking: [] };
         }
 
+        // Composite key: "<externalAccountId>|<providerCalendarId>|<providerEventId>"
+        // Used for pulled-ids set + orphan comparison.
+        function compositeKey(extAcct, provCal, evId) {
+          return `${extAcct ?? ''}|${provCal ?? ''}|${evId}`;
+        }
+
         const pulledIds = new Set();
+        // Track which (extAcct, provCal) pairs were actually pulled — calendars
+        // that are de-selected or removed drop out of the aggregate; their linked
+        // rows are NOT orphaned (absence ≠ orphaned for un-pulled calendars).
+        const pulledCalendars = new Set(); // "<externalAccountId>|<providerCalendarId>"
+
         let linked = 0;
         let reconciled = 0;
         const needsLinking = [];
 
         for (const event of events) {
-          pulledIds.add(event.id);
+          const extAcct  = event.externalAccountId ?? null;
+          const provCal  = event.providerCalendarId ?? null;
+          pulledIds.add(compositeKey(extAcct, provCal, event.id));
+          pulledCalendars.add(`${extAcct ?? ''}|${provCal ?? ''}`);
 
           // Collect participants: attendees (!self) + organizer (deduped by email).
           const participantMap = new Map();
@@ -471,13 +546,15 @@ export function activate(ctx) {
             }
           } else {
             needsLinking.push({
-              providerEventId: event.id,
-              calendarId:      event.calendarId ?? null,
-              start:           event.start,
-              end:             event.end,
-              title:           event.title,
-              meetingLink:     event.meetingLink ?? null,
-              participants:    participantsWithOutcomes,
+              providerEventId:    event.id,
+              externalAccountId:  extAcct,
+              providerCalendarId: provCal,
+              calendarId:         event.calendarId ?? null,
+              start:              event.start,
+              end:                event.end,
+              title:              event.title,
+              meetingLink:        event.meetingLink ?? null,
+              participants:       participantsWithOutcomes,
             });
           }
         }
@@ -485,13 +562,26 @@ export function activate(ctx) {
         // Orphan pass — flag rows whose provider event is no longer in pull window.
         // Scoped to the SAME [from,to] window as the pull: a linked meeting in the
         // past or beyond the window was never pulled, so its absence ≠ orphaned.
+        //
+        // Additionally: skip rows whose (external_account_id, provider_calendar_id)
+        // was not in the pulled set — those calendars are de-selected or removed and
+        // simply weren't fetched this sync; their absence ≠ orphaned.
         const linkedRows = await storeQuery.call('run', [
           'meeting.listLinkedProvider',
           { providerId: 'google-calendar', from: fromMs, to: toMs },
         ]);
         let orphaned = 0;
         for (const row of linkedRows) {
-          if (!pulledIds.has(row.provider_event_id)) {
+          const rowCalKey = `${row.external_account_id ?? ''}|${row.provider_calendar_id ?? ''}`;
+          // If this row's calendar wasn't in the aggregate pull, skip — not orphaned.
+          if (!pulledCalendars.has(rowCalKey)) continue;
+
+          const rowComposite = compositeKey(
+            row.external_account_id,
+            row.provider_calendar_id,
+            row.provider_event_id,
+          );
+          if (!pulledIds.has(rowComposite)) {
             await storeWrite.call('update', [
               'client_meeting',
               row.id,

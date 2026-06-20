@@ -147,6 +147,44 @@ opaque-block vs PHI-block. The score (O483) is computed from what this sync expo
   client's name comes from *our* roster per §2; notes = O487). The provider/sync columns are present
   from the start (so no slice-4 migration churn) but slice 2 only writes `app`/`local`.
 
+## Amendment 1 — Composite provider link-key (O493, 2026-06-20)
+
+**Context:** After multi-account/multi-calendar support landed (ADR-314, ADR-507 Am1, slice 2 O494), a
+bare `provider_event_id` alone is no longer a stable unique identifier. Two accounts may each have an
+event with the same provider-assigned id (e.g. recurring events, shared/mirrored calendars), and a
+calendar row may be deleted and re-added (changing the local `cal_<uuid>` handle) while the provider
+event persists. The link key must be provider-level and account-scoped to avoid false collisions.
+
+**Decision:**
+
+1. `client_meeting` gains two new nullable columns:
+   - `external_account_id TEXT` — the provider account id (mirrors `provider_account.external_account_id`);
+     NULL on legacy app-origin rows and pre-migration rows.
+   - `provider_calendar_id TEXT` — the **provider-level** calendar id (e.g. `your@gmail.com`,
+     `en.australian#holiday@group.v.calendar.google.com`); NOT the local `cal_<uuid>` handle. The
+     provider-level id survives a local `calendar` row delete/re-add; using it avoids a cross-bundle FK.
+
+2. **Link key** = `(provider_id, external_account_id, provider_calendar_id, provider_event_id)`.
+   This is the tuple that uniquely identifies a provider event across accounts and calendars.
+
+3. **Backfill-tolerant upsert** — `linkEvent` first attempts a full-triple lookup; if no match but a
+   legacy row exists with matching `provider_event_id` and NULL qualifiers, it upgrades that row in place
+   (fills the two new columns) rather than inserting a duplicate.
+
+4. **Orphan pass** — the window-scoped orphan check is now keyed on the composite triple and skips
+   any linked row whose `(external_account_id, provider_calendar_id)` is not among the calendars
+   actually pulled in the current aggregate (a de-selected or removed calendar dropping out of the
+   aggregate ≠ orphaned).
+
+**Migration:** version 2 — two `ALTER TABLE client_meeting ADD COLUMN` statements + a new composite
+index on `(provider_id, external_account_id, provider_calendar_id, provider_event_id)`.
+
+**Open items affected:**
+- **O490** (erase cascade — cross-bundle `client_meeting` orphan on patient erase) still open; the new
+  columns are additive and do not interact with the erase cascade shape. Must close before multi-account
+  linked meetings reach production.
+- **ADR-508 §5** cited spec: `docs/Activities/schedule/schedule-multical-spec.md` §5.
+
 ## Build status
 
 - **P1 Slice 2 — Sessions Client Meeting store + standalone Sessions Activity: BUILT + live-verified
