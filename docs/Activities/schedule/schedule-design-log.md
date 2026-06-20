@@ -509,6 +509,43 @@ view-bridge/iframe color) + `schedule.html` `?id=cal_*` scope filter all built t
 **3 cap-call conventions (keep straight):** index.mjs/adapter internal caps = ARRAY-wrapped (`storeWrite.call('delete',[...])`);
 renderer-domain `window.soam` + view `soamView` = POSITIONAL.
 
-**NEXT:** cross-bundle **O493** (Sessions link-key qualify by `external_account_id` + `provider_calendar_id` +
-`provider_event_id`) + **O490** (erase cascade) — coordinate ADR-508, before linking multi-account events / before prod.
-Then slice 6 (event cache + incremental sync; Microsoft/Apple/CalDAV [O486]; calendar writes [O483 / ADR-313 ramp]).
+**NEXT:** cross-bundle **O493** + **O490** — see SD-22.
+
+## SD-22 — Cross-bundle gates: O493 link-key BUILT, O490 erase-cascade PARKED (2026-06-20)
+
+**O493 — Sessions link-key qualification → BUILT + dogfood-verified (uncommitted), formalized ADR-508 Am1.**
+Bare `provider_event_id` collides across accounts/calendars (same Google event id appears on every attendee
+copy). Fix = provider-level triple, NOT the local `cal_<uuid>` handle (survives `calendar` row delete/re-add,
+no cross-bundle FK). `client_meeting` += `external_account_id` + `provider_calendar_id` (migration v2 = 2 `ALTER`
++ composite index `idx_meeting_provider_v2`); link key = `(provider_id, external_account_id, provider_calendar_id,
+provider_event_id)`. Sessions `sync` source migrated `listEvents` → `listAggregatedEvents` (multi-cal, follows
+**selected** calendars — events from an un-added primary stop syncing; user-confirmed scope). `linkEvent` =
+full-triple lookup → **legacy-NULL backfill-upgrade** (pre-O493 bare-id rows filled in place, no dup) → insert;
+reconcile fills NULL qualifiers. Orphan pass = composite-key compare + **selected-cal guard** (de-selected/removed
+calendar's rows NOT orphaned; legacy `|` key skipped). Schedule `listAggregatedEvents` stamps `providerCalendarId`
+(captured **before** the local-handle remap) + `externalAccountId`. Column-absence keeps `participant_suppression`
+exempt; `schedule.html` classify unaffected (uses only `provider_event_id`). 5 files: ADR-508 Am1 +
+`ru-soam-sessions` manifest+index.mjs + `ru-soam-schedule` index.mjs + `schedule.html` (verify). **Dogfood**
+(real Google Calendar, 2 accounts, shared invite ⇒ same event id `7m3e8…` on both primaries — invitee RSVP-Yes
+needed for the API copy): synthetic client → `linkProviderEvent` both copies → **2 distinct `client_meeting` rows**
+(same `provider_event_id`, diff `external_account_id`; pre-O493 collapsed to 1); re-link → both `reconciled`, same
+ids (no-dup); cleanup clean. compile+lint green.
+
+**O490 — cross-bundle DPDP erase cascade → SEAM DOCUMENTED, BUILD PARKED (user: revisit before prod).**
+Gap: Practice `record.patient.erase` cascades only over Practice-owned tables; Sessions `client_meeting`
+(plain `patient_id`, no FK) survives → orphaned PHI. Now live-relevant (O493 links provider events in). Findings:
+(1) **no cross-bundle FP-Host event seam** — `store.changed` (`electron/main/index.ts:135`) is Main→renderer
+only; (2) **Main-internal callers bypass per-table ownership** — `enforceOwnership` (`store-write-cap.ts:162`)
+returns early for `caller===undefined`, so privileged cross-owner writes are already sanctioned; (3) Main holds
+the full table→owner map (`_tableOwnerMap` / `getOrderedMigrationSets()` in `migrations.ts`) + PRAGMA
+introspection; (4) **column-absence = auto-exemption** (`participant_suppression` has no `patient_id` col →
+naturally skipped). **Recommendation = Option 1: base cap `store.eraseSubject@1.0`** (Main-internal cross-table
+cascade by key column: iterate owned tables → PRAGMA-check the column → `deleteWhere` each, residency-routed,
+one audit/table; Practice swaps its `OWNED_ADJUNCT_TABLES` loop for a single `eraseSubject('patient_id', id)`
+call, keeps blob-unlink before + `patients` parent-delete after; Sessions unchanged; future patient-keyed bundles
+auto-covered; base stays domain-free; open question = authority gate, proposal `phi:true` + first-party). Option 2
+(decoupled erase-event fan-out) needs new FP-Host event infra + per-bundle handlers — heavier. Full detail in
+`docs/Open_Items.md` O490 row. Needs an ADR before code.
+
+**NEXT:** commit O493 → (O490 parked, revisit before prod) → slice 6 (event cache + incremental sync;
+Microsoft/Apple/CalDAV [O486]; calendar writes [O483 / ADR-313 ramp]).

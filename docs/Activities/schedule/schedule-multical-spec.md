@@ -101,8 +101,17 @@ Multi-account makes a bare `provider_event_id` non-unique. The globally-unique k
 **(`external_account_id`, `provider_calendar_id`, `provider_event_id`)**. Sessions
 (`client_meeting`, ADR-508) already has `provider_id` + `provider_event_id` + `calendar_id`; it must
 store the **provider-level** triple (survives local `calendar` row delete/re-add), not the local
-`cal_<uuid>` handle. Coordinate the exact column shape with ADR-508 + O490 (erase cascade) before
-Sessions links any multi-account event. **Do not change the link key unilaterally.**
+`cal_<uuid>` handle.
+
+**RESOLVED (O493) — BUILT + dogfood-verified 2026-06-20 (uncommitted), formalized in ADR-508 Am1.**
+`client_meeting` gained `external_account_id` + `provider_calendar_id` (migration v2 + composite
+index); link key = `(provider_id, external_account_id, provider_calendar_id, provider_event_id)`,
+provider-level. Sessions `sync` consumes `schedule.calendar.query.listAggregatedEvents` (which now
+stamps each event with `providerCalendarId` [captured pre local-handle remap] + `externalAccountId`);
+`linkEvent` = full-triple lookup + legacy-NULL backfill; orphan pass composite-keyed +
+selected-calendar-guarded. Dogfood: 2 accounts, shared invite ⇒ same event id on both calendars →
+**2 distinct rows** (pre-fix collapsed to 1), reconcile no-dup. **O490 (cross-bundle erase cascade)
+remains open — close before prod** (build parked; seam + Option-1 recommendation in Open_Items O490 row).
 
 ## 6. Revisit of committed P-B
 
