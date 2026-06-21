@@ -29,7 +29,7 @@ import { registerCapability } from '../capability/registry.js';
 import type { CallerIdentity } from '../capability/registry.js';
 import { CapErr } from '../../shared/ipc-protocol.js';
 import { localStoreManager } from './index.js';
-import { tableOwner, tableResidency } from './migrations.js';
+import { tableOwner, tableResidency, getOrderedMigrationSets } from './migrations.js';
 import { auditService } from '../audit/index.js';
 import type { AuditEventKind } from '../audit/audit-types.js';
 
@@ -546,6 +546,132 @@ export function registerStoreWriteCapability(): void {
             code: CapErr.MethodNotFound,
           });
       }
+    },
+    { phi: true, kind: 'command' },
+  );
+}
+
+// ── store.eraseSubject@1.0 ────────────────────────────────────────────────────
+
+/**
+ * Register the `store.eraseSubject@1.0` capability.
+ *
+ * Cascades a subject-key DELETE across ALL registered bundles' owned tables that
+ * contain `keyColumn`. Caller supplies the column name (e.g. 'patient_id') and
+ * the value to delete. The cap is domain-free — it knows nothing about patients
+ * or PHI; the DOMAIN caller supplies the column name.
+ *
+ * Enforcement:
+ *   - phi:true + first-party gate (registry layer, same as store.write).
+ *   - PROTECTED_TABLES are skipped (they cannot be mutated via the generic surface).
+ *   - Tables that do NOT have `keyColumn` are silently skipped (PRAGMA-checked).
+ *   - Runs through the Main-INTERNAL write path (caller===undefined bypass in
+ *     enforceOwnership) so it can delete across owners without cap.denied.
+ *
+ * Returns: `{ deleted: Record<string, number> }` — per-table deleted-row counts
+ * (only tables where at least one row was deleted are included).
+ *
+ * Audit: one entry per table touched (non-zero deletes); detail = { table, count }
+ * — PHI-free (ADR-502). keyValue is NEVER logged.
+ *
+ * (O490 / ADR-506 domain purity)
+ */
+export function registerStoreEraseSubjectCapability(): void {
+  registerCapability(
+    'store.eraseSubject',
+    '1.0',
+    async (method, args) => {
+      if (method !== 'eraseSubject') {
+        throw Object.assign(
+          new Error(`store.eraseSubject: unknown method: ${method}`),
+          { code: CapErr.MethodNotFound },
+        );
+      }
+
+      // ── Parse args ──────────────────────────────────────────────────────────
+      const [keyColumn, keyValue, auditRaw] = args;
+      if (typeof keyColumn !== 'string' || keyColumn.trim().length === 0) {
+        throw validationErr('store.eraseSubject: keyColumn must be a non-empty string');
+      }
+      if (keyValue === undefined || keyValue === null) {
+        throw validationErr('store.eraseSubject: keyValue must be provided');
+      }
+      if (
+        typeof keyValue !== 'string' &&
+        typeof keyValue !== 'number'
+      ) {
+        throw validationErr('store.eraseSubject: keyValue must be string or number');
+      }
+      // audit is optional at the top level; per-table audits are auto-generated.
+      // We accept an optional caller-supplied audit.recordId for the subject.
+      const subjectRecordId =
+        auditRaw && typeof auditRaw === 'object' && !Array.isArray(auditRaw)
+          ? String((auditRaw as Record<string, unknown>)['recordId'] ?? keyValue)
+          : String(keyValue);
+
+      // ── Enumerate all registered owned tables ────────────────────────────────
+      const sets = getOrderedMigrationSets();
+      const deleted: Record<string, number> = {};
+
+      for (const set of sets) {
+        for (const table of set.ownedTables) {
+          // Skip integrity-critical tables — they must not be mutated here.
+          if (PROTECTED_TABLES.has(table)) continue;
+
+          // Route to the correct physical DB by residency.
+          const residency = set.residency ?? 'operational';
+          const store =
+            residency === 'protected'
+              ? localStoreManager.protectedCurrent()
+              : localStoreManager.current();
+          if (!store) {
+            // Store not open (e.g. protected store locked). Skip — same behaviour
+            // as requireStoreForTable: we must not abort the whole cascade.
+            continue;
+          }
+          const db = store.rawDb();
+          if (!db) continue;
+
+          // PRAGMA-check whether keyColumn exists in this table.
+          // Reuse _tableMeta cache when available; safe because getTableMeta
+          // only throws for unknown tables (already covered by the ownedTables
+          // iteration — all registered tables must exist post-migration).
+          let meta: TableMeta;
+          try {
+            meta = getTableMeta(db, table);
+          } catch {
+            // Table doesn't exist yet (not yet migrated) — skip.
+            continue;
+          }
+          if (!meta.columns.has(keyColumn)) continue;
+
+          // Execute Main-INTERNAL deleteWhere (ownership bypass: no caller arg).
+          const result = doDeleteWhere(
+            db,
+            table,
+            { [keyColumn]: keyValue },
+            meta,
+          );
+
+          if (result.changes > 0) {
+            deleted[table] = result.changes;
+            // Emit store.changed for subscribers.
+            store.emitTableChange(table, 'delete', []);
+            // One PHI-free audit entry per table touched.
+            const workspaceId = store.workspaceId()!;
+            auditService.emit({
+              event: 'store.eraseSubject' as AuditEventKind,
+              entityId: workspaceId,
+              recordId: subjectRecordId,
+              recordType: table,
+              detail: { table, count: result.changes },
+              principal: 'system',
+            });
+          }
+        }
+      }
+
+      return { deleted };
     },
     { phi: true, kind: 'command' },
   );

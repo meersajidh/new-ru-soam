@@ -5,7 +5,7 @@
  *   - The credential NEVER leaves Main. FP-Host bundles never see the token.
  *   - OAuth grant reuses helpers from ../auth/ (PKCE + loopback).
  *   - Client id/secret resolved by Main from baked Vite `define` constants.
- *   - Token stored raw (not KEK-wrapped) — O307f deferred.
+ *   - Token stored KEK-wrapped under the workspace KEK (O307f / ADR-452).
  *   - Account identity is broker-discovered, never bundle-asserted (ADR-314 §3).
  *
  * Methods (called by FP-Host bundles via ctx.bindCapability):
@@ -22,16 +22,52 @@
  *   provider 'google-calendar' → credentialStore type 'google-calendar-token'
  *   Account-keyed ref: externalAccountId (e.g. 'user@example.com' or Google sub).
  *   Legacy no-ref key preserved for migration (ADR-314 §4).
+ *
+ * KEK-wrap posture (O307f):
+ *   All google-calendar-token writes are KEK-encrypted before safeStorage (mirrors
+ *   cloud-session-token in session-service.ts). KEK injected via initCredentialBroker()
+ *   from main/index.ts. Locked = no KEK = read returns null (calendar caps are
+ *   lock-gated so this is not hit in normal use). Legacy raw-JSON blobs are detected
+ *   on first read (decodeEnvelope throws) and re-wrapped in-place if KEK is available.
  */
 
 import { randomBytes } from 'crypto';
 import { shell } from 'electron';
+import { encryptToEnvelope, encodeEnvelope, decodeEnvelope, decryptFromEnvelope } from '../crypto/envelope.js';
 import { generateVerifier, generateChallenge } from '../auth/pkce.js';
 import { createLoopbackListener } from '../auth/loopback.js';
 import type { CredentialType } from '../credentials/index.js';
 import { credentialStore } from '../credentials/index.js';
 import { workspaceRegistry } from '../workspace/registry.js';
 import { registerCapability } from './registry.js';
+
+/**
+ * Injected KEK provider — returns live KEK Buffer when workspace is unlocked,
+ * null when locked. Set by initCredentialBroker() in main/index.ts.
+ * Never import LockService here — inject from index.ts to avoid import cycle.
+ */
+let _kekProvider: (() => Buffer | null) | null = null;
+
+/**
+ * Wire the KEK provider into the broker. Called once at Main boot, before any
+ * credential operations, mirroring cloudSessionService.init().
+ */
+export function initCredentialBroker(kekProvider: () => Buffer | null): void {
+  _kekProvider = kekProvider;
+}
+
+/**
+ * Build AAD for a google-calendar-token KEK-wrap envelope.
+ * Account-keyed (ADR-314): includes externalAccountId so cross-account substitution
+ * is cryptographically prevented. Keys sorted alphabetically for stability.
+ * { externalAccountId, purpose, workspaceId } — e < p < w ✓
+ */
+function buildCalendarTokenAad(workspaceId: string, externalAccountId: string): Buffer {
+  return Buffer.from(
+    JSON.stringify({ externalAccountId, purpose: 'google-calendar-token', workspaceId }),
+    'utf8',
+  );
+}
 
 // Build-time baked OAuth credentials (same Vite `define` pattern as identity — O309c).
 // Dev: process.env takes precedence. Prod: falls back to baked constants.
@@ -61,36 +97,111 @@ function getWorkspaceId(): string | null {
   return workspaceRegistry.getActive() ?? null;
 }
 
+/**
+ * Decode and decrypt an envelope blob. Returns the StoredToken, or null on any failure.
+ * On legacy (raw JSON, envelope decode throws): if KEK available, re-wraps in-place
+ * and returns the token. If KEK unavailable (locked), returns null (caller = not connected).
+ *
+ * @param rawBuf  - bytes returned by credentialStore.get (safeStorage-decrypted)
+ * @param workspaceId
+ * @param externalAccountId  - used to build AAD for decryption + re-wrap
+ * @param storeRef  - ref arg for credentialStore.set on re-wrap (same as externalAccountId for account-keyed; undefined for legacy slot)
+ * @param credType
+ */
+function decodeToken(
+  rawBuf: Buffer,
+  workspaceId: string,
+  externalAccountId: string,
+  storeRef: string | undefined,
+  credType: CredentialType,
+): StoredToken | null {
+  const kek = _kekProvider?.() ?? null;
+  const raw = rawBuf.toString('utf8');
+
+  // Distinguish "is this an envelope?" from "did decryption succeed?".
+  // encodeEnvelope is JSON.stringify, so a valid envelope ALSO parses as JSON —
+  // we must NOT let a decrypt failure fall through to the legacy raw-JSON branch
+  // (that would JSON.parse the envelope itself into a garbage token and re-wrap it).
+  let env: ReturnType<typeof decodeEnvelope> | null = null;
+  try {
+    env = decodeEnvelope(raw);
+  } catch {
+    // Not envelope-shaped (no v/alg) — env stays null, fall through to legacy raw JSON.
+  }
+  if (env) {
+    if (kek === null) {
+      // Locked — can't decrypt.
+      return null;
+    }
+    try {
+      const plain = decryptFromEnvelope(kek, env);
+      return JSON.parse(plain.toString('utf8')) as StoredToken;
+    } catch {
+      // Valid envelope but decrypt/parse failed (wrong or rotated KEK, corruption).
+      // Do NOT treat as legacy — force a clean re-grant.
+      console.warn('[CredentialBroker] envelope decrypt failed — re-grant required');
+      return null;
+    }
+  }
+
+  // Legacy path: raw JSON blob (pre-O307f).
+  let token: StoredToken;
+  try {
+    token = JSON.parse(raw) as StoredToken;
+  } catch {
+    // Malformed — leave as-is, force re-grant.
+    console.warn('[CredentialBroker] malformed credential blob — leaving as-is, re-grant required');
+    return null;
+  }
+
+  if (kek === null) {
+    // Locked — cannot re-wrap; return null (not connected while locked).
+    return null;
+  }
+
+  // KEK available: re-wrap in-place so next read is wrapped.
+  const aad = buildCalendarTokenAad(workspaceId, externalAccountId);
+  const envelope = encryptToEnvelope(kek, Buffer.from(JSON.stringify(token), 'utf8'), aad);
+  const bytes = Buffer.from(encodeEnvelope(envelope), 'utf8');
+  credentialStore.set(workspaceId, credType, bytes, storeRef);
+  console.log('[CredentialBroker] legacy token re-wrapped under KEK:', credType, storeRef ?? '(no-ref)');
+
+  return token;
+}
+
 /** Read account-keyed token (ref = externalAccountId). */
 function readToken(workspaceId: string, provider: string, accountId: string): StoredToken | null {
   const buf = credentialStore.get(workspaceId, credKey(provider), accountId);
   if (!buf) return null;
-  try {
-    return JSON.parse(buf.toString('utf8')) as StoredToken;
-  } catch {
-    return null;
-  }
+  return decodeToken(buf, workspaceId, accountId, accountId, credKey(provider));
 }
 
 /** Read legacy no-ref token (pre-ADR-314 single-grant). */
 function readLegacyToken(workspaceId: string, provider: string): StoredToken | null {
   const buf = credentialStore.get(workspaceId, credKey(provider));
   if (!buf) return null;
-  try {
-    return JSON.parse(buf.toString('utf8')) as StoredToken;
-  } catch {
-    return null;
-  }
+  // Legacy slot has no externalAccountId yet — use empty string for AAD so
+  // re-wrap is deterministic. Migration will move to account-keyed slot shortly.
+  const token = decodeToken(buf, workspaceId, '', undefined, credKey(provider));
+  return token;
 }
 
-/** Write account-keyed token (ref = externalAccountId). */
+/**
+ * Write account-keyed token KEK-wrapped.
+ * If KEK unavailable (locked), does NOT write an unwrapped token — logs warning
+ * and returns without persisting. In practice writes happen during grant/refresh
+ * (unlock-gated ops) so KEK is always present.
+ */
 function writeToken(workspaceId: string, provider: string, token: StoredToken): void {
-  credentialStore.set(
-    workspaceId,
-    credKey(provider),
-    Buffer.from(JSON.stringify(token), 'utf8'),
-    token.externalAccountId,
-  );
+  const kek = _kekProvider?.() ?? null;
+  if (kek === null) {
+    console.warn('[CredentialBroker] writeToken: KEK unavailable (locked) — skipping write to prevent unencrypted storage');
+    return;
+  }
+  const aad = buildCalendarTokenAad(workspaceId, token.externalAccountId);
+  const envelope = encryptToEnvelope(kek, Buffer.from(JSON.stringify(token), 'utf8'), aad);
+  const bytes = Buffer.from(encodeEnvelope(envelope), 'utf8');
+  credentialStore.set(workspaceId, credKey(provider), bytes, token.externalAccountId);
 }
 
 /** Delete account-keyed token. */
@@ -246,11 +357,16 @@ async function refreshLegacyToken(
     accessToken: data.access_token,
     expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000 - 60_000,
   };
-  credentialStore.set(
-    workspaceId,
-    credKey(provider),
-    Buffer.from(JSON.stringify(refreshed), 'utf8'),
-  );
+  // KEK-wrap the legacy slot write — same posture as writeToken but no ref.
+  const kek = _kekProvider?.() ?? null;
+  if (kek !== null) {
+    const aad = buildCalendarTokenAad(workspaceId, ''); // legacy slot: empty externalAccountId
+    const envelope = encryptToEnvelope(kek, Buffer.from(JSON.stringify(refreshed), 'utf8'), aad);
+    credentialStore.set(workspaceId, credKey(provider), Buffer.from(encodeEnvelope(envelope), 'utf8'));
+  } else {
+    // Locked — should not happen (refresh runs while unlocked), but guard anyway.
+    console.warn('[CredentialBroker] refreshLegacyToken: KEK unavailable — skipping write-back');
+  }
   return refreshed;
 }
 
@@ -363,7 +479,8 @@ interface StatusArgs {
   accountId?: string;
 }
 
-export function registerCredentialBrokerCapability(): void {
+export function registerCredentialBrokerCapability(kekProvider: () => Buffer | null): void {
+  initCredentialBroker(kekProvider);
   registerCapability(
     'credential.broker',
     '1.0',

@@ -18,8 +18,10 @@ import { app, safeStorage } from 'electron';
 // Credential type catalogue — grow in later phases.
 // 'cloud-session-token' = KEK-wrapped refresh token for the identity server (ADR-311 / O307f).
 // 'google-calendar-token' = ADR-305 Flow-A provider token for Google Calendar (ADR-310 / O485).
-//   raw (not KEK-wrapped in P0 — deferred to O307f extension; walk-up impact is calendar read-only).
-//   Stored as JSON: { accessToken, refreshToken, expiresAt }.
+//   KEK-wrapped under the workspace KEK (O307f / ADR-452, implemented).
+//   At-rest form: encoded envelope (encryptToEnvelope → encodeEnvelope) wrapping
+//   JSON: { accessToken, refreshToken, expiresAt, tokenUrl, scopes, externalAccountId }.
+//   Legacy raw-JSON blobs (pre-O307f) are upgraded in-place on first read (credential-broker.ts).
 export type CredentialType = 'local-store-db-key' | 'cloud-session-token' | 'google-calendar-token';
 
 function storageKey(workspaceId: string, type: CredentialType, ref?: string): string {

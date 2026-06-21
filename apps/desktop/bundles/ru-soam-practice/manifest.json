@@ -145,7 +145,7 @@
     }
   ],
   "dependencies": {
-    "capabilities": ["store.write@1.0", "store.query@1.0", "blob.write@1.0"]
+    "capabilities": ["store.write@1.0", "store.query@1.0", "store.eraseSubject@1.0", "blob.write@1.0"]
   },
   "contributes": {
     "activityBar.items": [

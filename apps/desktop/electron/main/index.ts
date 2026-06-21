@@ -27,7 +27,7 @@ import { registerPhiDemoEchoCapability } from './capability/phi-demo-echo';
 import { registerPlatformDevCapability } from './capability/platform-dev';
 import { registerPrefsCapability } from './capability/prefs';
 import { registerAuditCapability } from './capability/audit-cap';
-import { registerStoreWriteCapability } from './local-store/store-write-cap';
+import { registerStoreWriteCapability, registerStoreEraseSubjectCapability } from './local-store/store-write-cap';
 import { registerStoreQueryCapability } from './local-store/store-query-cap';
 import { registerBlobCapabilities } from './local-store/blob-cap';
 import { registerPlatformAuthCapability } from './capability/platform-auth';
@@ -260,6 +260,7 @@ app.whenReady().then(() => {
   registerPrefsCapability();
   registerAuditCapability();
   registerStoreWriteCapability();
+  registerStoreEraseSubjectCapability();
   registerStoreQueryCapability();
   registerBlobCapabilities();
 
@@ -337,7 +338,7 @@ app.whenReady().then(() => {
 
   registerUpdateCapability();
   registerCommandsCapability();
-  registerCredentialBrokerCapability();
+  registerCredentialBrokerCapability(() => getActiveLockService()?.kekHandle() ?? null);
   registerBrokeredFetchCapability();
 
   // Bundle query templates — rung F / O445.

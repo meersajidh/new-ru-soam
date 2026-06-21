@@ -287,3 +287,36 @@ Raised by the Schedule review (ADR-507 §10). Two clarifications, no change to t
   FP-Host bundle, connectivity replaced by the A1.1 base caps (`credential.broker@1.0` +
   `net.brokeredFetch@1.0`), and `electron/main/calendar/` deleted. **"pure-base Main REACHED" now
   holds without exception** — no domain cap remains in Main.
+
+## Amendment 2 — store ABI gains `store.eraseSubject@1.0` (cross-owner subject cascade) (2026-06-21)
+
+§6 lists the generic store surface as single-PK CRUD + predicate-scoped `deleteWhere`/`updateWhere`,
+each **ownership-gated** (`callerBundleId == tableOwner`). That gate is correct for normal writes but
+makes a **DPDP right-to-erasure** (ADR-502/O457) structurally impossible to satisfy across bundles:
+the erasing bundle (Practice `record.patient.erase`) can only delete its *own* owned tables, so a
+patient-keyed row in another bundle's table (Sessions `client_meeting`, plain `patient_id`, no
+cross-bundle FK by design) is **orphaned PHI** after erase (O490). A hard FK was deliberately rejected
+(it would break the per-owner cascade with `FOREIGN KEY constraint failed`).
+
+**Decision: add one base verb `store.eraseSubject@1.0`** (command kind; `phi:true` + first-party gate,
+same authority class as `store.write`). Given `(keyColumn, keyValue, audit)` it enumerates **every
+registered bundle's `ownedTables`** (`getOrderedMigrationSets()`), PRAGMA-checks each for `keyColumn`,
+and `deleteWhere({[keyColumn]: keyValue})` on each match **as a Main-internal caller** — i.e. the §6
+ownership gate is *bypassed* exactly as it already is for `caller === undefined` (Main is the sole
+writer and the only component that legitimately sees all tables). Each delete is residency-routed
+(operational vs protected per `MigrationSet.residency`) and emits one **PHI-free** audit row
+(`{table, count}` — `keyValue` is never logged). Integrity-critical tables (`audit_log`,
+`_schema_version`) are skipped; tables lacking `keyColumn` are auto-exempt by the PRAGMA check (so
+`participant_suppression`, which must survive a client erase, is skipped with no special-casing).
+
+**Why this preserves "pure-base Main" (§1) and domain purity (§5):** the verb knows nothing about
+patients or PHI — only "delete rows WHERE column C = V across tables that have C". The **domain caller**
+supplies `'patient_id'`. No table names, no clinical vocabulary, no `patients` knowledge in base.
+Practice's `erase` becomes: blob-unlink (before) → `eraseSubject('patient_id', id)` (cascades Practice
+adjuncts + `patient_identity_alias` + Sessions `client_meeting`) → `patients` parent-delete (after;
+parent has PK `id`, not `patient_id`, so it is not auto-cascaded — FK child→parent order preserved).
+Sessions (and every future patient-keyed bundle) needs **zero wiring** — adding a `patient_id` column
+auto-enrolls the table in the cascade. Rejected alternative (O490 Option 2): a decoupled
+`patient.erased` fan-out to per-bundle FP-Host erase-handlers — needs a new guaranteed-delivery host
+event seam (doesn't exist) + per-bundle boilerplate; the sole-writer purity it buys is already covered
+by the Main-internal bypass. Built + dogfood-verified 2026-06-21 (O490).

@@ -5,18 +5,10 @@
 //
 // Consumes store.query@1.0 for all SQL reads and store.write@1.0 for all SQL
 // writes. Row→record mapping is plain JS (no TypeScript, no platform imports
-// — only what ctx provides + this bundle's own manifest).
+// — only what ctx provides).
 
-import manifest from './manifest.json' with { type: 'json' };
-
-// Owned adjunct tables = every owned table except the `patients` parent. Their PK
-// is patient_id (FK child of patients.id). Derived from the manifest so the erase
-// cascade auto-covers tables added in future phases — no "remember to extend a
-// list" trap. `patients` is deleted last (FK order).
-// participant_suppression has no patient_id column (hashed non-client data, intentionally
-// survives a client erase — no PII to cascade; deleteWhere by patient_id would throw).
-const NON_PATIENT_KEYED = new Set(['patients', 'participant_suppression']);
-const OWNED_ADJUNCT_TABLES = (manifest.ownedTables ?? []).filter((t) => !NON_PATIENT_KEYED.has(t));
+// eraseSubject@1.0 (O490) handles the patient_id cascade across all bundles.
+// No per-bundle table list needed here — the base cap PRAGMA-checks each table.
 
 // ── Lifecycle stage definitions (static domain data, no SQL) ─────────────────
 // Copied from electron/main/domain/lifecycle-stages.ts — same values, no import.
@@ -270,6 +262,8 @@ export function activate(ctx) {
   const storeWrite = ctx.bindCapability('store.write', '1.0');
   // Bind blob.write@1.0 — protected blob store (O454 / ADR-302 P3).
   const blobWrite = ctx.bindCapability('blob.write', '1.0');
+  // Bind store.eraseSubject@1.0 — cross-bundle DPDP cascade (O490).
+  const storeEraseSubject = ctx.bindCapability('store.eraseSubject', '1.0');
 
   // ── record.patient.query (read cap, rung D1) ───────────────────────────────
 
@@ -656,10 +650,9 @@ export function activate(ctx) {
 
       case 'erase': {
         // DPDP right-to-erasure (irreversible hard delete).
-        // Delete order: adjunct children (by patient_id) BEFORE patients parent (by id)
-        // to satisfy the FK constraint enforced by SQLite's PRAGMA foreign_keys.
-        // OWNED_ADJUNCT_TABLES is derived from the manifest (see module top) so this
-        // cascade auto-covers every owned table — adding a Phase-2+ table needs no edit here.
+        // Delete order: all patient_id-keyed children (via eraseSubject) BEFORE
+        // the patients parent row (by PK id). eraseSubject cascades across ALL
+        // registered bundles — covers Practice adjuncts + Sessions client_meeting (O490).
         const id = args[0];
         if (typeof id !== 'string' || id.length === 0) {
           throw new Error('record.patient.erase: id must be a non-empty string');
@@ -687,21 +680,16 @@ export function activate(ctx) {
           }
         }
 
-        // Delete adjunct tables (children) first, then the parent.
-        // deleteWhere correctly handles both multi-row tables (patient_circle_member)
-        // and PK=patient_id tables (profile/lifecycle/consent) uniformly.
-        for (const table of OWNED_ADJUNCT_TABLES) {
-          await storeWrite.call('deleteWhere', [
-            table,
-            { patient_id: id },
-            {
-              event: 'record.patient.erased',
-              recordType: table,
-              recordId: id,
-              detail: { table },
-            },
-          ]);
-        }
+        // Cascade delete across ALL bundles' tables keyed by patient_id (O490).
+        // eraseSubject PRAGMA-checks each registered owned table and deletes where
+        // patient_id matches, skipping tables without the column (patients PK=id,
+        // participant_suppression hashed-no-patient_id, audit_log protected).
+        // This covers Practice adjunct tables AND Sessions client_meeting in one call.
+        await storeEraseSubject.call('eraseSubject', [
+          'patient_id',
+          id,
+          { recordId: id },
+        ]);
 
         // Delete parent row — canonical erasure audit event.
         await storeWrite.call('delete', [
