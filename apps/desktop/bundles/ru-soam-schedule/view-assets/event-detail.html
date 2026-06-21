@@ -1124,7 +1124,10 @@
                 var newId = created && created.id ? created.id : null;
                 if (!newId) return Promise.reject(new Error('create returned no id'));
                 var evObj = buildEventObj(ev);
-                return (_sessionsCmd ? _sessionsCmd.call('linkProviderEvent', evObj, newId) : Promise.reject(new Error('sessions cap unavailable')))
+                return (_sessionsCmd ? _sessionsCmd.call('linkProviderEvent', evObj, newId, { kind: 'intake' }) : Promise.reject(new Error('sessions cap unavailable')))
+                  .then(function () {
+                    return _recordCmd.call('setStage', newId, 'intake', 'Intake scheduled from calendar');
+                  })
                   .then(function () { return { id: newId, name: rawName }; });
               })
               .then(function (result) {
@@ -1133,7 +1136,7 @@
                 var strong = el('strong', '');
                 strong.textContent = result.name;
                 successDesc.appendChild(strong);
-                successDesc.appendChild(document.createTextNode(' · Linked from roster ✓'));
+                successDesc.appendChild(document.createTextNode(' · Intake scheduled ✓'));
                 block.appendChild(successDesc);
                 var successActs = el('div', 'det-link-actions');
                 successActs.appendChild(makeOpenSessionsBtn('Open in Sessions'));

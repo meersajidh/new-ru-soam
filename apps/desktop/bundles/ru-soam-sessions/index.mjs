@@ -94,7 +94,10 @@ export function activate(ctx) {
   //   2. Legacy fallback: bare provider_event_id with NULL qualifiers — upgrade in place.
   // Insert always writes all four key fields (nullable for app-origin rows).
 
-  async function linkEvent(event, clientId, auditDetail = { source: 'provider' }) {
+  async function linkEvent(event, clientId, auditDetail = { source: 'provider' }, opts = {}) {
+    if (opts.kind !== undefined && !VALID_KINDS.has(opts.kind)) {
+      throw new Error('sessions.meeting.linkEvent: invalid kind: ' + opts.kind);
+    }
     const eventId           = event.id ?? event.providerEventId;
     const externalAccountId = event.externalAccountId ?? null;
     const providerCalendarId = event.providerCalendarId ?? null;
@@ -151,12 +154,13 @@ export function activate(ctx) {
       // No existing row — insert new linked row.
       const id = globalThis.crypto.randomUUID();
       const now = Date.now();
+      const insertKind = opts.kind ?? 'session';
       await storeWrite.call('insert', [
         'client_meeting',
         {
           id,
           patient_id:           clientId,
-          kind:                 'session',
+          kind:                 insertKind,
           status:               'scheduled',
           modality,
           starts_at:            startsAt,
@@ -175,7 +179,7 @@ export function activate(ctx) {
           event:      'sessions.meeting.linked',
           recordType: 'client_meeting',
           recordId:   id,
-          detail:     auditDetail,
+          detail:     opts.kind ? { ...auditDetail, kind: opts.kind } : auditDetail,
         },
       ]);
       return { action: 'linked', id };
@@ -710,6 +714,7 @@ export function activate(ctx) {
       case 'linkProviderEvent': {
         const event    = args[0];
         const clientId = args[1];
+        const opts     = args[2];
 
         if (!event || typeof event !== 'object') {
           throw new Error('sessions.meeting.linkProviderEvent: event must be an object');
@@ -721,6 +726,9 @@ export function activate(ctx) {
         if (typeof clientId !== 'string' || clientId.length === 0) {
           throw new Error('sessions.meeting.linkProviderEvent: clientId must be a non-empty string');
         }
+        if (opts !== undefined && (typeof opts !== 'object' || opts === null)) {
+          throw new Error('sessions.meeting.linkProviderEvent: opts must be an object if provided');
+        }
 
         // Validate client exists.
         const rec = await recordPatientQuery.call('get', [clientId]);
@@ -728,7 +736,7 @@ export function activate(ctx) {
           throw notFound('sessions.meeting.linkProviderEvent: client not found: ' + clientId);
         }
 
-        const r = await linkEvent(event, clientId, { source: 'provider', via: 'triage' });
+        const r = await linkEvent(event, clientId, { source: 'provider', via: 'triage' }, opts ?? {});
         return r;
       }
 

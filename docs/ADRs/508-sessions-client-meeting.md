@@ -185,6 +185,46 @@ index on `(provider_id, external_account_id, provider_calendar_id, provider_even
   linked meetings reach production.
 - **ADR-508 §5** cited spec: `docs/Activities/schedule/schedule-multical-spec.md` §5.
 
+## Amendment 2 — Intake-from-calendar orchestration + O484 projection (Slice B, 2026-06-21)
+
+**Context:** §4 surfaces "promote → new client" and §8 names the `referral → intake` lifecycle move and
+the Practice "next client meeting" projection, but the built create-new paths (aux event-detail "New
+intake client", needs-linking "Create & link") only did `create` + `linkProviderEvent` — link `kind`
+hardcoded `session`, no lifecycle move, nothing projected back into Practice. This amendment closes the
+ingress loop: a client booked on the calendar becomes a **referral whose booking *is* the scheduled
+intake**, and Practice reads that meeting back.
+
+**Decision:**
+
+1. **`kind` becomes a `linkProviderEvent` param — insert-only, local-authoritative.**
+   `sessions.meeting.linkProviderEvent(event, clientId, opts?)` accepts optional `opts.kind`; threaded
+   into the shared `linkEvent(event, clientId, auditDetail, opts)`. On the **insert** branch the
+   hardcoded `kind:'session'` becomes `opts.kind ?? 'session'`, validated against `VALID_KINDS`. The
+   **reconcile branch never touches `kind`** (field-partitioned, no LWW — §3). This keeps `kind`
+   strictly local-authoritative even as the provider event reconciles.
+
+2. **Create-new-client ⇒ intake.** The two create-new entry points run the chain
+   `create → linkProviderEvent(evt, id, { kind:'intake' }) → record.patient.setStage(id,'intake',…)`.
+   The **existing `intake` lifecycle stage is reused** — NOT a new `intake_scheduled` stage (no enum,
+   no UI, no ADR-505 expansion). **Lifecycle stays Practice-owned** (§8): Sessions/Schedule never write
+   `patient_lifecycle`; they trigger the Practice `setStage` command. Link-to-existing / confirm-candidate
+   paths are unchanged (existing client, generic `session`).
+
+3. **O484 projection contract — Sessions → Practice, read-only, view-bind.** Practice projects the
+   linked Client Meeting back **view-side** (`soamView.bindQuery('sessions.meeting.query','1.0')` →
+   `listForPatient(clientId)`), **NOT** via a manifest dep — a Practice→Sessions manifest dep would be a
+   **cycle** (Sessions already deps `record.patient.query`). Two projections: a **"next meeting"** line on
+   the client overview (earliest `startsAt > now`) and a derived **"first appointment scheduled"**
+   intake-checklist item (`done = listForPatient(id).length > 0`). The FP-Host `getIntakeCompleteness`
+   cap stays a 10-item Practice-only count (the Attention-lens `intake_incomplete` obligation derived
+   from it is unchanged); the 11th checklist row is a **view-only** derivation. Practice views do not
+   subscribe to Sessions `store.changed`, so the projection refreshes on record re-open/activate — not
+   live — acceptable this slice.
+
+**Deferred:** an **existing referral-stage client** gaining an intake link does not auto-advance to
+`intake` — no "link as intake to existing" affordance this slice; only create-new sets `kind:intake`
+(O484 follow-on).
+
 ## Build status
 
 - **P1 Slice 2 — Sessions Client Meeting store + standalone Sessions Activity: BUILT + live-verified

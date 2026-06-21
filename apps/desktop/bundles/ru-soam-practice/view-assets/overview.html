@@ -365,6 +365,23 @@
         align-items: flex-end;
         flex: 0 0 auto;
       }
+      .ov-next-meeting {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin-top: 6px;
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        flex-basis: 100%;
+      }
+      .ov-next-meeting-label {
+        font-weight: 600;
+        color: var(--color-fg-subtle);
+        white-space: nowrap;
+      }
+      .ov-next-meeting-value {
+        color: var(--color-fg-muted);
+      }
       .ov-badge {
         display: inline-flex;
         align-items: center;
@@ -703,7 +720,8 @@
       };
 
       /* ── State ──────────────────────────────────────────────────── */
-      var _proxy      = null;
+      var _proxy                = null;
+      var _sessionsMeetingQuery = null;  // sessions.meeting.query proxy (best-effort, may be null)
       var _clientId   = null;
       var _record     = null;  // PatientRecord (real)
       var _profile    = null;  // PatientProfile | null (real)
@@ -712,6 +730,7 @@
       var _consent    = null;  // PatientConsentState | null (real)
       var _riskEvents = null;  // PatientRiskEvent[] | null (real, P4)
       var _safetyPlan = null;  // PatientSafetyPlan | null (real, P4)
+      var _nextMeeting = null; // earliest upcoming ClientMeeting | null (O484 projection)
       var _density    = 'dense';
       var _riskOpen   = false;
 
@@ -992,6 +1011,29 @@
         header.appendChild(avatar);
         header.appendChild(idDiv);
         header.appendChild(badgesCol);
+
+        // Next meeting line — O484 projection from Sessions (view-bind, best-effort)
+        if (_nextMeeting) {
+          var nmDate = new Date(_nextMeeting.startsAt);
+          var nmDateStr = nmDate.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+          var nmTimeStr = nmDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+          var nmKind     = _nextMeeting.kind || 'session';
+          var nmModality = _nextMeeting.modality || '';
+          var nmParts = [nmDateStr, nmTimeStr, nmKind];
+          if (nmModality) nmParts.push(nmModality);
+          var nmLine = el('div', 'ov-next-meeting');
+          nmLine.setAttribute('data-maturity-id', 'next-meeting-line');
+          var nmLabel = document.createElement('span');
+          nmLabel.className = 'ov-next-meeting-label';
+          nmLabel.textContent = 'Next meeting';
+          var nmValue = document.createElement('span');
+          nmValue.className = 'ov-next-meeting-value';
+          nmValue.textContent = nmParts.join(' · ');
+          nmLine.appendChild(nmLabel);
+          nmLine.appendChild(nmValue);
+          header.appendChild(nmLine);
+        }
+
         return header;
       }
 
@@ -1408,6 +1450,21 @@
         return window.__viewBoot.awaitBridge();
       }
 
+      /* ── Fetch next upcoming meeting for client (best-effort, O484) ── */
+      function loadNextMeeting(clientId) {
+        if (!_sessionsMeetingQuery) return Promise.resolve(null);
+        return _sessionsMeetingQuery.call('listForPatient', clientId)
+          .then(function (list) {
+            var now = Date.now();
+            var upcoming = (list || []).filter(function (m) {
+              return m.startsAt != null && m.startsAt > now;
+            });
+            upcoming.sort(function (a, b) { return a.startsAt - b.startsAt; });
+            return upcoming.length > 0 ? upcoming[0] : null;
+          })
+          .catch(function () { return null; });  // Sessions inactive / locked — degrade gracefully
+      }
+
       function loadAndRender() {
         if (!_proxy || !_clientId) return;
 
@@ -1423,6 +1480,7 @@
           _proxy.call('getConsentState', _clientId),
           _proxy.call('listRiskEvents', _clientId),
           _proxy.call('getSafetyPlan', _clientId),
+          loadNextMeeting(_clientId),
         ]).then(function (results) {
           if (_clientId !== reqId) return;
           var rec        = results[0];
@@ -1432,18 +1490,20 @@
           var consent    = results[4];
           var riskEvents = results[5];
           var safetyPlan = results[6];
+          var nextMtg    = results[7];
 
           if (!rec) {
             showError('Client not found: ' + _clientId);
             return;
           }
-          _record     = rec;
-          _profile    = profile;
-          _lifecycle  = lifecycle;
-          _circle     = circle;
-          _consent    = consent;
-          _riskEvents = riskEvents;
-          _safetyPlan = safetyPlan;
+          _record      = rec;
+          _profile     = profile;
+          _lifecycle   = lifecycle;
+          _circle      = circle;
+          _consent     = consent;
+          _riskEvents  = riskEvents;
+          _safetyPlan  = safetyPlan;
+          _nextMeeting = nextMtg;
           renderOverview();
         }).catch(function (err) {
           if (isLockedError(err)) {
@@ -1461,8 +1521,12 @@
         if (!_clientId || _clientId === 'new') return;
         if (_proxy) { loadAndRender(); return; }
         if (!_soamView) return;
-        _soamView.bindQuery('record.patient.query', '1.0').then(function (proxy) {
-          _proxy = proxy;
+        // Bind record.patient.query (required) + sessions.meeting.query (best-effort, O484)
+        var bindRecord   = _soamView.bindQuery('record.patient.query', '1.0');
+        var bindSessions = _soamView.bindQuery('sessions.meeting.query', '1.0').catch(function () { return null; });
+        Promise.all([bindRecord, bindSessions]).then(function (proxies) {
+          _proxy = proxies[0];
+          _sessionsMeetingQuery = proxies[1];  // null when Sessions inactive
           loadAndRender();
         }).catch(function (err) {
           if (isLockedError(err)) {

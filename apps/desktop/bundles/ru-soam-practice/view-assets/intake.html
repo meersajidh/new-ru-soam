@@ -294,10 +294,12 @@
       };
 
       /* ── State ──────────────────────────────────────────────────── */
-      var _proxy      = null;
+      var _proxy                = null;
+      var _sessionsMeetingQuery = null;  // sessions.meeting.query proxy (best-effort, O484)
       var _clientId   = null;
       var _clientTitle = null;
       var _data       = null;  // getIntakeCompleteness result or null
+      var _intakeHasMeeting = false;  // O484: whether any client_meeting exists (view-derived 11th item)
 
       /* ── Elements ───────────────────────────────────────────────── */
       var elBridgeWait = document.getElementById('bridge-wait');
@@ -450,6 +452,35 @@
 
         elCard.appendChild(itemList);
 
+        // 11th item — "First appointment scheduled" (view-derived, O484 projection from Sessions)
+        var apptRow = document.createElement('div');
+        apptRow.className = 'ic-item' + (_intakeHasMeeting ? ' done-row' : '');
+        var apptIconWrap = document.createElement('span');
+        apptIconWrap.className = 'ic-item-icon ' + (_intakeHasMeeting ? 'done' : 'missing');
+        if (_intakeHasMeeting) {
+          apptIconWrap.setAttribute('data-codicon', 'check');
+          apptIconWrap.setAttribute('data-size', '13');
+        } else {
+          apptIconWrap.setAttribute('data-codicon', 'circle-large-outline');
+          apptIconWrap.setAttribute('data-size', '13');
+        }
+        var apptLabel = document.createElement('span');
+        apptLabel.className = 'ic-item-label';
+        apptLabel.textContent = 'First appointment scheduled';
+        apptRow.appendChild(apptIconWrap);
+        apptRow.appendChild(apptLabel);
+        itemList.appendChild(apptRow);
+        applyCodeicons(apptRow);
+
+        // Display count: show derived total of 11 (base 10 + 1 view-derived)
+        var derivedDone  = data.doneCount + (_intakeHasMeeting ? 1 : 0);
+        var derivedTotal = data.total + 1;
+        elHsTitle.textContent = 'Intake — ' + derivedDone + '/' + derivedTotal + ' complete';
+        var bigCountEl = elCard.querySelector('.ic-count');
+        if (bigCountEl) bigCountEl.textContent = derivedDone + '/' + derivedTotal;
+        var fillEl = elCard.querySelector('.ic-progress-bar-fill');
+        if (fillEl) fillEl.style.width = Math.round((derivedDone / derivedTotal) * 100) + '%';
+
         // Complete banner
         if (data.complete) {
           var banner = document.createElement('div');
@@ -471,8 +502,18 @@
       /* ── Load data ──────────────────────────────────────────────── */
       function loadAndRender() {
         if (!_proxy || !_clientId) return;
-        _proxy.call('getIntakeCompleteness', _clientId).then(function (data) {
+        var cid = _clientId;
+        // Fetch intake completeness + sessions meetings concurrently (O484)
+        var intakeP   = _proxy.call('getIntakeCompleteness', cid);
+        var sessionsP = _sessionsMeetingQuery
+          ? _sessionsMeetingQuery.call('listForPatient', cid).catch(function () { return []; })
+          : Promise.resolve([]);
+        Promise.all([intakeP, sessionsP]).then(function (results) {
+          if (_clientId !== cid) return;
+          var data     = results[0];
+          var meetings = results[1] || [];
           _data = data;
+          _intakeHasMeeting = meetings.length > 0;
           if (data && data.displayName) {
             _clientTitle = data.displayName;
             elHsClient.textContent = data.displayName;
@@ -513,8 +554,12 @@
           loadAndRender();
           return;
         }
-        soamView.bindQuery('record.patient.query', '1.0').then(function (proxy) {
-          _proxy = proxy;
+        // Bind record.patient.query (required) + sessions.meeting.query (best-effort, O484)
+        var bindRecord   = soamView.bindQuery('record.patient.query', '1.0');
+        var bindSessions = soamView.bindQuery('sessions.meeting.query', '1.0').catch(function () { return null; });
+        Promise.all([bindRecord, bindSessions]).then(function (proxies) {
+          _proxy = proxies[0];
+          _sessionsMeetingQuery = proxies[1];  // null when Sessions inactive
           loadAndRender();
         }).catch(function (err) {
           if (isLockedError(err)) {

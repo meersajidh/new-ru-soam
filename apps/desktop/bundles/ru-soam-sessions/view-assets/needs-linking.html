@@ -718,7 +718,10 @@
               .then(function (created) {
                 var newId = created.id;
                 var eventObj = buildEventObj(entry);
-                return _sessionsMeeting.call('linkProviderEvent', eventObj, newId);
+                return _sessionsMeeting.call('linkProviderEvent', eventObj, newId, { kind: 'intake' })
+                  .then(function () {
+                    return _recordPatient.call('setStage', newId, 'intake', 'Intake scheduled from calendar');
+                  });
               })
               .then(function () {
                 removeCard(entry);
