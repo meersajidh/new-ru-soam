@@ -197,6 +197,14 @@ its own architecture — not a slice of this pass. Also deferred (unchanged): **
 The record tab alone = no new ADR (a Sessions view over the existing `client_meeting` + status
 commands that already exist). The **Notes ADR is separate** and gates any note work.
 
+### 3d. Build note (Slice C — BUILT 2026-06-21)
+`apps/desktop/bundles/ru-soam-sessions/view-assets/meeting-record.html` (new) + manifest `views[]`
+entry. `openInEditor` verb generalized with `targetBundleId` (view-bridge.ts + BundleViewIframe.tsx)
+— domain-agnostic, backward-compatible. Sessions meetings-list rows clickable → record tab.
+Schedule aux "Open in Sessions" resolves meeting id via `sessions.meeting.query.listForPatient`
+(O493 triple match) and opens the record tab directly; falls back to activity-switch on miss.
+Trust-gate for untrusted bundles filed as Open Item (first-party-only today).
+
 ---
 
 ## 4. Cross-cutting invariants
@@ -220,7 +228,7 @@ commands that already exist). The **Notes ADR is separate** and gates any note w
 | **A1** ✅ | 2 | **Aux slot infra + display-only** — aux viewContainer + `event-detail.html` + `ActiveEventService` relay + `schedule.activeEvent` key + prototype layout (all 5 states, display) + Source/raw-title + popover removal + classify `_match` enrichment + bootstrap precedence fix. O489 renderer-handler pre-wired. **BUILT + DOGFOOD-VERIFIED 2026-06-21, uncommitted.** | No (Open Items: context-key namespace, O489 verb) |
 | **A2** ✅ | 2 | **Per-state action blocks + Join button** — 6-state client-link block (linked→Open-in-Sessions · probable-single→Link-to-{Name}+Not-a-client · probable-multi→roster-picker+Not-a-client · excluded/personal→link-picker · new→New-intake-client[create+link]+Link-to-existing+Not-a-client) via slice-4b caps (`addAlias`/`linkProviderEvent`/`suppressParticipant`/`create`, view-bind not manifest-gated) + `record.patient.query.get` name lookup (header + desc + button → roster identity) + working Join (platform-labelled, `soamView.openExternal`) + Open-in-Sessions (new `soamView.openActivity` verb → `setActiveContainerId`). PROBABLE 3rd "This is a client session" button folded into Link-to-{Name}. New-intake = create+link only (referral/stage flow is B). **BUILT + DOGFOOD-VERIFIED 2026-06-21, uncommitted.** | No (Open Item: `openActivity` verb) |
 | **B** ✅ | 3 | **Intake-from-calendar** — create-new ("New intake client" / "Create & link") → `kind:'intake'` link param + renderer-orchestrated `setStage('intake')` (REUSED existing stage, NOT `intake_scheduled`) + O484 projection (overview next-meeting line + intake 11th "first appointment" item, view-bind). Existing-referral auto-advance DEFERRED. **BUILT + DOGFOOD-VERIFIED 2026-06-21 (orchestration end-to-end; projection data-layer proven, UI render reviewed), uncommitted.** | ADR-508 Am2 ✅ |
-| **C** | 4 | **Client Meeting record tab** — open from aux "Open in Sessions" + list; detail + status management + Practice deep-link; **Notes placeholder only** | No |
+| **C** ✅ | 4 | **Client Meeting record tab** — open from aux "Open in Sessions" + list; detail + status management + Practice deep-link; **Notes placeholder only**. `meeting-record.html` (new Sessions view); `openInEditor` generalized with optional `bundleId` for cross-bundle open (view-bridge + BundleViewIframe). **BUILT + DOGFOOD-VERIFIED 2026-06-21, uncommitted.** | No (Open Item: O500 cross-bundle-open trust-gate) |
 | **—** | (4) | **Notes subsystem** — separate design pass + **full ADR** (multi-context, templating, summarization, privacy tier). NOT this pass. | **ADR (separate)** |
 
 **Sequence (Q5 — proposed):** A → B → C. A first (the hub the others plug into; biggest visible win).

@@ -183,7 +183,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           const incomingEntityId = m.entityId as string | null | undefined;
           const incomingPreview = m.preview as boolean | undefined;
           try {
-            const bundleId = new URL(resource).hostname;
+            const bundleId = (typeof m.targetBundleId === 'string' && m.targetBundleId) || new URL(resource).hostname;
             const viewsProxy = await getProxy('platform.views', '1.0');
             const result = await viewsProxy.call('resolve', bundleId, viewId) as { found: boolean; url?: string };
             if (result.found && result.url) {

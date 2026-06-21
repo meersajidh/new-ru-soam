@@ -10,7 +10,8 @@
   ],
   "views": [
     { "id": "meetings", "path": "meetings.html" },
-    { "id": "needs-linking", "path": "needs-linking.html" }
+    { "id": "needs-linking", "path": "needs-linking.html" },
+    { "id": "meeting-record", "path": "meeting-record.html" }
   ],
   "ownedTables": ["client_meeting"],
   "migrations": [

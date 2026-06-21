@@ -217,6 +217,11 @@
         outline: none;
         transition: background var(--transition), border-left-color var(--transition);
         user-select: none;
+        cursor: pointer;
+      }
+      .meeting-row:hover {
+        background: var(--color-surface-elevated);
+        border-left-color: var(--color-border-focus);
       }
 
       /* ── Date/time column ────────────────────────────── */
@@ -435,6 +440,7 @@
         var _meetingProxy  = null;
         var _patientProxy  = null;
         var _commandProxy  = null;
+        var _soamView      = null;
         var _meetings      = [];
         var _clientMap     = {};   // id → displayName
         var _syncInFlight  = false;
@@ -651,6 +657,17 @@
             ', ' + (m.status || 'scheduled') + ', ' + fmtDate(m.startsAt) + ' ' + fmtTime(m.startsAt);
           li.setAttribute('aria-label', label);
 
+          // ── Row click → open meeting record tab ──
+          li.addEventListener('click', function () {
+            if (!_soamView) return;
+            var clientName = _clientMap[m.patientId] || null;
+            _soamView.openInEditor('meeting-record', {
+              query: 'id=' + encodeURIComponent(m.id),
+              title: clientName || 'Client Meeting',
+              entityId: m.id,
+            });
+          });
+
           return li;
         }
 
@@ -702,6 +719,7 @@
         window.__viewBoot.awaitBridge().then(function (soamView) {
           elBridgeWait.style.display = 'none';
           elRoot.style.display = '';
+          _soamView = soamView;
 
           elSyncBtn.addEventListener('click', function () {
             runSync(soamView);

@@ -737,10 +737,11 @@
       var _renderToken = 0;    // increments each applyActiveEvent; guards stale async lookups
 
       /* ── Cap proxies (bound lazily after bridge resolves) ────────── */
-      var _soamView    = null;
-      var _sessionsCmd = null;
-      var _recordCmd   = null;
-      var _recordQuery = null;
+      var _soamView             = null;
+      var _sessionsCmd          = null;
+      var _sessionsMeetingQuery = null;
+      var _recordCmd            = null;
+      var _recordQuery          = null;
 
       /* ── DOM refs ─────────────────────────────────────────────────── */
       var elBridgeWait  = document.getElementById('bridge-wait');
@@ -870,12 +871,60 @@
         var repName  = repAtt ? (repAtt.name || repAtt.email || null) : null;
 
         // ── "Open in Sessions" shared action ──
+        // For a linked event (client_session + matchClientId present), attempts to
+        // resolve the client_meeting id and open the record tab directly.
+        // Falls back to the activity-switch if lookup fails or no meeting found.
         function makeOpenSessionsBtn(label) {
           var btn = el('button', 'det-act-btn');
           btn.type = 'button';
           btn.textContent = label || 'Open in Sessions';
           btn.addEventListener('click', function () {
-            if (_soamView) _soamView.openActivity('ru-soam-sessions.container');
+            if (!_soamView) return;
+            // Only attempt direct record-tab open when linked + query cap available
+            if (matchClientId && _sessionsMeetingQuery) {
+              var clickEv = ev; // capture current event for the async lookup
+              _sessionsMeetingQuery.call('listForPatient', matchClientId).then(function (list) {
+                var rows = Array.isArray(list) ? list : [];
+                // O493 triple match: prefer full (externalAccountId + providerCalendarId)
+                var found = null;
+                if (clickEv && clickEv.providerEventId) {
+                  for (var i = 0; i < rows.length; i++) {
+                    var r = rows[i];
+                    if (r.providerEventId !== clickEv.providerEventId) continue;
+                    // Full triple match preferred
+                    if (
+                      clickEv.externalAccountId &&
+                      clickEv.providerCalendarId &&
+                      r.externalAccountId === clickEv.externalAccountId &&
+                      r.providerCalendarId === clickEv.providerCalendarId
+                    ) {
+                      found = r;
+                      break;
+                    }
+                    // Fallback: bare event id match (legacy rows)
+                    if (!found) found = r;
+                  }
+                }
+                if (found) {
+                  var clientName = null;
+                  // Name may be in strong el from the rendered block — best-effort textContent
+                  _soamView.openInEditor('meeting-record', {
+                    bundleId: 'ru-soam-sessions',
+                    query: 'id=' + encodeURIComponent(found.id),
+                    title: clientName || 'Client Meeting',
+                    entityId: found.id,
+                  });
+                } else {
+                  // No linked meeting row — fall back to activity switch
+                  _soamView.openActivity('ru-soam-sessions.container');
+                }
+              }).catch(function () {
+                // Query unavailable or threw — fall back gracefully
+                _soamView.openActivity('ru-soam-sessions.container');
+              });
+            } else {
+              _soamView.openActivity('ru-soam-sessions.container');
+            }
           });
           return btn;
         }
@@ -1541,6 +1590,10 @@
         soamView.bindCommand('sessions.meeting', '1.0')
           .then(function (p) { _sessionsCmd = p; })
           .catch(function () { /* unavailable (e.g. locked) */ });
+
+        soamView.bindQuery('sessions.meeting.query', '1.0')
+          .then(function (p) { _sessionsMeetingQuery = p; })
+          .catch(function () { /* unavailable */ });
 
         soamView.bindCommand('record.patient', '1.0')
           .then(function (p) { _recordCmd = p; })

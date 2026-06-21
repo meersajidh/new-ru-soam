@@ -196,7 +196,7 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     requestClose: function () { send({ __soamView: true, kind: 'request.close' }); },
     requestFocus: function () { send({ __soamView: true, kind: 'request.focus' }); },
     openInEditor: function (viewId, opts) {
-      send({ __soamView: true, kind: 'request.openEditor', viewId: viewId, query: (opts && opts.query) || undefined, title: (opts && opts.title) || undefined, entityId: (opts && opts.entityId !== undefined) ? opts.entityId : undefined, preview: (opts && opts.preview !== undefined) ? opts.preview : undefined });
+      send({ __soamView: true, kind: 'request.openEditor', viewId: viewId, query: (opts && opts.query) || undefined, title: (opts && opts.title) || undefined, entityId: (opts && opts.entityId !== undefined) ? opts.entityId : undefined, preview: (opts && opts.preview !== undefined) ? opts.preview : undefined, targetBundleId: (opts && opts.bundleId) || undefined });
     },
     setOverviewViewMode: function (mode) {
       send({ __soamView: true, kind: 'request.setOverviewViewMode', mode: mode });
