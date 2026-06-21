@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useService } from '../../platform/services/hooks';
-import { ActiveEventServiceId, EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleCountsServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
+import { ActiveEventServiceId, ContributionServiceId, EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleCountsServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
 import { SlotId } from '../../platform/layout/slots';
 import { aspectFocus } from '../../platform/views/aspect-focus';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
@@ -60,6 +60,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
   const scheduleViewState = useService(ScheduleViewStateServiceId);
   const scheduleCounts = useService(ScheduleCountsServiceId);
   const activeEvent = useService(ActiveEventServiceId);
+  const contributions = useService(ContributionServiceId);
   const layout = useService(LayoutServiceId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   // Ref so the view.ready handler always sees the latest entityId without re-running main effect.
@@ -284,6 +285,12 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           });
           break;
         }
+        case 'request.openActivity': {
+          if (typeof m.containerId !== 'string') break;
+          contributions.setActiveContainerId(m.containerId);
+          layout.setVisibility(SlotId.PrimarySideBar, true);
+          break;
+        }
         case 'request.setTabDescription': {
           editor.updateTab(instanceId, { description: m.text as string });
           break;
@@ -350,7 +357,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
       }
       proxyCache.clear();
     };
-  }, [resource, instanceId, theme, font, editor, menu, maturity, overviewViewMode, scheduleViewState, scheduleCounts, activeEvent, layout, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
+  }, [resource, instanceId, theme, font, editor, menu, maturity, overviewViewMode, scheduleViewState, scheduleCounts, activeEvent, contributions, layout, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
 
   // Separate effect: push context message when entityId changes while mounted.
   // Does NOT trigger re-handshake — only sends a lightweight context update.

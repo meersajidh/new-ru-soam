@@ -438,6 +438,176 @@
         padding: 1px 5px;
       }
 
+      /* ── Join button ─────────────────────────────────────────────── */
+      .det-join-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-accent);
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+        font-family: var(--font-sans);
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background var(--transition), border-color var(--transition);
+        user-select: none;
+        white-space: nowrap;
+        margin-bottom: 4px;
+      }
+      .det-join-btn:hover {
+        background: color-mix(in srgb, var(--color-accent) 85%, white);
+        border-color: color-mix(in srgb, var(--color-accent) 85%, white);
+      }
+      .det-join-btn:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
+
+      /* ── Client-link action block ────────────────────────────────── */
+      .det-link-block {
+        margin: 2px 14px 4px;
+        background: color-mix(in srgb, var(--color-surface-elevated) 60%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+        border-radius: var(--radius-md);
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .det-link-desc {
+        font-size: 11.5px;
+        color: var(--color-fg-secondary);
+        line-height: 1.5;
+      }
+      .det-link-desc strong {
+        color: var(--color-fg-primary);
+        font-weight: 600;
+      }
+      .det-link-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+      }
+      .det-link-inline-msg {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        font-style: italic;
+      }
+      .det-link-inline-msg.err { color: var(--color-error); font-style: normal; font-weight: 500; }
+      .det-link-inline-msg.ok  { color: var(--color-success); font-style: normal; font-weight: 500; }
+
+      /* Action buttons inside link block */
+      .det-act-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 9px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        background: transparent;
+        color: var(--color-fg-secondary);
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background var(--transition), color var(--transition);
+        user-select: none;
+        white-space: nowrap;
+      }
+      .det-act-btn:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
+        color: var(--color-fg-primary);
+      }
+      .det-act-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+      .det-act-btn.primary {
+        border-color: var(--color-accent);
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+        font-weight: 600;
+      }
+      .det-act-btn.primary:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--color-accent) 85%, white);
+        border-color: color-mix(in srgb, var(--color-accent) 85%, white);
+      }
+
+      /* Inline picker inside link block */
+      .det-picker-wrap {
+        display: none;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .det-picker-wrap.open { display: flex; }
+      .det-picker-search {
+        width: 100%;
+        padding: 4px 8px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-base);
+        color: var(--color-fg-primary);
+        font-family: var(--font-sans);
+        font-size: 11.5px;
+        outline: none;
+        transition: border-color var(--transition);
+      }
+      .det-picker-search::placeholder { color: var(--color-fg-muted); }
+      .det-picker-search:focus { border-color: var(--color-border-focus); }
+      .det-picker-list {
+        list-style: none;
+        max-height: 140px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 30%, transparent) transparent;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface-base);
+      }
+      .det-picker-list:empty::after {
+        content: 'No clients match';
+        display: block;
+        padding: 7px 10px;
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        font-style: italic;
+      }
+      .det-picker-item {
+        padding: 5px 10px;
+        font-size: 12px;
+        color: var(--color-fg-secondary);
+        cursor: pointer;
+        transition: background var(--transition), color var(--transition);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+      }
+      .det-picker-item:last-child { border-bottom: none; }
+      .det-picker-item:hover {
+        background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+        color: var(--color-fg-primary);
+      }
+
+      /* New-intake inline form */
+      .det-intake-form {
+        display: none;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .det-intake-form.open { display: flex; }
+      .det-intake-input {
+        padding: 4px 8px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-base);
+        color: var(--color-fg-primary);
+        font-family: var(--font-sans);
+        font-size: 11.5px;
+        outline: none;
+        transition: border-color var(--transition);
+      }
+      .det-intake-input::placeholder { color: var(--color-fg-muted); }
+      .det-intake-input:focus { border-color: var(--color-border-focus); }
+
     </style>
   </head>
   <body>
@@ -464,6 +634,7 @@
         'copy':         'copy',
         'check':        'check',
         'layers':       'layers',
+        'link':         'link',
       };
       function icon(name, size) {
         var n = ICON_MAP[name] || name;
@@ -562,7 +733,14 @@
       }
 
       /* ── State ───────────────────────────────────────────────────── */
-      var _currentEv = null;
+      var _currentEv   = null;
+      var _renderToken = 0;    // increments each applyActiveEvent; guards stale async lookups
+
+      /* ── Cap proxies (bound lazily after bridge resolves) ────────── */
+      var _soamView    = null;
+      var _sessionsCmd = null;
+      var _recordCmd   = null;
+      var _recordQuery = null;
 
       /* ── DOM refs ─────────────────────────────────────────────────── */
       var elBridgeWait  = document.getElementById('bridge-wait');
@@ -570,6 +748,478 @@
       var elEmpty       = document.getElementById('empty-state');
       var elEmptyIcon   = document.getElementById('empty-icon');
       var elScroll      = document.getElementById('detail-scroll');
+
+      /* ── Representative attendee helper ──────────────────────────── */
+      function pickRepEmail(ev) {
+        var atts = (ev && ev.attendees) || [];
+        var best = null;
+        for (var i = 0; i < atts.length; i++) {
+          var a = atts[i];
+          if (a.self) continue;
+          if (!a.email) continue;
+          if (a.organizer) { if (!best) best = a; continue; }
+          return a; // first non-self, non-organiser with email
+        }
+        return best; // fallback: organiser-with-email
+      }
+
+      /* ── Build event obj for linkProviderEvent (O493 triple) ─────── */
+      function buildEventObj(ev) {
+        return {
+          providerEventId: ev.providerEventId || ev.id,
+          id:              ev.id,
+          start:           ev.start,
+          end:             ev.end,
+          calendarId:      ev.calendarId,
+          meetingLink:     ev.meetingLink || null,
+          externalAccountId:  ev.externalAccountId  != null ? ev.externalAccountId  : null,
+          providerCalendarId: ev.providerCalendarId != null ? ev.providerCalendarId : null,
+        };
+      }
+
+      /* ── Inline msg helper inside link block ─────────────────────── */
+      function setBlockMsg(msgEl, text, kind) {
+        msgEl.textContent = text;
+        msgEl.className = 'det-link-inline-msg' + (kind ? ' ' + kind : '');
+        msgEl.style.display = text ? '' : 'none';
+      }
+
+      /* ── Disable/enable buttons in a container ───────────────────── */
+      function disableBlock(containerEl) {
+        var btns = containerEl.querySelectorAll('button,input');
+        for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+      }
+      function enableBlock(containerEl) {
+        var btns = containerEl.querySelectorAll('button,input');
+        for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
+      }
+
+      /* ── Build inline roster picker ──────────────────────────────── */
+      function buildPickerWrap(onSelect) {
+        var wrap = el('div', 'det-picker-wrap');
+
+        var search = el('input', 'det-picker-search');
+        search.type = 'text';
+        search.placeholder = 'Search roster…';
+        wrap.appendChild(search);
+
+        var list = el('ul', 'det-picker-list');
+        wrap.appendChild(list);
+
+        function renderRoster(filter) {
+          list.innerHTML = '';
+          var q = (filter || '').toLowerCase();
+          for (var i = 0; i < _roster.length; i++) {
+            var c = _roster[i];
+            if (q && c.name.toLowerCase().indexOf(q) === -1) continue;
+            (function (cid, cname) {
+              var item = el('li', 'det-picker-item');
+              item.textContent = cname; // PHI-safe textContent
+              item.addEventListener('click', function () { onSelect(cid, cname); });
+              list.appendChild(item);
+            })(c.id, c.name);
+          }
+        }
+
+        renderRoster('');
+        search.addEventListener('input', function () { renderRoster(search.value); });
+        search.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') { wrap.classList.remove('open'); }
+        });
+
+        wrap._open = function () {
+          renderRoster(search.value);
+          wrap.classList.add('open');
+          search.focus();
+        };
+        wrap._close = function () { wrap.classList.remove('open'); };
+
+        return wrap;
+      }
+
+      /* ── Roster cache (loaded once per bridge mount) ─────────────── */
+      var _roster = []; // [{id, name}]
+
+      function loadRoster() {
+        if (!_recordQuery) return Promise.resolve();
+        return _recordQuery.call('list')
+          .then(function (patients) {
+            _roster = [];
+            (patients || []).forEach(function (p) {
+              _roster.push({ id: p.id, name: p.displayName || p.id });
+            });
+          })
+          .catch(function () { /* best-effort */ });
+      }
+
+      /* ── Build client-link action block ──────────────────────────── */
+      function buildLinkBlock(ev, titleEl) {
+        var cls = (ev && ev.classification) || 'unclassified';
+        var match = ev && ev._match;
+        var matchClientId  = match && match.matchClientId ? match.matchClientId : null;
+        var candidates     = match && Array.isArray(match.candidates) ? match.candidates : [];
+
+        var block = el('div', 'det-link-block');
+        var desc  = el('div', 'det-link-desc');
+        var acts  = el('div', 'det-link-actions');
+        var msgEl = el('div', 'det-link-inline-msg');
+        msgEl.style.display = 'none';
+
+        var repAtt = pickRepEmail(ev);
+        var repEmail = repAtt ? repAtt.email : null;
+        var repName  = repAtt ? (repAtt.name || repAtt.email || null) : null;
+
+        // ── "Open in Sessions" shared action ──
+        function makeOpenSessionsBtn(label) {
+          var btn = el('button', 'det-act-btn');
+          btn.type = 'button';
+          btn.textContent = label || 'Open in Sessions';
+          btn.addEventListener('click', function () {
+            if (_soamView) _soamView.openActivity('ru-soam-sessions.container');
+          });
+          return btn;
+        }
+
+        // ── Link action (shared by confirm + picker select) ──
+        function doLink(clientId, clientName) {
+          disableBlock(block);
+          setBlockMsg(msgEl, '', '');
+          var evObj = buildEventObj(ev);
+          var aliasP = (repEmail && _recordCmd)
+            ? _recordCmd.call('addAlias', clientId, { email: repEmail }).catch(function () { /* non-fatal */ })
+            : Promise.resolve();
+          aliasP.then(function () {
+            return _sessionsCmd ? _sessionsCmd.call('linkProviderEvent', evObj, clientId) : Promise.reject(new Error('sessions cap unavailable'));
+          }).then(function () {
+            // Linked — show success state
+            block.innerHTML = '';
+            var successDesc = el('div', 'det-link-desc');
+            var strong = el('strong', '');
+            strong.textContent = clientName || clientId;
+            successDesc.appendChild(strong);
+            var tail = document.createTextNode(' · Linked from roster ✓');
+            successDesc.appendChild(tail);
+            block.appendChild(successDesc);
+            var successActs = el('div', 'det-link-actions');
+            successActs.appendChild(makeOpenSessionsBtn('Open in Sessions'));
+            block.appendChild(successActs);
+            // Update header title to roster name if we have one
+            if (clientName && titleEl) titleEl.textContent = clientName;
+          }).catch(function (err) {
+            enableBlock(block);
+            if (window.__viewBoot.isLockedError(err)) {
+              setBlockMsg(msgEl, 'Workspace locked — unlock to link.', 'err');
+            } else {
+              setBlockMsg(msgEl, 'Link failed: ' + (err && err.message ? err.message : String(err)), 'err');
+            }
+          });
+        }
+
+        // ── State: CLIENT (linked) ──
+        if (cls === 'client_session' && matchClientId) {
+          var clientName = null;
+          // Lookup will fill name; start with placeholder
+          var strong = el('strong', '');
+          strong.textContent = '…';
+          var tail1 = document.createTextNode(' · Linked from roster ✓');
+          desc.appendChild(strong);
+          desc.appendChild(tail1);
+          block.appendChild(desc);
+          acts.appendChild(makeOpenSessionsBtn('Open in Sessions'));
+          block.appendChild(acts);
+          // Async name lookup
+          if (_recordQuery && matchClientId) {
+            (function (token, clientId, strongEl, titleElRef) {
+              _recordQuery.call('get', clientId).then(function (rec) {
+                if (_renderToken !== token) return; // stale
+                var name = rec && rec.displayName ? rec.displayName : null;
+                if (name) {
+                  strongEl.textContent = name;
+                  if (titleElRef) titleElRef.textContent = name;
+                } else {
+                  strongEl.textContent = clientId;
+                }
+              }).catch(function () { strongEl.textContent = clientId; });
+            })(_renderToken, matchClientId, strong, titleEl);
+          }
+
+        // ── State: PROBABLE, single match ──
+        } else if (cls === 'probable_client_session' && matchClientId) {
+          var pName = null; // filled by lookup below
+          var nameSpan = el('strong', '');
+          nameSpan.textContent = '…';
+          desc.textContent = '';
+          desc.appendChild(document.createTextNode('Matches '));
+          desc.appendChild(nameSpan);
+          desc.appendChild(document.createTextNode(' in your roster but isn\'t linked yet.'));
+          block.appendChild(desc);
+
+          var linkBtn = el('button', 'det-act-btn primary');
+          linkBtn.type = 'button';
+          linkBtn.textContent = 'Link to …';
+          linkBtn.addEventListener('click', function () {
+            doLink(matchClientId, nameSpan.textContent);
+          });
+          acts.appendChild(linkBtn);
+
+          if (repEmail) {
+            var notBtn = el('button', 'det-act-btn');
+            notBtn.type = 'button';
+            notBtn.textContent = 'Not a client';
+            notBtn.addEventListener('click', function () {
+              if (!_recordCmd) { setBlockMsg(msgEl, 'record.patient cap unavailable', 'err'); return; }
+              disableBlock(block);
+              _recordCmd.call('suppressParticipant', { email: repEmail })
+                .then(function () {
+                  block.innerHTML = '';
+                  block.appendChild(txt('div', 'det-link-desc', 'Marked as not a client.'));
+                })
+                .catch(function (err) {
+                  enableBlock(block);
+                  if (window.__viewBoot.isLockedError(err)) {
+                    setBlockMsg(msgEl, 'Workspace locked.', 'err');
+                  } else {
+                    setBlockMsg(msgEl, 'Failed: ' + (err && err.message ? err.message : String(err)), 'err');
+                  }
+                });
+            });
+            acts.appendChild(notBtn);
+          }
+
+          block.appendChild(acts);
+          block.appendChild(msgEl);
+
+          // Async name lookup
+          if (_recordQuery && matchClientId) {
+            (function (token, clientId, nameSpanEl, linkBtnEl) {
+              _recordQuery.call('get', clientId).then(function (rec) {
+                if (_renderToken !== token) return;
+                var name = rec && rec.displayName ? rec.displayName : null;
+                if (name) {
+                  nameSpanEl.textContent = name;
+                  linkBtnEl.textContent = 'Link to ' + name;
+                  if (titleEl) titleEl.textContent = name;
+                } else {
+                  nameSpanEl.textContent = clientId;
+                  linkBtnEl.textContent = 'Link to client';
+                }
+              }).catch(function () {
+                nameSpanEl.textContent = matchClientId;
+                linkBtnEl.textContent = 'Link to client';
+              });
+            })(_renderToken, matchClientId, nameSpan, linkBtn);
+          }
+
+        // ── State: PROBABLE, multiple candidates ──
+        } else if (cls === 'probable_client_session' && candidates.length > 1) {
+          desc.textContent = 'Multiple roster matches.';
+          block.appendChild(desc);
+
+          var picker1 = buildPickerWrap(function (cid, cname) {
+            picker1._close();
+            doLink(cid, cname);
+          });
+
+          var linkMultiBtn = el('button', 'det-act-btn primary');
+          linkMultiBtn.type = 'button';
+          linkMultiBtn.textContent = 'Link to client…';
+          linkMultiBtn.addEventListener('click', function () {
+            loadRoster().then(function () { picker1._open(); });
+          });
+          acts.appendChild(linkMultiBtn);
+
+          if (repEmail) {
+            var notBtn2 = el('button', 'det-act-btn');
+            notBtn2.type = 'button';
+            notBtn2.textContent = 'Not a client';
+            notBtn2.addEventListener('click', function () {
+              if (!_recordCmd) { setBlockMsg(msgEl, 'record.patient cap unavailable', 'err'); return; }
+              disableBlock(block);
+              _recordCmd.call('suppressParticipant', { email: repEmail })
+                .then(function () {
+                  block.innerHTML = '';
+                  block.appendChild(txt('div', 'det-link-desc', 'Marked as not a client.'));
+                })
+                .catch(function (err) {
+                  enableBlock(block);
+                  if (window.__viewBoot.isLockedError(err)) {
+                    setBlockMsg(msgEl, 'Workspace locked.', 'err');
+                  } else {
+                    setBlockMsg(msgEl, 'Failed: ' + (err && err.message ? err.message : String(err)), 'err');
+                  }
+                });
+            });
+            acts.appendChild(notBtn2);
+          }
+
+          block.appendChild(acts);
+          block.appendChild(picker1);
+          block.appendChild(msgEl);
+
+        // ── State: EXCLUDED ──
+        } else if (cls === 'not_client_session') {
+          desc.textContent = 'Marked as not a client.';
+          block.appendChild(desc);
+
+          var picker2 = buildPickerWrap(function (cid, cname) {
+            picker2._close();
+            doLink(cid, cname);
+          });
+
+          var linkExcBtn = el('button', 'det-act-btn');
+          linkExcBtn.type = 'button';
+          linkExcBtn.textContent = 'Link to a client…';
+          linkExcBtn.addEventListener('click', function () {
+            loadRoster().then(function () { picker2._open(); });
+          });
+          acts.appendChild(linkExcBtn);
+          block.appendChild(acts);
+          block.appendChild(picker2);
+          block.appendChild(msgEl);
+
+        // ── State: PERSONAL ──
+        } else if (cls === 'personal') {
+          desc.textContent = 'Marked as personal / admin.';
+          block.appendChild(desc);
+
+          var picker3 = buildPickerWrap(function (cid, cname) {
+            picker3._close();
+            doLink(cid, cname);
+          });
+
+          var linkPersBtn = el('button', 'det-act-btn');
+          linkPersBtn.type = 'button';
+          linkPersBtn.textContent = 'Link to a client…';
+          linkPersBtn.addEventListener('click', function () {
+            loadRoster().then(function () { picker3._open(); });
+          });
+          acts.appendChild(linkPersBtn);
+          block.appendChild(acts);
+          block.appendChild(picker3);
+          block.appendChild(msgEl);
+
+        // ── State: NEW / UNCLASSIFIED ──
+        } else {
+          desc.textContent = 'Not recognised from your roster.';
+          block.appendChild(desc);
+
+          // "New intake client" inline form
+          var intakeForm = el('div', 'det-intake-form');
+          var nameInput  = el('input', 'det-intake-input');
+          nameInput.type = 'text';
+          nameInput.placeholder = 'Client name…';
+          if (repName) nameInput.value = repName; // PHI-safe: value assignment
+          var createBtn = el('button', 'det-act-btn primary');
+          createBtn.type = 'button';
+          createBtn.textContent = 'Create & link';
+          createBtn.addEventListener('click', function () {
+            var rawName = nameInput.value.trim();
+            if (!rawName) { nameInput.focus(); return; }
+            if (!_recordCmd) { setBlockMsg(msgEl, 'record.patient cap unavailable', 'err'); return; }
+            disableBlock(block);
+            var createInput = { givenName: rawName };
+            if (repEmail) createInput.contactEmail = repEmail;
+            _recordCmd.call('create', createInput)
+              .then(function (created) {
+                var newId = created && created.id ? created.id : null;
+                if (!newId) return Promise.reject(new Error('create returned no id'));
+                var evObj = buildEventObj(ev);
+                return (_sessionsCmd ? _sessionsCmd.call('linkProviderEvent', evObj, newId) : Promise.reject(new Error('sessions cap unavailable')))
+                  .then(function () { return { id: newId, name: rawName }; });
+              })
+              .then(function (result) {
+                block.innerHTML = '';
+                var successDesc = el('div', 'det-link-desc');
+                var strong = el('strong', '');
+                strong.textContent = result.name;
+                successDesc.appendChild(strong);
+                successDesc.appendChild(document.createTextNode(' · Linked from roster ✓'));
+                block.appendChild(successDesc);
+                var successActs = el('div', 'det-link-actions');
+                successActs.appendChild(makeOpenSessionsBtn('Open in Sessions'));
+                block.appendChild(successActs);
+                if (titleEl) titleEl.textContent = result.name;
+              })
+              .catch(function (err) {
+                enableBlock(block);
+                if (window.__viewBoot.isLockedError(err)) {
+                  setBlockMsg(msgEl, 'Workspace locked.', 'err');
+                } else {
+                  setBlockMsg(msgEl, 'Create failed: ' + (err && err.message ? err.message : String(err)), 'err');
+                }
+              });
+          });
+          intakeForm.appendChild(nameInput);
+          intakeForm.appendChild(createBtn);
+
+          // Picker for "Link to existing…"
+          var picker4 = buildPickerWrap(function (cid, cname) {
+            picker4._close();
+            doLink(cid, cname);
+          });
+
+          var newIntakeBtn = el('button', 'det-act-btn primary');
+          newIntakeBtn.type = 'button';
+          newIntakeBtn.textContent = 'New intake client';
+          newIntakeBtn.addEventListener('click', function () {
+            var isOpen = intakeForm.classList.contains('open');
+            intakeForm.classList.toggle('open', !isOpen);
+            picker4._close();
+            if (!isOpen) nameInput.focus();
+          });
+
+          var linkExistBtn = el('button', 'det-act-btn');
+          linkExistBtn.type = 'button';
+          linkExistBtn.textContent = 'Link to existing…';
+          linkExistBtn.addEventListener('click', function () {
+            intakeForm.classList.remove('open');
+            loadRoster().then(function () { picker4._open(); });
+          });
+
+          acts.appendChild(newIntakeBtn);
+          acts.appendChild(linkExistBtn);
+
+          if (repEmail) {
+            var notBtn3 = el('button', 'det-act-btn');
+            notBtn3.type = 'button';
+            notBtn3.textContent = 'Not a client';
+            notBtn3.addEventListener('click', function () {
+              if (!_recordCmd) { setBlockMsg(msgEl, 'record.patient cap unavailable', 'err'); return; }
+              disableBlock(block);
+              _recordCmd.call('suppressParticipant', { email: repEmail })
+                .then(function () {
+                  block.innerHTML = '';
+                  block.appendChild(txt('div', 'det-link-desc', 'Marked as not a client.'));
+                })
+                .catch(function (err) {
+                  enableBlock(block);
+                  if (window.__viewBoot.isLockedError(err)) {
+                    setBlockMsg(msgEl, 'Workspace locked.', 'err');
+                  } else {
+                    setBlockMsg(msgEl, 'Failed: ' + (err && err.message ? err.message : String(err)), 'err');
+                  }
+                });
+            });
+            acts.appendChild(notBtn3);
+          }
+
+          block.appendChild(acts);
+          block.appendChild(intakeForm);
+          block.appendChild(picker4);
+          block.appendChild(msgEl);
+        }
+
+        return block;
+      }
+
+      /* ── Join label from meeting URL ─────────────────────────────── */
+      function joinLabel(url) {
+        if (!url) return 'Join meeting';
+        if (url.indexOf('zoom.us') !== -1) return 'Join Zoom';
+        if (url.indexOf('meet.google.com') !== -1) return 'Join Google Meet';
+        if (url.indexOf('teams.microsoft.com') !== -1 || url.indexOf('teams.live.com') !== -1) return 'Join Teams';
+        return 'Join meeting';
+      }
 
       /* ── Render ───────────────────────────────────────────────────── */
       function renderDetail(ev) {
@@ -591,10 +1241,7 @@
         var hdr = el('div', 'det-header');
         var hdrTop = el('div', 'det-header-top');
 
-        /* Title: use roster identity if linked/probable, raw title as fallback.
-         * For display in the header we show the raw title (this is the aux slot;
-         * the Calendar chips never show raw title, but here the user is inspecting
-         * the event directly). PHI via textContent only. */
+        /* Title placeholder — replaced by roster identity for linked/probable via async lookup */
         var titleStr = (typeof ev.title === 'string' && ev.title.trim()) ? ev.title : '(No title)';
         var titleEl = txt('div', 'det-title', titleStr);
         hdrTop.appendChild(titleEl);
@@ -631,7 +1278,7 @@
         if (ev.allDay) {
           timeTxt.textContent = 'All day';
         } else {
-          /* Use innerHTML for the bold time range (no user data, safe format strings). */
+          /* Use innerHTML for bold time range (no user data, safe format strings). */
           var t1 = fmtTime(ev.start);
           var t2 = ev.end ? fmtTime(ev.end) : '';
           timeTxt.innerHTML = '<strong>' + t1 + (t2 ? ' – ' + t2 : '') + '</strong>';
@@ -649,7 +1296,7 @@
         timeRow.appendChild(timeTxt);
         body.appendChild(timeRow);
 
-        /* Calendar row (display name from event) */
+        /* Calendar row */
         if (ev.calendarName) {
           var calRow = el('div', 'det-row');
           var calIco = el('span', 'det-row-icon');
@@ -672,12 +1319,24 @@
           body.appendChild(locRow);
         }
 
-        /* Join row (meeting link — display + copy, NO working button yet — A2) */
+        /* Join row — Join button + URL + copy */
         if (ev.meetingLink && typeof ev.meetingLink === 'string') {
           var joinRow = el('div', 'det-row');
           var joinIco = el('span', 'det-row-icon');
           joinIco.innerHTML = icon('globe', 13);
           var joinTxt = el('div', 'det-row-text');
+
+          /* Join button — primary action, opens via openExternal */
+          var joinBtn = el('button', 'det-join-btn');
+          joinBtn.type = 'button';
+          joinBtn.textContent = joinLabel(ev.meetingLink);
+          (function (url) {
+            joinBtn.addEventListener('click', function () {
+              if (_soamView) _soamView.openExternal(url);
+            });
+          })(ev.meetingLink);
+          joinTxt.appendChild(joinBtn);
+
           joinTxt.appendChild(txt('div', 'det-join-label', 'Meeting link'));
 
           var joinUrlRow = el('div', '');
@@ -794,13 +1453,16 @@
           elScroll.appendChild(participantsWrap);
         }
 
+        /* ── Client-link action block (between participants and source) ── */
+        if (_sessionsCmd || _recordCmd || _recordQuery) {
+          /* Only render block when caps are available (bridge resolved) */
+          var linkBlock = buildLinkBlock(ev, titleEl);
+          elScroll.appendChild(linkBlock);
+        }
+
         /* ── Source block ── */
-        /* Shows calendar origin + raw provider title (verbatim) + honesty note.
-         * Raw title displayed ONLY here — never on calendar chips (roster identity there).
-         * This is the user's own consented calendar (read-side ADR-313). */
         var src = el('div', 'det-source');
 
-        /* Calendar source row: color dot + calendar name */
         var calSrcRow = el('div', 'det-source-row');
         var calDot = el('div', 'det-source-cal-dot');
         if (ev.calendarColor && typeof ev.calendarColor === 'string') {
@@ -815,15 +1477,14 @@
         }
         src.appendChild(calSrcRow);
 
-        /* Raw provider title */
+        /* Raw provider title — always shown here (never on calendar chips) */
         if (ev.title && typeof ev.title === 'string') {
           src.appendChild(txt('div', 'det-raw-title-label', 'Raw title'));
           src.appendChild(txt('div', 'det-raw-title', ev.title));
         }
 
-        /* Honesty note */
         src.appendChild(txt('div', 'det-honesty',
-          'This title rides on Google. The client’s identity shown above comes from your roster, not the raw title.'));
+          'This title rides on Google. The client\'s identity shown above comes from your roster, not the raw title.'));
 
         elScroll.appendChild(src);
       }
@@ -831,6 +1492,7 @@
       /* ── Apply active event (from channel or init/context) ──────── */
       function applyActiveEvent(ev) {
         _currentEv = ev || null;
+        _renderToken++;
         if (document.readyState === 'loading') {
           document.addEventListener('DOMContentLoaded', function () { renderDetail(_currentEv); });
         } else {
@@ -857,12 +1519,13 @@
         }
       });
 
-      boot.awaitBridge().then(function () {
+      boot.awaitBridge().then(function (soamView) {
+        _soamView = soamView;
+
         elBridgeWait.classList.add('hidden');
         elRoot.style.display = '';
 
         boot.applyCodicons();
-        /* Seed codicon in empty-state icon after codicons are loaded. */
         if (document.readyState === 'loading') {
           document.addEventListener('DOMContentLoaded', function () {
             elEmptyIcon.innerHTML = icon('calendar', 22);
@@ -870,6 +1533,23 @@
         } else {
           elEmptyIcon.innerHTML = icon('calendar', 22);
         }
+
+        /* Bind caps (best-effort; view-binds are NOT manifest-gated) */
+        soamView.bindCommand('sessions.meeting', '1.0')
+          .then(function (p) { _sessionsCmd = p; })
+          .catch(function () { /* unavailable (e.g. locked) */ });
+
+        soamView.bindCommand('record.patient', '1.0')
+          .then(function (p) { _recordCmd = p; })
+          .catch(function () { /* unavailable */ });
+
+        soamView.bindQuery('record.patient.query', '1.0')
+          .then(function (p) {
+            _recordQuery = p;
+            /* Re-render once record query is ready — link block needs it */
+            if (_currentEv) renderDetail(_currentEv);
+          })
+          .catch(function () { /* unavailable */ });
 
         /* Initial render — may have been set by init/context message before this runs. */
         renderDetail(_currentEv);

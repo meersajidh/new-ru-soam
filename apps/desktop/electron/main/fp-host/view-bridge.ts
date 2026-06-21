@@ -213,6 +213,9 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     openExternal: function (url) {
       send({ __soamView: true, kind: 'request.openExternal', url: url });
     },
+    openActivity: function (containerId) {
+      send({ __soamView: true, kind: 'request.openActivity', containerId: containerId });
+    },
     setTabDescription: function (text) {
       send({ __soamView: true, kind: 'request.setTabDescription', text: text });
     },
