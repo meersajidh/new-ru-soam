@@ -1,7 +1,9 @@
 # Phase 2 — Ingress Clinical Design Pass (Schedule aux · calendar→intake · Client Meeting record)
 
-**Status:** REVIEWED 2026-06-21 — decisions Q1–Q4 resolved (below). Ready to promote (ADR-508 Am2) +
-slice for build.
+**Status:** ✅ **COMPLETE 2026-06-21** — all three slices (A1/A2/B/C) BUILT + DOGFOOD-VERIFIED +
+COMMITTED. The ingress funnel (calendar = front door → aux action hub → intake-from-calendar →
+Client Meeting record tab) is live. **Resume = the Notes subsystem (O501 — own full ADR), then
+PHI egress (O499).** Decisions Q1–Q4 resolved (below); promoted to ADR-508 Am2.
 **Scope:** the three reprioritized items (after pre-prod O490+O307f, before PHI egress O499):
 2. Schedule aspects for the aux sidebar + panels.
 3. Sessions + Practice **intakes from calendars**.
@@ -185,8 +187,8 @@ Client Overview / artifact-tab pattern, ADR-505): client (from roster) · time �
 deep-link back to the client's Practice record. The read-only "Upcoming Meetings" list rows become
 openers. **No note authoring** — a **"Notes" placeholder** points at the forthcoming Notes subsystem.
 
-### 3b. Out of scope — the Notes subsystem (own workstream + ADR)
-Notes get a **dedicated design pass + full ADR** (reshapes/absorbs O487). Why it's separate (Q4): notes
+### 3b. Out of scope — the Notes subsystem (own workstream + ADR) — **logged as O501**
+Notes get a **dedicated design pass + full ADR** (reshapes/absorbs O487), tracked as **O501**. Why it's separate (Q4): notes
 occur in **multiple contexts** (a session note in Sessions, a clinical note in a Practice aspect, an
 ad-hoc note from Schedule), and need **templating** + **summarization** + a **privacy tier** (progress
 vs private/process/psychotherapy notes, with structurally-excluded cross-Activity projection). That is
@@ -225,11 +227,11 @@ Trust-gate for untrusted bundles filed as Open Item (first-party-only today).
 
 | Slice | Item | Scope | ADR? |
 |---|---|---|---|
-| **A1** ✅ | 2 | **Aux slot infra + display-only** — aux viewContainer + `event-detail.html` + `ActiveEventService` relay + `schedule.activeEvent` key + prototype layout (all 5 states, display) + Source/raw-title + popover removal + classify `_match` enrichment + bootstrap precedence fix. O489 renderer-handler pre-wired. **BUILT + DOGFOOD-VERIFIED 2026-06-21, uncommitted.** | No (Open Items: context-key namespace, O489 verb) |
-| **A2** ✅ | 2 | **Per-state action blocks + Join button** — 6-state client-link block (linked→Open-in-Sessions · probable-single→Link-to-{Name}+Not-a-client · probable-multi→roster-picker+Not-a-client · excluded/personal→link-picker · new→New-intake-client[create+link]+Link-to-existing+Not-a-client) via slice-4b caps (`addAlias`/`linkProviderEvent`/`suppressParticipant`/`create`, view-bind not manifest-gated) + `record.patient.query.get` name lookup (header + desc + button → roster identity) + working Join (platform-labelled, `soamView.openExternal`) + Open-in-Sessions (new `soamView.openActivity` verb → `setActiveContainerId`). PROBABLE 3rd "This is a client session" button folded into Link-to-{Name}. New-intake = create+link only (referral/stage flow is B). **BUILT + DOGFOOD-VERIFIED 2026-06-21, uncommitted.** | No (Open Item: `openActivity` verb) |
-| **B** ✅ | 3 | **Intake-from-calendar** — create-new ("New intake client" / "Create & link") → `kind:'intake'` link param + renderer-orchestrated `setStage('intake')` (REUSED existing stage, NOT `intake_scheduled`) + O484 projection (overview next-meeting line + intake 11th "first appointment" item, view-bind). Existing-referral auto-advance DEFERRED. **BUILT + DOGFOOD-VERIFIED 2026-06-21 (orchestration end-to-end; projection data-layer proven, UI render reviewed), uncommitted.** | ADR-508 Am2 ✅ |
-| **C** ✅ | 4 | **Client Meeting record tab** — open from aux "Open in Sessions" + list; detail + status management + Practice deep-link; **Notes placeholder only**. `meeting-record.html` (new Sessions view); `openInEditor` generalized with optional `bundleId` for cross-bundle open (view-bridge + BundleViewIframe). **BUILT + DOGFOOD-VERIFIED 2026-06-21, uncommitted.** | No (Open Item: O500 cross-bundle-open trust-gate) |
-| **—** | (4) | **Notes subsystem** — separate design pass + **full ADR** (multi-context, templating, summarization, privacy tier). NOT this pass. | **ADR (separate)** |
+| **A1** ✅ | 2 | **Aux slot infra + display-only** — aux viewContainer + `event-detail.html` + `ActiveEventService` relay + `schedule.activeEvent` key + prototype layout (all 5 states, display) + Source/raw-title + popover removal + classify `_match` enrichment + bootstrap precedence fix. O489 renderer-handler pre-wired. **BUILT + DOGFOOD-VERIFIED + COMMITTED 2026-06-21.** | No (Open Items: context-key namespace, O489 verb) |
+| **A2** ✅ | 2 | **Per-state action blocks + Join button** — 6-state client-link block (linked→Open-in-Sessions · probable-single→Link-to-{Name}+Not-a-client · probable-multi→roster-picker+Not-a-client · excluded/personal→link-picker · new→New-intake-client[create+link]+Link-to-existing+Not-a-client) via slice-4b caps (`addAlias`/`linkProviderEvent`/`suppressParticipant`/`create`, view-bind not manifest-gated) + `record.patient.query.get` name lookup (header + desc + button → roster identity) + working Join (platform-labelled, `soamView.openExternal`) + Open-in-Sessions (new `soamView.openActivity` verb → `setActiveContainerId`). PROBABLE 3rd "This is a client session" button folded into Link-to-{Name}. New-intake = create+link only (referral/stage flow is B). **BUILT + DOGFOOD-VERIFIED + COMMITTED 2026-06-21.** | No (Open Item: `openActivity` verb) |
+| **B** ✅ | 3 | **Intake-from-calendar** — create-new ("New intake client" / "Create & link") → `kind:'intake'` link param + renderer-orchestrated `setStage('intake')` (REUSED existing stage, NOT `intake_scheduled`) + O484 projection (overview next-meeting line + intake 11th "first appointment" item, view-bind). Existing-referral auto-advance DEFERRED. **BUILT + DOGFOOD-VERIFIED 2026-06-21 (orchestration end-to-end; projection data-layer proven, UI render reviewed), COMMITTED.** | ADR-508 Am2 ✅ |
+| **C** ✅ | 4 | **Client Meeting record tab** — open from aux "Open in Sessions" + list; detail + status management + Practice deep-link; **Notes placeholder only**. `meeting-record.html` (new Sessions view); `openInEditor` generalized with optional `bundleId` for cross-bundle open (view-bridge + BundleViewIframe). **BUILT + DOGFOOD-VERIFIED + COMMITTED 2026-06-21.** | No (Open Item: O500 cross-bundle-open trust-gate) |
+| **O501** | (4) | **Notes subsystem** — separate design pass + **full ADR** (multi-context, templating, summarization, privacy tier). NOT this pass. **Logged as O501 — deferred.** | **ADR (separate)** |
 
 **Sequence (Q5 — proposed):** A → B → C. A first (the hub the others plug into; biggest visible win).
 B next (highest clinical value, reuses existing commands). C last (the "Open in Sessions" destination).
