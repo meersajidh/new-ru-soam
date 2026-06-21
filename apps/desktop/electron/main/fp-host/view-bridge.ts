@@ -207,6 +207,12 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     setScheduleCounts: function (counts) {
       send({ __soamView: true, kind: 'request.setScheduleCounts', counts: counts });
     },
+    setActiveEvent: function (ev) {
+      send({ __soamView: true, kind: 'request.setActiveEvent', event: ev });
+    },
+    openExternal: function (url) {
+      send({ __soamView: true, kind: 'request.openExternal', url: url });
+    },
     setTabDescription: function (text) {
       send({ __soamView: true, kind: 'request.setTabDescription', text: text });
     },

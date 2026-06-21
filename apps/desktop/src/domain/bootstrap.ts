@@ -11,7 +11,7 @@
  */
 
 import type { ServiceRegistry } from '../platform/services/registry';
-import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId, CommandServiceId, ScheduleViewStateServiceId } from '../platform/services/ids';
+import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId, CommandServiceId, ScheduleViewStateServiceId, ActiveEventServiceId } from '../platform/services/ids';
 import { PRODUCT_TAGLINE, DELETE_WARNING_ADDENDUM } from './product';
 import { showClientErase } from './clientEraseState';
 import { requestOpenPhiSafetyPopover } from '../workbench/parts/phi-safety-events';
@@ -354,20 +354,49 @@ export function domainBootstrap(registry: ServiceRegistry): void {
   contextKeys.set('patient.activeId', '');
   contextKeys.set('record.activeId', '');
 
-  function syncPatientContext(): void {
+  // schedule.activeEvent — true when the Schedule tab is focused AND an event is selected.
+  // Used by the aux viewContainer when-clause for event-detail.html.
+  // Domain-reserved schedule.* namespace; only domain code writes it.
+  const activeEventSvc = registry.get(ActiveEventServiceId);
+  contextKeys.set('schedule.activeEvent', false);
+
+  // Unified context sync — called on both editor focus changes and active-event changes.
+  // Keeps patient.activeId / record.activeId / schedule.activeEvent mutually consistent.
+  //
+  // Rules:
+  //   patient.activeId / record.activeId — only non-empty for Practice record tabs
+  //     (resource contains 'ru-soam-practice/'). Schedule and other tabs yield ''.
+  //     This prevents the Practice aux container from shadowing Schedule's event-detail
+  //     container when the Schedule tab is focused (symptom: "Client not found: schedule").
+  //
+  //   schedule.activeEvent — true only when the Schedule calendar tab is focused
+  //     (resource contains 'ru-soam-schedule/schedule.html') AND an event is selected.
+  //     Switching to a Practice tab drops schedule.activeEvent regardless of registration
+  //     order between the two aux containers.
+  //
+  // ADR-106: domain code owns this mapping; base shell stays domain-free.
+  function syncContext(): void {
     const gid = editor.getFocusedGroupId();
     const group = gid ? editor.getGroup(gid) : undefined;
     const inst = group?.activeTabId ? group.tabs.find((t) => t.id === group.activeTabId) : undefined;
-    // Read entityId directly — no URL parsing needed (stable-resource entity-binding pattern).
-    const patientId = inst?.entityId ?? '';
+    const res = inst?.resource ?? '';
+
+    // Only adopt entityId as patient id for Practice record tabs.
+    const isPatientTab = res.includes('ru-soam-practice/');
+    const patientId = isPatientTab ? (inst?.entityId ?? '') : '';
     contextKeys.set('patient.activeId', patientId);
     contextKeys.set('record.activeId', patientId);
+
+    // schedule.activeEvent: focused tab must be the Schedule calendar view.
+    const scheduleFocused = res.includes('ru-soam-schedule/schedule.html');
+    contextKeys.set('schedule.activeEvent', scheduleFocused && activeEventSvc.getActiveEvent() !== null);
   }
 
   // Subscribe and sync for the app lifetime.
-  // The disposable intentionally lives for the whole session (no teardown
+  // The disposables intentionally live for the whole session (no teardown
   // needed — domainBootstrap is called once at composition root init).
-  editor.onDidChange(syncPatientContext);
+  activeEventSvc.onDidChange(() => syncContext());
+  editor.onDidChange(syncContext);
   // Sync once immediately in case editor already has a focused tab.
-  syncPatientContext();
+  syncContext();
 }

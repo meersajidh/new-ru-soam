@@ -1127,202 +1127,6 @@
         padding: 1px 2px;
       }
 
-      /* ── Inline event-detail popover ───────────────────────────── */
-      #detail-popover {
-        position: fixed;
-        z-index: 200;
-        background: var(--color-surface-elevated);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-card);
-        box-shadow:
-          0 4px 6px -1px color-mix(in srgb, #000 30%, transparent),
-          0 10px 20px -4px color-mix(in srgb, #000 25%, transparent);
-        padding: 0;
-        min-width: 300px;
-        max-width: 380px;
-        overflow: hidden;
-        outline: none;
-      }
-      #detail-popover.hidden { display: none; }
-
-      .popover-header {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 14px 16px 12px;
-        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
-      }
-      .popover-kind-strip {
-        width: 3px;
-        border-radius: 2px;
-        align-self: stretch;
-        min-height: 20px;
-        flex-shrink: 0;
-        background: var(--color-fg-muted);
-        opacity: 0.5;
-        margin-top: 1px;
-      }
-      .popover-title {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--color-fg-primary);
-        line-height: 1.35;
-        flex: 1;
-        min-width: 0;
-        word-break: break-word;
-      }
-      .popover-close {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        border-radius: var(--radius-sm);
-        color: var(--color-fg-muted);
-        flex-shrink: 0;
-        transition: background var(--transition), color var(--transition);
-      }
-      .popover-close:hover {
-        background: var(--color-surface-active);
-        color: var(--color-fg-primary);
-      }
-      .popover-close:focus-visible {
-        outline: 2px solid var(--color-border-focus);
-        outline-offset: 1px;
-      }
-
-      .popover-body {
-        padding: 12px 16px 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .popover-row {
-        display: flex;
-        align-items: flex-start;
-        gap: 9px;
-        font-size: 12px;
-      }
-      .popover-row-icon {
-        color: var(--color-fg-muted);
-        flex-shrink: 0;
-        margin-top: 1px;
-        display: inline-flex;
-        align-items: center;
-        min-width: 14px;
-      }
-      .popover-row-text {
-        color: var(--color-fg-secondary);
-        line-height: 1.4;
-        flex: 1;
-        min-width: 0;
-        word-break: break-word;
-      }
-      .popover-row-text strong {
-        color: var(--color-fg-primary);
-        font-weight: 500;
-      }
-      .popover-duration-badge {
-        display: inline-block;
-        font-size: 11px;
-        font-weight: 500;
-        color: var(--color-fg-secondary);
-        background: var(--color-surface-base);
-        border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-        border-radius: 3px;
-        padding: 1px 5px;
-        margin-left: 6px;
-      }
-      .popover-cal-badge {
-        font-size: 11px;
-        color: var(--color-fg-muted);
-        border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-        border-radius: 3px;
-        padding: 1px 5px;
-      }
-
-      /* Meeting link — selectable/copyable URL. NOT a clickable anchor:
-         the bundle iframe is sandboxed allow-scripts allow-forms (no allow-popups /
-         allow-top-navigation per ADR-411), so target=_blank navigation is blocked.
-         One-click launch needs a soamView.openExternal bridge verb → shell.openExternal
-         capability (follow-up). For now the user selects + copies the URL. */
-      .popover-join-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--color-fg-secondary);
-        margin-bottom: 2px;
-      }
-      .popover-join-url {
-        font-family: var(--font-mono);
-        font-size: 11px;
-        line-height: 1.45;
-        color: var(--color-accent);
-        user-select: text;
-        cursor: text;
-        word-break: break-all;
-      }
-
-      /* Participants section */
-      .popover-section-label {
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: var(--color-fg-muted);
-        margin-bottom: 4px;
-        padding-left: 23px; /* align under row text (9px gap + 14px icon) */
-      }
-      .popover-participants {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-      .popover-participant {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 11.5px;
-      }
-      .popover-avatar {
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface-base) 80%);
-        border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
-        color: var(--color-accent);
-        font-size: 9px;
-        font-weight: 700;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        text-transform: uppercase;
-        letter-spacing: -0.01em;
-      }
-      .popover-participant-name {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: var(--color-fg-secondary);
-      }
-      .popover-participant-role {
-        font-size: 10px;
-        font-weight: 500;
-        color: var(--color-fg-muted);
-        background: color-mix(in srgb, var(--color-surface-base) 80%, transparent);
-        border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
-        border-radius: 3px;
-        padding: 0 4px;
-        flex-shrink: 0;
-        line-height: 1.6;
-      }
-      .popover-divider {
-        height: 1px;
-        background: color-mix(in srgb, var(--color-border) 50%, transparent);
-        margin: 2px 0;
-      }
 
       /* ── Day view — centered column ─────────────────────────────── */
       /* Wrap everything in day view with max-width + centering via inner wrapper */
@@ -1390,53 +1194,6 @@
         padding: 8px 0 24px;
       }
 
-      /* ── Popover copy-link button ───────────────────────────────── */
-      .popover-copy-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        border-radius: var(--radius-sm);
-        color: var(--color-fg-muted);
-        flex-shrink: 0;
-        transition: background var(--transition), color var(--transition);
-        cursor: pointer;
-        border: none;
-        background: none;
-        font: inherit;
-        margin-left: 4px;
-        vertical-align: middle;
-      }
-      .popover-copy-btn:hover {
-        background: var(--color-surface-active);
-        color: var(--color-fg-primary);
-      }
-      .popover-copy-btn:focus-visible {
-        outline: 2px solid var(--color-border-focus);
-        outline-offset: 1px;
-      }
-      .popover-copy-btn.copied {
-        color: var(--color-success);
-      }
-      .popover-copy-confirm {
-        font-size: 10px;
-        color: var(--color-success);
-        margin-left: 4px;
-        font-weight: 600;
-        opacity: 0;
-        transition: opacity 0.15s;
-      }
-      .popover-copy-confirm.show { opacity: 1; }
-
-      /* ── Popover backdrop ───────────────────────────────────────── */
-      #popover-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 199;
-        background: transparent;
-      }
-      #popover-backdrop.hidden { display: none; }
 
       /* ── No-events empty ───────────────────────────────────────── */
       .no-events {
@@ -1488,19 +1245,6 @@
 
     </div>
 
-    <!-- Popover backdrop: prevents grid scroll while popover open -->
-    <div id="popover-backdrop" class="hidden"></div>
-
-    <!-- Inline event detail popover -->
-    <div id="detail-popover" class="hidden" role="dialog" aria-modal="true" aria-label="Event detail" tabindex="-1">
-      <div class="popover-header">
-        <div class="popover-kind-strip" id="pop-strip"></div>
-        <div class="popover-title" id="pop-title"></div>
-        <div class="event-kind-badge" id="pop-cls-badge" style="flex-shrink:0;align-self:center"></div>
-        <button class="popover-close" id="pop-close" type="button" aria-label="Close"></button>
-      </div>
-      <div class="popover-body" id="pop-body"></div>
-    </div>
 
     <script>
     (function () {
@@ -1529,21 +1273,6 @@
       function icon(name, size) {
         var n = ICON_MAP[name] || name;
         return window.codicon ? window.codicon(n, size || 13) : '';
-      }
-
-      /* Clipboard fallback via hidden textarea + execCommand (must run in click handler) */
-      function fallbackCopy(text, onSuccess) {
-        try {
-          var ta = document.createElement('textarea');
-          ta.value = text;
-          ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
-          document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          var ok = document.execCommand('copy');
-          document.body.removeChild(ta);
-          if (ok && onSuccess) onSuccess();
-        } catch (err) { /* silently ignore */ }
       }
 
       /* ── Date utilities ──────────────────────────────────────────── */
@@ -1680,13 +1409,6 @@
       var elBtnNext     = document.getElementById('btn-next');
       var elBtnToday    = document.getElementById('btn-today');
       var elViewSwitch  = document.getElementById('view-switcher');
-      var elBackdrop    = document.getElementById('popover-backdrop');
-      var elPopover     = document.getElementById('detail-popover');
-      var elPopTitle    = document.getElementById('pop-title');
-      var elPopStrip    = document.getElementById('pop-strip');
-      var elPopClsBadge = document.getElementById('pop-cls-badge');
-      var elPopBody     = document.getElementById('pop-body');
-      var elPopClose    = document.getElementById('pop-close');
 
       /* ── Classification map (SD-11) ─────────────────────────────── */
       /* ev.classification is a DERIVED PROJECTION — never stored, never sent to provider. */
@@ -1861,7 +1583,8 @@
 
         card.addEventListener('click', function (e) {
           e.stopPropagation();
-          openPopover(ev, card);
+          setSelection(ev.id);
+          if (_soamView) _soamView.setActiveEvent(ev);
         });
         return card;
       }
@@ -2067,7 +1790,8 @@
 
           block.addEventListener('click', function (e) {
             e.stopPropagation();
-            openPopover(ev, block);
+            setSelection(ev.id);
+            if (_soamView) _soamView.setActiveEvent(ev);
           });
           colEl.appendChild(block);
         });
@@ -2128,7 +1852,8 @@
               }
               pill.addEventListener('click', function (e) {
                 e.stopPropagation();
-                openPopover(ev, pill);
+                setSelection(ev.id);
+                if (_soamView) _soamView.setActiveEvent(ev);
               });
               adCol.appendChild(pill);
             });
@@ -2261,7 +1986,8 @@
             }
             pill.addEventListener('click', function (e) {
               e.stopPropagation();
-              openPopover(ev, pill);
+              setSelection(ev.id);
+              if (_soamView) _soamView.setActiveEvent(ev);
             });
             cell.appendChild(pill);
           });
@@ -2275,7 +2001,7 @@
         return wrap;
       }
 
-      /* ── Popover ─────────────────────────────────────────────────── */
+      /* ── Selection ───────────────────────────────────────────────── */
       // Update selection highlight by toggling classes on existing event nodes.
       // NEVER rebuild the grid for selection — a rebuild re-runs buildTimeGrid's
       // rAF scroll-to-7AM, which jumps the scroll position on every event click.
@@ -2287,244 +2013,6 @@
         });
       }
 
-      function openPopover(ev, anchorEl) {
-        var rect = anchorEl.getBoundingClientRect();
-        setSelection(ev.id); // highlight in place — no grid rebuild, no scroll jump
-
-        elPopTitle.textContent    = ev.title || '(No title)';
-        elPopStrip.className      = 'popover-kind-strip ' + classClass(ev);
-        elPopClsBadge.textContent = classLabel(ev);
-        elPopClsBadge.className   = 'event-kind-badge ' + classClass(ev);
-
-        elPopClose.innerHTML = icon('x', 14);
-
-        elPopBody.innerHTML = '';
-
-        // Time row
-        var timeRow = el('div', 'popover-row');
-        var timeIco = el('span', 'popover-row-icon');
-        timeIco.innerHTML = icon('clock', 13);
-        var timeTxt = el('span', 'popover-row-text');
-        if (ev.allDay) {
-          timeTxt.textContent = 'All day';
-        } else {
-          timeTxt.innerHTML = '<strong>' + fmtTime(ev.start) + ' – ' + fmtTime(ev.end) + '</strong>';
-          // Append duration badge if computable
-          if (ev.start && ev.end && ev.start.length > 10 && ev.end.length > 10) {
-            var startMs = new Date(ev.start).getTime();
-            var endMs   = new Date(ev.end).getTime();
-            var durMin  = Math.round((endMs - startMs) / 60000);
-            if (durMin > 0) {
-              var durBadge = txt('span', 'popover-duration-badge', fmtDuration(durMin));
-              timeTxt.appendChild(durBadge);
-            }
-          }
-        }
-        timeRow.appendChild(timeIco);
-        timeRow.appendChild(timeTxt);
-        elPopBody.appendChild(timeRow);
-
-        // Calendar row
-        if (ev.calendarName) {
-          var calRow = el('div', 'popover-row');
-          var calIco = el('span', 'popover-row-icon');
-          calIco.innerHTML = icon('layers', 13);
-          var calTxt = el('div', 'popover-row-text');
-          calTxt.appendChild(txt('span', 'popover-cal-badge', ev.calendarName));
-          calRow.appendChild(calIco);
-          calRow.appendChild(calTxt);
-          elPopBody.appendChild(calRow);
-        }
-
-        // Location row
-        if (ev.location) {
-          var locRow = el('div', 'popover-row');
-          var locIco = el('span', 'popover-row-icon');
-          locIco.innerHTML = icon('location', 13);
-          var locTxt = txt('span', 'popover-row-text', ev.location);
-          locRow.appendChild(locIco);
-          locRow.appendChild(locTxt);
-          elPopBody.appendChild(locRow);
-        }
-
-        // Meeting link row — selectable URL + copy button.
-        // NOT a clickable anchor: sandboxed iframe has no allow-popups/allow-top-navigation.
-        if (ev.meetingLink) {
-          var joinRow = el('div', 'popover-row');
-          var joinIco = el('span', 'popover-row-icon');
-          joinIco.innerHTML = icon('globe', 13);
-          var joinTxt = el('div', 'popover-row-text');
-          joinTxt.appendChild(txt('div', 'popover-join-label', 'Meeting link'));
-
-          var joinUrlRow = el('div', '');
-          joinUrlRow.style.display = 'flex';
-          joinUrlRow.style.alignItems = 'center';
-          joinUrlRow.style.gap = '4px';
-          joinUrlRow.style.flexWrap = 'wrap';
-
-          var joinUrl = txt('span', 'popover-join-url', ev.meetingLink);
-          joinUrlRow.appendChild(joinUrl);
-
-          /* Copy button */
-          var copyBtn = el('button', 'popover-copy-btn');
-          copyBtn.type = 'button';
-          copyBtn.title = 'Copy link';
-          copyBtn.innerHTML = icon('copy', 13);
-          var copyConfirm = txt('span', 'popover-copy-confirm', 'Copied');
-          var copyTimer = null;
-
-          copyBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            var url = ev.meetingLink;
-            function showCopied() {
-              copyBtn.innerHTML = icon('check', 13);
-              copyBtn.classList.add('copied');
-              copyConfirm.classList.add('show');
-              if (copyTimer) clearTimeout(copyTimer);
-              copyTimer = setTimeout(function () {
-                copyBtn.innerHTML = icon('copy', 13);
-                copyBtn.classList.remove('copied');
-                copyConfirm.classList.remove('show');
-              }, 1200);
-            }
-            /* Try modern clipboard API first (may be blocked in opaque-origin sandbox) */
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(url).then(showCopied).catch(function () {
-                fallbackCopy(url, showCopied);
-              });
-            } else {
-              fallbackCopy(url, showCopied);
-            }
-          });
-
-          joinUrlRow.appendChild(copyBtn);
-          joinUrlRow.appendChild(copyConfirm);
-          joinTxt.appendChild(joinUrlRow);
-          joinRow.appendChild(joinIco);
-          joinRow.appendChild(joinTxt);
-          elPopBody.appendChild(joinRow);
-        }
-
-        // Participants section
-        // Show attendees list, or a single organiser row if no attendees but ev.organizer present.
-        var hasAttendees = ev.attendees && ev.attendees.length > 0;
-        var hasOrganizerOnly = !hasAttendees && ev.organizer && (ev.organizer.email || ev.organizer.displayName);
-        if (hasAttendees || hasOrganizerOnly) {
-          var divider = el('div', 'popover-divider');
-          elPopBody.appendChild(divider);
-
-          var secLabel = el('div', 'popover-section-label');
-          secLabel.innerHTML = icon('person', 11) + ' Participants';
-          elPopBody.appendChild(secLabel);
-
-          var participantsList = el('div', 'popover-participants');
-
-          /* Helper: determine if an attendee is the organiser */
-          var orgEmail = ev.organizer && ev.organizer.email ? ev.organizer.email.toLowerCase() : null;
-          function isOrganiser(a) {
-            return a.organizer === true || (orgEmail && (a.email || '').toLowerCase() === orgEmail);
-          }
-
-          if (hasAttendees) {
-            var maxShown = 8; // cap to avoid huge popover
-            var shown = ev.attendees.slice(0, maxShown);
-            shown.forEach(function (a) {
-              var nameStr = a.name || a.email || '?';
-              var initials = nameStr
-                .split(/\s+/)
-                .slice(0, 2)
-                .map(function (w) { return w.charAt(0); })
-                .join('');
-
-              var pRow = el('div', 'popover-participant');
-              var avatar = txt('div', 'popover-avatar', initials || '?');
-              var pName = txt('div', 'popover-participant-name', a.name || a.email || 'Unknown');
-              pRow.appendChild(avatar);
-              pRow.appendChild(pName);
-
-              // Role tags: both can apply (self + organiser)
-              if (a.self) {
-                pRow.appendChild(txt('span', 'popover-participant-role', 'you'));
-              }
-              if (isOrganiser(a)) {
-                pRow.appendChild(txt('span', 'popover-participant-role', 'organiser'));
-              }
-
-              participantsList.appendChild(pRow);
-            });
-
-            if (ev.attendees.length > maxShown) {
-              var moreEl = txt('div', 'popover-row-text',
-                '+' + (ev.attendees.length - maxShown) + ' more');
-              moreEl.style.fontSize = '11px';
-              moreEl.style.paddingLeft = '30px';
-              moreEl.style.color = 'var(--color-fg-muted)';
-              participantsList.appendChild(moreEl);
-            }
-          } else {
-            // No attendees but organizer known — show organiser as single entry
-            var org = ev.organizer;
-            var orgName = org.displayName || org.email || '?';
-            var orgInitials = orgName.split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('');
-            var orgRow = el('div', 'popover-participant');
-            orgRow.appendChild(txt('div', 'popover-avatar', orgInitials || '?'));
-            orgRow.appendChild(txt('div', 'popover-participant-name', orgName));
-            orgRow.appendChild(txt('span', 'popover-participant-role', 'organiser'));
-            participantsList.appendChild(orgRow);
-          }
-
-          elPopBody.appendChild(participantsList);
-        }
-
-        // Position popover near anchor, clamped within iframe viewport.
-        // Show backdrop first (prevents grid scroll, closes on outside click).
-        elBackdrop.classList.remove('hidden');
-
-        var pop = elPopover;
-        pop.classList.remove('hidden');
-        pop.style.top   = '';
-        pop.style.left  = '';
-        pop.style.right = '';
-
-        // Measure actual rendered height AFTER showing (layout is synchronous here).
-        var popW = pop.offsetWidth  || 380;
-        var popH = pop.offsetHeight || 320;
-        var vw   = window.innerWidth;
-        var vh   = window.innerHeight;
-        var margin = 8;
-
-        // Prefer right of anchor, flip left if no room.
-        var left = rect.right + margin;
-        if (left + popW > vw - margin) left = rect.left - popW - margin;
-        // Clamp horizontally.
-        left = Math.max(margin, Math.min(left, vw - popW - margin));
-
-        // Prefer top-aligned with anchor, flip up if overflows bottom.
-        var top = rect.top;
-        if (top + popH > vh - margin) top = rect.bottom - popH;
-        // Clamp vertically.
-        top = Math.max(margin, Math.min(top, vh - popH - margin));
-
-        pop.style.left = left + 'px';
-        pop.style.top  = top  + 'px';
-        // preventScroll: no jump in the time grid when focusing.
-        pop.focus({ preventScroll: true });
-      }
-
-      function closePopover() {
-        elPopover.classList.add('hidden');
-        elBackdrop.classList.add('hidden');
-        setSelection(null); // clear highlight in place — no rebuild/scroll jump
-      }
-
-      elPopClose.addEventListener('click', closePopover);
-      elPopover.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closePopover();
-      });
-      // Backdrop click closes popover (prevents click reaching grid underneath).
-      elBackdrop.addEventListener('click', closePopover);
-      // Popover itself must not propagate to backdrop.
-      elPopover.addEventListener('click', function (e) { e.stopPropagation(); });
 
       /* ── Render dispatch ──────────────────────────────────────────── */
       function renderCalArea() {
@@ -2657,10 +2145,18 @@
             rows.forEach(function (r) { linkedSet[r.provider_event_id] = true; });
 
             /* Step 4: per-event resolve. */
+            /* Build linked rows map for match enrichment. */
+            var linkedRowMap = {};
+            rows.forEach(function (r) { linkedRowMap[r.provider_event_id] = r; });
+
             /* Build array of promises — one per event. */
             var classifyPromises = evs.map(function (ev) {
-              /* Already linked? Instant client_session. */
+              /* Already linked? Instant client_session — enrich with linked clientId. */
               if (linkedSet[ev.id]) {
+                var linkedRow = linkedRowMap[ev.id];
+                ev._match = linkedRow && linkedRow.patient_id
+                  ? { matchClientId: linkedRow.patient_id, source: 'linked' }
+                  : { source: 'linked' };
                 return Promise.resolve({ ev: ev, cls: 'client_session' });
               }
 
@@ -2700,6 +2196,8 @@
               /* Resolve participants sequentially; short-circuit on first match. */
               /* Precedence: match > candidates > suppressed > none */
               var PREC = { 'client_session': 3, 'probable_client_session': 2, 'not_client_session': 1, 'unclassified': 0 };
+              /* _bestMatch carries enrichment data for the winning classification. */
+              var _bestMatch = null;
 
               function resolveNext(idx, best) {
                 if (best === 'client_session') {
@@ -2721,6 +2219,16 @@
                     else if (outcome === 'candidates') cls = 'probable_client_session';
                     else if (outcome === 'suppressed') cls = 'not_client_session';
                     else                               cls = 'unclassified';
+                    /* Capture enrichment data if this outcome wins. */
+                    if (PREC[cls] > PREC[best]) {
+                      if (outcome === 'match' && result.clientId) {
+                        _bestMatch = { matchClientId: result.clientId, source: 'resolver' };
+                      } else if (outcome === 'candidates' && result.candidates) {
+                        _bestMatch = { candidates: result.candidates, source: 'resolver' };
+                      } else {
+                        _bestMatch = null;
+                      }
+                    }
                     var next = (PREC[cls] > PREC[best]) ? cls : best;
                     return resolveNext(idx + 1, next);
                   })
@@ -2730,7 +2238,13 @@
                   });
               }
 
-              return resolveNext(0, 'unclassified');
+              return resolveNext(0, 'unclassified').then(function (r) {
+                /* Attach enrichment to event (null-safe: only set when present). */
+                if (_bestMatch !== null) {
+                  r.ev._match = _bestMatch;
+                }
+                return r;
+              });
             });
 
             /* Wait for all events to classify, then repaint + publish counts. */
@@ -3002,7 +2516,6 @@
             view = v;
             offset = 0;
             selectedId = null;
-            elPopover.classList.add('hidden');
             if (connected) loadEvents(); else renderCalArea();
           }
         });
@@ -3040,7 +2553,6 @@
           view = newView;
           offset = 0;
           selectedId = null;
-          if (elPopover) elPopover.classList.add('hidden');
           /* view change: loadEvents handles same-window fast-path or new window fetch. */
           if (connected) loadEvents(); else renderCalArea();
         } else if (revChanged) {
@@ -3102,7 +2614,6 @@
         elRoot.style.display = '';
 
         boot.applyCodicons();
-        elPopClose.innerHTML = icon('x', 14);
 
         // Render initial state (disconnected).
         updateRangeLabel();

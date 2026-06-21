@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useService } from '../../platform/services/hooks';
-import { EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleCountsServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
+import { ActiveEventServiceId, EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleCountsServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
 import { SlotId } from '../../platform/layout/slots';
 import { aspectFocus } from '../../platform/views/aspect-focus';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 import type { ScheduleViewState } from '../../platform/view-mode/schedule-view-state';
 import type { ScheduleCounts } from '../../platform/view-mode/schedule-counts';
+import type { ActiveEvent } from '../../platform/view-mode/active-event';
 
 /**
  * Renderer relay for ADR-411 bundle views.
@@ -58,6 +59,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
   const overviewViewMode = useService(OverviewViewModeServiceId);
   const scheduleViewState = useService(ScheduleViewStateServiceId);
   const scheduleCounts = useService(ScheduleCountsServiceId);
+  const activeEvent = useService(ActiveEventServiceId);
   const layout = useService(LayoutServiceId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   // Ref so the view.ready handler always sees the latest entityId without re-running main effect.
@@ -131,7 +133,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
         case 'view.ready': {
           viewReadyRef.current = true;
           clearTimeout(readyTimeout);
-          post({ __soamView: true, kind: 'init', theme: appearance(), maturityHighlight: maturity.isEnabled(), overviewViewMode: overviewViewMode.getMode(), scheduleViewState: scheduleViewState.getState(), scheduleCounts: scheduleCounts.getCounts() });
+          post({ __soamView: true, kind: 'init', theme: appearance(), maturityHighlight: maturity.isEnabled(), overviewViewMode: overviewViewMode.getMode(), scheduleViewState: scheduleViewState.getState(), scheduleCounts: scheduleCounts.getCounts(), activeEvent: activeEvent.getActiveEvent() });
           if (!activated) {
             activated = true;
             // Include entityId in activate payload so view gets it on first load.
@@ -141,7 +143,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           // Include overviewViewMode here (not just init) because this context message is
           // replayed on DOMContentLoaded by the bridge — large docs whose listener registers
           // after init fires would otherwise silently revert to the default mode.
-          post({ __soamView: true, kind: 'context', entityId: entityIdRef.current ?? null, overviewViewMode: overviewViewMode.getMode(), scheduleViewState: scheduleViewState.getState(), scheduleCounts: scheduleCounts.getCounts() });
+          post({ __soamView: true, kind: 'context', entityId: entityIdRef.current ?? null, overviewViewMode: overviewViewMode.getMode(), scheduleViewState: scheduleViewState.getState(), scheduleCounts: scheduleCounts.getCounts(), activeEvent: activeEvent.getActiveEvent() });
           // If a focus request is already pending (e.g. aspects iframe freshly mounted after
           // "Open record" set patient.activeId for the first time), deliver it now.
           if (focusSectionRef.current) {
@@ -265,6 +267,23 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           scheduleCounts.setCounts(m.counts as ScheduleCounts);
           break;
         }
+        case 'request.setActiveEvent': {
+          activeEvent.setActiveEvent((m.event as ActiveEvent | null | undefined) ?? null);
+          break;
+        }
+        case 'request.openExternal': {
+          if (typeof m.url !== 'string') break;
+          window.soam.bindCapability('platform.shell', '1.0').then((cap) => {
+            cap.call('openExternal', m.url).catch((err: unknown) => {
+              console.error('[BundleViewIframe] openExternal failed:', err);
+            }).finally(() => {
+              cap.dispose();
+            });
+          }).catch((err: unknown) => {
+            console.error('[BundleViewIframe] could not bind platform.shell for openExternal:', err);
+          });
+          break;
+        }
         case 'request.setTabDescription': {
           editor.updateTab(instanceId, { description: m.text as string });
           break;
@@ -308,6 +327,9 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
     const offScheduleCounts = scheduleCounts.onDidChange((counts) =>
       requestAnimationFrame(() => post({ __soamView: true, kind: 'scheduleCounts', counts })),
     );
+    const offActiveEvent = activeEvent.onDidChange((event) =>
+      requestAnimationFrame(() => post({ __soamView: true, kind: 'activeEvent', event })),
+    );
 
     return () => {
       disposed = true;
@@ -322,12 +344,13 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
       offViewMode();
       offScheduleViewState();
       offScheduleCounts();
+      offActiveEvent();
       for (const p of proxyCache.values()) {
         p.then((proxy) => proxy.dispose()).catch(() => undefined);
       }
       proxyCache.clear();
     };
-  }, [resource, instanceId, theme, font, editor, menu, maturity, overviewViewMode, scheduleViewState, scheduleCounts, layout, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
+  }, [resource, instanceId, theme, font, editor, menu, maturity, overviewViewMode, scheduleViewState, scheduleCounts, activeEvent, layout, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
 
   // Separate effect: push context message when entityId changes while mounted.
   // Does NOT trigger re-handshake — only sends a lightweight context update.

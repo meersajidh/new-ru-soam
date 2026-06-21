@@ -11,7 +11,8 @@
   "views": [
     { "id": "nav", "path": "nav.html" },
     { "id": "schedule", "path": "schedule.html" },
-    { "id": "calendar-setup", "path": "calendar-setup.html" }
+    { "id": "calendar-setup", "path": "calendar-setup.html" },
+    { "id": "event-detail", "path": "event-detail.html" }
   ],
   "ownedTables": ["provider_account", "calendar", "event"],
   "migrations": [
@@ -102,6 +103,13 @@
         "title": "Schedule",
         "view": "nav",
         "location": "primary"
+      },
+      {
+        "id": "ru-soam-schedule.event-detail",
+        "title": "Event",
+        "view": "event-detail",
+        "location": "auxiliary",
+        "when": "schedule.activeEvent"
       }
     ],
     "panel.views": [],

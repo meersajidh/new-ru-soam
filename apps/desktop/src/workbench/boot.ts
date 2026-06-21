@@ -48,6 +48,8 @@ import {
 import { ScheduleViewStateServiceId } from '../platform/services/ids';
 import { ScheduleCountsService } from '../platform/view-mode/schedule-counts';
 import { ScheduleCountsServiceId } from '../platform/services/ids';
+import { ActiveEventService } from '../platform/view-mode/active-event';
+import { ActiveEventServiceId } from '../platform/services/ids';
 import { TelemetryModeService } from '../platform/telemetry/telemetry-mode-service';
 import type { TelemetryMode } from '../platform/telemetry/telemetry-mode-service';
 import { TelemetryModeServiceId } from '../platform/services/ids';
@@ -160,6 +162,10 @@ export function boot(): ServiceRegistry {
   // Schedule counts — non-persisted; relayed from schedule.html after classify pass.
   const scheduleCounts = new ScheduleCountsService();
   registry.register(ScheduleCountsServiceId, scheduleCounts);
+
+  // Active event — non-persisted; relayed from schedule.html on event selection.
+  const activeEvent = new ActiveEventService();
+  registry.register(ActiveEventServiceId, activeEvent);
 
   // Telemetry mode — prefs-cap-backed; default 'off'. Reloads on workspace change.
   const telemetryMode = new TelemetryModeService();
