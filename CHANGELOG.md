@@ -7,6 +7,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-06-22
+
+### Added
+
+- Adjustable app text size — Settings → Appearance → Text size (Default, Large, X-Large).
+
+### Changed
+
+- Schedule: redesigned the event details panel with a clearer sectioned layout (Time, Participants, Client link, Source) that's easier to read.
+- Schedule: calendar events link to your clients automatically and update live as you add or edit people in your roster.
+- Side panel and bottom panel now have a close button in their header.
+- Unified the header height across the side bars and editor area.
+
+### Removed
+
+- Removed the experimental PHI-read toggle and safety-score indicator from the schedule.
+
 ## [0.1.6] - 2026-06-05
 
 ### Added

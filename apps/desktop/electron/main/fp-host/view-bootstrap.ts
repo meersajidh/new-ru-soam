@@ -61,6 +61,11 @@ export const VIEW_BOOTSTRAP_SOURCE = `(function () {
       Object.keys(d.theme).forEach(function (k) {
         root.style.setProperty(k, d.theme[k]);
       });
+      // Apply --ui-scale as CSS zoom so px-sized bundle views scale uniformly.
+      var uiScale = d.theme['--ui-scale'];
+      if (uiScale && uiScale !== '') {
+        root.style.zoom = uiScale;
+      }
       return true;
     }
     return false;

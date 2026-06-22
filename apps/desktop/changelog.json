@@ -1,6 +1,36 @@
 {
   "versions": [
     {
+      "version": "0.1.7",
+      "date": "2026-06-22",
+      "entries": [
+        {
+          "kind": "Added",
+          "text": "Adjustable app text size — Settings → Appearance → Text size (Default, Large, X-Large)."
+        },
+        {
+          "kind": "Changed",
+          "text": "Schedule: redesigned the event details panel with a clearer sectioned layout (Time, Participants, Client link, Source) that's easier to read."
+        },
+        {
+          "kind": "Changed",
+          "text": "Schedule: calendar events link to your clients automatically and update live as you add or edit people in your roster."
+        },
+        {
+          "kind": "Changed",
+          "text": "Side panel and bottom panel now have a close button in their header."
+        },
+        {
+          "kind": "Changed",
+          "text": "Unified the header height across the side bars and editor area."
+        },
+        {
+          "kind": "Removed",
+          "text": "Removed the experimental PHI-read toggle and safety-score indicator from the schedule."
+        }
+      ]
+    },
+    {
       "version": "0.1.6",
       "date": "2026-06-05",
       "entries": [

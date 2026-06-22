@@ -8,7 +8,9 @@ import {
   useLayoutSizes,
   useService,
 } from '../../platform/services/hooks';
-import { ContextKeyServiceId } from '../../platform/services/ids';
+import { ContextKeyServiceId, LayoutServiceId } from '../../platform/services/ids';
+import { SlotId } from '../../platform/layout/slots';
+import { Icon } from '../../platform/icons/Icon';
 import BundleViewIframe from './BundleViewIframe';
 import ResizeHandle from './ResizeHandle';
 
@@ -31,6 +33,7 @@ export default function AuxSideBar() {
   const { auxSideBarWidth } = useLayoutSizes();
   const auxContainers = useAuxViewContainers();
   const ctxSvc = useService(ContextKeyServiceId);
+  const layout = useService(LayoutServiceId);
   const focus = useAspectFocus();
 
   // Reactive id read — useContextKey stores value in React state (compiler-safe).
@@ -49,13 +52,25 @@ export default function AuxSideBar() {
   // Stable resource — no ?id= suffix. entityId travels out-of-band via context message.
   const resource = active?.viewUrl ?? null;
 
-  if (resource && active) {
-    return (
-      <div
-        className="part-sidebar part-sidebar-aux"
-        aria-label="Auxiliary Side Bar"
-        style={{ width: auxSideBarWidth, flex: '0 0 auto' }}
-      >
+  return (
+    <div
+      className="part-sidebar part-sidebar-aux"
+      aria-label="Auxiliary Side Bar"
+      style={{ width: auxSideBarWidth, flex: '0 0 auto' }}
+    >
+      {/* Permanent header chrome — close button always present, even with no view. */}
+      <div className="part-aux-header">
+        <button
+          type="button"
+          className="part-aux-close"
+          title="Hide panel"
+          aria-label="Hide auxiliary panel"
+          onClick={() => layout.setVisibility(SlotId.AuxSideBar, false)}
+        >
+          <Icon name="close" size={13} />
+        </button>
+      </div>
+      {resource && active ? (
         <div className="sidebar-view-host">
           <BundleViewIframe
             key={active.id}
@@ -66,25 +81,9 @@ export default function AuxSideBar() {
             focusNonce={focus?.nonce}
           />
         </div>
-        <ResizeHandle
-          sizeKey="auxSideBarWidth"
-          axis="horizontal"
-          sign={-1}
-          min={MIN_WIDTH}
-          max={MAX_WIDTH}
-          edge="left"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="part-sidebar part-sidebar-aux"
-      aria-label="Auxiliary Side Bar"
-      style={{ width: auxSideBarWidth, flex: '0 0 auto' }}
-    >
-      <p className="sidebar-empty-state">No views</p>
+      ) : (
+        <p className="sidebar-empty-state">No views</p>
+      )}
       <ResizeHandle
         sizeKey="auxSideBarWidth"
         axis="horizontal"

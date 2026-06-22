@@ -3,3 +3,35 @@
 .part-sidebar-aux {
   border-left: 1px solid var(--color-border);
 }
+
+.part-aux-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  height: var(--header-height);
+  padding: 0 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.part-aux-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-muted);
+  cursor: pointer;
+}
+
+.part-aux-close:hover {
+  background: var(--color-surface-active);
+  color: var(--color-fg-primary);
+}
+
+.part-aux-close:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}

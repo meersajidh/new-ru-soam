@@ -22,7 +22,7 @@
   flex-direction: row;
   align-items: stretch;
   flex-shrink: 0;
-  height: 32px;
+  height: var(--header-height);
   border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
   overflow-y: hidden;
@@ -63,6 +63,33 @@
 }
 
 .panel-tab:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+.panel-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: auto;
+  align-self: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.panel-close-btn:hover {
+  background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
+  color: var(--color-fg-primary);
+}
+
+.panel-close-btn:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: -2px;
 }

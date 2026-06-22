@@ -3,6 +3,7 @@ import type { ILayoutService } from '../layout/layout-service';
 import type { IThemeService } from '../theme/theme-service';
 import type { IStatusBarService } from '../statusbar/statusbar-service';
 import type { IFontService } from '../font/font-service';
+import type { IFontScaleService } from '../font/font-scale-service';
 import type { ICommandService } from '../command/command-service';
 import type { IContextKeyService } from '../context-key/context-key-service';
 import type { IKeybindingService } from '../keybinding/keybinding-service';
@@ -31,6 +32,7 @@ export const LayoutServiceId = serviceId<ILayoutService>('workbench.layout');
 export const ThemeServiceId = serviceId<IThemeService>('workbench.theme');
 export const StatusBarServiceId = serviceId<IStatusBarService>('workbench.statusbar');
 export const FontServiceId = serviceId<IFontService>('workbench.font');
+export const FontScaleServiceId = serviceId<IFontScaleService>('workbench.fontScale');
 
 // Phase 3
 export const CommandServiceId = serviceId<ICommandService>('workbench.command');

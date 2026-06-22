@@ -173,4 +173,7 @@
 :root {
   font-size: var(--root-font-size, 16px);
   --glow-mul: 0.8;
+  /* Shared top-chrome header height (sidebar header, editor tab strip, aux/panel
+     headers) so their bottom borders align. rem-based → scales with text size. */
+  --header-height: 2.1875rem; /* 35px @ root 16 */
 }

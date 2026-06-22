@@ -8,7 +8,9 @@ import {
   useActivePanelViewId,
   useService,
 } from '../../platform/services/hooks';
-import { ContextKeyServiceId, ContributionServiceId } from '../../platform/services/ids';
+import { ContextKeyServiceId, ContributionServiceId, LayoutServiceId } from '../../platform/services/ids';
+import { SlotId } from '../../platform/layout/slots';
+import { Icon } from '../../platform/icons/Icon';
 import BundleViewIframe from './BundleViewIframe';
 import ResizeHandle from './ResizeHandle';
 
@@ -32,6 +34,7 @@ export default function Panel() {
   const panelViews = usePanelViews();
   const ctxSvc = useService(ContextKeyServiceId);
   const contributions = useService(ContributionServiceId);
+  const layout = useService(LayoutServiceId);
 
   // Reactive id read — useContextKey stores value in React state (compiler-safe).
   const activeId = (useContextKey('record.activeId') as string | undefined) ?? '';
@@ -112,6 +115,15 @@ export default function Panel() {
             {v.title}
           </button>
         ))}
+        <button
+          type="button"
+          className="panel-close-btn"
+          title="Hide panel"
+          aria-label="Hide panel"
+          onClick={() => layout.setVisibility(SlotId.Panel, false)}
+        >
+          <Icon name="close" size={13} />
+        </button>
       </div>
       <div className="panel-view-host">
         {resource && activeView && (

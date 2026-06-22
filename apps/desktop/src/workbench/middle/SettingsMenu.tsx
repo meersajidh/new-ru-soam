@@ -15,6 +15,7 @@ import { useContextKey, useService } from '../../platform/services/hooks';
 import {
   ActivityBarDensityServiceId,
   CloudSessionServiceId,
+  FontScaleServiceId,
   FontServiceId,
   ScheduleRefreshSettingsServiceId,
   ThemeServiceId,
@@ -25,6 +26,7 @@ import type { ThemeDescriptor } from '../../platform/theme/tokens';
 import type { Density } from '../../platform/activity-bar/density-service';
 import type { TelemetryMode } from '../../platform/telemetry/telemetry-mode-service';
 import type { RefreshSettings } from '../../platform/view-mode/schedule-refresh-settings';
+import type { FontScale } from '../../platform/font/font-scale-service';
 import { usePopover } from '../../platform/popover/use-popover';
 import Popover from '../../platform/popover/Popover';
 import DeleteWorkspaceDialog from './DeleteWorkspaceDialog';
@@ -43,6 +45,7 @@ export default function SettingsMenu() {
   const telemetrySvc = useService(TelemetryModeServiceId);
   const cloudSessionSvc = useService(CloudSessionServiceId);
   const refreshSettingsSvc = useService(ScheduleRefreshSettingsServiceId);
+  const fontScaleSvc = useService(FontScaleServiceId);
 
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [panelView, setPanelView] = useState<PanelView>('root');
@@ -69,6 +72,7 @@ export default function SettingsMenu() {
   const [fontSets, setFontSets] = useState<FontSetDescriptor[]>(() => fontSvc.list());
   const [activeFont, setActiveFont] = useState<FontSetDescriptor>(() => fontSvc.getActive());
   const [density, setDensity] = useState<Density>(() => densitySvc.getDensity());
+  const [activeScale, setActiveScale] = useState<FontScale>(() => fontScaleSvc.getScale());
 
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -94,6 +98,7 @@ export default function SettingsMenu() {
     const offTelemetry = telemetrySvc.onChange(setTelemetryModeState);
     const offCloud = cloudSessionSvc.onChange(setCloudStatus);
     const offRefresh = refreshSettingsSvc.onDidChange(setRefreshSettingsState);
+    const offFontScale = fontScaleSvc.onDidChange(setActiveScale);
     return () => {
       offTheme();
       offDark();
@@ -102,8 +107,9 @@ export default function SettingsMenu() {
       offTelemetry();
       offCloud();
       offRefresh();
+      offFontScale();
     };
-  }, [themeSvc, fontSvc, densitySvc, telemetrySvc, cloudSessionSvc, refreshSettingsSvc]);
+  }, [themeSvc, fontSvc, densitySvc, telemetrySvc, cloudSessionSvc, refreshSettingsSvc, fontScaleSvc]);
 
   // Reset to root view each time popover opens.
   const prevOpen = useRef(false);
@@ -287,6 +293,29 @@ export default function SettingsMenu() {
                       aria-checked={density === d}
                     >
                       {d.charAt(0).toUpperCase() + d.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Text size */}
+                <div className="settings-subsection-label">Text size</div>
+                <div className="settings-mode-row">
+                  {(
+                    [
+                      { value: 1 as const, label: 'Default' },
+                      { value: 1.1 as const, label: 'Large' },
+                      { value: 1.2 as const, label: 'X-Large' },
+                    ] as const
+                  ).map(({ value, label }) => (
+                    <button
+                      key={value}
+                      className="settings-mode-btn"
+                      data-active={activeScale === value || undefined}
+                      onClick={() => fontScaleSvc.setScale(value)}
+                      role="menuitemradio"
+                      aria-checked={activeScale === value}
+                    >
+                      {label}
                     </button>
                   ))}
                 </div>

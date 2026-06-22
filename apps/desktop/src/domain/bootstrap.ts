@@ -14,6 +14,7 @@ import type { ServiceRegistry } from '../platform/services/registry';
 import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId, CommandServiceId, ScheduleViewStateServiceId, ActiveEventServiceId } from '../platform/services/ids';
 import { PRODUCT_TAGLINE, DELETE_WARNING_ADDENDUM } from './product';
 import { showClientErase } from './clientEraseState';
+import type { PlatformEvent, StoreChangedPayload } from '../../electron/shared/ipc-protocol';
 
 export function domainBootstrap(registry: ServiceRegistry): void {
   const productConfig = registry.get(ProductConfigServiceId);
@@ -401,4 +402,30 @@ export function domainBootstrap(registry: ServiceRegistry): void {
   editor.onDidChange(syncContext);
   // Sync once immediately in case editor already has a focused tab.
   syncContext();
+
+  // ── Roster / identity → Schedule reclassification ─────────────────────────
+  // When the Practice roster or identity tables change (new/edited client,
+  // alias enrichment, suppression), resolveParticipant outcomes may differ.
+  // Bumping calRev signals schedule.html to re-run runClassifyPass against
+  // the local event cache (no Google call). The view already handles this
+  // branch — see applyScheduleViewState's calRev-changed else-branch.
+  // Disposable lives for the whole session (same pattern as subscriptions above).
+  function isStoreChangedPayload(p: unknown): p is StoreChangedPayload {
+    if (!p || typeof p !== 'object') return false;
+    const o = p as Record<string, unknown>;
+    return typeof o['table'] === 'string' && typeof o['op'] === 'string';
+  }
+
+  const ROSTER_IDENTITY_TABLES = new Set([
+    'patients',               // new / edited client → new resolveParticipant match
+    'patient_identity_alias', // alias enrichment → new match
+    'participant_suppression', // suppression → excluded from classify
+  ]);
+
+  window.soam.events.on((event: PlatformEvent) => {
+    if (event.name !== 'store.changed') return;
+    if (!isStoreChangedPayload(event.payload)) return;
+    if (!ROSTER_IDENTITY_TABLES.has(event.payload.table)) return;
+    registry.get(ScheduleViewStateServiceId).bumpCalRev();
+  });
 }

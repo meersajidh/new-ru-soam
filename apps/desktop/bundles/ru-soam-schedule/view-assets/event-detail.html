@@ -46,10 +46,10 @@
         --transition: 130ms ease;
 
         /* Classification colors */
-        --cls-client-color:      #5ac85a;
-        --cls-probable-color:    #f4a623;
-        --cls-not-color:         #636366;
-        --cls-personal-color:    #5ac0de;
+        --cls-client-color:       #5ac85a;
+        --cls-probable-color:     #f4a623;
+        --cls-not-color:          #636366;
+        --cls-personal-color:     #5ac0de;
         --cls-unclassified-color: #636366;
       }
 
@@ -57,7 +57,7 @@
         height: 100%;
         overflow: hidden;
         font-family: var(--font-sans);
-        font-size: 13px;
+        font-size: 14px;
         line-height: 1.5;
         background: var(--color-surface-panel);
         color: var(--color-fg-primary);
@@ -76,14 +76,14 @@
         background: var(--color-surface-panel);
         z-index: 100;
         gap: 8px;
-        font-size: 11px;
+        font-size: 12px;
         color: var(--color-fg-muted);
       }
       #bridge-wait.hidden { display: none; }
       .spinner {
         display: inline-block;
-        width: 11px;
-        height: 11px;
+        width: 12px;
+        height: 12px;
         border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
         border-top-color: currentColor;
         border-radius: 50%;
@@ -106,9 +106,9 @@
         align-items: center;
         justify-content: center;
         flex-direction: column;
-        gap: 6px;
+        gap: 8px;
         color: var(--color-fg-muted);
-        font-size: 12px;
+        font-size: 13px;
         padding: 24px;
         text-align: center;
       }
@@ -124,76 +124,75 @@
       }
       #detail-scroll.hidden { display: none; }
 
-      /* ── Header ──────────────────────────────────────────────────── */
+      /* ── HEADER ──────────────────────────────────────────────────── */
       .det-header {
-        padding: 14px 14px 10px;
-        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+        padding: 18px 16px 14px;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
         display: flex;
         flex-direction: column;
         gap: 4px;
       }
-      .det-header-top {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-      }
       .det-title {
-        flex: 1;
-        min-width: 0;
-        font-size: 13px;
-        font-weight: 600;
-        line-height: 1.35;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.3;
         color: var(--color-fg-primary);
         word-break: break-word;
       }
       .det-meta {
-        font-size: 11px;
+        font-size: 12px;
         color: var(--color-fg-muted);
         line-height: 1.4;
       }
 
-      /* ── Classification banner ───────────────────────────────────── */
-      .det-cls-banner {
+      /* ── STATUS BAR (replaces det-cls-banner) ───────────────────── */
+      .det-status-bar {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 14px;
-        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
-        font-size: 12px;
+        padding: 10px 16px;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
       }
       .det-cls-dot {
-        width: 7px;
-        height: 7px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
         flex-shrink: 0;
       }
-      .det-cls-label {
+      .det-cls-human {
         flex: 1;
         min-width: 0;
+        font-size: 13px;
         font-weight: 500;
         color: var(--color-fg-secondary);
       }
       .det-cls-badge {
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 600;
         letter-spacing: 0.05em;
         border-radius: 3px;
-        padding: 1px 5px;
+        padding: 2px 6px;
         flex-shrink: 0;
         border: 1px solid transparent;
       }
 
       /* Classification color variants */
-      .cls-client    { --cls-color: var(--cls-client-color); }
-      .cls-probable  { --cls-color: var(--cls-probable-color); }
-      .cls-not       { --cls-color: var(--cls-not-color); }
-      .cls-personal  { --cls-color: var(--cls-personal-color); }
+      .cls-client       { --cls-color: var(--cls-client-color); }
+      .cls-probable     { --cls-color: var(--cls-probable-color); }
+      .cls-not          { --cls-color: var(--cls-not-color); }
+      .cls-personal     { --cls-color: var(--cls-personal-color); }
       .cls-unclassified { --cls-color: var(--cls-unclassified-color); }
 
-      .det-cls-dot.cls-client      { background: var(--cls-client-color); }
-      .det-cls-dot.cls-probable    { background: var(--cls-probable-color); }
-      .det-cls-dot.cls-not         { background: var(--cls-not-color); }
-      .det-cls-dot.cls-personal    { background: var(--cls-personal-color); }
+      .det-status-bar.cls-client      { background: color-mix(in srgb, var(--cls-client-color) 10%, transparent); }
+      .det-status-bar.cls-probable    { background: color-mix(in srgb, var(--cls-probable-color) 10%, transparent); }
+      .det-status-bar.cls-not         { background: color-mix(in srgb, var(--cls-not-color) 8%, transparent); }
+      .det-status-bar.cls-personal    { background: color-mix(in srgb, var(--cls-personal-color) 8%, transparent); }
+      .det-status-bar.cls-unclassified { background: transparent; }
+
+      .det-cls-dot.cls-client       { background: var(--cls-client-color); }
+      .det-cls-dot.cls-probable     { background: var(--cls-probable-color); }
+      .det-cls-dot.cls-not          { background: var(--cls-not-color); }
+      .det-cls-dot.cls-personal     { background: var(--cls-personal-color); }
       .det-cls-dot.cls-unclassified { background: var(--cls-unclassified-color); }
 
       .det-cls-badge.cls-client {
@@ -223,234 +222,114 @@
         background: transparent;
       }
 
-      /* ── Detail body ─────────────────────────────────────────────── */
-      .det-body {
-        padding: 10px 14px 16px;
+      /* ── SECTION layout ──────────────────────────────────────────── */
+      .det-section {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        padding: 16px 16px 4px;
+        gap: 10px;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 35%, transparent);
       }
+      .det-section:last-child { border-bottom: none; }
 
-      .det-row {
+      .det-section-hdr {
         display: flex;
-        align-items: flex-start;
-        gap: 9px;
-        font-size: 12px;
-        min-height: 20px;
-      }
-      .det-row-icon {
-        color: var(--color-fg-muted);
-        flex-shrink: 0;
-        margin-top: 1px;
-        display: inline-flex;
         align-items: center;
-        min-width: 14px;
-      }
-      .det-row-text {
-        color: var(--color-fg-secondary);
-        line-height: 1.4;
-        flex: 1;
-        min-width: 0;
-        word-break: break-word;
-      }
-      .det-row-text strong {
-        color: var(--color-fg-primary);
-        font-weight: 500;
-      }
-      .det-duration-badge {
-        display: inline-block;
+        gap: 7px;
         font-size: 11px;
-        font-weight: 500;
-        color: var(--color-fg-secondary);
-        background: var(--color-surface-base);
-        border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-        border-radius: 3px;
-        padding: 1px 5px;
-        margin-left: 6px;
-      }
-
-      /* ── Join row ────────────────────────────────────────────────── */
-      .det-join-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--color-fg-secondary);
-        margin-bottom: 2px;
-      }
-      .det-join-url {
-        font-family: var(--font-mono);
-        font-size: 11px;
-        line-height: 1.45;
-        color: var(--color-accent);
-        user-select: text;
-        cursor: text;
-        word-break: break-all;
-      }
-      .det-copy-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        border-radius: var(--radius-sm);
-        color: var(--color-fg-muted);
-        flex-shrink: 0;
-        transition: background var(--transition), color var(--transition);
-        cursor: pointer;
-        border: none;
-        background: none;
-        font: inherit;
-        margin-left: 4px;
-        vertical-align: middle;
-      }
-      .det-copy-btn:hover { background: var(--color-surface-active); color: var(--color-fg-primary); }
-      .det-copy-btn:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
-      .det-copy-btn.copied { color: var(--color-success); }
-      .det-copy-confirm {
-        font-size: 10px;
-        color: var(--color-success);
-        margin-left: 4px;
-        font-weight: 600;
-        opacity: 0;
-        transition: opacity 0.15s;
-      }
-      .det-copy-confirm.show { opacity: 1; }
-
-      /* ── Divider ─────────────────────────────────────────────────── */
-      .det-divider {
-        height: 1px;
-        background: color-mix(in srgb, var(--color-border) 50%, transparent);
-        margin: 4px 0 2px;
-      }
-
-      /* ── Section label ───────────────────────────────────────────── */
-      .det-section-label {
-        font-size: 10px;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.07em;
         color: var(--color-fg-muted);
-        margin-bottom: 4px;
-        padding-left: 23px;
+        padding-bottom: 2px;
       }
-
-      /* ── Participants ─────────────────────────────────────────────── */
-      .det-participants {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-      .det-participant {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 11.5px;
-      }
-      .det-avatar {
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface-base) 80%);
-        border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
-        color: var(--color-accent);
-        font-size: 9px;
-        font-weight: 700;
+      .det-section-hdr-icon {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
         flex-shrink: 0;
-        text-transform: uppercase;
-        letter-spacing: -0.01em;
-      }
-      .det-participant-name {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: var(--color-fg-secondary);
-      }
-      .det-participant-role {
-        font-size: 10px;
-        font-weight: 500;
         color: var(--color-fg-muted);
-        background: color-mix(in srgb, var(--color-surface-base) 80%, transparent);
-        border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
-        border-radius: 3px;
-        padding: 0 4px;
-        flex-shrink: 0;
-        line-height: 1.6;
       }
 
-      /* ── Source block ─────────────────────────────────────────────── */
-      .det-source {
-        margin: 4px 14px 16px;
-        background: color-mix(in srgb, var(--color-surface-base) 60%, transparent);
-        border: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
-        border-radius: var(--radius-md);
-        padding: 10px 12px;
+      /* ── KV rows (label → value) ─────────────────────────────────── */
+      .det-kv {
         display: flex;
         flex-direction: column;
         gap: 6px;
+        padding-bottom: 8px;
       }
-      .det-source-row {
+      .det-kv-row {
         display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 11.5px;
+        align-items: baseline;
+        gap: 12px;
+        font-size: 13px;
+        min-height: 20px;
       }
-      .det-source-cal-dot {
+      .det-kv-label {
+        width: 72px;
+        flex-shrink: 0;
+        color: var(--color-fg-muted);
+        font-size: 12px;
+        text-align: right;
+      }
+      .det-kv-value {
+        flex: 1;
+        min-width: 0;
+        color: var(--color-fg-primary);
+        font-weight: 500;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+
+      /* Calendar dot inline in KV value */
+      .det-cal-dot-inline {
+        display: inline-block;
         width: 8px;
         height: 8px;
         border-radius: 50%;
+        margin-right: 5px;
+        vertical-align: middle;
         flex-shrink: 0;
       }
-      .det-source-cal-name {
-        color: var(--color-fg-secondary);
-        font-weight: 500;
-      }
-      .det-raw-title-label {
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: var(--color-fg-muted);
-      }
-      .det-raw-title {
-        font-size: 12px;
-        color: var(--color-fg-secondary);
-        word-break: break-word;
+
+      /* Raw-title italic style */
+      .det-raw-title-value {
         font-style: italic;
-      }
-      .det-honesty {
-        font-size: 10.5px;
-        color: var(--color-fg-muted);
-        line-height: 1.5;
-        border-top: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
-        padding-top: 6px;
+        font-weight: 400;
+        color: var(--color-fg-secondary);
       }
 
-      /* ── Calendar badge ──────────────────────────────────────────── */
-      .det-cal-badge {
+      /* ── Honesty note ────────────────────────────────────────────── */
+      .det-honesty {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
         font-size: 11px;
         color: var(--color-fg-muted);
-        border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-        border-radius: 3px;
-        padding: 1px 5px;
+        line-height: 1.5;
+        padding-bottom: 8px;
+      }
+      .det-honesty-icon {
+        flex-shrink: 0;
+        margin-top: 1px;
+        color: var(--color-fg-muted);
+        opacity: 0.7;
       }
 
-      /* ── Join button ─────────────────────────────────────────────── */
+      /* ── Join button (full-width) ────────────────────────────────── */
       .det-join-btn {
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        gap: 4px;
-        padding: 4px 10px;
-        border-radius: var(--radius-sm);
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+        padding: 9px 14px;
+        border-radius: var(--radius-md);
         border: 1px solid var(--color-accent);
         background: var(--color-accent);
         color: var(--color-accent-fg);
         font-family: var(--font-sans);
-        font-size: 11.5px;
-        font-weight: 600;
+        font-size: 13px;
+        font-weight: 700;
         cursor: pointer;
         transition: background var(--transition), border-color var(--transition);
         user-select: none;
@@ -463,19 +342,117 @@
       }
       .det-join-btn:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
 
-      /* ── Client-link action block ────────────────────────────────── */
-      .det-link-block {
-        margin: 2px 14px 4px;
-        background: color-mix(in srgb, var(--color-surface-elevated) 60%, transparent);
-        border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
-        border-radius: var(--radius-md);
-        padding: 10px 12px;
+      /* ── Meeting link URL + copy ─────────────────────────────────── */
+      .det-join-url-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .det-join-url {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        line-height: 1.45;
+        color: var(--color-accent);
+        user-select: text;
+        cursor: text;
+        word-break: break-all;
+        flex: 1;
+        min-width: 0;
+      }
+      .det-copy-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: var(--radius-sm);
+        color: var(--color-fg-muted);
+        flex-shrink: 0;
+        transition: background var(--transition), color var(--transition);
+        cursor: pointer;
+        border: none;
+        background: none;
+        font: inherit;
+        vertical-align: middle;
+      }
+      .det-copy-btn:hover { background: var(--color-surface-active); color: var(--color-fg-primary); }
+      .det-copy-btn:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
+      .det-copy-btn.copied { color: var(--color-success); }
+      .det-copy-confirm {
+        font-size: 11px;
+        color: var(--color-success);
+        font-weight: 600;
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+      .det-copy-confirm.show { opacity: 1; }
+
+      /* ── Participants ─────────────────────────────────────────────── */
+      .det-participants {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
+        padding-bottom: 8px;
+      }
+      .det-participant {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .det-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface-base) 80%);
+        border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+        color: var(--color-accent);
+        font-size: 10px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        text-transform: uppercase;
+        letter-spacing: -0.01em;
+        margin-top: 2px;
+      }
+      .det-participant-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+        flex: 1;
+      }
+      .det-participant-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 1.4;
+      }
+      .det-participant-role-line {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        line-height: 1.3;
+      }
+      .det-participants-more {
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        padding-left: 38px;
+      }
+
+      /* ── Client-link action block ────────────────────────────────── */
+      .det-link-block {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding-bottom: 8px;
       }
       .det-link-desc {
-        font-size: 11.5px;
+        font-size: 13px;
         color: var(--color-fg-secondary);
         line-height: 1.5;
       }
@@ -486,29 +463,60 @@
       .det-link-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 5px;
+        gap: 6px;
         align-items: center;
       }
       .det-link-inline-msg {
-        font-size: 11px;
+        font-size: 12px;
         color: var(--color-fg-muted);
         font-style: italic;
       }
       .det-link-inline-msg.err { color: var(--color-error); font-style: normal; font-weight: 500; }
       .det-link-inline-msg.ok  { color: var(--color-success); font-style: normal; font-weight: 500; }
 
-      /* Action buttons inside link block */
+      /* Linked client card inside link block */
+      .det-linked-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: var(--radius-md);
+        background: color-mix(in srgb, var(--color-surface-elevated) 70%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+      }
+      .det-linked-card-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .det-linked-card-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .det-linked-card-sub {
+        font-size: 11px;
+        color: var(--color-success);
+        font-weight: 500;
+      }
+
+      /* Action buttons */
       .det-act-btn {
         display: inline-flex;
         align-items: center;
-        gap: 3px;
-        padding: 3px 9px;
+        gap: 4px;
+        padding: 5px 11px;
         border-radius: var(--radius-sm);
         border: 1px solid var(--color-border);
         background: transparent;
         color: var(--color-fg-secondary);
         font-family: var(--font-sans);
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 500;
         cursor: pointer;
         transition: background var(--transition), color var(--transition);
@@ -522,11 +530,26 @@
       .det-act-btn:disabled { opacity: 0.4; cursor: not-allowed; }
       .det-act-btn.primary {
         border-color: var(--color-accent);
-        background: var(--color-accent);
-        color: var(--color-accent-fg);
+        background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+        color: var(--color-accent);
         font-weight: 600;
       }
       .det-act-btn.primary:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+        border-color: var(--color-accent);
+      }
+      .det-act-btn.primary-solid {
+        width: 100%;
+        justify-content: center;
+        border-color: var(--color-accent);
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+        font-weight: 700;
+        font-size: 13px;
+        padding: 9px 14px;
+        border-radius: var(--radius-md);
+      }
+      .det-act-btn.primary-solid:hover:not(:disabled) {
         background: color-mix(in srgb, var(--color-accent) 85%, white);
         border-color: color-mix(in srgb, var(--color-accent) 85%, white);
       }
@@ -540,13 +563,13 @@
       .det-picker-wrap.open { display: flex; }
       .det-picker-search {
         width: 100%;
-        padding: 4px 8px;
+        padding: 5px 9px;
         border-radius: var(--radius-sm);
         border: 1px solid var(--color-border);
         background: var(--color-surface-base);
         color: var(--color-fg-primary);
         font-family: var(--font-sans);
-        font-size: 11.5px;
+        font-size: 12px;
         outline: none;
         transition: border-color var(--transition);
       }
@@ -565,14 +588,14 @@
       .det-picker-list:empty::after {
         content: 'No clients match';
         display: block;
-        padding: 7px 10px;
-        font-size: 11px;
+        padding: 8px 10px;
+        font-size: 12px;
         color: var(--color-fg-muted);
         font-style: italic;
       }
       .det-picker-item {
-        padding: 5px 10px;
-        font-size: 12px;
+        padding: 6px 10px;
+        font-size: 13px;
         color: var(--color-fg-secondary);
         cursor: pointer;
         transition: background var(--transition), color var(--transition);
@@ -591,17 +614,17 @@
       .det-intake-form {
         display: none;
         flex-direction: column;
-        gap: 5px;
+        gap: 6px;
       }
       .det-intake-form.open { display: flex; }
       .det-intake-input {
-        padding: 4px 8px;
+        padding: 5px 9px;
         border-radius: var(--radius-sm);
         border: 1px solid var(--color-border);
         background: var(--color-surface-base);
         color: var(--color-fg-primary);
         font-family: var(--font-sans);
-        font-size: 11.5px;
+        font-size: 12px;
         outline: none;
         transition: border-color var(--transition);
       }
@@ -635,6 +658,7 @@
         'check':        'check',
         'layers':       'layers',
         'link':         'link',
+        'warning':      'warning',
       };
       function icon(name, size) {
         var n = ICON_MAP[name] || name;
@@ -888,8 +912,9 @@
         // For a linked event (client_session + matchClientId present), attempts to
         // resolve the client_meeting id and open the record tab directly.
         // Falls back to the activity-switch if lookup fails or no meeting found.
-        function makeOpenSessionsBtn(label) {
-          var btn = el('button', 'det-act-btn');
+        function makeOpenSessionsBtn(label, solidStyle) {
+          var btnCls = solidStyle ? 'det-act-btn primary-solid' : 'det-act-btn';
+          var btn = el('button', btnCls);
           btn.type = 'button';
           btn.textContent = label || 'Open in Sessions';
           btn.addEventListener('click', function () {
@@ -954,18 +979,23 @@
           aliasP.then(function () {
             return _sessionsCmd ? _sessionsCmd.call('linkProviderEvent', evObj, clientId) : Promise.reject(new Error('sessions cap unavailable'));
           }).then(function () {
-            // Linked — show success state
+            // Linked — show success state (card + full-width "Open in Sessions")
             block.innerHTML = '';
-            var successDesc = el('div', 'det-link-desc');
-            var strong = el('strong', '');
-            strong.textContent = clientName || clientId;
-            successDesc.appendChild(strong);
-            var tail = document.createTextNode(' · Linked from roster ✓');
-            successDesc.appendChild(tail);
-            block.appendChild(successDesc);
-            var successActs = el('div', 'det-link-actions');
-            successActs.appendChild(makeOpenSessionsBtn('Open in Sessions'));
-            block.appendChild(successActs);
+
+            var card = el('div', 'det-linked-card');
+            var cardAvatar = el('div', 'det-avatar');
+            var cardName = clientName || clientId;
+            cardAvatar.textContent = String(cardName).split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('') || '?';
+            card.appendChild(cardAvatar);
+            var cardInfo = el('div', 'det-linked-card-info');
+            var cardNameEl = txt('div', 'det-linked-card-name', cardName);
+            var cardSub = txt('div', 'det-linked-card-sub', 'Linked from roster ✓');
+            cardInfo.appendChild(cardNameEl);
+            cardInfo.appendChild(cardSub);
+            card.appendChild(cardInfo);
+            block.appendChild(card);
+
+            block.appendChild(makeOpenSessionsBtn('Open in Sessions', true));
             // Update header title to roster name if we have one
             if (clientName && titleEl) titleEl.textContent = clientName;
             // Bump calRev so schedule.html re-classifies this event immediately.
@@ -983,29 +1013,40 @@
         // ── State: CLIENT (linked) ──
         if (cls === 'client_session' && matchClientId) {
           var clientName = null;
-          // Lookup will fill name; start with placeholder
-          var strong = el('strong', '');
-          strong.textContent = '…';
-          var tail1 = document.createTextNode(' · Linked from roster ✓');
-          desc.appendChild(strong);
-          desc.appendChild(tail1);
-          block.appendChild(desc);
-          acts.appendChild(makeOpenSessionsBtn('Open in Sessions'));
-          block.appendChild(acts);
+          // Build linked card with placeholder name
+          var card = el('div', 'det-linked-card');
+          var cardAvatar = el('div', 'det-avatar');
+          cardAvatar.textContent = '?';
+          card.appendChild(cardAvatar);
+          var cardInfo = el('div', 'det-linked-card-info');
+          var cardNameEl = txt('div', 'det-linked-card-name', '…');
+          var cardSub = txt('div', 'det-linked-card-sub', 'Linked from roster ✓');
+          cardInfo.appendChild(cardNameEl);
+          cardInfo.appendChild(cardSub);
+          card.appendChild(cardInfo);
+          block.appendChild(card);
+
+          block.appendChild(makeOpenSessionsBtn('Open in Sessions', true));
+
           // Async name lookup
           if (_recordQuery && matchClientId) {
-            (function (token, clientId, strongEl, titleElRef) {
+            (function (token, clientId, nameEl, avatarEl, titleElRef) {
               _recordQuery.call('get', clientId).then(function (rec) {
                 if (_renderToken !== token) return; // stale
                 var name = rec && rec.displayName ? rec.displayName : null;
                 if (name) {
-                  strongEl.textContent = name;
+                  nameEl.textContent = name;
+                  avatarEl.textContent = String(name).split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('') || '?';
                   if (titleElRef) titleElRef.textContent = name;
                 } else {
-                  strongEl.textContent = clientId;
+                  nameEl.textContent = clientId;
+                  avatarEl.textContent = '?';
                 }
-              }).catch(function () { strongEl.textContent = clientId; });
-            })(_renderToken, matchClientId, strong, titleEl);
+              }).catch(function () {
+                nameEl.textContent = clientId;
+                avatarEl.textContent = '?';
+              });
+            })(_renderToken, matchClientId, cardNameEl, cardAvatar, titleEl);
           }
 
         // ── State: ambiguous candidates (unclassified + _match.candidates present) ──
@@ -1133,15 +1174,18 @@
               })
               .then(function (result) {
                 block.innerHTML = '';
-                var successDesc = el('div', 'det-link-desc');
-                var strong = el('strong', '');
-                strong.textContent = result.name;
-                successDesc.appendChild(strong);
-                successDesc.appendChild(document.createTextNode(' · Intake scheduled ✓'));
-                block.appendChild(successDesc);
-                var successActs = el('div', 'det-link-actions');
-                successActs.appendChild(makeOpenSessionsBtn('Open in Sessions'));
-                block.appendChild(successActs);
+
+                var card2 = el('div', 'det-linked-card');
+                var av2 = el('div', 'det-avatar');
+                av2.textContent = String(result.name).split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('') || '?';
+                card2.appendChild(av2);
+                var info2 = el('div', 'det-linked-card-info');
+                info2.appendChild(txt('div', 'det-linked-card-name', result.name));
+                info2.appendChild(txt('div', 'det-linked-card-sub', 'Intake scheduled ✓'));
+                card2.appendChild(info2);
+                block.appendChild(card2);
+
+                block.appendChild(makeOpenSessionsBtn('Open in Sessions', true));
                 if (titleEl) titleEl.textContent = result.name;
                 // Bump calRev so schedule.html re-classifies this event immediately.
                 bumpCalRev();
@@ -1158,7 +1202,7 @@
           intakeForm.appendChild(nameInput);
           intakeForm.appendChild(createBtn);
 
-          // Picker for "Link to existing…"
+          // Picker for "Link to existing..."
           var picker4 = buildPickerWrap(function (cid, cname) {
             picker4._close();
             doLink(cid, cname);
@@ -1228,6 +1272,26 @@
         return 'Join meeting';
       }
 
+      /* ── Section builder helper ──────────────────────────────────── */
+      function makeSection(iconName, labelText) {
+        var sec = el('div', 'det-section');
+        var hdr = el('div', 'det-section-hdr');
+        var hdrIcon = el('span', 'det-section-hdr-icon');
+        hdrIcon.innerHTML = icon(iconName, 12);
+        hdr.appendChild(hdrIcon);
+        hdr.appendChild(document.createTextNode(labelText));
+        sec.appendChild(hdr);
+        return sec;
+      }
+
+      /* ── KV row builder helper ───────────────────────────────────── */
+      function makeKvRow(labelText, valueEl) {
+        var row = el('div', 'det-kv-row');
+        row.appendChild(txt('div', 'det-kv-label', labelText));
+        row.appendChild(valueEl);
+        return row;
+      }
+
       /* ── Render ───────────────────────────────────────────────────── */
       function renderDetail(ev) {
         elScroll.innerHTML = '';
@@ -1241,99 +1305,66 @@
         elEmpty.classList.add('hidden');
         elScroll.classList.remove('hidden');
 
-        var cls = (ev.classification) || 'unclassified';
         var clsCls = clsClass(ev);
 
-        /* ── Header ── */
+        /* ── 1. HEADER ── */
         var hdr = el('div', 'det-header');
-        var hdrTop = el('div', 'det-header-top');
-
-        /* Title placeholder — replaced by roster identity for linked/probable via async lookup */
         var titleStr = (typeof ev.title === 'string' && ev.title.trim()) ? ev.title : '(No title)';
         var titleEl = txt('div', 'det-title', titleStr);
-        hdrTop.appendChild(titleEl);
-        hdr.appendChild(hdrTop);
+        hdr.appendChild(titleEl);
 
-        /* Date + start time meta line */
         var dateStr = ev.start ? fmtDateLong(ev.start) : '';
         var timeStr = ev.allDay ? 'All day' : fmtTime(ev.start);
         if (dateStr || timeStr) {
           var metaStr = dateStr ? dateStr + (timeStr ? '  ·  ' + timeStr : '') : timeStr;
-          var metaEl = txt('div', 'det-meta', metaStr);
-          hdr.appendChild(metaEl);
+          hdr.appendChild(txt('div', 'det-meta', metaStr));
         }
         elScroll.appendChild(hdr);
 
-        /* ── Classification banner ── */
-        var banner = el('div', 'det-cls-banner');
+        /* ── 2. STATUS BAR ── */
+        var statusBar = el('div', 'det-status-bar ' + clsCls);
         var dot = el('div', 'det-cls-dot ' + clsCls);
-        var clsLbl = txt('div', 'det-cls-label', clsHuman(ev));
-        var badge = txt('div', 'det-cls-badge ' + clsCls, clsLabel(ev));
-        banner.appendChild(dot);
-        banner.appendChild(clsLbl);
-        banner.appendChild(badge);
-        elScroll.appendChild(banner);
+        statusBar.appendChild(dot);
+        statusBar.appendChild(txt('div', 'det-cls-human', clsHuman(ev)));
+        statusBar.appendChild(txt('div', 'det-cls-badge ' + clsCls, clsLabel(ev)));
+        elScroll.appendChild(statusBar);
 
-        /* ── Detail body ── */
-        var body = el('div', 'det-body');
+        /* ── 3. TIME section ── */
+        var timeSec = makeSection('clock', 'Time');
+        var kvTime = el('div', 'det-kv');
 
-        /* Time row */
-        var timeRow = el('div', 'det-row');
-        var timeIco = el('span', 'det-row-icon');
-        timeIco.innerHTML = icon('clock', 13);
-        var timeTxt = el('span', 'det-row-text');
         if (ev.allDay) {
-          timeTxt.textContent = 'All day';
+          var allDayVal = txt('div', 'det-kv-value', 'All day');
+          kvTime.appendChild(makeKvRow('When', allDayVal));
         } else {
-          /* Use innerHTML for bold time range (no user data, safe format strings). */
           var t1 = fmtTime(ev.start);
           var t2 = ev.end ? fmtTime(ev.end) : '';
-          timeTxt.innerHTML = '<strong>' + t1 + (t2 ? ' – ' + t2 : '') + '</strong>';
+          /* Safe innerHTML — fmtTime returns only formatted time strings, no user data */
+          var whenVal = el('div', 'det-kv-value');
+          whenVal.innerHTML = '<strong>' + t1 + (t2 ? ' – ' + t2 : '') + '</strong>';
+          kvTime.appendChild(makeKvRow('When', whenVal));
+
           if (ev.start && ev.end && String(ev.start).length > 10 && String(ev.end).length > 10) {
             var startMs = new Date(ev.start).getTime();
             var endMs   = new Date(ev.end).getTime();
             var durMin  = Math.round((endMs - startMs) / 60000);
             if (durMin > 0) {
-              var durBadge = txt('span', 'det-duration-badge', fmtDuration(durMin));
-              timeTxt.appendChild(durBadge);
+              kvTime.appendChild(makeKvRow('Duration', txt('div', 'det-kv-value', fmtDuration(durMin))));
             }
           }
         }
-        timeRow.appendChild(timeIco);
-        timeRow.appendChild(timeTxt);
-        body.appendChild(timeRow);
 
-        /* Calendar row */
-        if (ev.calendarName) {
-          var calRow = el('div', 'det-row');
-          var calIco = el('span', 'det-row-icon');
-          calIco.innerHTML = icon('layers', 13);
-          var calTxt = el('div', 'det-row-text');
-          calTxt.appendChild(txt('span', 'det-cal-badge', ev.calendarName));
-          calRow.appendChild(calIco);
-          calRow.appendChild(calTxt);
-          body.appendChild(calRow);
-        }
-
-        /* Location row */
         if (ev.location && typeof ev.location === 'string') {
-          var locRow = el('div', 'det-row');
-          var locIco = el('span', 'det-row-icon');
-          locIco.innerHTML = icon('location', 13);
-          var locTxt = txt('span', 'det-row-text', ev.location);
-          locRow.appendChild(locIco);
-          locRow.appendChild(locTxt);
-          body.appendChild(locRow);
+          kvTime.appendChild(makeKvRow('Location', txt('div', 'det-kv-value', ev.location)));
         }
 
-        /* Join row — Join button + URL + copy */
-        if (ev.meetingLink && typeof ev.meetingLink === 'string') {
-          var joinRow = el('div', 'det-row');
-          var joinIco = el('span', 'det-row-icon');
-          joinIco.innerHTML = icon('globe', 13);
-          var joinTxt = el('div', 'det-row-text');
+        timeSec.appendChild(kvTime);
+        elScroll.appendChild(timeSec);
 
-          /* Join button — primary action, opens via openExternal */
+        /* ── 4. ONLINE MEETING section (only when meetingLink present) ── */
+        if (ev.meetingLink && typeof ev.meetingLink === 'string') {
+          var meetSec = makeSection('globe', 'Online meeting');
+
           var joinBtn = el('button', 'det-join-btn');
           joinBtn.type = 'button';
           joinBtn.textContent = joinLabel(ev.meetingLink);
@@ -1342,20 +1373,12 @@
               if (_soamView) _soamView.openExternal(url);
             });
           })(ev.meetingLink);
-          joinTxt.appendChild(joinBtn);
+          meetSec.appendChild(joinBtn);
 
-          joinTxt.appendChild(txt('div', 'det-join-label', 'Meeting link'));
+          /* URL + copy row */
+          var urlRow = el('div', 'det-join-url-row');
+          urlRow.appendChild(txt('span', 'det-join-url', ev.meetingLink));
 
-          var joinUrlRow = el('div', '');
-          joinUrlRow.style.display = 'flex';
-          joinUrlRow.style.alignItems = 'center';
-          joinUrlRow.style.gap = '4px';
-          joinUrlRow.style.flexWrap = 'wrap';
-
-          var joinUrlEl = txt('span', 'det-join-url', ev.meetingLink);
-          joinUrlRow.appendChild(joinUrlEl);
-
-          /* Copy button (execCommand fallback for opaque-origin sandbox) */
           var copyBtn = el('button', 'det-copy-btn');
           copyBtn.type = 'button';
           copyBtn.title = 'Copy link';
@@ -1387,113 +1410,143 @@
             });
           }(ev.meetingLink));
 
-          joinUrlRow.appendChild(copyBtn);
-          joinUrlRow.appendChild(copyConfirm);
-          joinTxt.appendChild(joinUrlRow);
-          joinRow.appendChild(joinIco);
-          joinRow.appendChild(joinTxt);
-          body.appendChild(joinRow);
+          urlRow.appendChild(copyBtn);
+          urlRow.appendChild(copyConfirm);
+          meetSec.appendChild(urlRow);
+
+          elScroll.appendChild(meetSec);
         }
 
-        elScroll.appendChild(body);
-
-        /* ── Participants ── */
+        /* ── 5. PARTICIPANTS section ── */
         var hasAttendees = ev.attendees && ev.attendees.length > 0;
         var hasOrganizerOnly = !hasAttendees && ev.organizer && (ev.organizer.email || ev.organizer.displayName);
+
         if (hasAttendees || hasOrganizerOnly) {
-          var participantsWrap = el('div', 'det-body');
-          participantsWrap.style.paddingTop = '0';
-
-          participantsWrap.appendChild(el('div', 'det-divider'));
-
-          var secLbl = el('div', 'det-section-label');
-          secLbl.innerHTML = icon('person', 11) + ' Participants';
-          participantsWrap.appendChild(secLbl);
-
+          var partSec = makeSection('person', 'Participants');
           var pList = el('div', 'det-participants');
+
+          /* Representative attendee email — used to identify the matched-client row
+           * for roster-name substitution. */
+          var _repAtt = pickRepEmail(ev);
+          var _repEmail = _repAtt ? (_repAtt.email ? _repAtt.email.toLowerCase() : null) : null;
 
           var orgEmail = ev.organizer && ev.organizer.email ? String(ev.organizer.email).toLowerCase() : null;
           function isOrganiser(a) {
             return a.organizer === true || (orgEmail && String(a.email || '').toLowerCase() === orgEmail);
           }
 
+          function buildParticipantRow(nameStr, emailStr, isSelf, isOrg, isMatchedClient, resolvedClientName) {
+            var displayName = resolvedClientName || nameStr;
+            var initials = String(displayName)
+              .split(/\s+/)
+              .slice(0, 2)
+              .map(function (w) { return w.charAt(0); })
+              .join('');
+
+            var pRow = el('div', 'det-participant');
+            var avatar = txt('div', 'det-avatar', initials || '?');
+            pRow.appendChild(avatar);
+
+            var info = el('div', 'det-participant-info');
+            var nameEl = txt('div', 'det-participant-name', displayName);
+            info.appendChild(nameEl);
+
+            var roleParts = [];
+            if (isSelf) roleParts.push('You');
+            if (isOrg)  roleParts.push('Organiser');
+            if (isMatchedClient) roleParts.push('Client');
+            var roleLine = txt('div', 'det-participant-role-line', roleParts.join(' · ') || '');
+            info.appendChild(roleLine);
+
+            pRow.appendChild(info);
+            return { row: pRow, nameEl: nameEl, avatarEl: avatar };
+          }
+
           if (hasAttendees) {
             var maxShown = 8;
             var attendees = ev.attendees;
             var shown = attendees.slice(0, maxShown);
+
+            var matchClientId2 = ev._match && ev._match.matchClientId ? ev._match.matchClientId : null;
+
             shown.forEach(function (a) {
               var nameStr = a.name || a.email || '?';
-              var initials = String(nameStr)
-                .split(/\s+/)
-                .slice(0, 2)
-                .map(function (w) { return w.charAt(0); })
-                .join('');
+              var aEmail = a.email ? a.email.toLowerCase() : null;
+              var isMatchedParticipant = (matchClientId2 && _repEmail && aEmail === _repEmail);
+              var built = buildParticipantRow(nameStr, a.email, !!a.self, isOrganiser(a), isMatchedParticipant, null);
+              pList.appendChild(built.row);
 
-              var pRow = el('div', 'det-participant');
-              var avatar = txt('div', 'det-avatar', initials || '?');
-              var pName  = txt('div', 'det-participant-name', a.name || a.email || 'Unknown');
-              pRow.appendChild(avatar);
-              pRow.appendChild(pName);
-              if (a.self) pRow.appendChild(txt('span', 'det-participant-role', 'you'));
-              if (isOrganiser(a)) pRow.appendChild(txt('span', 'det-participant-role', 'organiser'));
-              pList.appendChild(pRow);
+              /* Async roster name override for matched participant */
+              if (isMatchedParticipant && _recordQuery && matchClientId2) {
+                (function (token, cid, nameEl2, avatarEl2) {
+                  _recordQuery.call('get', cid).then(function (rec) {
+                    if (_renderToken !== token) return;
+                    var rname = rec && rec.displayName ? rec.displayName : null;
+                    if (rname) {
+                      nameEl2.textContent = rname;
+                      avatarEl2.textContent = String(rname).split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('') || '?';
+                    }
+                  }).catch(function () { /* best-effort */ });
+                })(_renderToken, matchClientId2, built.nameEl, built.avatarEl);
+              }
             });
+
             if (attendees.length > maxShown) {
-              var moreEl = txt('div', 'det-row-text', '+' + (attendees.length - maxShown) + ' more');
-              moreEl.style.fontSize = '11px';
-              moreEl.style.paddingLeft = '30px';
-              moreEl.style.color = 'var(--color-fg-muted)';
-              pList.appendChild(moreEl);
+              pList.appendChild(txt('div', 'det-participants-more', '+' + (attendees.length - maxShown) + ' more'));
             }
           } else {
             var org = ev.organizer;
             var orgName = org.displayName || org.email || '?';
-            var orgInitials = String(orgName).split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('');
-            var orgRow = el('div', 'det-participant');
-            orgRow.appendChild(txt('div', 'det-avatar', orgInitials || '?'));
-            orgRow.appendChild(txt('div', 'det-participant-name', orgName));
-            orgRow.appendChild(txt('span', 'det-participant-role', 'organiser'));
-            pList.appendChild(orgRow);
+            var built2 = buildParticipantRow(orgName, org.email, false, true, false, null);
+            pList.appendChild(built2.row);
           }
 
-          participantsWrap.appendChild(pList);
-          elScroll.appendChild(participantsWrap);
+          partSec.appendChild(pList);
+          elScroll.appendChild(partSec);
         }
 
-        /* ── Client-link action block (between participants and source) ── */
+        /* ── 6. CLIENT LINK section ── */
         if (_sessionsCmd || _recordCmd || _recordQuery) {
-          /* Only render block when caps are available (bridge resolved) */
+          var linkSec = makeSection('link', 'Client link');
           var linkBlock = buildLinkBlock(ev, titleEl);
-          elScroll.appendChild(linkBlock);
+          linkSec.appendChild(linkBlock);
+          elScroll.appendChild(linkSec);
         }
 
-        /* ── Source block ── */
-        var src = el('div', 'det-source');
+        /* ── 7. SOURCE section ── */
+        var srcSec = makeSection('layers', 'Source');
+        var kvSrc = el('div', 'det-kv');
 
-        var calSrcRow = el('div', 'det-source-row');
-        var calDot = el('div', 'det-source-cal-dot');
-        if (ev.calendarColor && typeof ev.calendarColor === 'string') {
-          calDot.style.background = ev.calendarColor;
-        } else {
-          calDot.style.background = 'var(--color-fg-muted)';
-          calDot.style.opacity = '0.5';
-        }
-        calSrcRow.appendChild(calDot);
         if (ev.calendarName && typeof ev.calendarName === 'string') {
-          calSrcRow.appendChild(txt('span', 'det-source-cal-name', ev.calendarName));
+          var calVal = el('div', 'det-kv-value');
+          var calDotEl = el('span', 'det-cal-dot-inline');
+          if (ev.calendarColor && typeof ev.calendarColor === 'string') {
+            calDotEl.style.background = ev.calendarColor;
+          } else {
+            calDotEl.style.background = 'var(--color-fg-muted)';
+            calDotEl.style.opacity = '0.5';
+          }
+          calVal.appendChild(calDotEl);
+          calVal.appendChild(document.createTextNode(ev.calendarName)); // PHI-safe textContent equivalent
+          kvSrc.appendChild(makeKvRow('Calendar', calVal));
         }
-        src.appendChild(calSrcRow);
 
-        /* Raw provider title — always shown here (never on calendar chips) */
         if (ev.title && typeof ev.title === 'string') {
-          src.appendChild(txt('div', 'det-raw-title-label', 'Raw title'));
-          src.appendChild(txt('div', 'det-raw-title', ev.title));
+          kvSrc.appendChild(makeKvRow('Raw title', txt('div', 'det-kv-value det-raw-title-value', ev.title)));
         }
 
-        src.appendChild(txt('div', 'det-honesty',
-          'This title rides on Google. The client\'s identity shown above comes from your roster, not the raw title.'));
+        srcSec.appendChild(kvSrc);
 
-        elScroll.appendChild(src);
+        var honestyEl = el('div', 'det-honesty');
+        var honestyIcon = el('span', 'det-honesty-icon');
+        honestyIcon.innerHTML = icon('warning', 12);
+        honestyEl.appendChild(honestyIcon);
+        honestyEl.appendChild(document.createTextNode(
+          'This title rides on Google. The client\'s identity shown above comes from your roster, not the raw title.'
+        ));
+        srcSec.appendChild(honestyEl);
+
+        elScroll.appendChild(srcSec);
       }
 
       /* ── Re-classify current event on calRev change ─────────────── */

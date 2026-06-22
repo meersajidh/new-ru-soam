@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useService } from '../../platform/services/hooks';
-import { ActiveEventServiceId, ContributionServiceId, EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleCountsServiceId, ScheduleRefreshSettingsServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
+import { ActiveEventServiceId, ContributionServiceId, EditorServiceId, FontScaleServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleCountsServiceId, ScheduleRefreshSettingsServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
 import { SlotId } from '../../platform/layout/slots';
 import { aspectFocus } from '../../platform/views/aspect-focus';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
@@ -61,6 +61,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
   const scheduleCounts = useService(ScheduleCountsServiceId);
   const activeEvent = useService(ActiveEventServiceId);
   const scheduleRefreshSettings = useService(ScheduleRefreshSettingsServiceId);
+  const fontScale = useService(FontScaleServiceId);
   const contributions = useService(ContributionServiceId);
   const layout = useService(LayoutServiceId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -116,7 +117,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
     // the one bridge channel (the bridge applies any CSS var generically). Font
     // sets ride the same path as theme/dark-mode — they are just more CSS vars.
     // maturityHighlight is pushed alongside — view-bridge.ts applies it to body.classList.
-    const appearance = () => ({ ...theme.getTokenSnapshot(), ...font.getFontSnapshot() });
+    const appearance = () => ({ ...theme.getTokenSnapshot(), ...font.getFontSnapshot(), ...fontScale.getSnapshot() });
     const pushTheme = () =>
       post({
         __soamView: true,
@@ -338,6 +339,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
     const offTheme = theme.onThemeChange(() => requestAnimationFrame(pushTheme));
     const offDark = theme.onDarkModeChange(() => requestAnimationFrame(pushTheme));
     const offFont = font.onFontSetChange(() => requestAnimationFrame(pushTheme));
+    const offFontScale = fontScale.onDidChange(() => requestAnimationFrame(pushTheme));
     const offMaturity = maturity.onDidChange(() => requestAnimationFrame(pushTheme));
     const offViewMode = overviewViewMode.onDidChange((mode) =>
       requestAnimationFrame(() => post({ __soamView: true, kind: 'overviewViewMode', mode })),
@@ -369,6 +371,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
       offTheme();
       offDark();
       offFont();
+      offFontScale();
       offMaturity();
       offViewMode();
       offScheduleViewState();
@@ -381,7 +384,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
       }
       proxyCache.clear();
     };
-  }, [resource, instanceId, theme, font, editor, menu, maturity, overviewViewMode, scheduleViewState, scheduleCounts, activeEvent, scheduleRefreshSettings, contributions, layout, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
+  }, [resource, instanceId, theme, font, fontScale, editor, menu, maturity, overviewViewMode, scheduleViewState, scheduleCounts, activeEvent, scheduleRefreshSettings, contributions, layout, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
 
   // Separate effect: push context message when entityId changes while mounted.
   // Does NOT trigger re-handshake — only sends a lightweight context update.

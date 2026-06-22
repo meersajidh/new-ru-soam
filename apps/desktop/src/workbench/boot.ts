@@ -1,6 +1,7 @@
 import { ServiceRegistry } from '../platform/services/registry';
 import {
   CommandServiceId, ContributionServiceId, ContextKeyServiceId, EditorServiceId, FontServiceId,
+  FontScaleServiceId,
   KeybindingServiceId, LayoutServiceId, NotificationServiceId, ProductConfigServiceId,
   RuEditServiceId, SnippetServiceId, StatusBarServiceId, ThemeServiceId, WorkspaceServiceId,
 } from '../platform/services/ids';
@@ -9,6 +10,7 @@ import type { LayoutSizes } from '../platform/layout/layout-service';
 import { ThemeService } from '../platform/theme/theme-service';
 import { StatusBarService } from '../platform/statusbar/statusbar-service';
 import { FontService } from '../platform/font/font-service';
+import { FontScaleService } from '../platform/font/font-scale-service';
 import { ContextKeyService } from '../platform/context-key/context-key-service';
 import { CommandService } from '../platform/command/command-service';
 import { KeybindingService } from '../platform/keybinding/keybinding-service';
@@ -143,6 +145,10 @@ export function boot(): ServiceRegistry {
 
   const font = new FontService(document.documentElement, BUILT_IN_FONT_SETS);
   registry.register(FontServiceId, font);
+
+  // Font scale — prefs-backed; applies --root-font-size on shell and --ui-scale for bundle views.
+  const fontScale = new FontScaleService();
+  registry.register(FontScaleServiceId, fontScale);
 
   // Activity bar density — read localStorage, default 'default', class set in constructor.
   const initialDensity = readPersistedDensity() ?? 'default';
