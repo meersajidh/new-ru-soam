@@ -255,30 +255,12 @@
       .classif-row:hover {
         background: color-mix(in srgb, var(--color-fg-muted, #636366) 7%, transparent);
       }
-      /* Active (visible = checked) state gets subtle highlight */
+      /* Active = all visible (no focus set) OR this row is the focused class. */
       .classif-row.active {
         background: color-mix(in srgb, var(--color-fg-muted, #636366) 9%, transparent);
       }
       .classif-row.active:hover {
         background: color-mix(in srgb, var(--color-fg-muted, #636366) 13%, transparent);
-      }
-
-      /* Colored dot / checkbox for classification */
-      .classif-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        border: 1.5px solid transparent;
-        /* when not active: outline only, transparent fill */
-        transition:
-          background 120ms ease,
-          border-color 120ms ease,
-          opacity 120ms ease;
-      }
-
-      .classif-row:not(.active) .classif-dot {
-        background: transparent !important;
       }
 
       .classif-label {
@@ -289,6 +271,7 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+      /* Muted when another class is focused (row is not active) */
       .classif-row:not(.active) .classif-label {
         color: var(--color-fg-muted, #636366);
       }
@@ -447,46 +430,20 @@
         'use strict';
 
         /* ── Classification definitions ─────────────────────────────────────── *
-         * Fixed order. Colors mirror schedule.html classification palette.        *
-         * --color-success / --color-warning / --color-fg-muted / --color-info     */
+         * Fixed order. No per-class color swatch — color now encodes calendar.   */
         var CLASSIFICATIONS = [
-          {
-            id: 'client_session',
-            label: 'Client sessions',
-            /* var(--color-success) */ color: 'var(--color-success, #5ac85a)',
-            hex: '#5ac85a',
-          },
-          {
-            id: 'probable_client_session',
-            label: 'Probable client',
-            /* var(--color-warning) */ color: 'var(--color-warning, #e0b34e)',
-            hex: '#e0b34e',
-          },
-          {
-            id: 'not_client_session',
-            label: 'Excluded',
-            /* var(--color-fg-muted) */ color: 'var(--color-fg-muted, #636366)',
-            hex: '#636366',
-          },
-          {
-            id: 'personal',
-            label: 'Personal',
-            /* var(--color-info) */ color: 'var(--color-info, #4ea6e0)',
-            hex: '#4ea6e0',
-          },
-          {
-            id: 'unclassified',
-            label: 'Unclassified',
-            /* var(--color-fg-muted) */ color: 'var(--color-fg-muted, #636366)',
-            hex: '#636366',
-          },
+          { id: 'client_session',          label: 'Client sessions' },
+          { id: 'probable_client_session', label: 'Probable client' },
+          { id: 'not_client_session',      label: 'Excluded' },
+          { id: 'personal',               label: 'Personal' },
+          { id: 'unclassified',           label: 'Unclassified' },
         ];
 
         /* ── Module state ────────────────────────────────────────────────────── */
         var currentView = 'week';
         var currentRev = 0;
         var _lastSeenRev = -1; /* tracks calRev to detect external increments */
-        var _classFilter = {}; /* Record<classId, boolean>; missing = visible */
+        var _classFilter = null; /* string | null; null = all visible, string = focused class id */
         var _counts = {}; /* Record<classId, number> from scheduleCounts */
         var queryCap = null;
         var cmdCap = null;
@@ -522,9 +479,10 @@
           }
         }
 
-        /* ── Write classFilter (NO calRev bump) ──────────────────────────────── */
-        function writeClassFilter(newFilter) {
-          _classFilter = newFilter;
+        /* ── Write focused class (NO calRev bump) ────────────────────────────── */
+        /* focusedClass: null = all visible; string = show only that class. */
+        function writeFocusedClass(focusedClass) {
+          _classFilter = focusedClass;
           if (window.soamView && window.soamView.setScheduleViewState) {
             window.soamView.setScheduleViewState({
               view: currentView,
@@ -789,6 +747,9 @@
         }
 
         /* ── Render classification filter rows ───────────────────────────────── */
+        /* Single-focus mode: clicking a row focuses only that class; clicking it
+         * again (or "All events") resets to all visible. No colored dot per class
+         * (color now encodes calendar, not classification). Count displayed always. */
         function renderClassifications() {
           elClassifBlock.innerHTML = '';
 
@@ -798,34 +759,29 @@
             total += _counts[c.id] || 0;
           });
 
-          /* "All events" master row */
-          var allHidden = CLASSIFICATIONS.some(function (c) {
-            return _classFilter[c.id] === false;
-          });
-          /* allVisible = nothing explicitly false */
-          var allVisible = !allHidden;
+          /* "All events" master row — active when no class is focused */
           elClassifBlock.appendChild(
             buildClassifRow({
               id: '__all__',
               label: 'All events',
-              color: 'var(--color-fg-muted, #636366)',
-              hex: '#636366',
               count: total,
-              active: allVisible,
+              active: !_classFilter,
             }),
           );
 
           /* Individual classification rows */
           CLASSIFICATIONS.forEach(function (c) {
-            var isActive = _classFilter[c.id] !== false;
+            /* Active = this is the currently focused class, OR nothing is focused (all visible). */
+            var isFocused = _classFilter === c.id;
             elClassifBlock.appendChild(
               buildClassifRow({
                 id: c.id,
                 label: c.label,
-                color: c.color,
-                hex: c.hex,
                 count: _counts[c.id] || 0,
-                active: isActive,
+                /* Row is "active" (full brightness) when it's the focused class
+                 * OR when no focus is set (all classes are equally visible). */
+                active: !_classFilter || isFocused,
+                focused: isFocused,
               }),
             );
           });
@@ -833,33 +789,22 @@
 
         /* ── Build single classification row ─────────────────────────────────── */
         function buildClassifRow(item) {
+          /* active = full brightness; !active = muted (another class is focused) */
           var row = document.createElement('div');
           row.className = 'classif-row' + (item.active ? ' active' : '');
 
           row.addEventListener('click', function () {
             if (item.id === '__all__') {
-              /* Master toggle: clear all filters → everything visible */
-              writeClassFilter({});
+              /* Reset focus → all visible */
+              writeFocusedClass(null);
+            } else if (_classFilter === item.id) {
+              /* Click the already-focused class → reset */
+              writeFocusedClass(null);
             } else {
-              /* Toggle this classification's visibility */
-              var newFilter = Object.assign({}, _classFilter);
-              if (_classFilter[item.id] === false) {
-                /* Currently hidden → show: delete the key */
-                delete newFilter[item.id];
-              } else {
-                /* Currently visible → hide: set false */
-                newFilter[item.id] = false;
-              }
-              writeClassFilter(newFilter);
+              /* Focus this class */
+              writeFocusedClass(item.id);
             }
           });
-
-          /* Colored dot */
-          var dot = document.createElement('div');
-          dot.className = 'classif-dot';
-          dot.style.background = item.active ? item.color : 'transparent';
-          dot.style.borderColor = item.color;
-          row.appendChild(dot);
 
           /* Label */
           var label = document.createElement('span');
@@ -899,12 +844,11 @@
               if (_lastSeenRev < 0) _lastSeenRev = incomingRev;
             }
           }
-          if (
-            state.classFilter &&
-            typeof state.classFilter === 'object' &&
-            !Array.isArray(state.classFilter)
-          ) {
+          /* classFilter: new shape = string | null. Old Record<string,boolean> → null. */
+          if (typeof state.classFilter === 'string' && state.classFilter.length > 0) {
             _classFilter = state.classFilter;
+          } else {
+            _classFilter = null;
           }
           renderClassifications();
         }

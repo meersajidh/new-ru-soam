@@ -207,6 +207,9 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     setScheduleCounts: function (counts) {
       send({ __soamView: true, kind: 'request.setScheduleCounts', counts: counts });
     },
+    bumpScheduleData: function () {
+      send({ __soamView: true, kind: 'request.bumpScheduleData' });
+    },
     setActiveEvent: function (ev) {
       send({ __soamView: true, kind: 'request.setActiveEvent', event: ev });
     },

@@ -143,6 +143,19 @@ export function activate(ctx) {
     return rows[0];
   }
 
+  // ── Arg coercion helpers ──────────────────────────────────────────────────
+
+  /**
+   * Accepts a range bound as either an ISO date string or an epoch-ms number.
+   * Coerces epoch-ms to ISO; passes strings through unchanged.
+   * Throws a clear error on any other type.
+   */
+  function toISOArg(val, callerName) {
+    if (typeof val === 'string' && val.length > 0) return val;
+    if (typeof val === 'number' && isFinite(val)) return new Date(val).toISOString();
+    throw new Error(`${callerName}: from/to must be an ISO date string or epoch-ms number; got ${typeof val}`);
+  }
+
   // ── schedule.calendar.query (read cap) ─────────────────────────────────────
 
   ctx.registerCapability('schedule.calendar.query', '1.0', async (method, args) => {
@@ -198,11 +211,8 @@ export function activate(ctx) {
         // Returns only SELECTED calendars' events (Sessions sync source — same
         // semantics as the pre-slice-6 live-fetch version: selected-only).
         // Return shape UNCHANGED so Sessions sync is untouched.
-        const from = args[0];
-        const to   = args[1];
-        if (typeof from !== 'string' || typeof to !== 'string') {
-          throw new Error('schedule.calendar.query.listAggregatedEvents: from and to must be ISO date strings');
-        }
+        const from = toISOArg(args[0], 'schedule.calendar.query.listAggregatedEvents');
+        const to   = toISOArg(args[1], 'schedule.calendar.query.listAggregatedEvents');
         const rows = await storeQuery.call('run', ['event.listForWindowFiltered', { from, to }]);
         return rows.map(mapEventRow);
       }
@@ -212,11 +222,8 @@ export function activate(ctx) {
         // Returns ALL added calendars (not just selected): visibility is
         // filtered client-side in schedule.html via _calVisibility so toggling
         // calendar.selected never triggers a re-fetch (preserves window-cache strategy).
-        const from = args[0];
-        const to   = args[1];
-        if (typeof from !== 'string' || typeof to !== 'string') {
-          throw new Error('schedule.calendar.query.listWindowEvents: from and to must be ISO date strings');
-        }
+        const from = toISOArg(args[0], 'schedule.calendar.query.listWindowEvents');
+        const to   = toISOArg(args[1], 'schedule.calendar.query.listWindowEvents');
         const rows = await storeQuery.call('run', ['event.listForWindow', { from, to }]);
         return rows.map(mapEventRow);
       }

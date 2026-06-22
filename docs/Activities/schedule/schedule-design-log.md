@@ -634,3 +634,108 @@ the popover `fetchScore` bound `sessions.meeting` (the **command** cap) instead 
 `'<bundle>.meeting.query'` fails CQRS kind-check — the bind succeeds, the `.call` throws.) Compile+lint green. Two accepted
 review calls: read-off blanks **all** classification incl. already-linked (clean consent-off state; rows still in the Sessions
 list); the score counts **orphaned** linked rows as exposure (more honest — still provider-resident).
+
+## SD-25 — Schedule v2 UX fixes from dogfood test session (2026-06-21) — PARTIAL, UNCOMMITTED
+
+Thorough dogfood test of the Schedule Activity (CDP, real Google Calendar, 1 account / 3 calendars:
+Primary + Holidays-India[readonly,unselected] + Test). Found bugs → planned + delegated fixes (3 implementer
+passes). **ALL UNCOMMITTED**; working tree dirty (10 files M + `schedule-cal-rev.ts` new). compile+lint green.
+
+### Test findings (the full triage)
+**Confirmed bugs:** **#1** PHI-read toggle does NOT reclassify an open Schedule view (stale classifications persist —
+the documented "fails-closed → all-unclassified when read-off" only held on a *fresh* fetch/remount, not on live toggle).
+**#2** Aux event-detail goes stale: not cleared when the source schedule tab closes/remounts; not re-derived on
+input change (PHI toggle / roster change) — grid + aux disagree.
+**UX:** **#3** "Filter by classification" inverted — clicking a class *hid* it (multi-toggle, no checkbox affordance),
+opposite of click-to-focus. **#4** Agenda mislabeled "Upcoming · this week" while showing the fixed Mon–Sun week
+(past days; duplicates Week view). **#5** `listWindowEvents` required ISO strings, threw on epoch-ms.
+**Verified GREEN:** event cache (29 rows, account-aware O493 triple); **incremental sync delta live** (user added+deleted
+a real GCal event → exactly `upserts:1` then `deletions:1`, no full re-pull; no-op = all-0); 4 views; PHI gate fails-closed
+on a fresh pass + Sessions `sync` short-circuit when read-off; resolver→classify pipeline (contactEmail auto-matches →
+`outcome:match`); ingress E2E (create→`linkProviderEvent{kind:intake}`→setStage→score **40** [formula exact]→**O490 erase
+cascade** removes cross-bundle `client_meeting`+alias+client, score→100); calendar CRUD round-trip; add-cal wizard dedupe;
+P-D popover (score/posture/honesty copy/read-toggle; write-row disabled = O499).
+**Gaps (untested by constraint):** multi-account (single acct); connect/reconnect/disconnect live (consent); `removeCalendar`
+cascade live; 410 token-expiry resync; MS/Apple/CalDAV (O486); writes (O499).
+**Other observations:** idle auto-lock re-locked the workspace twice mid-session (CDP input doesn't reset idle timer) →
+**O502** logged (user wants a configurable interval). **Primary calendar color drifted `#c0965c`→`#4eccc4` across the
+restart** — unexplained, NOT a v2 change (neither agent touched color seeding); handle + event-stamped agree (`#4eccc4`)
+so it is internally consistent — investigate the drift source separately.
+
+### Decisions (locked with user)
+- **#4** Agenda = **rolling next-7-days from today**, label "Next 7 days", date-nav steps by 7 (Week stays fixed Mon–Sun).
+- **#2** Aux = **auto-reveal on event click when hidden** (NOT resurrect the inline popover — removed on purpose, slice A1);
+  clear on source close; reload-on-context-switch generic at BundleViewIframe/contribution level (not schedule-special).
+- **#3** Filter = **single-select focus** (click a class → show only it; re-click or "All events" → reset). Drop the
+  classification color FILL on chips; **chip thick left border = CALENDAR color** (was classification); classification
+  stays as the text badge only.
+- **#1** Reactivity = route every classification-input change (PHI toggle, roster create/link/erase) through the existing
+  `calRev` bump (`bumpScheduleCalRev`); no new channel field. Folds into O497 long-term.
+
+### Build (3 delegated implementer passes)
+- **Pass A (reactivity + aux):** NEW `apps/desktop/src/platform/view-mode/schedule-cal-rev.ts` (module-callback shared bump,
+  mirrors `phi-safety-events.ts`); `bootstrap.ts` registers it + `syncContext` clears active-event when the schedule tab
+  loses focus/closes (recursion-guarded); `PhiSafetyPopover.tsx` + `ClientEraseDialog.tsx` bump after their mutation;
+  `BundleViewIframe.tsx` reveals `SlotId.AuxSideBar` on event-set when hidden; `event-detail.html` re-derives its
+  classification/action block on the `calRev` push (fail-closed when read-off).
+- **Pass B (view tweaks):** `schedule-view-state.ts` `classFilter` `Record<string,boolean>`→`string|null` (focusedClass,
+  back-compat); `nav.html` single-focus list (color swatches dropped); `schedule.html` single-focus filter + chip border =
+  `calendarColor` (`--ev-border-color`/`--cal-color` set inline, `cls-*` color rules removed) + Agenda rolling-7-day
+  "Next 7 days"; `index.mjs` `toISOArg` helper (accepts epoch-ms | ISO).
+- **Pass C (fix):** `schedule.html` `applyScheduleViewState` `revChanged` branch — re-run `runClassifyPass` on the
+  `visibilityChanged` + spurious-bump branches (was a no-op).
+
+### Post-build dogfood (this session)
+- **#5 ✓** epoch + ISO both accepted (16 == 16).
+- **#4 ✓** "Next 7 days" rolling SUN(today)→+6, tab title + counts range-scoped.
+- **#3 ✓** single-select focus (click Personal → only personal); chip left border = calendar color (teal `#4eccc4`=Primary,
+  coral `#e07857`=Test); classification = text badge only.
+- **calRev producer ✓** (popover toggle: localStorage `calRev` 265→266→267).
+- **#1 STILL BROKEN — ROOT CAUSE PINNED.** Toggling PHI-read OFF via the popover does NOT clear classes on the open
+  calendar (still Excluded/Personal). Cause = `schedule.html` `runClassifyPass` (~L2015-2032): when read-off it does
+  `publishCounts()` + `return` — it does **NOT clear cached per-event classification** from a prior read-on pass. Cold-load
+  is fine (fresh events default unclassified); live-toggle leaves the old classes painted. Pass-C's reclassify-on-bump
+  call is correct but no-ops because `runClassifyPass` itself never clears-on-off. **FIX NEEDED:** when read-off, reset each
+  event's classification to `unclassified` (clear the cached `cls` on the event objects) + `renderCalArea()`, not just
+  `publishCounts()`.
+- **#2 aux** clear/reveal wired but NOT re-dogfooded after Pass C; the event-detail re-derive on PHI-toggle/roster-change
+  is unverified.
+
+### Resume checklist (next session, fresh)
+1. **Fix `runClassifyPass` read-off CLEAR** (`schedule.html` ~L2025) — the live #1. Then re-verify toggle off→all-unclassified,
+   on→real classes, both without remount.
+2. **Re-dogfood #2 aux** — clear on tab close; reveal on event click when hidden; re-derive on PHI-toggle + roster change.
+3. **`needs-linking.html` calRev bump** (Sessions triage confirm/promote/exclude → schedule reclassify) — Pass-A flagged
+   follow-up, out of its scope.
+4. Verify B's month-pill `brightness(1.15)` selected-state tweak + the chip `is-selected` left-bar (stays calendar color).
+5. Investigate the Primary calendar color drift (`#c0965c`→`#4eccc4`).
+6. **Then commit the lot** (the v2 fix set is one logical change; currently 11 files uncommitted).
+
+### Resolution — fix-set COMPLETE + dogfood-verified (2026-06-22)
+All 6 resume-checklist items closed; compile + lint + script-syntax green; 14 files (one logical change).
+
+- **#1 FIXED** — `schedule.html runClassifyPass` read-off branch now RESETS every
+  `ev.classification='unclassified'` + `ev._match=null` → `renderCalArea()` → `publishCounts()`
+  (added stale-seq guard). Was `publishCounts()+return` = stale classes on live toggle.
+  Dogfood (CDP): OFF `unclassified:3` → ON+bump `not_client:1/personal:1/unclassified:1`
+  → OFF+bump back to `unclassified:3`. Live, no remount.
+- **#2 aux** — reveal-on-click already wired (`BundleViewIframe:271-279`). Clear-on-close
+  dynamically verified (close schedule tab → `activeEvent` null, `schedule.activeEvent` ctx key
+  false → event-detail container unmounts). Re-derive: `event-detail.html reclassifyAndRender`
+  read-off branch (L1588-1601) already clears (classification→unclassified, `_match=null`, strips
+  attendees/organizer) — same correct pattern as #1, no fix needed.
+- **#3 needs-linking calRev bump** — new view-bridge verb `soamView.bumpScheduleData()`
+  (`view-bridge.ts`) → `request.bumpScheduleData` case (`BundleViewIframe`) → `bumpScheduleCalRev()`;
+  called from `removeCard()` (single convergence point for confirm/promote/exclude triage actions).
+  Mechanism-verified; triage→reclassify not live-fired (PHI-off ⇒ empty needs-linking queue).
+- **#4** — "Next 7 days" rolling-from-today verified (no past days); month today-pill good contrast;
+  chips show calendar-color left border.
+- **#5 NOT A BUG** — single Primary calendar row, color `#4eccc4`; no duplicate rows; add-mode default
+  = green `PALETTE[0]`; no auto-rotation; `addCalendar` requires explicit color. The teal = last
+  session's `updateCalendar` recolor test write (expected mutation). Benign residual dev-DB state.
+- **O502 confirmed live** — idle auto-lock re-locked the workspace mid-dogfood (CDP input doesn't
+  reset the idle timer). Setting OI stands.
+
+Files: schedule.html, event-detail.html (no change needed — verified), needs-linking.html (sessions),
+view-bridge.ts, BundleViewIframe.tsx, schedule-cal-rev.ts (new), + prior-session set
+(bootstrap.ts, ClientEraseDialog.tsx, PhiSafetyPopover.tsx, schedule-view-state.ts, index.mjs, nav.html).

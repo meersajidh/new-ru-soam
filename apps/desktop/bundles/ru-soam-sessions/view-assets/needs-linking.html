@@ -608,6 +608,12 @@
           _openPickerId = null;
           clearStatus();
           renderQueue();
+          /* A triage action (confirm / promote / exclude) just mutated roster, alias,
+           * suppression, or link state — all classification inputs for Schedule. Bump
+           * calRev so an open schedule calendar + aux event-detail re-classify. */
+          if (window.soamView && typeof window.soamView.bumpScheduleData === 'function') {
+            try { window.soamView.bumpScheduleData(); } catch (e) { /* non-fatal */ }
+          }
         }
 
         /* ── Close any open picker ───────────────────────── */

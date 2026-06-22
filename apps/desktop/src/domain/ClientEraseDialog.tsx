@@ -22,6 +22,7 @@ import {
   subscribeClientErase,
 } from './clientEraseState';
 import { DELETE_WARNING_ADDENDUM } from './product';
+import { bumpScheduleCalRev } from '../platform/view-mode/schedule-cal-rev';
 import './ClientEraseDialog.css';
 
 function ClientEraseDialogInner({
@@ -74,6 +75,10 @@ function ClientEraseDialogInner({
           }
         }
       }
+
+      // Bump calRev so the open schedule calendar re-classifies events for this
+      // client (erased client can no longer be PROBABLE/CLIENT — falls to unclassified).
+      bumpScheduleCalRev();
 
       onClose();
     } catch (err) {

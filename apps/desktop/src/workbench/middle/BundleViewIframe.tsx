@@ -3,6 +3,7 @@ import { useService } from '../../platform/services/hooks';
 import { ActiveEventServiceId, ContributionServiceId, EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleCountsServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
 import { SlotId } from '../../platform/layout/slots';
 import { aspectFocus } from '../../platform/views/aspect-focus';
+import { bumpScheduleCalRev } from '../../platform/view-mode/schedule-cal-rev';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 import type { ScheduleViewState } from '../../platform/view-mode/schedule-view-state';
 import type { ScheduleCounts } from '../../platform/view-mode/schedule-counts';
@@ -268,8 +269,21 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           scheduleCounts.setCounts(m.counts as ScheduleCounts);
           break;
         }
+        case 'request.bumpScheduleData': {
+          // An iframe (e.g. Sessions needs-linking triage) mutated roster/link state
+          // that affects Schedule classification. Bump calRev so an open schedule
+          // calendar + aux event-detail re-classify on current in-memory events.
+          bumpScheduleCalRev();
+          break;
+        }
         case 'request.setActiveEvent': {
-          activeEvent.setActiveEvent((m.event as ActiveEvent | null | undefined) ?? null);
+          const ev = (m.event as ActiveEvent | null | undefined) ?? null;
+          activeEvent.setActiveEvent(ev);
+          // When an event is selected and the aux sidebar is currently hidden, reveal it
+          // so the user sees event-detail.html without a manual toggle.
+          if (ev !== null && !layout.isVisible(SlotId.AuxSideBar)) {
+            layout.setVisibility(SlotId.AuxSideBar, true);
+          }
           break;
         }
         case 'request.openExternal': {

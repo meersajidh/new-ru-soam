@@ -18,6 +18,7 @@ import { Icon } from '../../platform/icons/Icon';
 import { usePopover } from '../../platform/popover/use-popover';
 import Popover from '../../platform/popover/Popover';
 import type { StatusBarEntry } from '../../platform/statusbar/statusbar-service';
+import { bumpScheduleCalRev } from '../../platform/view-mode/schedule-cal-rev';
 
 export interface SafetyScore {
   score: number;
@@ -179,6 +180,8 @@ export default function PhiSafetyPopover({ entry, onScoreChange }: PhiSafetyPopo
     setToggling(true);
     try {
       await setReadOptIn(enabled);
+      // Bump calRev so open schedule calendar + aux event-detail re-classify immediately.
+      bumpScheduleCalRev();
       // Refetch score after toggle.
       const s = await fetchScore();
       setScore(s);

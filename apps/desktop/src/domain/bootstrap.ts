@@ -15,6 +15,7 @@ import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId, CommandSe
 import { PRODUCT_TAGLINE, DELETE_WARNING_ADDENDUM } from './product';
 import { showClientErase } from './clientEraseState';
 import { requestOpenPhiSafetyPopover } from '../workbench/parts/phi-safety-events';
+import { registerScheduleCalRevBump } from '../platform/view-mode/schedule-cal-rev';
 
 export function domainBootstrap(registry: ServiceRegistry): void {
   const productConfig = registry.get(ProductConfigServiceId);
@@ -183,6 +184,10 @@ export function domainBootstrap(registry: ServiceRegistry): void {
     const s = svc.getState();
     svc.setState({ view: s.view, calRev: s.calRev + 1, classFilter: s.classFilter });
   }
+
+  // Register the shared bump fn so external modules (PhiSafetyPopover, ClientEraseDialog)
+  // can call bumpScheduleCalRev() without importing the service registry.
+  registerScheduleCalRevBump(bumpScheduleCalRev);
 
   commands.register(
     'ru-soam-schedule.calendar.edit',
@@ -389,6 +394,17 @@ export function domainBootstrap(registry: ServiceRegistry): void {
 
     // schedule.activeEvent: focused tab must be the Schedule calendar view.
     const scheduleFocused = res.includes('ru-soam-schedule/schedule.html');
+
+    // When the schedule tab loses focus (or is closed), clear any stale active event
+    // so event-detail.html doesn't persist a stale selection across remount/tab-switch.
+    // setActiveEvent(null) fires onDidChange → syncContext again; second call is
+    // a no-op because scheduleFocused is still false and activeEvent is now null.
+    if (!scheduleFocused && activeEventSvc.getActiveEvent() !== null) {
+      activeEventSvc.setActiveEvent(null);
+      // Context key will be set to false on the recursive syncContext call above.
+      return;
+    }
+
     contextKeys.set('schedule.activeEvent', scheduleFocused && activeEventSvc.getActiveEvent() !== null);
   }
 

@@ -557,149 +557,30 @@
       .tg-event-title { padding-right: 38px; }
       .tg-event.tiny .tg-event-title { padding-right: 0; }
 
-      /* Time-grid event block — thick left bar + thin tinted 3-side outline */
-      /* base .tg-event: border:1px solid <neutral>; border-left:3px solid <accent-muted> */
-      .tg-event.cls-client {
-        border-color: color-mix(in srgb, var(--color-success) 45%, transparent);
-        border-left-color: var(--color-success);
-        border-width: 1px;
-        border-left-width: 3px;
-        border-style: solid;
-      }
-      .tg-event.is-selected.cls-client {
-        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-        border-left-color: var(--color-accent);
-      }
-      .tg-event.cls-probable {
-        border-color: color-mix(in srgb, var(--color-warning) 45%, transparent);
-        border-left-color: var(--color-warning);
-        border-width: 1px;
-        border-left-width: 3px;
-        border-style: dotted;
-        border-left-style: solid;
-      }
-      .tg-event.is-selected.cls-probable {
-        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-        border-left-color: var(--color-accent);
-        border-style: solid;
-      }
+      /* Time-grid event block — thick left bar = calendar color (set inline).
+       * Classification no longer drives border color; only the badge carries that signal.
+       * cls-not / cls-probable still reduce opacity to indicate non-session events. */
       .tg-event.cls-not {
-        border-color: color-mix(in srgb, var(--color-fg-muted) 45%, transparent);
-        border-left-color: var(--color-fg-muted);
-        border-width: 1px;
-        border-left-width: 3px;
-        border-style: solid;
         opacity: 0.7;
       }
       .tg-event.is-selected.cls-not {
-        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-        border-left-color: var(--color-accent);
         opacity: 1;
       }
-      .tg-event.cls-personal {
-        border-color: color-mix(in srgb, var(--color-info) 45%, transparent);
-        border-left-color: var(--color-info);
-        border-width: 1px;
-        border-left-width: 3px;
-        border-style: solid;
-      }
-      .tg-event.is-selected.cls-personal {
-        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-        border-left-color: var(--color-accent);
-      }
-      /* cls-unclassified: inherits default accent-muted border — no override */
 
-      /* All-day pill — thin tinted box + thick left bar */
-      /* base .tg-allday-pill: border-left:2px solid <accent-muted> only (no other sides) */
-      .tg-allday-pill.cls-client {
-        border: 1px solid color-mix(in srgb, var(--color-success) 45%, transparent);
-        border-left: 2px solid var(--color-success);
-      }
-      .tg-allday-pill.is-selected.cls-client {
-        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-        border-left-color: var(--color-accent);
-      }
-      .tg-allday-pill.cls-probable {
-        border: 1px dotted color-mix(in srgb, var(--color-warning) 45%, transparent);
-        border-left: 2px solid var(--color-warning);
-      }
-      .tg-allday-pill.is-selected.cls-probable {
-        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-        border-style: solid;
-        border-left-color: var(--color-accent);
-      }
+      /* All-day pill — thick left bar = calendar color (set inline). */
       .tg-allday-pill.cls-not {
-        border: 1px solid color-mix(in srgb, var(--color-fg-muted) 45%, transparent);
-        border-left: 2px solid var(--color-fg-muted);
         opacity: 0.7;
       }
       .tg-allday-pill.is-selected.cls-not {
-        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-        border-left-color: var(--color-accent);
         opacity: 1;
-      }
-      .tg-allday-pill.cls-personal {
-        border: 1px solid color-mix(in srgb, var(--color-info) 45%, transparent);
-        border-left: 2px solid var(--color-info);
-      }
-      .tg-allday-pill.is-selected.cls-personal {
-        border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
-        border-left-color: var(--color-accent);
       }
 
-      /* Month pill — thin tinted border + keep dot (no thick-left; cells too small) */
-      .month-event-pill.cls-client {
-        border: 1px solid color-mix(in srgb, var(--color-success) 45%, transparent);
-      }
-      .month-event-pill.cls-client::before {
-        background: var(--color-success);
-      }
-      .month-event-pill.is-selected.cls-client {
-        border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
-      }
-      .month-event-pill.is-selected.cls-client::before {
-        background: var(--color-accent);
-      }
-      .month-event-pill.cls-probable {
-        border: 1px dotted color-mix(in srgb, var(--color-warning) 45%, transparent);
-      }
-      .month-event-pill.cls-probable::before {
-        background: var(--color-warning);
-      }
-      .month-event-pill.is-selected.cls-probable {
-        border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
-        border-style: solid;
-      }
-      .month-event-pill.is-selected.cls-probable::before {
-        background: var(--color-accent);
-      }
+      /* Month pill — calendar-color dot (::before set inline) + keep existing pill border. */
       .month-event-pill.cls-not {
-        border: 1px solid color-mix(in srgb, var(--color-fg-muted) 45%, transparent);
         opacity: 0.7;
       }
-      .month-event-pill.cls-not::before {
-        background: var(--color-fg-muted);
-        opacity: 0.5;
-      }
       .month-event-pill.is-selected.cls-not {
-        border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
         opacity: 1;
-      }
-      .month-event-pill.is-selected.cls-not::before {
-        background: var(--color-accent);
-        opacity: 1;
-      }
-      .month-event-pill.cls-personal {
-        border: 1px solid color-mix(in srgb, var(--color-info) 45%, transparent);
-      }
-      .month-event-pill.cls-personal::before {
-        background: var(--color-info);
-      }
-      .month-event-pill.is-selected.cls-personal {
-        border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
-      }
-      .month-event-pill.is-selected.cls-personal::before {
-        background: var(--color-accent);
       }
 
       /* legacy — kept for safety, not used in new agenda layout */
@@ -757,7 +638,8 @@
         font-weight: 500;
         color: var(--color-fg-primary);
         background: color-mix(in srgb, var(--color-surface-active) 80%, transparent);
-        border-left: 2px solid color-mix(in srgb, var(--color-accent) 55%, var(--color-fg-muted) 45%);
+        /* --ev-border-color set inline per-pill from event.calendarColor */
+        border-left: 2px solid var(--ev-border-color, color-mix(in srgb, var(--color-accent) 55%, var(--color-fg-muted) 45%));
         border-radius: 3px;
         padding: 2px 5px;
         white-space: nowrap;
@@ -769,7 +651,7 @@
       .tg-allday-pill:hover { background: var(--color-surface-active); }
       .tg-allday-pill.is-selected {
         background: color-mix(in srgb, var(--color-accent) 18%, transparent);
-        border-left-color: var(--color-accent);
+        border-left-color: var(--ev-border-color, var(--color-accent));
       }
 
       /* Column header row — sticky, above all-day strip */
@@ -918,7 +800,8 @@
         border-radius: var(--radius-sm);
         background: color-mix(in srgb, var(--color-surface-active) 70%, var(--color-surface-panel) 30%);
         border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
-        border-left: 3px solid color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%);
+        /* --ev-border-color set inline per-event from event.calendarColor */
+        border-left: 3px solid var(--ev-border-color, color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%));
         padding: 4px 6px;
         cursor: pointer;
         overflow: hidden;
@@ -932,8 +815,9 @@
       }
       .tg-event.is-selected {
         background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-        border-left-color: var(--color-accent);
+        /* keep calendar color on left border; only overall border shifts to accent */
         border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+        border-left-color: var(--ev-border-color, var(--color-accent));
       }
       .tg-event-time {
         font-size: 9.5px;
@@ -1111,7 +995,8 @@
         width: 5px;
         height: 5px;
         border-radius: 50%;
-        background: color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%);
+        /* --cal-color set inline per-pill from event.calendarColor */
+        background: var(--cal-color, color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%));
         flex-shrink: 0;
       }
       .month-event-pill:hover { background: var(--color-surface-active); }
@@ -1119,7 +1004,8 @@
         background: color-mix(in srgb, var(--color-accent) 18%, transparent);
       }
       .month-event-pill.is-selected::before {
-        background: var(--color-accent);
+        background: var(--cal-color, var(--color-accent));
+        filter: brightness(1.15);
       }
       .month-overflow {
         font-size: 10px;
@@ -1372,10 +1258,10 @@
        * in the calendar table — filtered by listAggregatedEvents, not client-side. */
       var _lastCalRev    = 0;
       /* classFilter: last-seen value from scheduleViewState channel.
-       * Missing key = visible; explicit false = hidden. Client-side render filter —
-       * never triggers a network refetch. Sent back on every setScheduleViewState write. */
-      var _classFilter   = {};
-      var _lastClassFilter = {};
+       * null = all visible (default); string = show only that classification id.
+       * Client-side render filter — never triggers a network refetch. */
+      var _classFilter   = null;
+      var _lastClassFilter = null;
       var selectedId     = null;
       var queryCap       = null;  // schedule.calendar.query@1.0 (bindQuery)
       var cmdCap         = null;  // schedule.calendar@1.0       (bindCommand)
@@ -1467,7 +1353,22 @@
       function rangeForView() {
         var base = new Date();
         var from, to, label;
-        if (view === 'agenda' || view === 'week') {
+        if (view === 'agenda') {
+          /* Rolling 7-day window: today (or offset * 7 days from today) → +6 days. */
+          from = startOfDay(new Date());
+          from = addDays(from, offset * 7);
+          to   = addDays(from, 7);
+          var toInc = addDays(to, -1);
+          if (offset === 0) {
+            label = 'Next 7 days';
+          } else if (from.getMonth() === toInc.getMonth() && from.getFullYear() === toInc.getFullYear()) {
+            label = from.getDate() + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES[from.getMonth()] + ' ' + from.getFullYear();
+          } else if (from.getFullYear() === toInc.getFullYear()) {
+            label = from.getDate() + ' ' + MONTH_NAMES_SHORT[from.getMonth()] + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES_SHORT[toInc.getMonth()] + ' ' + from.getFullYear();
+          } else {
+            label = from.getDate() + ' ' + MONTH_NAMES_SHORT[from.getMonth()] + ' ' + from.getFullYear() + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES_SHORT[toInc.getMonth()] + ' ' + toInc.getFullYear();
+          }
+        } else if (view === 'week') {
           base.setDate(base.getDate() + offset * 7);
           from = startOfWeek(base);
           to   = addDays(from, 7);
@@ -1500,9 +1401,10 @@
        * listAddedCalendars; updated on calRev without refetch when only selected
        * flags changed). classFilter: missing key = visible; explicit false = hidden. */
       function isClassVisible(ev) {
+        /* null (or any falsy) = all visible. string = show only that class. */
+        if (!_classFilter) return true;
         var cls = ev.classification || 'unclassified';
-        /* A missing key means visible; only explicit false hides. */
-        return _classFilter[cls] !== false;
+        return cls === _classFilter;
       }
       function isCalVisible(ev) {
         /* A missing key means visible (defensive); explicit false hides. */
@@ -1631,7 +1533,7 @@
         });
 
         if (!hasAny) {
-          var noEv = txt('div', 'no-events', 'No events this week.');
+          var noEv = txt('div', 'no-events', 'No events in this period.');
           wrap.appendChild(noEv);
         }
         shell.appendChild(wrap);
@@ -1725,8 +1627,9 @@
           block.dataset.evId = ev.id;
           block.style.top    = topPx + 'px';
           block.style.height = hPx + 'px';
-          /* Calendar-color tint: low-alpha wash under SD-19 classification border/badges. */
+          /* Calendar-color: thick left border + low-alpha background tint. */
           if (ev.calendarColor) {
+            block.style.setProperty('--ev-border-color', ev.calendarColor);
             block.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
           }
           // Override left/right with lane percentages when multiple lanes.
@@ -1846,8 +1749,9 @@
               hasAllDay = true;
               var pill = txt('div', 'tg-allday-pill ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : ''), ev.title || '(No title)');
               pill.dataset.evId = ev.id;
-              /* Calendar-color tint: low-alpha wash under SD-19 classification border/badges. */
+              /* Calendar-color: thick left border + low-alpha background tint. */
               if (ev.calendarColor) {
+                pill.style.setProperty('--ev-border-color', ev.calendarColor);
                 pill.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
               }
               pill.addEventListener('click', function (e) {
@@ -1980,8 +1884,9 @@
           dayEvs.slice(0, maxPills).forEach(function (ev) {
             var pill = txt('div', 'month-event-pill ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : ''), ev.title || '(No title)');
             pill.dataset.evId = ev.id;
-            /* Calendar-color tint: low-alpha wash under SD-19 classification border/badges. */
+            /* Calendar-color: dot (::before via --cal-color) + low-alpha background tint. */
             if (ev.calendarColor) {
+              pill.style.setProperty('--cal-color', ev.calendarColor);
               pill.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
             }
             pill.addEventListener('click', function (e) {
@@ -2060,17 +1965,16 @@
 
         var range = rangeForView();
 
-        // Agenda header label: "Upcoming · this week" for current week; otherwise range string.
-        if (view === 'agenda') {
-          elRangeLabel.textContent = offset === 0 ? 'Upcoming · this week' : range.label;
-        } else {
-          elRangeLabel.textContent = range.label;
-        }
+        // Range label. Agenda uses its own label from rangeForView() directly.
+        elRangeLabel.textContent = range.label;
 
         // Tab descriptor — updates on every render (updateTab is no-op when unchanged).
         if (window.soamView && window.soamView.setTabDescription) {
           var tabDesc;
-          if (view === 'agenda' || view === 'week') {
+          if (view === 'agenda') {
+            // "Next 7 days" at offset 0; otherwise date range start
+            tabDesc = offset === 0 ? 'Next 7 days' : (range.from.getDate() + ' ' + MONTH_NAMES_SHORT[range.from.getMonth()]);
+          } else if (view === 'week') {
             // "Wk of Jun 15"
             tabDesc = 'Wk of ' + MONTH_NAMES_SHORT[range.from.getMonth()] + ' ' + range.from.getDate();
           } else if (view === 'day') {
@@ -2119,8 +2023,14 @@
           .catch(function () { return { enabled: false }; })
           .then(function (optIn) {
             if (!optIn || !optIn.enabled) {
-              /* Opt-in off — events already painted unclassified by the fetch path;
-               * publish counts with all-unclassified and return. */
+              /* Opt-in off — fails-closed. On a FRESH fetch the events arrive
+               * unclassified, but on a LIVE toggle (calRev bump, no re-fetch) the
+               * in-memory events still carry their prior classification/_match from
+               * when read was ON. Reset every event to unclassified + clear match
+               * enrichment, repaint, then publish — otherwise stale classes linger. */
+              if (classifySeq !== _loadSeq) return; // stale guard
+              evs.forEach(function (ev) { ev.classification = 'unclassified'; ev._match = null; });
+              renderCalArea();
               publishCounts();
               return;
             }
@@ -2364,7 +2274,7 @@
         var win    = fetchWindow();
 
         /* Always update the range label (cheap, no fetch). */
-        elRangeLabel.textContent = (view === 'agenda' && offset === 0) ? 'Upcoming · this week' : range.label;
+        elRangeLabel.textContent = range.label;
 
         /* Same window: view-switch within current month — skip fetch entirely. */
         if (win.key === _currentWindowKey && _eventsObserver !== null) {
@@ -2526,25 +2436,17 @@
        * Drives the active view; triggers listAggregatedEvents refetch on calRev   *
        * change (nav.html bumps calRev on any account/calendar mutation).           *
        * A view change resets offset+selection to avoid stale grid state.           */
-      function shallowEqualFilter(a, b) {
-        var aKeys = Object.keys(a);
-        var bKeys = Object.keys(b);
-        if (aKeys.length !== bKeys.length) return false;
-        for (var i = 0; i < aKeys.length; i++) {
-          if (a[aKeys[i]] !== b[aKeys[i]]) return false;
-        }
-        return true;
-      }
-
       function applyScheduleViewState(state) {
         if (!state || typeof state.view !== 'string') return;
         var newView    = state.view;
         var newRev     = typeof state.calRev === 'number' ? state.calRev : 0;
-        var newFilter  = (state.classFilter && typeof state.classFilter === 'object' && !Array.isArray(state.classFilter))
-                         ? state.classFilter : {};
+        /* classFilter: new shape = string | null (focusedClass). Back-compat: old
+         * Record<string,boolean> shape (from stale localStorage) → treat as null. */
+        var newFilter  = (typeof state.classFilter === 'string' && state.classFilter.length > 0)
+                         ? state.classFilter : null;
         var viewChanged   = newView !== view;
         var revChanged    = newRev !== _lastCalRev;
-        var filterChanged = !shallowEqualFilter(newFilter, _classFilter);
+        var filterChanged = newFilter !== _classFilter;
         if (!viewChanged && !revChanged && !filterChanged) return; // no-op on equal state
         _lastCalRev      = newRev;
         _classFilter     = newFilter;
@@ -2574,11 +2476,19 @@
                 window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
                 triggerBackgroundSync();
               } else if (diff.visibilityChanged) {
-                /* Selected flags changed only — instant client-side re-render. */
+                /* Selected flags changed only — instant client-side re-render, then
+                 * re-run classify pass so PHI-read toggle / roster changes take effect. */
                 renderCalArea();
                 publishCounts();
+                runClassifyPass(events, fetchWindow(), ++_loadSeq);
+              } else {
+                /* Spurious calRev bump (e.g. PHI-read toggle, roster mutation) — calendar
+                 * set and visibility unchanged but classification inputs may have changed.
+                 * Re-run classify pass on current in-memory events; no network fetch. */
+                if (events.length > 0) {
+                  runClassifyPass(events, fetchWindow(), ++_loadSeq);
+                }
               }
-              /* else: nothing changed (e.g. spurious calRev bump) — no-op. */
             });
           } else {
             renderCalArea();

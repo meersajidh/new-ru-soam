@@ -15,11 +15,14 @@
  * table (slice 2, ADR-507 Am1) and enforced server-side by listAggregatedEvents —
  * the old client-side calVisibility filter is gone.
  *
- * classFilter: which classification ids are VISIBLE. A missing key means visible
- * (default all visible); explicit `false` means hidden. Keys are the 5 classification
- * ids: 'client_session', 'probable_client_session', 'not_client_session', 'personal',
+ * classFilter: single-focus classification filter. null = all visible (default);
+ * a string = only events with that classification id are shown. The 5 ids:
+ * 'client_session', 'probable_client_session', 'not_client_session', 'personal',
  * 'unclassified'. schedule.html applies this as a client-side render filter — no
- * refetch. Default `{}` = all visible.
+ * refetch.
+ *
+ * Back-compat: consumers that received the old Record<string,boolean> shape from
+ * localStorage will fall through validation and default to null (all visible).
  */
 
 const STORAGE_KEY = 'soam.scheduleViewState';
@@ -29,25 +32,16 @@ export type ScheduleView = 'agenda' | 'day' | 'week' | 'month';
 export interface ScheduleViewState {
   view: ScheduleView;
   calRev: number;
-  classFilter: Record<string, boolean>;
+  /** null = all visible; string = focus on that classification id only. */
+  classFilter: string | null;
 }
 
 const VALID_VIEWS = new Set<string>(['agenda', 'day', 'week', 'month']);
 
-const DEFAULT_STATE: ScheduleViewState = { view: 'week', calRev: 0, classFilter: {} };
-
-function shallowEqualClassFilter(a: Record<string, boolean>, b: Record<string, boolean>): boolean {
-  const aKeys = Object.keys(a);
-  const bKeys = Object.keys(b);
-  if (aKeys.length !== bKeys.length) return false;
-  for (const k of aKeys) {
-    if (a[k] !== b[k]) return false;
-  }
-  return true;
-}
+const DEFAULT_STATE: ScheduleViewState = { view: 'week', calRev: 0, classFilter: null };
 
 function deepEqual(a: ScheduleViewState, b: ScheduleViewState): boolean {
-  return a.view === b.view && a.calRev === b.calRev && shallowEqualClassFilter(a.classFilter, b.classFilter);
+  return a.view === b.view && a.calRev === b.calRev && a.classFilter === b.classFilter;
 }
 
 export interface IScheduleViewStateService {
@@ -70,7 +64,7 @@ export class ScheduleViewStateService implements IScheduleViewStateService {
 
   setState(s: ScheduleViewState): void {
     if (deepEqual(this._state, s)) return;
-    this._state = { view: s.view, calRev: s.calRev, classFilter: { ...s.classFilter } };
+    this._state = { view: s.view, calRev: s.calRev, classFilter: s.classFilter ?? null };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this._state));
     } catch {
@@ -100,22 +94,11 @@ export function readPersistedScheduleViewState(): ScheduleViewState {
       ) {
         const p = parsed as { view: string; calRev?: unknown; classFilter?: unknown };
         const calRev = typeof p.calRev === 'number' ? p.calRev : 0;
-        // Validate classFilter: must be an object of boolean values; default {} if absent/invalid.
-        let classFilter: Record<string, boolean> = {};
-        if (
-          p.classFilter !== null &&
-          p.classFilter !== undefined &&
-          typeof p.classFilter === 'object' &&
-          !Array.isArray(p.classFilter)
-        ) {
-          const cf = p.classFilter as Record<string, unknown>;
-          const valid: Record<string, boolean> = {};
-          let ok = true;
-          for (const k of Object.keys(cf)) {
-            if (typeof cf[k] !== 'boolean') { ok = false; break; }
-            valid[k] = cf[k] as boolean;
-          }
-          if (ok) classFilter = valid;
+        // Validate classFilter: must be a string (focused class id) or null.
+        // Old Record<string,boolean> shape → falls through to null (all visible).
+        let classFilter: string | null = null;
+        if (typeof p.classFilter === 'string' && p.classFilter.length > 0) {
+          classFilter = p.classFilter;
         }
         return { view: p.view as ScheduleView, calRev, classFilter };
       }
@@ -123,5 +106,5 @@ export function readPersistedScheduleViewState(): ScheduleViewState {
   } catch {
     /* storage unavailable or JSON invalid */
   }
-  return { view: 'week', calRev: 0, classFilter: {} };
+  return { view: 'week', calRev: 0, classFilter: null };
 }
