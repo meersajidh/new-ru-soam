@@ -53,13 +53,13 @@ export default function SettingsMenu() {
   const [reconnectError, setReconnectError] = useState('');
 
   // Telemetry mode — driven by TelemetryModeService.
-  const [telemetryMode, setTelemetryModeState] = useState<TelemetryMode>(
-    () => telemetrySvc.getMode(),
+  const [telemetryMode, setTelemetryModeState] = useState<TelemetryMode>(() =>
+    telemetrySvc.getMode(),
   );
 
   // Schedule refresh settings — driven by ScheduleRefreshSettingsService.
-  const [refreshSettings, setRefreshSettingsState] = useState<RefreshSettings>(
-    () => refreshSettingsSvc.getSettings(),
+  const [refreshSettings, setRefreshSettingsState] = useState<RefreshSettings>(() =>
+    refreshSettingsSvc.getSettings(),
   );
 
   // Appearance state — live-subscribed so active highlight stays in sync.
@@ -134,11 +134,7 @@ export default function SettingsMenu() {
 
   const backButton = (label: string, onClick: () => void) => (
     <div className="settings-panel-header">
-      <button
-        className="settings-back-btn"
-        onClick={onClick}
-        aria-label="Back to Settings menu"
-      >
+      <button className="settings-back-btn" onClick={onClick} aria-label="Back to Settings menu">
         <Icon name="chevron-left" size={13} />
         Back
       </button>
@@ -157,7 +153,7 @@ export default function SettingsMenu() {
           aria-expanded={popover.isOpen}
           title="Settings"
         >
-          <Icon name="settings" size={20} />
+          <Icon name="settings" size={24} />
         </button>
 
         <Popover
@@ -310,9 +306,9 @@ export default function SettingsMenu() {
                 <div className="settings-toggle-row">
                   <div className="settings-toggle-label-group">
                     <span className="settings-toggle-label">Auto-refresh</span>
-                    <span className="settings-toggle-hint">
+                    {/* <span className="settings-toggle-hint">
                       Check your calendars for changes on a timer.
-                    </span>
+                    </span> */}
                   </div>
                   <button
                     role="switch"
@@ -321,7 +317,10 @@ export default function SettingsMenu() {
                     data-on={refreshSettings.mode === 'auto' || undefined}
                     onClick={() => {
                       const next = refreshSettings.mode === 'auto' ? 'manual' : 'auto';
-                      refreshSettingsSvc.setSettings({ mode: next, intervalMin: refreshSettings.intervalMin });
+                      refreshSettingsSvc.setSettings({
+                        mode: next,
+                        intervalMin: refreshSettings.intervalMin,
+                      });
                     }}
                     aria-label="Auto-refresh calendars"
                   >
@@ -340,16 +339,21 @@ export default function SettingsMenu() {
                     <button
                       className="settings-stepper-btn"
                       aria-label="Decrease refresh interval"
-                      disabled={refreshSettings.mode === 'manual' || refreshSettings.intervalMin <= 1}
+                      disabled={
+                        refreshSettings.mode === 'manual' || refreshSettings.intervalMin <= 1
+                      }
                       onClick={() => {
                         const next = Math.max(1, refreshSettings.intervalMin - 1);
-                        refreshSettingsSvc.setSettings({ mode: refreshSettings.mode, intervalMin: next });
+                        refreshSettingsSvc.setSettings({
+                          mode: refreshSettings.mode,
+                          intervalMin: next,
+                        });
                       }}
                     >
                       −
                     </button>
                     <span className="settings-stepper-value" aria-live="polite">
-                      {refreshSettings.intervalMin}
+                      {refreshSettings.intervalMin}m
                     </span>
                     <button
                       className="settings-stepper-btn"
@@ -357,20 +361,20 @@ export default function SettingsMenu() {
                       disabled={refreshSettings.mode === 'manual'}
                       onClick={() => {
                         const next = refreshSettings.intervalMin + 1;
-                        refreshSettingsSvc.setSettings({ mode: refreshSettings.mode, intervalMin: next });
+                        refreshSettingsSvc.setSettings({
+                          mode: refreshSettings.mode,
+                          intervalMin: next,
+                        });
                       }}
                     >
                       +
                     </button>
-                    <span className="settings-stepper-unit">min</span>
+                    {/* <span className="settings-stepper-unit">m</span> */}
                   </div>
                 </div>
-
-                {refreshSettings.mode === 'manual' && (
-                  <p className="settings-analytics-notice">
-                    Refresh manually from the calendar toolbar.
-                  </p>
-                )}
+                <p className="settings-analytics-notice">
+                  Refresh manually from the calendar toolbar.
+                </p>
               </div>
             </>
           )}
@@ -395,9 +399,7 @@ export default function SettingsMenu() {
                       </span>
                       {reconnectLoading ? 'Connecting…' : 'Reconnect to sync'}
                     </button>
-                    {reconnectError && (
-                      <p className="settings-reconnect-error">{reconnectError}</p>
-                    )}
+                    {reconnectError && <p className="settings-reconnect-error">{reconnectError}</p>}
                   </div>
                   <div className="settings-popover-divider" aria-hidden="true" />
                 </>
@@ -442,7 +444,9 @@ export default function SettingsMenu() {
 
               {/* ── Danger Zone ──────────────────────────────────────────────── */}
               <div className="settings-section">
-                <div className="settings-section-label settings-section-label--danger">Danger Zone</div>
+                <div className="settings-section-label settings-section-label--danger">
+                  Danger Zone
+                </div>
                 <button
                   className="settings-danger-btn"
                   role="menuitem"

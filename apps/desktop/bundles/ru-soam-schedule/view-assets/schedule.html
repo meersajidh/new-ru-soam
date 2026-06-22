@@ -8,55 +8,67 @@
     />
     <title>Schedule</title>
     <style>
-
       /* ── Reset ─────────────────────────────────────────────────── */
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+        border: none;
+        background: none;
+      }
 
       /* ── Design tokens (defaults — injected via postMessage from host) ─ */
       :root {
         color-scheme: light dark;
 
-        --font-sans:    'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-        --font-mono:    ui-monospace, Consolas, 'Courier New', monospace;
+        --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
         --font-display: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
         /* Surface */
-        --color-surface-base:     #161618;
-        --color-surface-panel:    #1c1c1f;
+        --color-surface-base: #161618;
+        --color-surface-panel: #1c1c1f;
         --color-surface-elevated: #232326;
-        --color-surface-active:   #2a2d26;
+        --color-surface-active: #2a2d26;
         /* Foreground */
-        --color-fg-primary:   #f2f2f7;
+        --color-fg-primary: #f2f2f7;
         --color-fg-secondary: #aeaeb2;
-        --color-fg-muted:     #636366;
+        --color-fg-muted: #636366;
         /* Borders */
-        --color-border:       #3a3a3c;
+        --color-border: #3a3a3c;
         --color-border-focus: #5ac85a;
         /* Accent */
-        --color-accent:         #5ac85a;
-        --color-accent-fg:      #1c1c1e;
-        --color-accent-hover:   #6bd46b;
+        --color-accent: #5ac85a;
+        --color-accent-fg: #1c1c1e;
+        --color-accent-hover: #6bd46b;
         --color-accent-pressed: #4ab44a;
         /* Semantic */
         --color-success: #5ac85a;
         --color-warning: #f4a623;
-        --color-error:   #e05252;
-        --color-info:    #5ac0de;
+        --color-error: #e05252;
+        --color-info: #5ac0de;
 
-        --radius-sm:   4px;
-        --radius-md:   7px;
+        --radius-sm: 4px;
+        --radius-md: 7px;
         --radius-card: 10px;
 
         --transition: 130ms ease;
 
         /* Time-grid constants */
-        --tg-hour-h:   56px;  /* height of one hour row — MUST match JS HOUR_H */
-        --tg-gutter-w: 64px;  /* width of the left time-label gutter */
+        --tg-hour-h: 56px; /* height of one hour row — MUST match JS HOUR_H */
+        --tg-gutter-w: 64px; /* width of the left time-label gutter */
       }
 
       /* ── Base ──────────────────────────────────────────────────── */
-      html, body {
+      html,
+      body {
         height: 100%;
         overflow: hidden;
         font-family: var(--font-sans);
@@ -90,7 +102,9 @@
         font-size: 11px;
         color: var(--color-fg-muted);
       }
-      #bridge-wait.hidden { display: none; }
+      #bridge-wait.hidden {
+        display: none;
+      }
       .spinner {
         display: inline-block;
         width: 11px;
@@ -100,7 +114,11 @@
         border-radius: 50%;
         animation: spin 0.7s linear infinite;
       }
-      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
       /* ── Work header ───────────────────────────────────────────── */
       .work-header {
@@ -129,7 +147,9 @@
         height: 28px;
         border-radius: var(--radius-sm);
         color: var(--color-fg-secondary);
-        transition: background var(--transition), color var(--transition);
+        transition:
+          background var(--transition),
+          color var(--transition);
         font-size: 14px;
       }
       .nav-btn:hover {
@@ -147,7 +167,10 @@
         font-weight: 500;
         color: var(--color-fg-secondary);
         border: 1px solid var(--color-border);
-        transition: background var(--transition), color var(--transition), border-color var(--transition);
+        transition:
+          background var(--transition),
+          color var(--transition),
+          border-color var(--transition);
       }
       .btn-today:hover {
         background: var(--color-surface-active);
@@ -188,7 +211,9 @@
         font-size: 11.5px;
         font-weight: 500;
         color: var(--color-fg-muted);
-        transition: background var(--transition), color var(--transition);
+        transition:
+          background var(--transition),
+          color var(--transition);
         letter-spacing: 0.01em;
       }
       .view-tab:hover {
@@ -210,13 +235,17 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 28px;
-        height: 28px;
+        width: 24px;
+        height: 24px;
         border-radius: var(--radius-sm);
-        color: var(--color-fg-secondary);
+        /* color: var(--color-fg-secondary); */
+        background: color-mix(in srgb, var(--color-success) 10%, transparent);
+        color: var(--color-success);
         font-size: 16px;
         flex-shrink: 0;
-        transition: background var(--transition), color var(--transition);
+        transition:
+          background var(--transition),
+          color var(--transition);
       }
       .btn-refresh:hover {
         background: var(--color-surface-active);
@@ -226,10 +255,18 @@
         outline: 2px solid var(--color-border-focus);
         outline-offset: 1px;
       }
-      .btn-refresh.spinning > svg { animation: btn-refresh-spin 0.7s linear infinite; }
-      @keyframes btn-refresh-spin { to { transform: rotate(360deg); } }
+      .btn-refresh.spinning > svg {
+        animation: btn-refresh-spin 0.7s linear infinite;
+      }
+      @keyframes btn-refresh-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
-        .btn-refresh.spinning > svg { animation: none; }
+        .btn-refresh.spinning > svg {
+          animation: none;
+        }
       }
       .header-divider {
         width: 1px;
@@ -255,7 +292,9 @@
         overflow: hidden;
         outline: none;
       }
-      #detail-popover.hidden { display: none; }
+      #detail-popover.hidden {
+        display: none;
+      }
 
       .popover-header {
         display: flex;
@@ -296,7 +335,9 @@
         border: none;
         background: none;
         padding: 0;
-        transition: background var(--transition), color var(--transition);
+        transition:
+          background var(--transition),
+          color var(--transition);
       }
       .popover-close:hover {
         background: var(--color-surface-active);
@@ -376,10 +417,10 @@
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        height: 22px;
-        padding: 0 8px;
+        height: 20px;
+        padding: 0 2px;
         border-radius: var(--radius-sm);
-        font-size: 11px;
+        font-size: 14px;
         font-weight: 600;
         color: var(--color-accent);
         border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
@@ -388,8 +429,13 @@
         flex-shrink: 0;
         transition: background var(--transition);
       }
-      .popover-link-btn:hover { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
-      .popover-link-btn:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
+      .popover-link-btn:hover {
+        background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+      }
+      .popover-link-btn:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
 
       /* Participants section */
       .popover-section-label {
@@ -472,10 +518,18 @@
         border: 1px solid var(--color-border);
         background: var(--color-surface-base);
         cursor: pointer;
-        transition: background var(--transition), color var(--transition);
+        transition:
+          background var(--transition),
+          color var(--transition);
       }
-      .popover-side-btn:hover { background: var(--color-surface-active); color: var(--color-fg-primary); }
-      .popover-side-btn:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
+      .popover-side-btn:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
+      .popover-side-btn:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
 
       /* ── Popover backdrop ───────────────────────────────────────── */
       #popover-backdrop {
@@ -484,7 +538,9 @@
         z-index: 199;
         background: transparent;
       }
-      #popover-backdrop.hidden { display: none; }
+      #popover-backdrop.hidden {
+        display: none;
+      }
 
       /* PHI chip — static visual placeholder (P-D wires the real value) */
       .phi-chip {
@@ -567,7 +623,9 @@
         font-size: 12px;
         font-weight: 500;
         cursor: pointer;
-        transition: background var(--transition), opacity var(--transition);
+        transition:
+          background var(--transition),
+          opacity var(--transition);
         border: none;
       }
       .btn:focus-visible {
@@ -582,14 +640,20 @@
         background: var(--color-accent);
         color: var(--color-accent-fg);
       }
-      .btn-accent:hover:not(:disabled) { background: var(--color-accent-hover); }
-      .btn-accent:active:not(:disabled) { background: var(--color-accent-pressed); }
+      .btn-accent:hover:not(:disabled) {
+        background: var(--color-accent-hover);
+      }
+      .btn-accent:active:not(:disabled) {
+        background: var(--color-accent-pressed);
+      }
       .btn-ghost {
         background: transparent;
         color: var(--color-fg-secondary);
         border: 1px solid var(--color-border);
       }
-      .btn-ghost:hover:not(:disabled) { background: var(--color-surface-active); }
+      .btn-ghost:hover:not(:disabled) {
+        background: var(--color-surface-active);
+      }
       .btn-danger {
         background: transparent;
         color: var(--color-error);
@@ -712,7 +776,9 @@
       }
 
       /* Middle: title + modality subline */
-      .event-body { min-width: 0; }
+      .event-body {
+        min-width: 0;
+      }
       .event-title {
         font-size: 13px;
         font-weight: 600;
@@ -832,11 +898,19 @@
         background: color-mix(in srgb, var(--color-info) 10%, transparent);
       }
       /* hide badge on tiny blocks and on unclassified (default state, not worth cluttering) */
-      .tg-event.tiny .tg-event-cls-badge { display: none; }
-      .tg-event-cls-badge.cls-unclassified { display: none; }
+      .tg-event.tiny .tg-event-cls-badge {
+        display: none;
+      }
+      .tg-event-cls-badge.cls-unclassified {
+        display: none;
+      }
       /* title needs breathing room so badge doesn't overlap */
-      .tg-event-title { padding-right: 38px; }
-      .tg-event.tiny .tg-event-title { padding-right: 0; }
+      .tg-event-title {
+        padding-right: 38px;
+      }
+      .tg-event.tiny .tg-event-title {
+        padding-right: 0;
+      }
 
       /* Time-grid event block — thick left bar = calendar color (set inline).
        * Classification no longer drives border color; only the badge carries that signal.
@@ -865,9 +939,15 @@
       }
 
       /* legacy — kept for safety, not used in new agenda layout */
-      .event-strip { display: none; }
-      .event-meta { display: none; }
-      .event-cal-badge { display: none; }
+      .event-strip {
+        display: none;
+      }
+      .event-meta {
+        display: none;
+      }
+      .event-cal-badge {
+        display: none;
+      }
 
       /* ── Time-grid (shared: week + day) ───────────────────────── */
       .tg-root {
@@ -913,14 +993,20 @@
         flex-direction: column;
         gap: 2px;
       }
-      .tg-allday-col:last-child { border-right: none; }
+      .tg-allday-col:last-child {
+        border-right: none;
+      }
       .tg-allday-pill {
         font-size: 10.5px;
         font-weight: 500;
         color: var(--color-fg-primary);
         background: color-mix(in srgb, var(--color-surface-active) 80%, transparent);
         /* --ev-border-color set inline per-pill from event.calendarColor */
-        border-left: 2px solid var(--ev-border-color, color-mix(in srgb, var(--color-accent) 55%, var(--color-fg-muted) 45%));
+        border-left: 2px solid
+          var(
+            --ev-border-color,
+            color-mix(in srgb, var(--color-accent) 55%, var(--color-fg-muted) 45%)
+          );
         border-radius: 3px;
         padding: 2px 5px;
         white-space: nowrap;
@@ -929,7 +1015,9 @@
         cursor: pointer;
         transition: background var(--transition);
       }
-      .tg-allday-pill:hover { background: var(--color-surface-active); }
+      .tg-allday-pill:hover {
+        background: var(--color-surface-active);
+      }
       .tg-allday-pill.is-selected {
         background: color-mix(in srgb, var(--color-accent) 18%, transparent);
         border-left-color: var(--ev-border-color, var(--color-accent));
@@ -955,7 +1043,9 @@
         cursor: default;
         position: relative;
       }
-      .tg-col-header:last-child { border-right: none; }
+      .tg-col-header:last-child {
+        border-right: none;
+      }
       .tg-col-header.is-today {
         background: color-mix(in srgb, var(--color-accent) 6%, transparent);
       }
@@ -1067,7 +1157,9 @@
         border-right: 1px solid color-mix(in srgb, var(--color-border) 35%, transparent);
         min-height: calc(24 * var(--tg-hour-h));
       }
-      .tg-day-col:last-child { border-right: none; }
+      .tg-day-col:last-child {
+        border-right: none;
+      }
       .tg-day-col.is-today {
         background: color-mix(in srgb, var(--color-accent) 3%, transparent);
       }
@@ -1079,14 +1171,24 @@
         right: 4px;
         text-align: left; /* <button> UA default is center — override */
         border-radius: var(--radius-sm);
-        background: color-mix(in srgb, var(--color-surface-active) 70%, var(--color-surface-panel) 30%);
+        background: color-mix(
+          in srgb,
+          var(--color-surface-active) 70%,
+          var(--color-surface-panel) 30%
+        );
         border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
         /* --ev-border-color set inline per-event from event.calendarColor */
-        border-left: 3px solid var(--ev-border-color, color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%));
+        border-left: 3px solid
+          var(
+            --ev-border-color,
+            color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%)
+          );
         padding: 4px 6px;
         cursor: pointer;
         overflow: hidden;
-        transition: background var(--transition), border-color var(--transition);
+        transition:
+          background var(--transition),
+          border-color var(--transition);
         z-index: 1;
         box-shadow: 0 1px 2px color-mix(in srgb, #000 15%, transparent);
       }
@@ -1129,9 +1231,15 @@
         line-height: 1.2;
       }
       /* Hide time label when event block is too short */
-      .tg-event.tiny .tg-event-time { display: none; }
-      .tg-event.tiny .tg-event-title { font-size: 10.5px; }
-      .tg-event.tiny .tg-event-participant { display: none; }
+      .tg-event.tiny .tg-event-time {
+        display: none;
+      }
+      .tg-event.tiny .tg-event-title {
+        font-size: 10.5px;
+      }
+      .tg-event.tiny .tg-event-participant {
+        display: none;
+      }
 
       /* Now-line */
       .tg-now-line {
@@ -1211,7 +1319,9 @@
         color: var(--color-fg-muted);
         border-right: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
       }
-      .month-weekday-label:last-child { border-right: none; }
+      .month-weekday-label:last-child {
+        border-right: none;
+      }
       .month-grid {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
@@ -1229,7 +1339,9 @@
         flex-direction: column;
         gap: 4px;
       }
-      .month-cell:nth-child(7n) { border-right: none; }
+      .month-cell:nth-child(7n) {
+        border-right: none;
+      }
       .month-cell.is-outside {
         background: color-mix(in srgb, var(--color-surface-panel) 40%, transparent);
         opacity: 0.55;
@@ -1277,10 +1389,15 @@
         height: 5px;
         border-radius: 50%;
         /* --cal-color set inline per-pill from event.calendarColor */
-        background: var(--cal-color, color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%));
+        background: var(
+          --cal-color,
+          color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%)
+        );
         flex-shrink: 0;
       }
-      .month-event-pill:hover { background: var(--color-surface-active); }
+      .month-event-pill:hover {
+        background: var(--color-surface-active);
+      }
       .month-event-pill.is-selected {
         background: color-mix(in srgb, var(--color-accent) 18%, transparent);
       }
@@ -1293,7 +1410,6 @@
         color: var(--color-fg-muted);
         padding: 1px 2px;
       }
-
 
       /* ── Day view — centered column ─────────────────────────────── */
       /* Wrap everything in day view with max-width + centering via inner wrapper */
@@ -1361,7 +1477,6 @@
         padding: 8px 0 24px;
       }
 
-
       /* ── No-events empty ───────────────────────────────────────── */
       .no-events {
         padding: 32px 16px;
@@ -1381,13 +1496,11 @@
         font-size: 12px;
         color: var(--color-fg-muted);
       }
-
     </style>
   </head>
   <body>
     <div id="bridge-wait"><span class="spinner"></span> Connecting…</div>
-    <div id="root" style="display:none">
-
+    <div id="root" style="display: none">
       <!-- Work header -->
       <div class="work-header">
         <div class="date-nav">
@@ -1399,14 +1512,22 @@
         <div class="phi-chip" title="PHI Safety Score — high (read-only provider, no cloud sync)">
           <span class="phi-chip-dot"></span>High PHI safety
         </div>
+        <span class="header-divider" aria-hidden="true"></span>
         <div class="view-switcher" id="view-switcher">
           <button class="view-tab" data-view="agenda" type="button">Agenda</button>
-          <button class="view-tab" data-view="day"    type="button">Day</button>
-          <button class="view-tab" data-view="week"   type="button">Week</button>
-          <button class="view-tab" data-view="month"  type="button">Month</button>
+          <button class="view-tab" data-view="day" type="button">Day</button>
+          <button class="view-tab" data-view="week" type="button">Week</button>
+          <button class="view-tab" data-view="month" type="button">Month</button>
         </div>
         <span class="header-divider" aria-hidden="true"></span>
-        <button class="btn-refresh" id="btn-refresh" type="button" title="Refresh calendar" aria-label="Refresh calendar"></button>
+        <button
+          class="btn-refresh"
+          id="btn-refresh"
+          type="button"
+          title="Refresh calendar"
+          aria-label="Refresh calendar"
+        ></button>
+        <span class="header-divider" aria-hidden="true"></span>
       </div>
 
       <!-- Dynamic calendar area -->
@@ -1416,673 +1537,991 @@
       <div id="popover-backdrop" class="hidden"></div>
 
       <!-- Inline event detail popover -->
-      <div id="detail-popover" class="hidden" role="dialog" aria-modal="true" aria-label="Event detail" tabindex="-1">
+      <div
+        id="detail-popover"
+        class="hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Event detail"
+        tabindex="-1"
+      >
         <div class="popover-header">
           <div class="popover-kind-strip" id="pop-strip"></div>
           <div class="popover-title" id="pop-title"></div>
-          <div class="event-kind-badge" id="pop-cls-badge" style="flex-shrink:0;align-self:center"></div>
+          <div
+            class="event-kind-badge"
+            id="pop-cls-badge"
+            style="flex-shrink: 0; align-self: center"
+          ></div>
           <button class="popover-close" id="pop-close" type="button" aria-label="Close"></button>
         </div>
         <div class="popover-body" id="pop-body"></div>
       </div>
-
     </div>
 
-
     <script>
-    (function () {
-      'use strict';
+      (function () {
+        'use strict';
 
-      /* ── Icon helper ─────────────────────────────────────────────── */
-      var ICON_MAP = {
-        'calendar':       'calendar',
-        'clock':          'clockface',
-        'calendar-x':     'calendar',
-        'wifi-off':       'debug-disconnect',
-        'alert-circle':   'warning',
-        'check-circle':   'pass',
-        'chevron-right':  'chevron-right',
-        'x':              'close',
-        'link':           'link',
-        'layers':         'layers',
-        'hourglass':      'watch',
-        'location':       'location',
-        'globe':          'globe',
-        'person':         'account',
-        'organization':   'organization',
-        'copy':           'copy',
-        'check':          'check',
-        'refresh':        'refresh',
-      };
-      function icon(name, size) {
-        var n = ICON_MAP[name] || name;
-        return window.codicon ? window.codicon(n, size || 13) : '';
-      }
-
-      /* ── Date utilities ──────────────────────────────────────────── */
-      var DAY_NAMES_SHORT  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      var DAY_NAMES_FULL   = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      var MONTH_NAMES      = ['January','February','March','April','May','June',
-                              'July','August','September','October','November','December'];
-      var MONTH_NAMES_SHORT = ['Jan','Feb','Mar','Apr','May','Jun',
-                               'Jul','Aug','Sep','Oct','Nov','Dec'];
-
-      function addDays(d, n) {
-        var r = new Date(d);
-        r.setDate(d.getDate() + n);
-        return r;
-      }
-
-      function startOfWeek(d) { // Monday-anchored
-        var day = d.getDay();
-        var diff = (day === 0) ? -6 : 1 - day;
-        var mon = new Date(d);
-        mon.setDate(d.getDate() + diff);
-        mon.setHours(0, 0, 0, 0);
-        return mon;
-      }
-
-      function startOfDay(d) {
-        var r = new Date(d);
-        r.setHours(0, 0, 0, 0);
-        return r;
-      }
-
-      function startOfMonth(d) {
-        return new Date(d.getFullYear(), d.getMonth(), 1);
-      }
-      function endOfMonth(d) {
-        return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
-      }
-
-      function isToday(d) {
-        var now = new Date();
-        return d.getFullYear() === now.getFullYear()
-          && d.getMonth() === now.getMonth()
-          && d.getDate() === now.getDate();
-      }
-
-      function sameDay(a, b) {
-        return a.getFullYear() === b.getFullYear()
-          && a.getMonth() === b.getMonth()
-          && a.getDate() === b.getDate();
-      }
-
-      function fmtTime(isoStr) {
-        if (!isoStr || isoStr.length <= 10) return 'All day';
-        try {
-          return new Date(isoStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } catch (e) { return isoStr; }
-      }
-
-      function fmtTimeRange(ev) {
-        if (ev.allDay) return 'All day';
-        return fmtTime(ev.start) + ' – ' + fmtTime(ev.end);
-      }
-
-      // Parse a date out of either a date-string "YYYY-MM-DD" or ISO datetime.
-      function evDate(isoStr, allDay) {
-        if (!isoStr) return new Date(NaN);
-        if (allDay) return new Date(isoStr + 'T00:00:00');
-        return new Date(isoStr);
-      }
-
-      // Minutes since midnight for a datetime string (never called on allDay).
-      function minOfDay(isoStr) {
-        var d = new Date(isoStr);
-        return d.getHours() * 60 + d.getMinutes();
-      }
-
-      // Format duration in minutes as "X hr Y min" or "X min".
-      function fmtDuration(minutes) {
-        if (minutes <= 0) return '';
-        var h = Math.floor(minutes / 60);
-        var m = minutes % 60;
-        if (h > 0 && m > 0) return h + ' hr ' + m + ' min';
-        if (h > 0) return h === 1 ? '1 hr' : h + ' hr';
-        return m + ' min';
-      }
-
-      /* ── State ───────────────────────────────────────────────────── */
-      var connected      = false;
-      var connecting     = false;
-      var loadError      = null;
-      var events         = [];
-      var offset         = 0;       // week/day/month offset from today
-      var view           = 'week';  // 'agenda' | 'day' | 'week' | 'month'
-      /* calRev: last-seen value from scheduleViewState channel.
-       * When calRev changes on an inbound state push, re-fetch listAggregatedEvents.
-       * Calendar selection (which calendars are visible) is now persisted server-side
-       * in the calendar table — filtered by listAggregatedEvents, not client-side. */
-      var _lastCalRev    = 0;
-      /* classFilter: last-seen value from scheduleViewState channel.
-       * null = all visible (default); string = show only that classification id.
-       * Client-side render filter — never triggers a network refetch. */
-      var _classFilter   = null;
-      var _lastClassFilter = null;
-      var selectedId     = null;
-      var queryCap       = null;  // schedule.calendar.query@1.0 (bindQuery)
-      var cmdCap         = null;  // schedule.calendar@1.0       (bindCommand)
-      var sessionsQuery  = null;  // sessions.meeting.query@1.0  (bindQuery) — optional
-      var recordQuery    = null;  // record.patient.query@1.0    (bindQuery) — optional
-      var _loadSeq       = 0;     // stale-response race guard; incremented per classify pass
-      var _soamView      = null;
-      /* __viewQuery observer lifecycle.
-       * _eventsObserver: active QueryObserver for the current WINDOW (month-grid).
-       * _eventsDataUpdatedAt: timestamp of last data we painted — gates scroll-jump-safe
-       *   re-render (only call renderCalArea when data actually changed, never on
-       *   status-only ticks with unchanged data, to preserve scroll-to-7AM position).
-       * _currentWindowKey: '[winFromISO,winToISO]' string — if view-switch lands in the
-       *   same window, skip the fetch and re-render client-side only.
-       * _calVisibility: Map<calendarId, bool> sourced from listAddedCalendars; updated on
-       *   calRev change without refetch (toggling selected is client-side only).
-       * _addedCalIds: sorted comma-joined string of all added calendarIds — change means
-       *   a calendar was ADDED or REMOVED (not just toggled), which requires a refetch. */
-      var _eventsObserver      = null;
-      var _eventsDataUpdatedAt = 0;
-      var _currentWindowKey    = '';
-      var _calVisibility       = {};   // calendarId → bool (true = visible)
-      var _addedCalIds         = '';   // sorted calendarIds joined — change = refetch
-
-      /* ── Refresh settings + poller state ─────────────────────────── */
-      var _refreshMode        = 'manual'; // 'auto' | 'manual'
-      var _refreshIntervalMin = 15;
-      var _refreshTimer       = null;
-
-      /* ── Aux sidebar visibility ───────────────────────────────────── */
-      var _auxVisible = false;
-
-      /* ── View activation state (gates the auto-refresh poller) ──────── */
-      var _viewActive = false;
-
-      /* ── Event popover state ──────────────────────────────────────── */
-      var _popoverEv  = null; // event object currently shown in popover (null = closed)
-
-      /* ── DOM refs ─────────────────────────────────────────────────── */
-      var elBridgeWait  = document.getElementById('bridge-wait');
-      var elRoot        = document.getElementById('root');
-      var elRangeLabel  = document.getElementById('range-label');
-      var elCalArea     = document.getElementById('cal-area');
-      var elBtnPrev     = document.getElementById('btn-prev');
-      var elBtnNext     = document.getElementById('btn-next');
-      var elBtnToday    = document.getElementById('btn-today');
-      var elViewSwitch  = document.getElementById('view-switcher');
-      var elBtnRefresh  = document.getElementById('btn-refresh');
-
-      /* Event-detail popover DOM refs (static markup) */
-      var elBackdrop    = document.getElementById('popover-backdrop');
-      var elPopover     = document.getElementById('detail-popover');
-      var elPopTitle    = document.getElementById('pop-title');
-      var elPopStrip    = document.getElementById('pop-strip');
-      var elPopClsBadge = document.getElementById('pop-cls-badge');
-      var elPopClose    = document.getElementById('pop-close');
-      var elPopBody     = document.getElementById('pop-body');
-
-      /* ── Classification map (SD-11) ─────────────────────────────── */
-      /* ev.classification is a DERIVED PROJECTION — never stored, never sent to provider. */
-      var CLS_CLASS = {
-        'client_session':          'cls-client',
-        'probable_client_session': 'cls-probable',
-        'not_client_session':      'cls-not',
-        'personal':                'cls-personal',
-        'unclassified':            'cls-unclassified',
-      };
-      function classClass(ev) {
-        var c = (ev && ev.classification) || 'unclassified';
-        return CLS_CLASS[c] || 'cls-unclassified';
-      }
-
-      /* ── Classification label for badge ─────────────────────────── */
-      var CLS_LABEL = {
-        'client_session':          'CLIENT',
-        'probable_client_session': 'PROBABLE',
-        'not_client_session':      'EXCLUDED',
-        'personal':                'PERSONAL',
-        'unclassified':            'UNCLASSIFIED',
-      };
-      function classLabel(ev) {
-        var c = (ev && ev.classification) || 'unclassified';
-        return CLS_LABEL[c] || 'UNCLASSIFIED';
-      }
-
-      /* ── Classification counts publisher ────────────────────────── */
-      /* Counts events within the current visible range (rangeForView) ∩ visible       *
-       * calendar. Independent of classFilter — filter only hides, counts are raw.     *
-       * All 5 classification ids always present (0 if none). Published after every    *
-       * classify pass or calendar-visibility change via soamView.setScheduleCounts.   */
-      var CLS_IDS = ['client_session', 'probable_client_session', 'not_client_session', 'personal', 'unclassified'];
-      function publishCounts() {
-        if (!_soamView || !_soamView.setScheduleCounts) return;
-        var counts = {};
-        CLS_IDS.forEach(function (id) { counts[id] = 0; });
-        var range = rangeForView();
-        var fromMs = range.from.getTime();
-        var toMs   = range.to.getTime();
-        events.forEach(function (ev) {
-          /* Skip calendars toggled off client-side. */
-          if (_calVisibility[ev.calendarId] === false) return;
-          /* Only count events in the visible range. */
-          var evMs = new Date(ev.start).getTime();
-          if (evMs < fromMs || evMs >= toMs) return;
-          var c = ev.classification || 'unclassified';
-          if (counts[c] !== undefined) counts[c]++;
-          else counts['unclassified']++;
-        });
-        _soamView.setScheduleCounts(counts);
-      }
-
-      /* ── Range computation ───────────────────────────────────────── */
-      function rangeForView() {
-        var base = new Date();
-        var from, to, label;
-        if (view === 'agenda') {
-          /* Rolling 7-day window: today (or offset * 7 days from today) → +6 days. */
-          from = startOfDay(new Date());
-          from = addDays(from, offset * 7);
-          to   = addDays(from, 7);
-          var toInc = addDays(to, -1);
-          if (offset === 0) {
-            label = 'Next 7 days';
-          } else if (from.getMonth() === toInc.getMonth() && from.getFullYear() === toInc.getFullYear()) {
-            label = from.getDate() + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES[from.getMonth()] + ' ' + from.getFullYear();
-          } else if (from.getFullYear() === toInc.getFullYear()) {
-            label = from.getDate() + ' ' + MONTH_NAMES_SHORT[from.getMonth()] + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES_SHORT[toInc.getMonth()] + ' ' + from.getFullYear();
-          } else {
-            label = from.getDate() + ' ' + MONTH_NAMES_SHORT[from.getMonth()] + ' ' + from.getFullYear() + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES_SHORT[toInc.getMonth()] + ' ' + toInc.getFullYear();
-          }
-        } else if (view === 'week') {
-          base.setDate(base.getDate() + offset * 7);
-          from = startOfWeek(base);
-          to   = addDays(from, 7);
-          var toInc = addDays(to, -1);
-          // "15 – 21 June 2026" — collapse month/year when shared
-          if (from.getMonth() === toInc.getMonth() && from.getFullYear() === toInc.getFullYear()) {
-            label = from.getDate() + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES[from.getMonth()] + ' ' + from.getFullYear();
-          } else if (from.getFullYear() === toInc.getFullYear()) {
-            label = from.getDate() + ' ' + MONTH_NAMES_SHORT[from.getMonth()] + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES_SHORT[toInc.getMonth()] + ' ' + from.getFullYear();
-          } else {
-            label = from.getDate() + ' ' + MONTH_NAMES_SHORT[from.getMonth()] + ' ' + from.getFullYear() + ' – ' + toInc.getDate() + ' ' + MONTH_NAMES_SHORT[toInc.getMonth()] + ' ' + toInc.getFullYear();
-          }
-        } else if (view === 'day') {
-          base.setDate(base.getDate() + offset);
-          from = startOfDay(base);
-          to   = addDays(from, 1);
-          // "Wednesday, 17 June"
-          label = DAY_NAMES_FULL[from.getDay()] + ', ' + from.getDate() + ' ' + MONTH_NAMES[from.getMonth()];
-        } else { // month
-          base.setMonth(base.getMonth() + offset);
-          from = startOfMonth(base);
-          to   = new Date(endOfMonth(base).getTime() + 1);
-          label = MONTH_NAMES[from.getMonth()] + ' ' + from.getFullYear();
-        }
-        return { from: from, to: to, label: label };
-      }
-
-      /* ── Events for a date ───────────────────────────────────────── */
-      /* Calendar visibility filtered client-side via _calVisibility (sourced from
-       * listAddedCalendars; updated on calRev without refetch when only selected
-       * flags changed). classFilter: missing key = visible; explicit false = hidden. */
-      function isClassVisible(ev) {
-        /* null (or any falsy) = all visible. string = show only that class. */
-        if (!_classFilter) return true;
-        var cls = ev.classification || 'unclassified';
-        return cls === _classFilter;
-      }
-      function isCalVisible(ev) {
-        /* A missing key means visible (defensive); explicit false hides. */
-        return _calVisibility[ev.calendarId] !== false;
-      }
-      function eventsForDay(d) {
-        return events.filter(function (ev) {
-          var evD = evDate(ev.start, ev.allDay);
-          return sameDay(evD, d) && isCalVisible(ev) && isClassVisible(ev);
-        }).sort(function (a, b) {
-          if (a.allDay && !b.allDay) return -1;
-          if (!a.allDay && b.allDay) return 1;
-          return new Date(a.start) - new Date(b.start);
-        });
-      }
-
-      /* ── Render helpers ──────────────────────────────────────────── */
-      function el(tag, cls) {
-        var e = document.createElement(tag);
-        if (cls) e.className = cls;
-        return e;
-      }
-      function txt(tag, cls, text) {
-        var e = el(tag, cls);
-        e.textContent = text;
-        return e;
-      }
-
-      /* Derive modality subline from ev.meetingLink / ev.location */
-      function modalitySubline(ev) {
-        if (ev.meetingLink) {
-          var u = (ev.meetingLink || '').toLowerCase();
-          if (u.indexOf('meet.google.com') !== -1) return 'Online · Google Meet';
-          if (u.indexOf('zoom.us') !== -1 || u.indexOf('zoom.com') !== -1) return 'Online · Zoom';
-          return 'Online · Video call';
-        }
-        if (ev.location) return 'In person · ' + ev.location;
-        return '';
-      }
-
-      /* Format short time range for agenda e.g. "9–9:50" or "All day" */
-      function fmtTimeShort(ev) {
-        if (ev.allDay || !ev.start || ev.start.length <= 10) return 'All day';
-        function fmt(iso) {
-          var d = new Date(iso);
-          var h = d.getHours();
-          var m = d.getMinutes();
-          return h + (m ? ':' + (m < 10 ? '0' + m : m) : '');
-        }
-        var s = fmt(ev.start);
-        var e = ev.end ? fmt(ev.end) : '';
-        return e ? s + '–' + e : s;
-      }
-
-      function makeEventCard(ev) {
-        var isAllDay = ev.allDay || (!ev.start || ev.start.length <= 10);
-        var card = el('div', 'event-card' + (ev.id === selectedId ? ' is-selected' : ''));
-        card.dataset.evId = ev.id;
-        /* Calendar-color tint: low-alpha wash under SD-19 classification border/badges. */
-        if (ev.calendarColor) {
-          card.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
+        /* ── Icon helper ─────────────────────────────────────────────── */
+        var ICON_MAP = {
+          calendar: 'calendar',
+          clock: 'clockface',
+          'calendar-x': 'calendar',
+          'wifi-off': 'debug-disconnect',
+          'alert-circle': 'warning',
+          'check-circle': 'pass',
+          'chevron-right': 'chevron-right',
+          x: 'close',
+          link: 'link',
+          layers: 'layers',
+          hourglass: 'watch',
+          location: 'location',
+          globe: 'globe',
+          person: 'account',
+          organization: 'organization',
+          copy: 'copy',
+          check: 'check',
+          refresh: 'refresh',
+        };
+        function icon(name, size) {
+          var n = ICON_MAP[name] || name;
+          return window.codicon ? window.codicon(n, size || 13) : '';
         }
 
-        /* Left: time */
-        var timeCol = txt('div', 'event-time-col' + (isAllDay ? ' allday-label' : ''), fmtTimeShort(ev));
-        card.appendChild(timeCol);
+        /* ── Date utilities ──────────────────────────────────────────── */
+        var DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        var DAY_NAMES_FULL = [
+          'Sunday',
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+        ];
+        var MONTH_NAMES = [
+          'January',
+          'February',
+          'March',
+          'April',
+          'May',
+          'June',
+          'July',
+          'August',
+          'September',
+          'October',
+          'November',
+          'December',
+        ];
+        var MONTH_NAMES_SHORT = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
 
-        /* Middle: title + modality */
-        var body = el('div', 'event-body');
-        body.appendChild(txt('div', 'event-title', ev.title || '(No title)'));
-        var subline = modalitySubline(ev);
-        if (subline) body.appendChild(txt('div', 'event-modality', subline));
-        card.appendChild(body);
-
-        /* Right: classification badge (SD-11) */
-        var badge = txt('div', 'event-kind-badge ' + classClass(ev), classLabel(ev));
-        card.appendChild(badge);
-
-        card.addEventListener('click', function (e) {
-          e.stopPropagation();
-          setSelection(ev.id);
-          if (_auxVisible) {
-            if (_soamView) _soamView.setActiveEvent(ev);
-          } else {
-            openPopover(ev, card);
-          }
-        });
-        return card;
-      }
-
-      /* ── View: Agenda ────────────────────────────────────────────── */
-      function renderAgenda(range) {
-        var shell = el('div', 'agenda-card-shell');
-        var wrap = el('div', 'agenda-scroll');
-
-        // Build day buckets for the 7-day range.
-        var days = [];
-        var cur = new Date(range.from);
-        while (cur < range.to) {
-          days.push(new Date(cur));
-          cur = addDays(cur, 1);
+        function addDays(d, n) {
+          var r = new Date(d);
+          r.setDate(d.getDate() + n);
+          return r;
         }
 
-        var hasAny = false;
-        days.forEach(function (d) {
-          var dayEvs = eventsForDay(d);
-          if (dayEvs.length > 0) hasAny = true;
-
-          var grp = el('div', 'day-group');
-          var hdr = el('div', 'day-header');
-          var numEl = txt('span', 'day-num' + (isToday(d) ? ' is-today' : ''), d.getDate().toString());
-          var wdEl  = txt('span', 'day-weekday', DAY_NAMES_SHORT[d.getDay()]);
-          var moEl  = txt('span', 'day-month', MONTH_NAMES_SHORT[d.getMonth()]);
-          hdr.appendChild(numEl);
-          hdr.appendChild(wdEl);
-          hdr.appendChild(moEl);
-          grp.appendChild(hdr);
-
-          var evBox = el('div', 'day-events');
-          if (dayEvs.length === 0) {
-            var empty = txt('div', 'day-empty', 'No events');
-            grp.appendChild(empty);
-          } else {
-            dayEvs.forEach(function (ev) {
-              evBox.appendChild(makeEventCard(ev));
-            });
-            grp.appendChild(evBox);
-          }
-          wrap.appendChild(grp);
-        });
-
-        if (!hasAny) {
-          var noEv = txt('div', 'no-events', 'No events in this period.');
-          wrap.appendChild(noEv);
+        function startOfWeek(d) {
+          // Monday-anchored
+          var day = d.getDay();
+          var diff = day === 0 ? -6 : 1 - day;
+          var mon = new Date(d);
+          mon.setDate(d.getDate() + diff);
+          mon.setHours(0, 0, 0, 0);
+          return mon;
         }
-        shell.appendChild(wrap);
-        return shell;
-      }
 
-      /* ── Time-grid shared builder ────────────────────────────────── */
-      // hourHeight in px — MUST equal CSS --tg-hour-h (56px). Both change together.
-      var HOUR_H = 56;
-      var MIN_BLOCK_H = 22; // minimum block height in px
-      var SCROLL_TO_HOUR = 7; // scroll viewport to show 7 AM on load
+        function startOfDay(d) {
+          var r = new Date(d);
+          r.setHours(0, 0, 0, 0);
+          return r;
+        }
 
-      // Greedy lane-packing: group overlapping timed events into lanes.
-      // Returns array of { ev, lane, totalLanes }.
-      function packLanes(timedEvs) {
-        // Sort by start time.
-        var sorted = timedEvs.slice().sort(function (a, b) {
-          return new Date(a.start) - new Date(b.start);
-        });
-        // Each group = set of mutually-overlapping events.
-        var result = [];
-        var groups = []; // [{end, lanes: [{ev,endMin}]}]
+        function startOfMonth(d) {
+          return new Date(d.getFullYear(), d.getMonth(), 1);
+        }
+        function endOfMonth(d) {
+          return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+        }
 
-        sorted.forEach(function (ev) {
-          var startMin = minOfDay(ev.start);
-          var endMin   = ev.end ? minOfDay(ev.end) : startMin + 60;
-          if (endMin <= startMin) endMin = startMin + 30;
+        function isToday(d) {
+          var now = new Date();
+          return (
+            d.getFullYear() === now.getFullYear() &&
+            d.getMonth() === now.getMonth() &&
+            d.getDate() === now.getDate()
+          );
+        }
 
-          // Find a group where this event overlaps with at least one existing event.
-          var placed = false;
-          for (var gi = 0; gi < groups.length; gi++) {
-            var grp = groups[gi];
-            // Overlaps group if startMin < group's latest end.
-            if (startMin < grp.maxEnd) {
-              // Find a free lane within this group.
-              var laneIdx = -1;
-              for (var li = 0; li < grp.lanes.length; li++) {
-                if (grp.lanes[li].endMin <= startMin) {
-                  laneIdx = li;
-                  break;
-                }
-              }
-              if (laneIdx === -1) {
-                laneIdx = grp.lanes.length;
-                grp.lanes.push({ endMin: endMin });
-              } else {
-                grp.lanes[laneIdx].endMin = endMin;
-              }
-              grp.maxEnd = Math.max(grp.maxEnd, endMin);
-              result.push({ ev: ev, groupIdx: gi, lane: laneIdx, endMin: endMin });
-              placed = true;
-              break;
-            }
+        function sameDay(a, b) {
+          return (
+            a.getFullYear() === b.getFullYear() &&
+            a.getMonth() === b.getMonth() &&
+            a.getDate() === b.getDate()
+          );
+        }
+
+        function fmtTime(isoStr) {
+          if (!isoStr || isoStr.length <= 10) return 'All day';
+          try {
+            return new Date(isoStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          } catch (e) {
+            return isoStr;
           }
-          if (!placed) {
-            groups.push({ maxEnd: endMin, lanes: [{ endMin: endMin }] });
-            result.push({ ev: ev, groupIdx: groups.length - 1, lane: 0, endMin: endMin });
-          }
-        });
+        }
 
-        // Second pass: annotate totalLanes per group.
-        return result.map(function (item) {
-          return {
-            ev:         item.ev,
-            lane:       item.lane,
-            totalLanes: groups[item.groupIdx].lanes.length,
-          };
-        });
-      }
+        function fmtTimeRange(ev) {
+          if (ev.allDay) return 'All day';
+          return fmtTime(ev.start) + ' – ' + fmtTime(ev.end);
+        }
 
-      // Build a single day column's timed events (used by both week + day grids).
-      function buildTimedEvents(timedEvs, colEl, dayDate) {
-        var packed = packLanes(timedEvs);
-        packed.forEach(function (item) {
-          var ev = item.ev;
-          var startMin = minOfDay(ev.start);
-          var endMin   = ev.end ? minOfDay(ev.end) : startMin + 60;
-          if (endMin <= startMin) endMin = startMin + 30;
-          var durationMin = endMin - startMin;
+        // Parse a date out of either a date-string "YYYY-MM-DD" or ISO datetime.
+        function evDate(isoStr, allDay) {
+          if (!isoStr) return new Date(NaN);
+          if (allDay) return new Date(isoStr + 'T00:00:00');
+          return new Date(isoStr);
+        }
 
-          var topPx = (startMin / 60) * HOUR_H;
-          var hPx   = Math.max(MIN_BLOCK_H, (durationMin / 60) * HOUR_H);
+        // Minutes since midnight for a datetime string (never called on allDay).
+        function minOfDay(isoStr) {
+          var d = new Date(isoStr);
+          return d.getHours() * 60 + d.getMinutes();
+        }
 
-          // Lane positioning: divide column width among lanes.
-          var laneW = 100 / item.totalLanes;
-          var leftPct  = item.lane * laneW;
-          var rightPct = 100 - (item.lane + 1) * laneW;
+        // Format duration in minutes as "X hr Y min" or "X min".
+        function fmtDuration(minutes) {
+          if (minutes <= 0) return '';
+          var h = Math.floor(minutes / 60);
+          var m = minutes % 60;
+          if (h > 0 && m > 0) return h + ' hr ' + m + ' min';
+          if (h > 0) return h === 1 ? '1 hr' : h + ' hr';
+          return m + ' min';
+        }
 
-          var block = el('button', 'tg-event ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : '') + (hPx < 30 ? ' tiny' : ''));
-          block.type = 'button';
-          block.dataset.evId = ev.id;
-          block.style.top    = topPx + 'px';
-          block.style.height = hPx + 'px';
-          /* Calendar-color: thick left border + low-alpha background tint. */
-          if (ev.calendarColor) {
-            block.style.setProperty('--ev-border-color', ev.calendarColor);
-            block.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
-          }
-          // Override left/right with lane percentages when multiple lanes.
-          if (item.totalLanes > 1) {
-            block.style.left  = 'calc(' + leftPct + '% + 3px)';
-            block.style.right = 'calc(' + rightPct + '% + 3px)';
-          }
+        /* ── State ───────────────────────────────────────────────────── */
+        var connected = false;
+        var connecting = false;
+        var loadError = null;
+        var events = [];
+        var offset = 0; // week/day/month offset from today
+        var view = 'week'; // 'agenda' | 'day' | 'week' | 'month'
+        /* calRev: last-seen value from scheduleViewState channel.
+         * When calRev changes on an inbound state push, re-fetch listAggregatedEvents.
+         * Calendar selection (which calendars are visible) is now persisted server-side
+         * in the calendar table — filtered by listAggregatedEvents, not client-side. */
+        var _lastCalRev = 0;
+        /* classFilter: last-seen value from scheduleViewState channel.
+         * null = all visible (default); string = show only that classification id.
+         * Client-side render filter — never triggers a network refetch. */
+        var _classFilter = null;
+        var _lastClassFilter = null;
+        var selectedId = null;
+        var queryCap = null; // schedule.calendar.query@1.0 (bindQuery)
+        var cmdCap = null; // schedule.calendar@1.0       (bindCommand)
+        var sessionsQuery = null; // sessions.meeting.query@1.0  (bindQuery) — optional
+        var recordQuery = null; // record.patient.query@1.0    (bindQuery) — optional
+        var _loadSeq = 0; // stale-response race guard; incremented per classify pass
+        var _soamView = null;
+        /* __viewQuery observer lifecycle.
+         * _eventsObserver: active QueryObserver for the current WINDOW (month-grid).
+         * _eventsDataUpdatedAt: timestamp of last data we painted — gates scroll-jump-safe
+         *   re-render (only call renderCalArea when data actually changed, never on
+         *   status-only ticks with unchanged data, to preserve scroll-to-7AM position).
+         * _currentWindowKey: '[winFromISO,winToISO]' string — if view-switch lands in the
+         *   same window, skip the fetch and re-render client-side only.
+         * _calVisibility: Map<calendarId, bool> sourced from listAddedCalendars; updated on
+         *   calRev change without refetch (toggling selected is client-side only).
+         * _addedCalIds: sorted comma-joined string of all added calendarIds — change means
+         *   a calendar was ADDED or REMOVED (not just toggled), which requires a refetch. */
+        var _eventsObserver = null;
+        var _eventsDataUpdatedAt = 0;
+        var _currentWindowKey = '';
+        var _calVisibility = {}; // calendarId → bool (true = visible)
+        var _addedCalIds = ''; // sorted calendarIds joined — change = refetch
 
-          var timeEl = txt('div', 'tg-event-time', fmtTime(ev.start));
-          var titleEl = el('div', 'tg-event-title');
-          /* Modality icon inline after title text (omit on tiny) */
-          if (hPx >= 30) {
-            var modalityIconHtml = '';
-            if (ev.meetingLink) {
-              modalityIconHtml = icon('device-camera-video', 11);
-            } else if (ev.location) {
-              modalityIconHtml = icon('location', 11);
-            }
-            if (modalityIconHtml) {
-              // Title via textContent (never innerHTML — it's user/PHI calendar
-              // data and may contain < or &); icon span built separately.
-              var tSpan = document.createElement('span');
-              tSpan.style.verticalAlign = 'middle';
-              tSpan.textContent = ev.title || '(No title)';
-              var iSpan = document.createElement('span');
-              iSpan.style.cssText = 'vertical-align:middle;margin-left:4px;opacity:0.65';
-              iSpan.innerHTML = modalityIconHtml; // our own generated SVG
-              titleEl.appendChild(tSpan);
-              titleEl.appendChild(iSpan);
+        /* ── Refresh settings + poller state ─────────────────────────── */
+        var _refreshMode = 'manual'; // 'auto' | 'manual'
+        var _refreshIntervalMin = 15;
+        var _refreshTimer = null;
+
+        /* ── Aux sidebar visibility ───────────────────────────────────── */
+        var _auxVisible = false;
+
+        /* ── View activation state (gates the auto-refresh poller) ──────── */
+        var _viewActive = false;
+
+        /* ── Event popover state ──────────────────────────────────────── */
+        var _popoverEv = null; // event object currently shown in popover (null = closed)
+
+        /* ── DOM refs ─────────────────────────────────────────────────── */
+        var elBridgeWait = document.getElementById('bridge-wait');
+        var elRoot = document.getElementById('root');
+        var elRangeLabel = document.getElementById('range-label');
+        var elCalArea = document.getElementById('cal-area');
+        var elBtnPrev = document.getElementById('btn-prev');
+        var elBtnNext = document.getElementById('btn-next');
+        var elBtnToday = document.getElementById('btn-today');
+        var elViewSwitch = document.getElementById('view-switcher');
+        var elBtnRefresh = document.getElementById('btn-refresh');
+
+        /* Event-detail popover DOM refs (static markup) */
+        var elBackdrop = document.getElementById('popover-backdrop');
+        var elPopover = document.getElementById('detail-popover');
+        var elPopTitle = document.getElementById('pop-title');
+        var elPopStrip = document.getElementById('pop-strip');
+        var elPopClsBadge = document.getElementById('pop-cls-badge');
+        var elPopClose = document.getElementById('pop-close');
+        var elPopBody = document.getElementById('pop-body');
+
+        /* ── Classification map (SD-11) ─────────────────────────────── */
+        /* ev.classification is a DERIVED PROJECTION — never stored, never sent to provider. */
+        var CLS_CLASS = {
+          client_session: 'cls-client',
+          probable_client_session: 'cls-probable',
+          not_client_session: 'cls-not',
+          personal: 'cls-personal',
+          unclassified: 'cls-unclassified',
+        };
+        function classClass(ev) {
+          var c = (ev && ev.classification) || 'unclassified';
+          return CLS_CLASS[c] || 'cls-unclassified';
+        }
+
+        /* ── Classification label for badge ─────────────────────────── */
+        var CLS_LABEL = {
+          client_session: 'CLIENT',
+          probable_client_session: 'PROBABLE',
+          not_client_session: 'EXCLUDED',
+          personal: 'PERSONAL',
+          unclassified: 'UNCLASSIFIED',
+        };
+        function classLabel(ev) {
+          var c = (ev && ev.classification) || 'unclassified';
+          return CLS_LABEL[c] || 'UNCLASSIFIED';
+        }
+
+        /* ── Classification counts publisher ────────────────────────── */
+        /* Counts events within the current visible range (rangeForView) ∩ visible       *
+         * calendar. Independent of classFilter — filter only hides, counts are raw.     *
+         * All 5 classification ids always present (0 if none). Published after every    *
+         * classify pass or calendar-visibility change via soamView.setScheduleCounts.   */
+        var CLS_IDS = [
+          'client_session',
+          'probable_client_session',
+          'not_client_session',
+          'personal',
+          'unclassified',
+        ];
+        function publishCounts() {
+          if (!_soamView || !_soamView.setScheduleCounts) return;
+          var counts = {};
+          CLS_IDS.forEach(function (id) {
+            counts[id] = 0;
+          });
+          var range = rangeForView();
+          var fromMs = range.from.getTime();
+          var toMs = range.to.getTime();
+          events.forEach(function (ev) {
+            /* Skip calendars toggled off client-side. */
+            if (_calVisibility[ev.calendarId] === false) return;
+            /* Only count events in the visible range. */
+            var evMs = new Date(ev.start).getTime();
+            if (evMs < fromMs || evMs >= toMs) return;
+            var c = ev.classification || 'unclassified';
+            if (counts[c] !== undefined) counts[c]++;
+            else counts['unclassified']++;
+          });
+          _soamView.setScheduleCounts(counts);
+        }
+
+        /* ── Range computation ───────────────────────────────────────── */
+        function rangeForView() {
+          var base = new Date();
+          var from, to, label;
+          if (view === 'agenda') {
+            /* Rolling 7-day window: today (or offset * 7 days from today) → +6 days. */
+            from = startOfDay(new Date());
+            from = addDays(from, offset * 7);
+            to = addDays(from, 7);
+            var toInc = addDays(to, -1);
+            if (offset === 0) {
+              label = 'Next 7 days';
+            } else if (
+              from.getMonth() === toInc.getMonth() &&
+              from.getFullYear() === toInc.getFullYear()
+            ) {
+              label =
+                from.getDate() +
+                ' – ' +
+                toInc.getDate() +
+                ' ' +
+                MONTH_NAMES[from.getMonth()] +
+                ' ' +
+                from.getFullYear();
+            } else if (from.getFullYear() === toInc.getFullYear()) {
+              label =
+                from.getDate() +
+                ' ' +
+                MONTH_NAMES_SHORT[from.getMonth()] +
+                ' – ' +
+                toInc.getDate() +
+                ' ' +
+                MONTH_NAMES_SHORT[toInc.getMonth()] +
+                ' ' +
+                from.getFullYear();
             } else {
-              titleEl.textContent = ev.title || '(No title)';
+              label =
+                from.getDate() +
+                ' ' +
+                MONTH_NAMES_SHORT[from.getMonth()] +
+                ' ' +
+                from.getFullYear() +
+                ' – ' +
+                toInc.getDate() +
+                ' ' +
+                MONTH_NAMES_SHORT[toInc.getMonth()] +
+                ' ' +
+                toInc.getFullYear();
             }
+          } else if (view === 'week') {
+            base.setDate(base.getDate() + offset * 7);
+            from = startOfWeek(base);
+            to = addDays(from, 7);
+            var toInc = addDays(to, -1);
+            // "15 – 21 June 2026" — collapse month/year when shared
+            if (
+              from.getMonth() === toInc.getMonth() &&
+              from.getFullYear() === toInc.getFullYear()
+            ) {
+              label =
+                from.getDate() +
+                ' – ' +
+                toInc.getDate() +
+                ' ' +
+                MONTH_NAMES[from.getMonth()] +
+                ' ' +
+                from.getFullYear();
+            } else if (from.getFullYear() === toInc.getFullYear()) {
+              label =
+                from.getDate() +
+                ' ' +
+                MONTH_NAMES_SHORT[from.getMonth()] +
+                ' – ' +
+                toInc.getDate() +
+                ' ' +
+                MONTH_NAMES_SHORT[toInc.getMonth()] +
+                ' ' +
+                from.getFullYear();
+            } else {
+              label =
+                from.getDate() +
+                ' ' +
+                MONTH_NAMES_SHORT[from.getMonth()] +
+                ' ' +
+                from.getFullYear() +
+                ' – ' +
+                toInc.getDate() +
+                ' ' +
+                MONTH_NAMES_SHORT[toInc.getMonth()] +
+                ' ' +
+                toInc.getFullYear();
+            }
+          } else if (view === 'day') {
+            base.setDate(base.getDate() + offset);
+            from = startOfDay(base);
+            to = addDays(from, 1);
+            // "Wednesday, 17 June"
+            label =
+              DAY_NAMES_FULL[from.getDay()] +
+              ', ' +
+              from.getDate() +
+              ' ' +
+              MONTH_NAMES[from.getMonth()];
           } else {
-            titleEl.textContent = ev.title || '(No title)';
+            // month
+            base.setMonth(base.getMonth() + offset);
+            from = startOfMonth(base);
+            to = new Date(endOfMonth(base).getTime() + 1);
+            label = MONTH_NAMES[from.getMonth()] + ' ' + from.getFullYear();
           }
-          block.appendChild(timeEl);
-          block.appendChild(titleEl);
+          return { from: from, to: to, label: label };
+        }
 
-          /* Classification badge — top-right, hidden on tiny + unclassified (via CSS) */
-          var clsBadge = txt('div', 'tg-event-cls-badge ' + classClass(ev), classLabel(ev));
-          block.appendChild(clsBadge);
+        /* ── Events for a date ───────────────────────────────────────── */
+        /* Calendar visibility filtered client-side via _calVisibility (sourced from
+         * listAddedCalendars; updated on calRev without refetch when only selected
+         * flags changed). classFilter: missing key = visible; explicit false = hidden. */
+        function isClassVisible(ev) {
+          /* null (or any falsy) = all visible. string = show only that class. */
+          if (!_classFilter) return true;
+          var cls = ev.classification || 'unclassified';
+          return cls === _classFilter;
+        }
+        function isCalVisible(ev) {
+          /* A missing key means visible (defensive); explicit false hides. */
+          return _calVisibility[ev.calendarId] !== false;
+        }
+        function eventsForDay(d) {
+          return events
+            .filter(function (ev) {
+              var evD = evDate(ev.start, ev.allDay);
+              return sameDay(evD, d) && isCalVisible(ev) && isClassVisible(ev);
+            })
+            .sort(function (a, b) {
+              if (a.allDay && !b.allDay) return -1;
+              if (!a.allDay && b.allDay) return 1;
+              return new Date(a.start) - new Date(b.start);
+            });
+        }
 
-          /* Participant subline: prefer organiser name, else first non-self attendee; only on non-tiny */
-          if (hPx >= 30 && ev.attendees && ev.attendees.length > 0) {
-            var nonSelf = ev.attendees.filter(function (a) { return !a.self; });
-            if (nonSelf.length > 0) {
-              /* Find organiser among non-self attendees */
-              var organiserEmail = ev.organizer && ev.organizer.email ? ev.organizer.email.toLowerCase() : null;
-              var organiserAttendee = nonSelf.filter(function (a) {
-                return a.organizer === true || (organiserEmail && (a.email || '').toLowerCase() === organiserEmail);
-              })[0];
-              var primary = organiserAttendee || nonSelf[0];
-              var nameStr = primary.name || primary.email || '';
-              if (nameStr) {
-                var extra = nonSelf.length - 1;
-                var chipLabel = extra > 0 ? nameStr + ' +' + extra : nameStr;
-                block.appendChild(txt('div', 'tg-event-participant', chipLabel));
-              }
-            }
+        /* ── Render helpers ──────────────────────────────────────────── */
+        function el(tag, cls) {
+          var e = document.createElement(tag);
+          if (cls) e.className = cls;
+          return e;
+        }
+        function txt(tag, cls, text) {
+          var e = el(tag, cls);
+          e.textContent = text;
+          return e;
+        }
+
+        /* Derive modality subline from ev.meetingLink / ev.location */
+        function modalitySubline(ev) {
+          if (ev.meetingLink) {
+            var u = (ev.meetingLink || '').toLowerCase();
+            if (u.indexOf('meet.google.com') !== -1) return 'Online · Google Meet';
+            if (u.indexOf('zoom.us') !== -1 || u.indexOf('zoom.com') !== -1) return 'Online · Zoom';
+            return 'Online · Video call';
+          }
+          if (ev.location) return 'In person · ' + ev.location;
+          return '';
+        }
+
+        /* Format short time range for agenda e.g. "9–9:50" or "All day" */
+        function fmtTimeShort(ev) {
+          if (ev.allDay || !ev.start || ev.start.length <= 10) return 'All day';
+          function fmt(iso) {
+            var d = new Date(iso);
+            var h = d.getHours();
+            var m = d.getMinutes();
+            return h + (m ? ':' + (m < 10 ? '0' + m : m) : '');
+          }
+          var s = fmt(ev.start);
+          var e = ev.end ? fmt(ev.end) : '';
+          return e ? s + '–' + e : s;
+        }
+
+        function makeEventCard(ev) {
+          var isAllDay = ev.allDay || !ev.start || ev.start.length <= 10;
+          var card = el('div', 'event-card' + (ev.id === selectedId ? ' is-selected' : ''));
+          card.dataset.evId = ev.id;
+          /* Calendar-color tint: low-alpha wash under SD-19 classification border/badges. */
+          if (ev.calendarColor) {
+            card.style.backgroundColor =
+              'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
           }
 
-          block.addEventListener('click', function (e) {
+          /* Left: time */
+          var timeCol = txt(
+            'div',
+            'event-time-col' + (isAllDay ? ' allday-label' : ''),
+            fmtTimeShort(ev),
+          );
+          card.appendChild(timeCol);
+
+          /* Middle: title + modality */
+          var body = el('div', 'event-body');
+          body.appendChild(txt('div', 'event-title', ev.title || '(No title)'));
+          var subline = modalitySubline(ev);
+          if (subline) body.appendChild(txt('div', 'event-modality', subline));
+          card.appendChild(body);
+
+          /* Right: classification badge (SD-11) */
+          var badge = txt('div', 'event-kind-badge ' + classClass(ev), classLabel(ev));
+          card.appendChild(badge);
+
+          card.addEventListener('click', function (e) {
             e.stopPropagation();
             setSelection(ev.id);
             if (_auxVisible) {
               if (_soamView) _soamView.setActiveEvent(ev);
             } else {
-              openPopover(ev, block);
+              openPopover(ev, card);
             }
           });
-          colEl.appendChild(block);
-        });
-      }
-
-      // Build the shared time-grid structure (week or day).
-      // dayDates = array of Date objects for each column.
-      // isDayView = true → single wide column, no col-header (header built outside).
-      function buildTimeGrid(dayDates, isDayView) {
-        var root = el('div', 'tg-root' + (isDayView ? ' day-view' : ''));
-
-        /* ── Column headers ── */
-        if (!isDayView) {
-          var colHeaders = el('div', 'tg-col-headers');
-          var gutterHead = el('div', 'tg-col-header-gutter');
-          colHeaders.appendChild(gutterHead);
-          dayDates.forEach(function (d) {
-            var hdr = el('div', 'tg-col-header' + (isToday(d) ? ' is-today' : ''));
-            var wd  = txt('div', 'tg-col-header-wd', DAY_NAMES_SHORT[d.getDay()]);
-            var dt  = txt('div', 'tg-col-header-date' + (isToday(d) ? ' is-today' : ''), d.getDate().toString());
-            hdr.appendChild(wd);
-            hdr.appendChild(dt);
-            colHeaders.appendChild(hdr);
-          });
-          root.appendChild(colHeaders);
-        } else {
-          // Day view: big header with date + weekday label
-          var dayHead = el('div', 'tg-col-headers');
-          var dayGutterHead = el('div', 'tg-col-header-gutter');
-          dayHead.appendChild(dayGutterHead);
-          var d0 = dayDates[0];
-          var soloHdr = el('div', 'tg-col-header day-solo' + (isToday(d0) ? ' is-today' : ''));
-          var soloDate = txt('div', 'tg-col-header-date' + (isToday(d0) ? ' is-today' : ''), d0.getDate().toString());
-          var soloWd   = txt('div', 'tg-col-header-wd', DAY_NAMES_FULL[d0.getDay()] + ', ' + d0.getDate() + ' ' + MONTH_NAMES[d0.getMonth()]);
-          soloHdr.appendChild(soloDate);
-          soloHdr.appendChild(soloWd);
-          dayHead.appendChild(soloHdr);
-          root.appendChild(dayHead);
+          return card;
         }
 
-        /* ── All-day strip ── */
-        var alldayRow = el('div', 'tg-allday-row');
-        var alldayGutter = txt('div', 'tg-allday-gutter', 'all‑day');
-        alldayRow.appendChild(alldayGutter);
-        var alldayCols = el('div', 'tg-allday-cols');
-        var hasAllDay = false;
-        dayDates.forEach(function (d) {
-          var adCol = el('div', 'tg-allday-col');
-          var dayEvs = eventsForDay(d);
-          dayEvs.filter(function (ev) { return ev.allDay || (ev.start && ev.start.length <= 10); })
-            .forEach(function (ev) {
-              hasAllDay = true;
-              var pill = txt('div', 'tg-allday-pill ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : ''), ev.title || '(No title)');
+        /* ── View: Agenda ────────────────────────────────────────────── */
+        function renderAgenda(range) {
+          var shell = el('div', 'agenda-card-shell');
+          var wrap = el('div', 'agenda-scroll');
+
+          // Build day buckets for the 7-day range.
+          var days = [];
+          var cur = new Date(range.from);
+          while (cur < range.to) {
+            days.push(new Date(cur));
+            cur = addDays(cur, 1);
+          }
+
+          var hasAny = false;
+          days.forEach(function (d) {
+            var dayEvs = eventsForDay(d);
+            if (dayEvs.length > 0) hasAny = true;
+
+            var grp = el('div', 'day-group');
+            var hdr = el('div', 'day-header');
+            var numEl = txt(
+              'span',
+              'day-num' + (isToday(d) ? ' is-today' : ''),
+              d.getDate().toString(),
+            );
+            var wdEl = txt('span', 'day-weekday', DAY_NAMES_SHORT[d.getDay()]);
+            var moEl = txt('span', 'day-month', MONTH_NAMES_SHORT[d.getMonth()]);
+            hdr.appendChild(numEl);
+            hdr.appendChild(wdEl);
+            hdr.appendChild(moEl);
+            grp.appendChild(hdr);
+
+            var evBox = el('div', 'day-events');
+            if (dayEvs.length === 0) {
+              var empty = txt('div', 'day-empty', 'No events');
+              grp.appendChild(empty);
+            } else {
+              dayEvs.forEach(function (ev) {
+                evBox.appendChild(makeEventCard(ev));
+              });
+              grp.appendChild(evBox);
+            }
+            wrap.appendChild(grp);
+          });
+
+          if (!hasAny) {
+            var noEv = txt('div', 'no-events', 'No events in this period.');
+            wrap.appendChild(noEv);
+          }
+          shell.appendChild(wrap);
+          return shell;
+        }
+
+        /* ── Time-grid shared builder ────────────────────────────────── */
+        // hourHeight in px — MUST equal CSS --tg-hour-h (56px). Both change together.
+        var HOUR_H = 56;
+        var MIN_BLOCK_H = 22; // minimum block height in px
+        var SCROLL_TO_HOUR = 7; // scroll viewport to show 7 AM on load
+
+        // Greedy lane-packing: group overlapping timed events into lanes.
+        // Returns array of { ev, lane, totalLanes }.
+        function packLanes(timedEvs) {
+          // Sort by start time.
+          var sorted = timedEvs.slice().sort(function (a, b) {
+            return new Date(a.start) - new Date(b.start);
+          });
+          // Each group = set of mutually-overlapping events.
+          var result = [];
+          var groups = []; // [{end, lanes: [{ev,endMin}]}]
+
+          sorted.forEach(function (ev) {
+            var startMin = minOfDay(ev.start);
+            var endMin = ev.end ? minOfDay(ev.end) : startMin + 60;
+            if (endMin <= startMin) endMin = startMin + 30;
+
+            // Find a group where this event overlaps with at least one existing event.
+            var placed = false;
+            for (var gi = 0; gi < groups.length; gi++) {
+              var grp = groups[gi];
+              // Overlaps group if startMin < group's latest end.
+              if (startMin < grp.maxEnd) {
+                // Find a free lane within this group.
+                var laneIdx = -1;
+                for (var li = 0; li < grp.lanes.length; li++) {
+                  if (grp.lanes[li].endMin <= startMin) {
+                    laneIdx = li;
+                    break;
+                  }
+                }
+                if (laneIdx === -1) {
+                  laneIdx = grp.lanes.length;
+                  grp.lanes.push({ endMin: endMin });
+                } else {
+                  grp.lanes[laneIdx].endMin = endMin;
+                }
+                grp.maxEnd = Math.max(grp.maxEnd, endMin);
+                result.push({ ev: ev, groupIdx: gi, lane: laneIdx, endMin: endMin });
+                placed = true;
+                break;
+              }
+            }
+            if (!placed) {
+              groups.push({ maxEnd: endMin, lanes: [{ endMin: endMin }] });
+              result.push({ ev: ev, groupIdx: groups.length - 1, lane: 0, endMin: endMin });
+            }
+          });
+
+          // Second pass: annotate totalLanes per group.
+          return result.map(function (item) {
+            return {
+              ev: item.ev,
+              lane: item.lane,
+              totalLanes: groups[item.groupIdx].lanes.length,
+            };
+          });
+        }
+
+        // Build a single day column's timed events (used by both week + day grids).
+        function buildTimedEvents(timedEvs, colEl, dayDate) {
+          var packed = packLanes(timedEvs);
+          packed.forEach(function (item) {
+            var ev = item.ev;
+            var startMin = minOfDay(ev.start);
+            var endMin = ev.end ? minOfDay(ev.end) : startMin + 60;
+            if (endMin <= startMin) endMin = startMin + 30;
+            var durationMin = endMin - startMin;
+
+            var topPx = (startMin / 60) * HOUR_H;
+            var hPx = Math.max(MIN_BLOCK_H, (durationMin / 60) * HOUR_H);
+
+            // Lane positioning: divide column width among lanes.
+            var laneW = 100 / item.totalLanes;
+            var leftPct = item.lane * laneW;
+            var rightPct = 100 - (item.lane + 1) * laneW;
+
+            var block = el(
+              'button',
+              'tg-event ' +
+                classClass(ev) +
+                (ev.id === selectedId ? ' is-selected' : '') +
+                (hPx < 30 ? ' tiny' : ''),
+            );
+            block.type = 'button';
+            block.dataset.evId = ev.id;
+            block.style.top = topPx + 'px';
+            block.style.height = hPx + 'px';
+            /* Calendar-color: thick left border + low-alpha background tint. */
+            if (ev.calendarColor) {
+              block.style.setProperty('--ev-border-color', ev.calendarColor);
+              block.style.backgroundColor =
+                'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
+            }
+            // Override left/right with lane percentages when multiple lanes.
+            if (item.totalLanes > 1) {
+              block.style.left = 'calc(' + leftPct + '% + 3px)';
+              block.style.right = 'calc(' + rightPct + '% + 3px)';
+            }
+
+            var timeEl = txt('div', 'tg-event-time', fmtTime(ev.start));
+            var titleEl = el('div', 'tg-event-title');
+            /* Modality icon inline after title text (omit on tiny) */
+            if (hPx >= 30) {
+              var modalityIconHtml = '';
+              if (ev.meetingLink) {
+                modalityIconHtml = icon('device-camera-video', 11);
+              } else if (ev.location) {
+                modalityIconHtml = icon('location', 11);
+              }
+              if (modalityIconHtml) {
+                // Title via textContent (never innerHTML — it's user/PHI calendar
+                // data and may contain < or &); icon span built separately.
+                var tSpan = document.createElement('span');
+                tSpan.style.verticalAlign = 'middle';
+                tSpan.textContent = ev.title || '(No title)';
+                var iSpan = document.createElement('span');
+                iSpan.style.cssText = 'vertical-align:middle;margin-left:4px;opacity:0.65';
+                iSpan.innerHTML = modalityIconHtml; // our own generated SVG
+                titleEl.appendChild(tSpan);
+                titleEl.appendChild(iSpan);
+              } else {
+                titleEl.textContent = ev.title || '(No title)';
+              }
+            } else {
+              titleEl.textContent = ev.title || '(No title)';
+            }
+            block.appendChild(timeEl);
+            block.appendChild(titleEl);
+
+            /* Classification badge — top-right, hidden on tiny + unclassified (via CSS) */
+            var clsBadge = txt('div', 'tg-event-cls-badge ' + classClass(ev), classLabel(ev));
+            block.appendChild(clsBadge);
+
+            /* Participant subline: prefer organiser name, else first non-self attendee; only on non-tiny */
+            if (hPx >= 30 && ev.attendees && ev.attendees.length > 0) {
+              var nonSelf = ev.attendees.filter(function (a) {
+                return !a.self;
+              });
+              if (nonSelf.length > 0) {
+                /* Find organiser among non-self attendees */
+                var organiserEmail =
+                  ev.organizer && ev.organizer.email ? ev.organizer.email.toLowerCase() : null;
+                var organiserAttendee = nonSelf.filter(function (a) {
+                  return (
+                    a.organizer === true ||
+                    (organiserEmail && (a.email || '').toLowerCase() === organiserEmail)
+                  );
+                })[0];
+                var primary = organiserAttendee || nonSelf[0];
+                var nameStr = primary.name || primary.email || '';
+                if (nameStr) {
+                  var extra = nonSelf.length - 1;
+                  var chipLabel = extra > 0 ? nameStr + ' +' + extra : nameStr;
+                  block.appendChild(txt('div', 'tg-event-participant', chipLabel));
+                }
+              }
+            }
+
+            block.addEventListener('click', function (e) {
+              e.stopPropagation();
+              setSelection(ev.id);
+              if (_auxVisible) {
+                if (_soamView) _soamView.setActiveEvent(ev);
+              } else {
+                openPopover(ev, block);
+              }
+            });
+            colEl.appendChild(block);
+          });
+        }
+
+        // Build the shared time-grid structure (week or day).
+        // dayDates = array of Date objects for each column.
+        // isDayView = true → single wide column, no col-header (header built outside).
+        function buildTimeGrid(dayDates, isDayView) {
+          var root = el('div', 'tg-root' + (isDayView ? ' day-view' : ''));
+
+          /* ── Column headers ── */
+          if (!isDayView) {
+            var colHeaders = el('div', 'tg-col-headers');
+            var gutterHead = el('div', 'tg-col-header-gutter');
+            colHeaders.appendChild(gutterHead);
+            dayDates.forEach(function (d) {
+              var hdr = el('div', 'tg-col-header' + (isToday(d) ? ' is-today' : ''));
+              var wd = txt('div', 'tg-col-header-wd', DAY_NAMES_SHORT[d.getDay()]);
+              var dt = txt(
+                'div',
+                'tg-col-header-date' + (isToday(d) ? ' is-today' : ''),
+                d.getDate().toString(),
+              );
+              hdr.appendChild(wd);
+              hdr.appendChild(dt);
+              colHeaders.appendChild(hdr);
+            });
+            root.appendChild(colHeaders);
+          } else {
+            // Day view: big header with date + weekday label
+            var dayHead = el('div', 'tg-col-headers');
+            var dayGutterHead = el('div', 'tg-col-header-gutter');
+            dayHead.appendChild(dayGutterHead);
+            var d0 = dayDates[0];
+            var soloHdr = el('div', 'tg-col-header day-solo' + (isToday(d0) ? ' is-today' : ''));
+            var soloDate = txt(
+              'div',
+              'tg-col-header-date' + (isToday(d0) ? ' is-today' : ''),
+              d0.getDate().toString(),
+            );
+            var soloWd = txt(
+              'div',
+              'tg-col-header-wd',
+              DAY_NAMES_FULL[d0.getDay()] + ', ' + d0.getDate() + ' ' + MONTH_NAMES[d0.getMonth()],
+            );
+            soloHdr.appendChild(soloDate);
+            soloHdr.appendChild(soloWd);
+            dayHead.appendChild(soloHdr);
+            root.appendChild(dayHead);
+          }
+
+          /* ── All-day strip ── */
+          var alldayRow = el('div', 'tg-allday-row');
+          var alldayGutter = txt('div', 'tg-allday-gutter', 'all‑day');
+          alldayRow.appendChild(alldayGutter);
+          var alldayCols = el('div', 'tg-allday-cols');
+          var hasAllDay = false;
+          dayDates.forEach(function (d) {
+            var adCol = el('div', 'tg-allday-col');
+            var dayEvs = eventsForDay(d);
+            dayEvs
+              .filter(function (ev) {
+                return ev.allDay || (ev.start && ev.start.length <= 10);
+              })
+              .forEach(function (ev) {
+                hasAllDay = true;
+                var pill = txt(
+                  'div',
+                  'tg-allday-pill ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : ''),
+                  ev.title || '(No title)',
+                );
+                pill.dataset.evId = ev.id;
+                /* Calendar-color: thick left border + low-alpha background tint. */
+                if (ev.calendarColor) {
+                  pill.style.setProperty('--ev-border-color', ev.calendarColor);
+                  pill.style.backgroundColor =
+                    'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
+                }
+                pill.addEventListener('click', function (e) {
+                  e.stopPropagation();
+                  setSelection(ev.id);
+                  if (_auxVisible) {
+                    if (_soamView) _soamView.setActiveEvent(ev);
+                  } else {
+                    openPopover(ev, pill);
+                  }
+                });
+                adCol.appendChild(pill);
+              });
+            alldayCols.appendChild(adCol);
+          });
+          alldayRow.appendChild(alldayCols);
+          // Only show strip if it has content (or always show for clean layout).
+          root.appendChild(alldayRow);
+
+          /* ── Scrollable grid ── */
+          var scroll = el('div', 'tg-scroll');
+          var grid = el('div', 'tg-grid');
+
+          // Gutter with hour labels 1–23 (label appears at top of each hour row).
+          var gutter = el('div', 'tg-gutter');
+          for (var h = 0; h <= 23; h++) {
+            if (h === 0) continue; // skip midnight label at very top
+            var labelEl = txt(
+              'div',
+              'tg-hour-label',
+              h < 12 ? h + ' AM' : h === 12 ? '12 PM' : h - 12 + ' PM',
+            );
+            labelEl.style.top = h * HOUR_H + 'px';
+            gutter.appendChild(labelEl);
+          }
+          grid.appendChild(gutter);
+
+          /* ── Day columns ── */
+          var colsWrap = el('div', 'tg-cols');
+          var nowLineEl = null;
+          var nowGutterLineEl = null;
+
+          dayDates.forEach(function (d, colIdx) {
+            var colEl = el('div', 'tg-day-col' + (isToday(d) ? ' is-today' : ''));
+            var dayEvs = eventsForDay(d);
+            var timedEvs = dayEvs.filter(function (ev) {
+              return !ev.allDay && ev.start && ev.start.length > 10;
+            });
+            buildTimedEvents(timedEvs, colEl, d);
+
+            // Now-line: draw in today's column only.
+            if (isToday(d)) {
+              var now = new Date();
+              var nowMin = now.getHours() * 60 + now.getMinutes();
+              var nowTop = (nowMin / 60) * HOUR_H;
+              var nl = el('div', 'tg-now-line');
+              nl.style.top = nowTop + 'px';
+              colEl.appendChild(nl);
+              nowLineEl = nl;
+
+              // Also track top for gutter line.
+              nowGutterLineEl = { top: nowTop };
+            }
+
+            colsWrap.appendChild(colEl);
+          });
+          grid.appendChild(colsWrap);
+          scroll.appendChild(grid);
+
+          // Now-line dot in gutter.
+          if (nowGutterLineEl) {
+            var gutterNow = el('div', 'tg-now-gutter-line');
+            gutterNow.style.top = nowGutterLineEl.top + 'px';
+            gutter.appendChild(gutterNow);
+          }
+
+          root.appendChild(scroll);
+
+          // Scroll to 7 AM on mount (after appended to DOM).
+          // Use requestAnimationFrame so layout is computed first.
+          requestAnimationFrame(function () {
+            scroll.scrollTop = SCROLL_TO_HOUR * HOUR_H - 24; // offset slightly so the 7am line is visible
+          });
+
+          return root;
+        }
+
+        /* ── View: Day ───────────────────────────────────────────────── */
+        function renderDay(range) {
+          var shell = el('div', 'day-card-shell');
+          shell.appendChild(buildTimeGrid([range.from], true));
+          return shell;
+        }
+
+        /* ── View: Week ──────────────────────────────────────────────── */
+        function renderWeek(range) {
+          var days = [];
+          var cur = new Date(range.from);
+          while (cur < range.to) {
+            days.push(new Date(cur));
+            cur = addDays(cur, 1);
+          }
+          return buildTimeGrid(days, false);
+        }
+
+        /* ── View: Month ─────────────────────────────────────────────── */
+        function renderMonth(range) {
+          var wrap = el('div', 'month-view-wrap');
+
+          // Weekday labels (Mon–Sun)
+          var wdRow = el('div', 'month-weekday-row');
+          ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(function (wd) {
+            wdRow.appendChild(txt('div', 'month-weekday-label', wd));
+          });
+          wrap.appendChild(wdRow);
+
+          var grid = el('div', 'month-grid');
+
+          // Grid starts on Monday of the week containing day 1 of the month.
+          var monthStart = startOfMonth(range.from);
+          var gridStart = startOfWeek(monthStart);
+          var monthEnd = endOfMonth(range.from);
+          // Sunday of the week containing the last day of the month — stop here so
+          // we render whole weeks through month-end without a stray extra week.
+          var gridEnd = addDays(startOfWeek(monthEnd), 6);
+
+          var cur = new Date(gridStart);
+          while (cur <= gridEnd) {
+            var d = new Date(cur);
+            var outside = d.getMonth() !== monthStart.getMonth();
+            var cell = el('div', 'month-cell' + (outside ? ' is-outside' : ''));
+
+            var dateEl = txt(
+              'div',
+              'month-cell-date' + (isToday(d) ? ' is-today' : ''),
+              d.getDate().toString(),
+            );
+            cell.appendChild(dateEl);
+
+            var dayEvs = eventsForDay(d);
+            var maxPills = 5;
+            dayEvs.slice(0, maxPills).forEach(function (ev) {
+              var pill = txt(
+                'div',
+                'month-event-pill ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : ''),
+                ev.title || '(No title)',
+              );
               pill.dataset.evId = ev.id;
-              /* Calendar-color: thick left border + low-alpha background tint. */
+              /* Calendar-color: dot (::before via --cal-color) + low-alpha background tint. */
               if (ev.calendarColor) {
-                pill.style.setProperty('--ev-border-color', ev.calendarColor);
-                pill.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
+                pill.style.setProperty('--cal-color', ev.calendarColor);
+                pill.style.backgroundColor =
+                  'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
               }
               pill.addEventListener('click', function (e) {
                 e.stopPropagation();
@@ -2093,1169 +2532,1175 @@
                   openPopover(ev, pill);
                 }
               });
-              adCol.appendChild(pill);
+              cell.appendChild(pill);
             });
-          alldayCols.appendChild(adCol);
-        });
-        alldayRow.appendChild(alldayCols);
-        // Only show strip if it has content (or always show for clean layout).
-        root.appendChild(alldayRow);
-
-        /* ── Scrollable grid ── */
-        var scroll = el('div', 'tg-scroll');
-        var grid   = el('div', 'tg-grid');
-
-        // Gutter with hour labels 1–23 (label appears at top of each hour row).
-        var gutter = el('div', 'tg-gutter');
-        for (var h = 0; h <= 23; h++) {
-          if (h === 0) continue; // skip midnight label at very top
-          var labelEl = txt('div', 'tg-hour-label', h < 12 ? h + ' AM' : (h === 12 ? '12 PM' : (h - 12) + ' PM'));
-          labelEl.style.top = (h * HOUR_H) + 'px';
-          gutter.appendChild(labelEl);
-        }
-        grid.appendChild(gutter);
-
-        /* ── Day columns ── */
-        var colsWrap = el('div', 'tg-cols');
-        var nowLineEl = null;
-        var nowGutterLineEl = null;
-
-        dayDates.forEach(function (d, colIdx) {
-          var colEl = el('div', 'tg-day-col' + (isToday(d) ? ' is-today' : ''));
-          var dayEvs = eventsForDay(d);
-          var timedEvs = dayEvs.filter(function (ev) {
-            return !ev.allDay && ev.start && ev.start.length > 10;
-          });
-          buildTimedEvents(timedEvs, colEl, d);
-
-          // Now-line: draw in today's column only.
-          if (isToday(d)) {
-            var now = new Date();
-            var nowMin = now.getHours() * 60 + now.getMinutes();
-            var nowTop = (nowMin / 60) * HOUR_H;
-            var nl = el('div', 'tg-now-line');
-            nl.style.top = nowTop + 'px';
-            colEl.appendChild(nl);
-            nowLineEl = nl;
-
-            // Also track top for gutter line.
-            nowGutterLineEl = { top: nowTop };
-          }
-
-          colsWrap.appendChild(colEl);
-        });
-        grid.appendChild(colsWrap);
-        scroll.appendChild(grid);
-
-        // Now-line dot in gutter.
-        if (nowGutterLineEl) {
-          var gutterNow = el('div', 'tg-now-gutter-line');
-          gutterNow.style.top = nowGutterLineEl.top + 'px';
-          gutter.appendChild(gutterNow);
-        }
-
-        root.appendChild(scroll);
-
-        // Scroll to 7 AM on mount (after appended to DOM).
-        // Use requestAnimationFrame so layout is computed first.
-        requestAnimationFrame(function () {
-          scroll.scrollTop = SCROLL_TO_HOUR * HOUR_H - 24; // offset slightly so the 7am line is visible
-        });
-
-        return root;
-      }
-
-      /* ── View: Day ───────────────────────────────────────────────── */
-      function renderDay(range) {
-        var shell = el('div', 'day-card-shell');
-        shell.appendChild(buildTimeGrid([range.from], true));
-        return shell;
-      }
-
-      /* ── View: Week ──────────────────────────────────────────────── */
-      function renderWeek(range) {
-        var days = [];
-        var cur = new Date(range.from);
-        while (cur < range.to) {
-          days.push(new Date(cur));
-          cur = addDays(cur, 1);
-        }
-        return buildTimeGrid(days, false);
-      }
-
-      /* ── View: Month ─────────────────────────────────────────────── */
-      function renderMonth(range) {
-        var wrap = el('div', 'month-view-wrap');
-
-        // Weekday labels (Mon–Sun)
-        var wdRow = el('div', 'month-weekday-row');
-        ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(function (wd) {
-          wdRow.appendChild(txt('div', 'month-weekday-label', wd));
-        });
-        wrap.appendChild(wdRow);
-
-        var grid = el('div', 'month-grid');
-
-        // Grid starts on Monday of the week containing day 1 of the month.
-        var monthStart = startOfMonth(range.from);
-        var gridStart  = startOfWeek(monthStart);
-        var monthEnd   = endOfMonth(range.from);
-        // Sunday of the week containing the last day of the month — stop here so
-        // we render whole weeks through month-end without a stray extra week.
-        var gridEnd    = addDays(startOfWeek(monthEnd), 6);
-
-        var cur = new Date(gridStart);
-        while (cur <= gridEnd) {
-          var d    = new Date(cur);
-          var outside = d.getMonth() !== monthStart.getMonth();
-          var cell = el('div', 'month-cell' + (outside ? ' is-outside' : ''));
-
-          var dateEl = txt('div', 'month-cell-date' + (isToday(d) ? ' is-today' : ''), d.getDate().toString());
-          cell.appendChild(dateEl);
-
-          var dayEvs = eventsForDay(d);
-          var maxPills = 5;
-          dayEvs.slice(0, maxPills).forEach(function (ev) {
-            var pill = txt('div', 'month-event-pill ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : ''), ev.title || '(No title)');
-            pill.dataset.evId = ev.id;
-            /* Calendar-color: dot (::before via --cal-color) + low-alpha background tint. */
-            if (ev.calendarColor) {
-              pill.style.setProperty('--cal-color', ev.calendarColor);
-              pill.style.backgroundColor = 'color-mix(in srgb, ' + ev.calendarColor + ' 14%, transparent)';
+            if (dayEvs.length > maxPills) {
+              cell.appendChild(
+                txt('div', 'month-overflow', '+' + (dayEvs.length - maxPills) + ' more'),
+              );
             }
-            pill.addEventListener('click', function (e) {
-              e.stopPropagation();
-              setSelection(ev.id);
-              if (_auxVisible) {
-                if (_soamView) _soamView.setActiveEvent(ev);
-              } else {
-                openPopover(ev, pill);
-              }
-            });
-            cell.appendChild(pill);
-          });
-          if (dayEvs.length > maxPills) {
-            cell.appendChild(txt('div', 'month-overflow', '+' + (dayEvs.length - maxPills) + ' more'));
+            grid.appendChild(cell);
+            cur = addDays(cur, 1);
           }
-          grid.appendChild(cell);
-          cur = addDays(cur, 1);
-        }
-        wrap.appendChild(grid);
-        return wrap;
-      }
-
-      /* ── Selection ───────────────────────────────────────────────── */
-      // Update selection highlight by toggling classes on existing event nodes.
-      // NEVER rebuild the grid for selection — a rebuild re-runs buildTimeGrid's
-      // rAF scroll-to-7AM, which jumps the scroll position on every event click.
-      function setSelection(id) {
-        selectedId = id;
-        var nodes = elCalArea.querySelectorAll('[data-ev-id]');
-        Array.prototype.forEach.call(nodes, function (n) {
-          n.classList.toggle('is-selected', n.dataset.evId === id);
-        });
-      }
-
-
-      /* ── Render dispatch ──────────────────────────────────────────── */
-      function renderCalArea() {
-        // Update view-switcher active tab.
-        Array.prototype.forEach.call(elViewSwitch.querySelectorAll('.view-tab'), function (tab) {
-          tab.classList.toggle('is-active', tab.dataset.view === view);
-        });
-
-        if (!connected) {
-          // Disconnected state — show connect prompt.
-          var disc = el('div', 'state-panel');
-          var ico = el('div', 'state-icon');
-          ico.innerHTML = icon('calendar-x', 20);
-          disc.appendChild(ico);
-          disc.appendChild(txt('div', 'state-title', 'Connect your calendar'));
-          disc.appendChild(txt('div', 'state-desc',
-            'Link Google Calendar to see your schedule. Your credential never leaves this device.'));
-          var connectBtn = el('button', 'btn btn-accent');
-          connectBtn.type = 'button';
-          connectBtn.textContent = connecting ? 'Connecting…' : 'Connect Google Calendar';
-          connectBtn.disabled = connecting;
-          connectBtn.addEventListener('click', doConnect);
-          disc.appendChild(connectBtn);
-          elCalArea.innerHTML = '';
-          elCalArea.appendChild(disc);
-          return;
+          wrap.appendChild(grid);
+          return wrap;
         }
 
-        if (loadError) {
-          var errPanel = el('div', 'state-panel');
-          var eIco = el('div', 'state-icon');
-          eIco.innerHTML = icon('alert-circle', 20);
-          errPanel.appendChild(eIco);
-          errPanel.appendChild(txt('div', 'state-title', 'Failed to load events'));
-          errPanel.appendChild(txt('div', 'state-error-msg', loadError));
-          var retryBtn = el('button', 'btn btn-ghost');
-          retryBtn.type = 'button';
-          retryBtn.textContent = 'Retry';
-          retryBtn.addEventListener('click', loadEvents);
-          errPanel.appendChild(retryBtn);
-          elCalArea.innerHTML = '';
-          elCalArea.appendChild(errPanel);
-          return;
-        }
-
-        var range = rangeForView();
-
-        // Range label. Agenda uses its own label from rangeForView() directly.
-        elRangeLabel.textContent = range.label;
-
-        // Tab descriptor — updates on every render (updateTab is no-op when unchanged).
-        if (window.soamView && window.soamView.setTabDescription) {
-          var tabDesc;
-          if (view === 'agenda') {
-            // "Next 7 days" at offset 0; otherwise date range start
-            tabDesc = offset === 0 ? 'Next 7 days' : (range.from.getDate() + ' ' + MONTH_NAMES_SHORT[range.from.getMonth()]);
-          } else if (view === 'week') {
-            // "Wk of Jun 15"
-            tabDesc = 'Wk of ' + MONTH_NAMES_SHORT[range.from.getMonth()] + ' ' + range.from.getDate();
-          } else if (view === 'day') {
-            // "17 Jun"
-            tabDesc = range.from.getDate() + ' ' + MONTH_NAMES_SHORT[range.from.getMonth()];
-          } else {
-            // "Jun 2026"
-            tabDesc = MONTH_NAMES_SHORT[range.from.getMonth()] + ' ' + range.from.getFullYear();
-          }
-          window.soamView.setTabDescription(tabDesc);
-        }
-
-        var body;
-        if (view === 'agenda') {
-          body = renderAgenda(range);
-        } else if (view === 'day') {
-          body = renderDay(range);
-        } else if (view === 'week') {
-          body = renderWeek(range);
-        } else {
-          body = renderMonth(range);
-        }
-
-        elCalArea.innerHTML = '';
-        elCalArea.appendChild(body);
-      }
-
-      function showLoading() {
-        elCalArea.innerHTML = '';
-        var row = el('div', 'loading-row');
-        row.innerHTML = '<span class="spinner"></span> Loading events…';
-        elCalArea.appendChild(row);
-      }
-
-      /* ── Run SD-11 classify pass on a freshly-fetched event array ──── */
-      /* Separated so it can be called from the __viewQuery subscriber without
-       * re-fetching events from the cap (data already in hand). */
-      function runClassifyPass(evs, range, classifySeq) {
-        /* Step 2: if either classify cap missing, stop (already painted unclassified). */
-        if (!sessionsQuery || !recordQuery) return;
-
-        /* ADR-313 Am1: PHI-read opt-in gate — default-off. Read on each pass so toggling
-         * takes effect on the next window fetch + classify. When disabled, skip
-         * resolveParticipant entirely; every event stays unclassified. */
-        sessionsQuery.call('getPhiReadOptIn', {})
-          .catch(function () { return { enabled: false }; })
-          .then(function (optIn) {
-            if (!optIn || !optIn.enabled) {
-              /* Opt-in off — fails-closed. On a FRESH fetch the events arrive
-               * unclassified, but on a LIVE toggle (calRev bump, no re-fetch) the
-               * in-memory events still carry their prior classification/_match from
-               * when read was ON. Reset every event to unclassified + clear match
-               * enrichment, repaint, then publish — otherwise stale classes linger. */
-              if (classifySeq !== _loadSeq) return; // stale guard
-              evs.forEach(function (ev) { ev.classification = 'unclassified'; ev._match = null; });
-              renderCalArea();
-              publishCounts();
-              return;
-            }
-            runClassifyPassInner(evs, range, classifySeq);
+        /* ── Selection ───────────────────────────────────────────────── */
+        // Update selection highlight by toggling classes on existing event nodes.
+        // NEVER rebuild the grid for selection — a rebuild re-runs buildTimeGrid's
+        // rAF scroll-to-7AM, which jumps the scroll position on every event click.
+        function setSelection(id) {
+          selectedId = id;
+          var nodes = elCalArea.querySelectorAll('[data-ev-id]');
+          Array.prototype.forEach.call(nodes, function (n) {
+            n.classList.toggle('is-selected', n.dataset.evId === id);
           });
-      }
+        }
 
-      /* Inner classify pass — runs only when PHI-read opt-in is enabled. */
-      function runClassifyPassInner(evs, range, classifySeq) {
-        /* Step 3: batch-fetch linked rows for this window (best-effort). */
-        var fromMs = range.from.getTime();
-        var toMs   = range.to.getTime();
-        sessionsQuery.call('listLinkedProvider', { providerId: 'google-calendar', from: fromMs, to: toMs })
-          .catch(function () {
-            /* listLinkedProvider failed — proceed with empty linkedSet so resolver still runs. */
-            return [];
-          })
-          .then(function (rows) {
-            if (classifySeq !== _loadSeq) return; // stale guard
-            rows = rows || [];
-            var linkedSet = {};
-            rows.forEach(function (r) { linkedSet[r.provider_event_id] = true; });
-
-            /* Step 4: per-event resolve. */
-            /* Build linked rows map for match enrichment. */
-            var linkedRowMap = {};
-            rows.forEach(function (r) { linkedRowMap[r.provider_event_id] = r; });
-
-            /* Build array of promises — one per event. */
-            var classifyPromises = evs.map(function (ev) {
-              /* Already linked? Instant client_session — enrich with linked clientId. */
-              if (linkedSet[ev.id]) {
-                var linkedRow = linkedRowMap[ev.id];
-                ev._match = linkedRow && linkedRow.patient_id
-                  ? { matchClientId: linkedRow.patient_id, source: 'linked' }
-                  : { source: 'linked' };
-                return Promise.resolve({ ev: ev, cls: 'client_session' });
-              }
-
-              /* Gather participants: non-self attendees + organizer (if email, non-self). */
-              var participants = [];
-              if (ev.attendees) {
-                ev.attendees.forEach(function (a) {
-                  if (!a.self && (a.email || a.name)) {
-                    participants.push({ email: a.email || null, name: a.name || null });
-                  }
-                });
-              }
-              if (ev.organizer && ev.organizer.email && !ev.organizer.self) {
-                /* Include organizer only when external (organizer.self !== true). */
-                var orgEmail = ev.organizer.email.toLowerCase();
-                var alreadySelf = ev.attendees && ev.attendees.some(function (a) {
-                  return a.self && (a.email || '').toLowerCase() === orgEmail;
-                });
-                if (!alreadySelf) {
-                  /* Check not already added via attendees */
-                  var alreadyAdded = participants.some(function (p) {
-                    return p.email && p.email.toLowerCase() === orgEmail;
-                  });
-                  if (!alreadyAdded) {
-                    participants.push({
-                      email: ev.organizer.email,
-                      name: ev.organizer.displayName || null,
-                    });
-                  }
-                }
-              }
-
-              if (participants.length === 0) {
-                return Promise.resolve({ ev: ev, cls: 'personal' });
-              }
-
-              /* Resolve participants sequentially; short-circuit on first match. */
-              /* Precedence: match > candidates > suppressed > none */
-              var PREC = { 'client_session': 3, 'probable_client_session': 2, 'not_client_session': 1, 'unclassified': 0 };
-              /* _bestMatch carries enrichment data for the winning classification. */
-              var _bestMatch = null;
-
-              function resolveNext(idx, best) {
-                if (best === 'client_session') {
-                  /* Highest precedence — short-circuit. */
-                  return Promise.resolve({ ev: ev, cls: 'client_session' });
-                }
-                if (idx >= participants.length) {
-                  return Promise.resolve({ ev: ev, cls: best });
-                }
-                var p = participants[idx];
-                var query = {};
-                if (p.email) query.email = p.email;
-                if (p.name)  query.name  = p.name;
-                return recordQuery.call('resolveParticipant', query)
-                  .then(function (result) {
-                    var outcome = (result && result.outcome) || 'none';
-                    var cls;
-                    if (outcome === 'match')      cls = 'client_session';
-                    else if (outcome === 'candidates') cls = 'probable_client_session';
-                    else if (outcome === 'suppressed') cls = 'not_client_session';
-                    else                               cls = 'unclassified';
-                    /* Capture enrichment data if this outcome wins. */
-                    if (PREC[cls] > PREC[best]) {
-                      if (outcome === 'match' && result.clientId) {
-                        _bestMatch = { matchClientId: result.clientId, source: 'resolver' };
-                      } else if (outcome === 'candidates' && result.candidates) {
-                        _bestMatch = { candidates: result.candidates, source: 'resolver' };
-                      } else {
-                        _bestMatch = null;
-                      }
-                    }
-                    var next = (PREC[cls] > PREC[best]) ? cls : best;
-                    return resolveNext(idx + 1, next);
-                  })
-                  .catch(function () {
-                    /* Resolver error → treat as unclassified for this participant. */
-                    return resolveNext(idx + 1, best);
-                  });
-              }
-
-              return resolveNext(0, 'unclassified').then(function (r) {
-                /* Attach enrichment to event (null-safe: only set when present). */
-                if (_bestMatch !== null) {
-                  r.ev._match = _bestMatch;
-                }
-                return r;
-              });
-            });
-
-            /* Wait for all events to classify, then repaint + publish counts. */
-            Promise.all(classifyPromises).then(function (results) {
-              if (classifySeq !== _loadSeq) return; // stale guard
-              results.forEach(function (r) { r.ev.classification = r.cls; });
-              renderCalArea();
-              publishCounts(); // final publish — classifications fully resolved
-            }).catch(function () {
-              /* If bulk Promise.all fails somehow, leave unclassified — already painted. */
-            });
+        /* ── Render dispatch ──────────────────────────────────────────── */
+        function renderCalArea() {
+          // Update view-switcher active tab.
+          Array.prototype.forEach.call(elViewSwitch.querySelectorAll('.view-tab'), function (tab) {
+            tab.classList.toggle('is-active', tab.dataset.view === view);
           });
-      }
 
-      /* ── Tear down active events observer ───────────────────────── */
-      function destroyEventsObserver() {
-        if (_eventsObserver) {
-          _eventsObserver.destroy();
-          _eventsObserver = null;
-        }
-        _eventsDataUpdatedAt = 0;
-        _currentWindowKey    = '';
-      }
-
-      /* ── Compute month-grid window enclosing the current anchor ──── */
-      /* Returns { from, to, key } where:
-       *   from = startOfWeek(startOfMonth(anchor))   — Mon of the week that starts the grid
-       *   to   = startOfWeek(endOfMonth(anchor)) + 7 days  — Mon after the last grid week + 7
-       * This 6-week-ish window covers every Day/Week/Agenda range in the same month
-       * (including cross-month week edges). View-switches at offset 0 share the same
-       * window → same queryKey → single fetch, no re-fetch on view-switch.            */
-      function fetchWindow() {
-        var base = new Date();
-        /* anchor: for week/agenda/day views use the week/day anchor; for month use month. */
-        var anchor;
-        if (view === 'month') {
-          anchor = new Date(base);
-          anchor.setMonth(anchor.getMonth() + offset);
-        } else if (view === 'day') {
-          anchor = new Date(base);
-          anchor.setDate(anchor.getDate() + offset);
-        } else {
-          /* week / agenda */
-          anchor = new Date(base);
-          anchor.setDate(anchor.getDate() + offset * 7);
-        }
-        /* Month-grid window: Mon of first-grid-week → Mon after last-grid-week + 7 */
-        var winFrom = startOfWeek(startOfMonth(anchor));
-        var winTo   = addDays(startOfWeek(endOfMonth(anchor)), 7);
-        var fromISO = winFrom.toISOString();
-        var toISO   = winTo.toISOString();
-        return {
-          from:    winFrom,
-          to:      winTo,
-          fromISO: fromISO,
-          toISO:   toISO,
-          key:     fromISO + '|' + toISO,
-        };
-      }
-
-      /* ── Refresh _calVisibility + _addedCalIds from listAddedCalendars ─ */
-      /* Returns a Promise<{ visibilityChanged, addedSetChanged }>.           *
-       * visibilityChanged = at least one calendar's selected flag differed.  *
-       * addedSetChanged   = set of calendarIds itself changed (add/remove).  */
-      function refreshCalVisibility() {
-        if (!queryCap) return Promise.resolve({ visibilityChanged: false, addedSetChanged: false });
-        return queryCap.call('listAddedCalendars').then(function (cals) {
-          cals = cals || [];
-          var newVisibility = {};
-          var newIds = cals.map(function (c) { return c.id; }).sort().join(',');
-          cals.forEach(function (c) { newVisibility[c.id] = !!c.selected; });
-          var addedSetChanged = newIds !== _addedCalIds;
-          /* Visibility changed if any key/value differs. */
-          var visibilityChanged = addedSetChanged; // set change implies visibility change
-          if (!visibilityChanged) {
-            var oldKeys = Object.keys(_calVisibility).sort();
-            var newKeys = Object.keys(newVisibility).sort();
-            if (oldKeys.length !== newKeys.length) {
-              visibilityChanged = true;
-            } else {
-              for (var i = 0; i < oldKeys.length; i++) {
-                if (_calVisibility[oldKeys[i]] !== newVisibility[oldKeys[i]]) {
-                  visibilityChanged = true;
-                  break;
-                }
-              }
-            }
-          }
-          _calVisibility = newVisibility;
-          _addedCalIds   = newIds;
-          return { visibilityChanged: visibilityChanged, addedSetChanged: addedSetChanged };
-        }).catch(function () {
-          return { visibilityChanged: false, addedSetChanged: false };
-        });
-      }
-
-      /* ── Load events + SD-11 classify pass ───────────────────────── */
-      /* Window-cache strategy:
-       *   - Computes a 6-week month-grid window from the current anchor.
-       *   - If window key matches _currentWindowKey → view-switch within same window:
-       *     just re-render + re-publish counts (NO fetch, NO spinner, NO classify).
-       *   - Else → new window: destroy old observer, show spinner, create new observer
-       *     for listWindowEvents (ALL added calendars), classify once on arrival.
-       *
-       * Calendar visibility: _calVisibility holds per-cal bool. eventsForDay() and
-       * publishCounts() both respect it. Toggling a calendar = client-side update only
-       * (handled in applyScheduleViewState revChanged branch).
-       *
-       * Scroll-jump-safe: renderCalArea() (rAF scroll-to-7AM) only called when data
-       * actually changed (dataUpdatedAt gate) or on explicit view/visibility change.
-       * setSelection() class-toggle never calls renderCalArea() — no scroll jump. */
-      function loadEvents() {
-        if (!queryCap || !connected) return;
-        loadError = null;
-
-        var range  = rangeForView();
-        var win    = fetchWindow();
-
-        /* Always update the range label (cheap, no fetch). */
-        elRangeLabel.textContent = range.label;
-
-        /* Same window: view-switch within current month — skip fetch entirely. */
-        if (win.key === _currentWindowKey && _eventsObserver !== null) {
-          renderCalArea();
-          publishCounts();
-          return;
-        }
-
-        /* New window: tear down old observer and start fresh. */
-        destroyEventsObserver();
-        _currentWindowKey = win.key;
-
-        showLoading();
-
-        /* Create observer keyed by window bounds (not view/offset bounds).
-         * staleTime=5min: cached result serves all view-switches within this window
-         * without re-fetch. Events refetch only when the window changes (month nav). */
-        var obs = window.__viewQuery.observeQuery({
-          queryKey: ['schedule.calendar', 'windowEvents', win.fromISO, win.toISO],
-          queryFn: function () { return queryCap.call('listWindowEvents', win.fromISO, win.toISO); },
-          staleTime: 5 * 60 * 1000,
-        });
-        _eventsObserver = obs;
-
-        obs.subscribe(function (result) {
-          if (result.status === 'error') {
-            var err = result.error;
-            var msg = err && err.message ? err.message : String(err);
-            if (msg.indexOf('calendar.not_connected') !== -1 || msg.indexOf('not connected') !== -1) {
-              connected = false;
-            } else {
-              loadError = msg;
-            }
-            renderCalArea();
+          if (!connected) {
+            // Disconnected state — show connect prompt.
+            var disc = el('div', 'state-panel');
+            var ico = el('div', 'state-icon');
+            ico.innerHTML = icon('calendar-x', 20);
+            disc.appendChild(ico);
+            disc.appendChild(txt('div', 'state-title', 'Connect your calendar'));
+            disc.appendChild(
+              txt(
+                'div',
+                'state-desc',
+                'Link Google Calendar to see your schedule. Your credential never leaves this device.',
+              ),
+            );
+            var connectBtn = el('button', 'btn btn-accent');
+            connectBtn.type = 'button';
+            connectBtn.textContent = connecting ? 'Connecting…' : 'Connect Google Calendar';
+            connectBtn.disabled = connecting;
+            connectBtn.addEventListener('click', doConnect);
+            disc.appendChild(connectBtn);
+            elCalArea.innerHTML = '';
+            elCalArea.appendChild(disc);
             return;
           }
 
-          if (result.status === 'success') {
-            /* Gate on dataUpdatedAt: only repaint when data actually changed.
-             * Prevents renderCalArea() (which includes rAF scroll-to-7AM) from
-             * firing on status-only observer ticks — preserves scroll position. */
-            if (result.dataUpdatedAt <= _eventsDataUpdatedAt) return;
-            _eventsDataUpdatedAt = result.dataUpdatedAt;
-
-            /* Increment classify-sequence token (stale guard for classify pass). */
-            var classifySeq = ++_loadSeq;
-
-            var evs = result.data || [];
-
-            /* Step 1: default all to unclassified; paint immediately. */
-            evs.forEach(function (ev) { ev.classification = 'unclassified'; });
-            events = evs;
-            renderCalArea();
-            publishCounts(); // initial publish — all 'unclassified'
-
-            /* Step 2–4: async classify pass on whole window (mutates ev.classification).
-             * Classification cached on event objects; reused across view-switches in window. */
-            runClassifyPass(evs, win, classifySeq);
-          }
-        });
-      }
-
-      /* ── Refresh settings + poller ──────────────────────────────────── */
-      function applyRefreshSettings(s) {
-        if (!s || typeof s.mode !== 'string' || typeof s.intervalMin !== 'number') return;
-        _refreshMode        = (s.mode === 'auto' || s.mode === 'manual') ? s.mode : 'manual';
-        _refreshIntervalMin = (s.intervalMin >= 1) ? Math.floor(s.intervalMin) : 15;
-        // Clear any running timer.
-        if (_refreshTimer !== null) {
-          clearInterval(_refreshTimer);
-          _refreshTimer = null;
-        }
-        // Start auto-poller only when view is active. A settings push that arrives
-        // while the tab is deactivated only updates mode/interval; the next
-        // onActivate starts the timer.
-        if (_refreshMode === 'auto' && _viewActive) {
-          _refreshTimer = setInterval(function () { triggerBackgroundSync(); }, _refreshIntervalMin * 60000);
-        }
-      }
-
-      /* ── Event popover ───────────────────────────────────────────────── */
-      /* Clipboard fallback via hidden textarea + execCommand (must run in click handler) */
-      function fallbackCopy(text, onSuccess) {
-        try {
-          var ta = document.createElement('textarea');
-          ta.value = text;
-          ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
-          document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          var ok = document.execCommand('copy');
-          document.body.removeChild(ta);
-          if (ok && onSuccess) onSuccess();
-        } catch (err) { /* silently ignore */ }
-      }
-
-      function openPopover(ev, anchorEl) {
-        var rect = anchorEl.getBoundingClientRect();
-        setSelection(ev.id); // highlight in place — no grid rebuild, no scroll jump
-        _popoverEv = ev;
-
-        elPopTitle.textContent    = ev.title || '(No title)';
-        elPopStrip.className      = 'popover-kind-strip ' + classClass(ev);
-        elPopClsBadge.textContent = classLabel(ev);
-        elPopClsBadge.className   = 'event-kind-badge ' + classClass(ev);
-
-        elPopClose.innerHTML = icon('x', 14);
-
-        elPopBody.innerHTML = '';
-
-        // Time row
-        var timeRow = el('div', 'popover-row');
-        var timeIco = el('span', 'popover-row-icon');
-        timeIco.innerHTML = icon('clock', 13);
-        var timeTxt = el('span', 'popover-row-text');
-        if (ev.allDay) {
-          timeTxt.textContent = 'All day';
-        } else {
-          timeTxt.innerHTML = '<strong>' + fmtTime(ev.start) + ' – ' + fmtTime(ev.end) + '</strong>';
-          // Append duration badge if computable
-          if (ev.start && ev.end && ev.start.length > 10 && ev.end.length > 10) {
-            var startMs = new Date(ev.start).getTime();
-            var endMs   = new Date(ev.end).getTime();
-            var durMin  = Math.round((endMs - startMs) / 60000);
-            if (durMin > 0) {
-              var durBadge = txt('span', 'popover-duration-badge', fmtDuration(durMin));
-              timeTxt.appendChild(durBadge);
-            }
-          }
-        }
-        timeRow.appendChild(timeIco);
-        timeRow.appendChild(timeTxt);
-        elPopBody.appendChild(timeRow);
-
-        // Calendar row
-        if (ev.calendarName) {
-          var calRow = el('div', 'popover-row');
-          var calIco = el('span', 'popover-row-icon');
-          calIco.innerHTML = icon('layers', 13);
-          var calTxt = el('div', 'popover-row-text');
-          calTxt.appendChild(txt('span', 'popover-cal-badge', ev.calendarName));
-          calRow.appendChild(calIco);
-          calRow.appendChild(calTxt);
-          elPopBody.appendChild(calRow);
-        }
-
-        // Location row
-        if (ev.location) {
-          var locRow = el('div', 'popover-row');
-          var locIco = el('span', 'popover-row-icon');
-          locIco.innerHTML = icon('location', 13);
-          var locTxt = txt('span', 'popover-row-text', ev.location);
-          locRow.appendChild(locIco);
-          locRow.appendChild(locTxt);
-          elPopBody.appendChild(locRow);
-        }
-
-        // Meeting link row — Join (openExternal) + selectable URL + copy.
-        if (ev.meetingLink) {
-          var joinRow = el('div', 'popover-row');
-          var joinIco = el('span', 'popover-row-icon');
-          joinIco.innerHTML = icon('globe', 13);
-          var joinTxt = el('div', 'popover-row-text');
-          joinTxt.appendChild(txt('div', 'popover-join-label', 'Meeting link'));
-
-          var joinUrlRow = el('div', '');
-          joinUrlRow.style.display = 'flex';
-          joinUrlRow.style.alignItems = 'center';
-          joinUrlRow.style.gap = '6px';
-          joinUrlRow.style.flexWrap = 'wrap';
-
-          var joinUrl = txt('span', 'popover-join-url', ev.meetingLink);
-          joinUrlRow.appendChild(joinUrl);
-
-          /* Join button — launches via shell.openExternal (sandboxed iframe can't navigate) */
-          if (_soamView) {
-            var joinBtn = el('button', 'popover-link-btn');
-            joinBtn.type = 'button';
-            joinBtn.innerHTML = icon('globe', 11) + 'Join';
-            joinBtn.addEventListener('click', function (e) {
-              e.stopPropagation();
-              if (_soamView) _soamView.openExternal(ev.meetingLink);
-            });
-            joinUrlRow.appendChild(joinBtn);
+          if (loadError) {
+            var errPanel = el('div', 'state-panel');
+            var eIco = el('div', 'state-icon');
+            eIco.innerHTML = icon('alert-circle', 20);
+            errPanel.appendChild(eIco);
+            errPanel.appendChild(txt('div', 'state-title', 'Failed to load events'));
+            errPanel.appendChild(txt('div', 'state-error-msg', loadError));
+            var retryBtn = el('button', 'btn btn-ghost');
+            retryBtn.type = 'button';
+            retryBtn.textContent = 'Retry';
+            retryBtn.addEventListener('click', loadEvents);
+            errPanel.appendChild(retryBtn);
+            elCalArea.innerHTML = '';
+            elCalArea.appendChild(errPanel);
+            return;
           }
 
-          /* Copy button */
-          var copyBtn = el('button', 'popover-link-btn');
-          copyBtn.type = 'button';
-          copyBtn.title = 'Copy link';
-          copyBtn.innerHTML = icon('copy', 11) + 'Copy';
-          var copyTimer = null;
-          copyBtn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            var url = ev.meetingLink;
-            function showCopied() {
-              copyBtn.innerHTML = icon('check', 11) + 'Copied';
-              if (copyTimer) clearTimeout(copyTimer);
-              copyTimer = setTimeout(function () {
-                copyBtn.innerHTML = icon('copy', 11) + 'Copy';
-              }, 1200);
-            }
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(url).then(showCopied).catch(function () {
-                fallbackCopy(url, showCopied);
-              });
+          var range = rangeForView();
+
+          // Range label. Agenda uses its own label from rangeForView() directly.
+          elRangeLabel.textContent = range.label;
+
+          // Tab descriptor — updates on every render (updateTab is no-op when unchanged).
+          if (window.soamView && window.soamView.setTabDescription) {
+            var tabDesc;
+            if (view === 'agenda') {
+              // "Next 7 days" at offset 0; otherwise date range start
+              tabDesc =
+                offset === 0
+                  ? 'Next 7 days'
+                  : range.from.getDate() + ' ' + MONTH_NAMES_SHORT[range.from.getMonth()];
+            } else if (view === 'week') {
+              // "Wk of Jun 15"
+              tabDesc =
+                'Wk of ' + MONTH_NAMES_SHORT[range.from.getMonth()] + ' ' + range.from.getDate();
+            } else if (view === 'day') {
+              // "17 Jun"
+              tabDesc = range.from.getDate() + ' ' + MONTH_NAMES_SHORT[range.from.getMonth()];
             } else {
-              fallbackCopy(url, showCopied);
+              // "Jun 2026"
+              tabDesc = MONTH_NAMES_SHORT[range.from.getMonth()] + ' ' + range.from.getFullYear();
             }
-          });
-          joinUrlRow.appendChild(copyBtn);
-
-          joinTxt.appendChild(joinUrlRow);
-          joinRow.appendChild(joinIco);
-          joinRow.appendChild(joinTxt);
-          elPopBody.appendChild(joinRow);
-        }
-
-        // Participants section
-        var hasAttendees = ev.attendees && ev.attendees.length > 0;
-        var hasOrganizerOnly = !hasAttendees && ev.organizer && (ev.organizer.email || ev.organizer.displayName);
-        if (hasAttendees || hasOrganizerOnly) {
-          elPopBody.appendChild(el('div', 'popover-divider'));
-
-          var secLabel = el('div', 'popover-section-label');
-          secLabel.innerHTML = icon('person', 11) + ' Participants';
-          elPopBody.appendChild(secLabel);
-
-          var participantsList = el('div', 'popover-participants');
-          var orgEmail = ev.organizer && ev.organizer.email ? ev.organizer.email.toLowerCase() : null;
-          function isOrganiser(a) {
-            return a.organizer === true || (orgEmail && (a.email || '').toLowerCase() === orgEmail);
+            window.soamView.setTabDescription(tabDesc);
           }
 
-          if (hasAttendees) {
-            var maxShown = 8;
-            ev.attendees.slice(0, maxShown).forEach(function (a) {
-              var nameStr = a.name || a.displayName || a.email || '?';
-              var initials = nameStr.split(/\s+/).slice(0, 2)
-                .map(function (w) { return w.charAt(0); }).join('');
-              var pRow = el('div', 'popover-participant');
-              pRow.appendChild(txt('div', 'popover-avatar', initials || '?'));
-              pRow.appendChild(txt('div', 'popover-participant-name', a.name || a.displayName || a.email || 'Unknown'));
-              if (a.self) pRow.appendChild(txt('span', 'popover-participant-role', 'you'));
-              if (isOrganiser(a)) pRow.appendChild(txt('span', 'popover-participant-role', 'organiser'));
-              participantsList.appendChild(pRow);
-            });
-            if (ev.attendees.length > maxShown) {
-              var moreEl = txt('div', 'popover-row-text', '+' + (ev.attendees.length - maxShown) + ' more');
-              moreEl.style.fontSize = '11px';
-              moreEl.style.paddingLeft = '30px';
-              moreEl.style.color = 'var(--color-fg-muted)';
-              participantsList.appendChild(moreEl);
-            }
+          var body;
+          if (view === 'agenda') {
+            body = renderAgenda(range);
+          } else if (view === 'day') {
+            body = renderDay(range);
+          } else if (view === 'week') {
+            body = renderWeek(range);
           } else {
-            var org = ev.organizer;
-            var orgName = org.displayName || org.email || '?';
-            var orgInitials = orgName.split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('');
-            var orgRow = el('div', 'popover-participant');
-            orgRow.appendChild(txt('div', 'popover-avatar', orgInitials || '?'));
-            orgRow.appendChild(txt('div', 'popover-participant-name', orgName));
-            orgRow.appendChild(txt('span', 'popover-participant-role', 'organiser'));
-            participantsList.appendChild(orgRow);
+            body = renderMonth(range);
           }
-          elPopBody.appendChild(participantsList);
+
+          elCalArea.innerHTML = '';
+          elCalArea.appendChild(body);
         }
 
-        // Footer — Open in side panel (escape to the aux event-detail view)
-        if (_soamView) {
-          var footer = el('div', 'popover-footer');
-          var sideBtn = el('button', 'popover-side-btn');
-          sideBtn.type = 'button';
-          sideBtn.innerHTML = icon('open-in-window', 12) + 'Open in side panel';
-          sideBtn.addEventListener('click', function () {
-            if (_soamView) _soamView.setActiveEvent(ev);
-            closePopover();
-          });
-          footer.appendChild(sideBtn);
-          elPopBody.appendChild(footer);
+        function showLoading() {
+          elCalArea.innerHTML = '';
+          var row = el('div', 'loading-row');
+          row.innerHTML = '<span class="spinner"></span> Loading events…';
+          elCalArea.appendChild(row);
         }
 
-        // Position near anchor, clamped within iframe viewport. Backdrop first.
-        elBackdrop.classList.remove('hidden');
-        var pop = elPopover;
-        pop.classList.remove('hidden');
-        pop.style.top = ''; pop.style.left = ''; pop.style.right = '';
+        /* ── Run SD-11 classify pass on a freshly-fetched event array ──── */
+        /* Separated so it can be called from the __viewQuery subscriber without
+         * re-fetching events from the cap (data already in hand). */
+        function runClassifyPass(evs, range, classifySeq) {
+          /* Step 2: if either classify cap missing, stop (already painted unclassified). */
+          if (!sessionsQuery || !recordQuery) return;
 
-        var popW = pop.offsetWidth  || 380;
-        var popH = pop.offsetHeight || 320;
-        var vw = window.innerWidth, vh = window.innerHeight, margin = 8;
-
-        var left = rect.right + margin;
-        if (left + popW > vw - margin) left = rect.left - popW - margin;
-        left = Math.max(margin, Math.min(left, vw - popW - margin));
-
-        var top = rect.top;
-        if (top + popH > vh - margin) top = rect.bottom - popH;
-        top = Math.max(margin, Math.min(top, vh - popH - margin));
-
-        pop.style.left = left + 'px';
-        pop.style.top  = top  + 'px';
-        pop.focus({ preventScroll: true });
-      }
-
-      function closePopover() {
-        if (elPopover.classList.contains('hidden')) return;
-        elPopover.classList.add('hidden');
-        elBackdrop.classList.add('hidden');
-        _popoverEv = null;
-        setSelection(null); // clear highlight in place — no rebuild/scroll jump
-      }
-
-      // Popover listeners (registered once over the static markup).
-      elPopClose.addEventListener('click', closePopover);
-      elPopover.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closePopover();
-      });
-      elBackdrop.addEventListener('click', closePopover);
-      elPopover.addEventListener('click', function (e) { e.stopPropagation(); });
-      // Sandboxed iframe swallows parent mousedown — a click outside the iframe blurs
-      // the window; dismiss the popover then (Dev Gotcha: popovers must close on blur).
-      window.addEventListener('blur', function () {
-        if (!elPopover.classList.contains('hidden')) closePopover();
-      });
-
-      /* ── Background sync (slice 6) ──────────────────────────────────── */
-      /* Fire syncEvents non-blocking after first paint from cache.
-       * If sync produces changes (upserts or deletions > 0), invalidate the
-       * window-events cache so the view refetches and repaints from the updated DB.
-       * Safe to call multiple times — each call is independent; stale calls ignored. */
-      function triggerBackgroundSync() {
-        if (!cmdCap) return Promise.resolve();
-        return cmdCap.call('syncEvents', [])
-          .then(function (result) {
-            if (!result) return;
-            var changed = (result.upserts > 0 || result.deletions > 0);
-            if (changed && window.__viewQuery) {
-              window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
-            }
-            // Part C3: if any accounts were disconnected due to auth failure,
-            // bump calRev so nav.html refreshes the account list.
-            if (result.disconnectedAccounts && result.disconnectedAccounts.length > 0) {
-              if (_soamView && _soamView.bumpScheduleData) _soamView.bumpScheduleData();
-            }
-          })
-          .catch(function () {
-            /* Sync failure is non-fatal — cached events remain visible. */
-          });
-      }
-
-      /* ── Connect / disconnect ─────────────────────────────────────── */
-      function doConnect() {
-        if (!cmdCap || connecting) return;
-        connecting = true;
-        renderCalArea();
-
-        cmdCap.call('connect', [])
-          .then(function (result) {
-            connecting = false;
-            if (result && result.ok) {
-              connected = true;
-              loadEvents();
-              /* After connecting, do an initial full sync to populate the cache. */
-              triggerBackgroundSync();
-            } else {
-              loadError = 'Connection failed: ' + ((result && result.error) || 'Unknown error');
-              renderCalArea();
-            }
-          })
-          .catch(function (err) {
-            connecting = false;
-            loadError = 'Connection failed: ' + ((err && err.message) || String(err));
-            renderCalArea();
-          });
-      }
-
-      function doDisconnect() {
-        if (!cmdCap) return;
-        cmdCap.call('disconnect', [])
-          .then(function () { connected = false; events = []; destroyEventsObserver(); renderCalArea(); })
-          .catch(function () { connected = false; events = []; destroyEventsObserver(); renderCalArea(); });
-      }
-
-      /* ── Date nav ─────────────────────────────────────────────────── */
-      function updateRangeLabel() {
-        var range = rangeForView();
-        elRangeLabel.textContent = range.label;
-      }
-
-      elBtnPrev.addEventListener('click', function () {
-        offset--;
-        if (connected) loadEvents(); else updateRangeLabel();
-      });
-      elBtnNext.addEventListener('click', function () {
-        offset++;
-        if (connected) loadEvents(); else updateRangeLabel();
-      });
-      elBtnToday.addEventListener('click', function () {
-        offset = 0;
-        if (connected) loadEvents(); else updateRangeLabel();
-      });
-
-      // Refresh button — codicon glyph + spin while a manual sync is in flight.
-      elBtnRefresh.innerHTML = icon('refresh', 15);
-      elBtnRefresh.addEventListener('click', function () {
-        if (elBtnRefresh.classList.contains('spinning')) return;
-        elBtnRefresh.classList.add('spinning');
-        var started = Date.now();
-        Promise.resolve(triggerBackgroundSync()).then(function () {
-          // Keep the spin visible for at least one rotation so it doesn't flicker.
-          var elapsed = Date.now() - started;
-          setTimeout(function () { elBtnRefresh.classList.remove('spinning'); }, Math.max(0, 700 - elapsed));
-        });
-      });
-
-      /* ── View switcher ───────────────────────────────────────────── */
-      /* Clicks round-trip through ScheduleViewStateService (P-B channel).         *
-       * Do NOT mutate `view` here — the inbound scheduleViewState push drives      *
-       * the actual view change to avoid double-render (O455 mirror pattern).       *
-       * Preserve _lastCalRev when writing; never reset it (would trigger spurious  *
-       * refetch / fight with nav.html's authoritative calRev counter).             */
-      Array.prototype.forEach.call(elViewSwitch.querySelectorAll('.view-tab'), function (tab) {
-        tab.addEventListener('click', function () {
-          var v = tab.dataset.view;
-          if (view === v) return;
-          if (window.soamView && window.soamView.setScheduleViewState) {
-            window.soamView.setScheduleViewState({ view: v, calRev: _lastCalRev, classFilter: _lastClassFilter });
-          } else {
-            /* Fallback if bridge verb unavailable: apply locally (graceful degradation). */
-            view = v;
-            offset = 0;
-            selectedId = null;
-            if (connected) loadEvents(); else renderCalArea();
-          }
-        });
-      });
-
-      /* ── Apply inbound scheduleViewState ────────────────────────── */
-      /* Called on init, context, and dedicated scheduleViewState pushes.          *
-       * Drives the active view; triggers listAggregatedEvents refetch on calRev   *
-       * change (nav.html bumps calRev on any account/calendar mutation).           *
-       * A view change resets offset+selection to avoid stale grid state.           */
-      function applyScheduleViewState(state) {
-        if (!state || typeof state.view !== 'string') return;
-        var newView    = state.view;
-        var newRev     = typeof state.calRev === 'number' ? state.calRev : 0;
-        /* classFilter: new shape = string | null (focusedClass). Back-compat: old
-         * Record<string,boolean> shape (from stale localStorage) → treat as null. */
-        var newFilter  = (typeof state.classFilter === 'string' && state.classFilter.length > 0)
-                         ? state.classFilter : null;
-        var viewChanged   = newView !== view;
-        var revChanged    = newRev !== _lastCalRev;
-        var filterChanged = newFilter !== _classFilter;
-        if (!viewChanged && !revChanged && !filterChanged) return; // no-op on equal state
-        _lastCalRev      = newRev;
-        _classFilter     = newFilter;
-        _lastClassFilter = newFilter;
-        if (viewChanged) {
-          view = newView;
-          offset = 0;
-          selectedId = null;
-          /* view change: loadEvents handles same-window fast-path or new window fetch. */
-          if (connected) loadEvents(); else renderCalArea();
-        } else if (revChanged) {
-          /* calRev changed — determine if calendar SET changed (add/remove account or
-           * calendar) vs only visibility (selected toggle).
-           *   - Set changed  → window cache is stale (missing added cal's events) →
-           *     invalidate window key, reload.
-           *   - Visibility only → update _calVisibility client-side, re-render — NO fetch. */
-          if (connected) {
-            refreshCalVisibility().then(function (diff) {
-              if (diff.addedSetChanged) {
-                /* Added/removed a calendar — the window cache no longer covers the new
-                 * calendar set. INVALIDATE (not destroy+reload): the live observer
-                 * refetches the same window key with the updated calendar.list. A plain
-                 * destroy+loadEvents would re-subscribe to the still-fresh cached query
-                 * and miss the new calendar's events until staleTime expired.
-                 * Slice 6: also trigger a background sync so the newly-added calendar's
-                 * events are populated into the event cache; invalidate again on completion. */
-                window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
-                triggerBackgroundSync();
-              } else if (diff.visibilityChanged) {
-                /* Selected flags changed only — instant client-side re-render, then
-                 * re-run classify pass so PHI-read toggle / roster changes take effect. */
+          /* ADR-313 Am1: PHI-read opt-in gate — default-off. Read on each pass so toggling
+           * takes effect on the next window fetch + classify. When disabled, skip
+           * resolveParticipant entirely; every event stays unclassified. */
+          sessionsQuery
+            .call('getPhiReadOptIn', {})
+            .catch(function () {
+              return { enabled: false };
+            })
+            .then(function (optIn) {
+              if (!optIn || !optIn.enabled) {
+                /* Opt-in off — fails-closed. On a FRESH fetch the events arrive
+                 * unclassified, but on a LIVE toggle (calRev bump, no re-fetch) the
+                 * in-memory events still carry their prior classification/_match from
+                 * when read was ON. Reset every event to unclassified + clear match
+                 * enrichment, repaint, then publish — otherwise stale classes linger. */
+                if (classifySeq !== _loadSeq) return; // stale guard
+                evs.forEach(function (ev) {
+                  ev.classification = 'unclassified';
+                  ev._match = null;
+                });
                 renderCalArea();
                 publishCounts();
-                runClassifyPass(events, fetchWindow(), ++_loadSeq);
-              } else {
-                /* calRev bump with calendar SET and visibility-flags unchanged.
-                 * Two causes converge here:
-                 *   (a) a classification input changed (PHI-read toggle, roster
-                 *       mutation, triage) — needs a re-classify; AND
-                 *   (b) a calendar METADATA edit (color / name) — that metadata is
-                 *       baked onto the cached event objects at fetch time (JOIN in
-                 *       listWindowEvents), so reclassifying the in-memory events would
-                 *       repaint the STALE color. It must be re-fetched.
-                 * Invalidate the window cache so events refetch with fresh calendar
-                 * metadata; the observer's onData handler then re-runs the classify
-                 * pass. The refetch reads the local event cache (no Google call) — cheap,
-                 * and covers (a) too (onData re-classifies). */
-                window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
+                return;
               }
+              runClassifyPassInner(evs, range, classifySeq);
             });
-          } else {
-            renderCalArea();
+        }
+
+        /* Inner classify pass — runs only when PHI-read opt-in is enabled. */
+        function runClassifyPassInner(evs, range, classifySeq) {
+          /* Step 3: batch-fetch linked rows for this window (best-effort). */
+          var fromMs = range.from.getTime();
+          var toMs = range.to.getTime();
+          sessionsQuery
+            .call('listLinkedProvider', { providerId: 'google-calendar', from: fromMs, to: toMs })
+            .catch(function () {
+              /* listLinkedProvider failed — proceed with empty linkedSet so resolver still runs. */
+              return [];
+            })
+            .then(function (rows) {
+              if (classifySeq !== _loadSeq) return; // stale guard
+              rows = rows || [];
+              var linkedSet = {};
+              rows.forEach(function (r) {
+                linkedSet[r.provider_event_id] = true;
+              });
+
+              /* Step 4: per-event resolve. */
+              /* Build linked rows map for match enrichment. */
+              var linkedRowMap = {};
+              rows.forEach(function (r) {
+                linkedRowMap[r.provider_event_id] = r;
+              });
+
+              /* Build array of promises — one per event. */
+              var classifyPromises = evs.map(function (ev) {
+                /* Already linked? Instant client_session — enrich with linked clientId. */
+                if (linkedSet[ev.id]) {
+                  var linkedRow = linkedRowMap[ev.id];
+                  ev._match =
+                    linkedRow && linkedRow.patient_id
+                      ? { matchClientId: linkedRow.patient_id, source: 'linked' }
+                      : { source: 'linked' };
+                  return Promise.resolve({ ev: ev, cls: 'client_session' });
+                }
+
+                /* Gather participants: non-self attendees + organizer (if email, non-self). */
+                var participants = [];
+                if (ev.attendees) {
+                  ev.attendees.forEach(function (a) {
+                    if (!a.self && (a.email || a.name)) {
+                      participants.push({ email: a.email || null, name: a.name || null });
+                    }
+                  });
+                }
+                if (ev.organizer && ev.organizer.email && !ev.organizer.self) {
+                  /* Include organizer only when external (organizer.self !== true). */
+                  var orgEmail = ev.organizer.email.toLowerCase();
+                  var alreadySelf =
+                    ev.attendees &&
+                    ev.attendees.some(function (a) {
+                      return a.self && (a.email || '').toLowerCase() === orgEmail;
+                    });
+                  if (!alreadySelf) {
+                    /* Check not already added via attendees */
+                    var alreadyAdded = participants.some(function (p) {
+                      return p.email && p.email.toLowerCase() === orgEmail;
+                    });
+                    if (!alreadyAdded) {
+                      participants.push({
+                        email: ev.organizer.email,
+                        name: ev.organizer.displayName || null,
+                      });
+                    }
+                  }
+                }
+
+                if (participants.length === 0) {
+                  return Promise.resolve({ ev: ev, cls: 'personal' });
+                }
+
+                /* Resolve participants sequentially; short-circuit on first match. */
+                /* Precedence: match > candidates > suppressed > none */
+                var PREC = {
+                  client_session: 3,
+                  probable_client_session: 2,
+                  not_client_session: 1,
+                  unclassified: 0,
+                };
+                /* _bestMatch carries enrichment data for the winning classification. */
+                var _bestMatch = null;
+
+                function resolveNext(idx, best) {
+                  if (best === 'client_session') {
+                    /* Highest precedence — short-circuit. */
+                    return Promise.resolve({ ev: ev, cls: 'client_session' });
+                  }
+                  if (idx >= participants.length) {
+                    return Promise.resolve({ ev: ev, cls: best });
+                  }
+                  var p = participants[idx];
+                  var query = {};
+                  if (p.email) query.email = p.email;
+                  if (p.name) query.name = p.name;
+                  return recordQuery
+                    .call('resolveParticipant', query)
+                    .then(function (result) {
+                      var outcome = (result && result.outcome) || 'none';
+                      var cls;
+                      if (outcome === 'match') cls = 'client_session';
+                      else if (outcome === 'candidates') cls = 'probable_client_session';
+                      else if (outcome === 'suppressed') cls = 'not_client_session';
+                      else cls = 'unclassified';
+                      /* Capture enrichment data if this outcome wins. */
+                      if (PREC[cls] > PREC[best]) {
+                        if (outcome === 'match' && result.clientId) {
+                          _bestMatch = { matchClientId: result.clientId, source: 'resolver' };
+                        } else if (outcome === 'candidates' && result.candidates) {
+                          _bestMatch = { candidates: result.candidates, source: 'resolver' };
+                        } else {
+                          _bestMatch = null;
+                        }
+                      }
+                      var next = PREC[cls] > PREC[best] ? cls : best;
+                      return resolveNext(idx + 1, next);
+                    })
+                    .catch(function () {
+                      /* Resolver error → treat as unclassified for this participant. */
+                      return resolveNext(idx + 1, best);
+                    });
+                }
+
+                return resolveNext(0, 'unclassified').then(function (r) {
+                  /* Attach enrichment to event (null-safe: only set when present). */
+                  if (_bestMatch !== null) {
+                    r.ev._match = _bestMatch;
+                  }
+                  return r;
+                });
+              });
+
+              /* Wait for all events to classify, then repaint + publish counts. */
+              Promise.all(classifyPromises)
+                .then(function (results) {
+                  if (classifySeq !== _loadSeq) return; // stale guard
+                  results.forEach(function (r) {
+                    r.ev.classification = r.cls;
+                  });
+                  renderCalArea();
+                  publishCounts(); // final publish — classifications fully resolved
+                })
+                .catch(function () {
+                  /* If bulk Promise.all fails somehow, leave unclassified — already painted. */
+                });
+            });
+        }
+
+        /* ── Tear down active events observer ───────────────────────── */
+        function destroyEventsObserver() {
+          if (_eventsObserver) {
+            _eventsObserver.destroy();
+            _eventsObserver = null;
           }
-        } else {
-          /* classFilter changed only — re-render in place, no network fetch. */
-          renderCalArea();
+          _eventsDataUpdatedAt = 0;
+          _currentWindowKey = '';
         }
-      }
 
-      /* ── Bootstrap ───────────────────────────────────────────────── */
-      var boot = window.__viewBoot;
-
-      window.addEventListener('message', function (e) {
-        var d = e.data;
-        if (!d || d.__soamView !== true) return;
-        boot.applyTheme(d);
-        /* Consume scheduleViewState from init + context messages. */
-        if ((d.kind === 'init' || d.kind === 'context') && d.scheduleViewState) {
-          applyScheduleViewState(d.scheduleViewState);
+        /* ── Compute month-grid window enclosing the current anchor ──── */
+        /* Returns { from, to, key } where:
+         *   from = startOfWeek(startOfMonth(anchor))   — Mon of the week that starts the grid
+         *   to   = startOfWeek(endOfMonth(anchor)) + 7 days  — Mon after the last grid week + 7
+         * This 6-week-ish window covers every Day/Week/Agenda range in the same month
+         * (including cross-month week edges). View-switches at offset 0 share the same
+         * window → same queryKey → single fetch, no re-fetch on view-switch.            */
+        function fetchWindow() {
+          var base = new Date();
+          /* anchor: for week/agenda/day views use the week/day anchor; for month use month. */
+          var anchor;
+          if (view === 'month') {
+            anchor = new Date(base);
+            anchor.setMonth(anchor.getMonth() + offset);
+          } else if (view === 'day') {
+            anchor = new Date(base);
+            anchor.setDate(anchor.getDate() + offset);
+          } else {
+            /* week / agenda */
+            anchor = new Date(base);
+            anchor.setDate(anchor.getDate() + offset * 7);
+          }
+          /* Month-grid window: Mon of first-grid-week → Mon after last-grid-week + 7 */
+          var winFrom = startOfWeek(startOfMonth(anchor));
+          var winTo = addDays(startOfWeek(endOfMonth(anchor)), 7);
+          var fromISO = winFrom.toISOString();
+          var toISO = winTo.toISOString();
+          return {
+            from: winFrom,
+            to: winTo,
+            fromISO: fromISO,
+            toISO: toISO,
+            key: fromISO + '|' + toISO,
+          };
         }
-        /* Dedicated push from onDidChange. */
-        if (d.kind === 'scheduleViewState' && d.state) {
-          applyScheduleViewState(d.state);
+
+        /* ── Refresh _calVisibility + _addedCalIds from listAddedCalendars ─ */
+        /* Returns a Promise<{ visibilityChanged, addedSetChanged }>.           *
+         * visibilityChanged = at least one calendar's selected flag differed.  *
+         * addedSetChanged   = set of calendarIds itself changed (add/remove).  */
+        function refreshCalVisibility() {
+          if (!queryCap)
+            return Promise.resolve({ visibilityChanged: false, addedSetChanged: false });
+          return queryCap
+            .call('listAddedCalendars')
+            .then(function (cals) {
+              cals = cals || [];
+              var newVisibility = {};
+              var newIds = cals
+                .map(function (c) {
+                  return c.id;
+                })
+                .sort()
+                .join(',');
+              cals.forEach(function (c) {
+                newVisibility[c.id] = !!c.selected;
+              });
+              var addedSetChanged = newIds !== _addedCalIds;
+              /* Visibility changed if any key/value differs. */
+              var visibilityChanged = addedSetChanged; // set change implies visibility change
+              if (!visibilityChanged) {
+                var oldKeys = Object.keys(_calVisibility).sort();
+                var newKeys = Object.keys(newVisibility).sort();
+                if (oldKeys.length !== newKeys.length) {
+                  visibilityChanged = true;
+                } else {
+                  for (var i = 0; i < oldKeys.length; i++) {
+                    if (_calVisibility[oldKeys[i]] !== newVisibility[oldKeys[i]]) {
+                      visibilityChanged = true;
+                      break;
+                    }
+                  }
+                }
+              }
+              _calVisibility = newVisibility;
+              _addedCalIds = newIds;
+              return { visibilityChanged: visibilityChanged, addedSetChanged: addedSetChanged };
+            })
+            .catch(function () {
+              return { visibilityChanged: false, addedSetChanged: false };
+            });
         }
-        /* Refresh settings: init/context + dedicated push. */
-        if ((d.kind === 'init' || d.kind === 'context') && d.scheduleRefreshSettings) {
-          applyRefreshSettings(d.scheduleRefreshSettings);
-        }
-        if (d.kind === 'scheduleRefreshSettings' && d.settings) {
-          applyRefreshSettings(d.settings);
-        }
-        /* Aux sidebar visibility: init/context + dedicated push. */
-        if ((d.kind === 'init' || d.kind === 'context') && typeof d.auxVisible === 'boolean') {
-          _auxVisible = d.auxVisible;
-        }
-        if (d.kind === 'auxVisible' && typeof d.visible === 'boolean') {
-          _auxVisible = d.visible;
-          /* When aux closes while a popover is open, re-open the popover for the selected event.
-           * When aux opens, close any open popover (aux takes over the detail role). */
-          if (_auxVisible && _popoverEv) closePopover();
-        }
-      });
 
-      boot.awaitBridge().then(function (soamView) {
-        _soamView = soamView;
-        window.soamView = soamView;
+        /* ── Load events + SD-11 classify pass ───────────────────────── */
+        /* Window-cache strategy:
+         *   - Computes a 6-week month-grid window from the current anchor.
+         *   - If window key matches _currentWindowKey → view-switch within same window:
+         *     just re-render + re-publish counts (NO fetch, NO spinner, NO classify).
+         *   - Else → new window: destroy old observer, show spinner, create new observer
+         *     for listWindowEvents (ALL added calendars), classify once on arrival.
+         *
+         * Calendar visibility: _calVisibility holds per-cal bool. eventsForDay() and
+         * publishCounts() both respect it. Toggling a calendar = client-side update only
+         * (handled in applyScheduleViewState revChanged branch).
+         *
+         * Scroll-jump-safe: renderCalArea() (rAF scroll-to-7AM) only called when data
+         * actually changed (dataUpdatedAt gate) or on explicit view/visibility change.
+         * setSelection() class-toggle never calls renderCalArea() — no scroll jump. */
+        function loadEvents() {
+          if (!queryCap || !connected) return;
+          loadError = null;
 
-        elBridgeWait.classList.add('hidden');
-        elRoot.style.display = '';
+          var range = rangeForView();
+          var win = fetchWindow();
 
-        boot.applyCodicons();
+          /* Always update the range label (cheap, no fetch). */
+          elRangeLabel.textContent = range.label;
 
-        // Render initial state (disconnected).
-        updateRangeLabel();
-        renderCalArea();
+          /* Same window: view-switch within current month — skip fetch entirely. */
+          if (win.key === _currentWindowKey && _eventsObserver !== null) {
+            renderCalArea();
+            publishCounts();
+            return;
+          }
 
-        // Bind CQRS-split caps:
-        //   schedule.calendar.query@1.0  (kind:query)   → getStatus, listEvents
-        //   schedule.calendar@1.0        (kind:command)  → connect, disconnect
-        // Optional cross-bundle classify caps (SD-11) — bind failures are swallowed;
-        // view-bridge bindQuery is NOT gated by manifest dep list so no cycle risk.
-        //   sessions.meeting.query@1.0   (kind:query)   → listLinkedProvider
-        //   record.patient.query@1.0     (kind:query)   → resolveParticipant
-        Promise.all([
-          soamView.bindQuery('schedule.calendar.query', '1.0'),
-          soamView.bindCommand('schedule.calendar', '1.0'),
-          soamView.bindQuery('sessions.meeting.query', '1.0').catch(function () { return null; }),
-          soamView.bindQuery('record.patient.query', '1.0').catch(function () { return null; }),
-        ]).then(function (caps) {
-          queryCap      = caps[0];
-          cmdCap        = caps[1];
-          sessionsQuery = caps[2]; // null if not available
-          recordQuery   = caps[3]; // null if not available
+          /* New window: tear down old observer and start fresh. */
+          destroyEventsObserver();
+          _currentWindowKey = win.key;
 
-          /* Seed _calVisibility before first loadEvents so eventsForDay/publishCounts
-           * have correct visibility state on the initial render pass. */
-          var visibilitySeedDone = refreshCalVisibility();
+          showLoading();
 
-          /* Read persisted refresh settings from cap (source of truth on cold load;
-           * BundleViewIframe also pushes them via init/context but cap-read is the
-           * canonical first-load value before any push arrives). */
-          queryCap.call('getRefreshSettings', []).then(function (s) {
-            if (s) applyRefreshSettings(s);
-          }).catch(function () { /* non-fatal; defaults remain */ });
+          /* Create observer keyed by window bounds (not view/offset bounds).
+           * staleTime=5min: cached result serves all view-switches within this window
+           * without re-fetch. Events refetch only when the window changes (month nav). */
+          var obs = window.__viewQuery.observeQuery({
+            queryKey: ['schedule.calendar', 'windowEvents', win.fromISO, win.toISO],
+            queryFn: function () {
+              return queryCap.call('listWindowEvents', win.fromISO, win.toISO);
+            },
+            staleTime: 5 * 60 * 1000,
+          });
+          _eventsObserver = obs;
 
-          soamView.events.onActivate(function () {
-            _viewActive = true;
-            /* Start auto-poller on activate (only if mode=auto; clears previous timer). */
-            if (_refreshTimer !== null) { clearInterval(_refreshTimer); _refreshTimer = null; }
-            if (_refreshMode === 'auto') {
-              _refreshTimer = setInterval(function () { triggerBackgroundSync(); }, _refreshIntervalMin * 60000);
+          obs.subscribe(function (result) {
+            if (result.status === 'error') {
+              var err = result.error;
+              var msg = err && err.message ? err.message : String(err);
+              if (
+                msg.indexOf('calendar.not_connected') !== -1 ||
+                msg.indexOf('not connected') !== -1
+              ) {
+                connected = false;
+              } else {
+                loadError = msg;
+              }
+              renderCalArea();
+              return;
             }
 
-            queryCap.call('getStatus', [])
-              .then(function (status) {
-                var wasConnected = connected;
-                connected = !!(status && status.connected);
-                if (connected && !wasConnected) {
-                  /* Wait for visibility seed before first loadEvents so the initial
-                   * render has correct _calVisibility (best-effort; catch is no-op). */
-                  visibilitySeedDone.then(function () {
-                    loadEvents();
-                    /* Slice 6: trigger background sync AFTER first paint from cache.
-                     * loadEvents now reads from the event table instantly; sync
-                     * refreshes the cache in the background and invalidates on changes. */
-                    triggerBackgroundSync();
-                  }).catch(function () {
-                    loadEvents();
-                    triggerBackgroundSync();
-                  });
-                } else if (connected) {
-                  /* Already was connected (re-activate) — paint from cache then re-sync. */
-                  loadEvents();
-                  triggerBackgroundSync();
-                } else {
-                  renderCalArea();
-                }
-              })
-              .catch(function () {
-                connected = false;
-                renderCalArea();
+            if (result.status === 'success') {
+              /* Gate on dataUpdatedAt: only repaint when data actually changed.
+               * Prevents renderCalArea() (which includes rAF scroll-to-7AM) from
+               * firing on status-only observer ticks — preserves scroll position. */
+              if (result.dataUpdatedAt <= _eventsDataUpdatedAt) return;
+              _eventsDataUpdatedAt = result.dataUpdatedAt;
+
+              /* Increment classify-sequence token (stale guard for classify pass). */
+              var classifySeq = ++_loadSeq;
+
+              var evs = result.data || [];
+
+              /* Step 1: default all to unclassified; paint immediately. */
+              evs.forEach(function (ev) {
+                ev.classification = 'unclassified';
               });
-          });
+              events = evs;
+              renderCalArea();
+              publishCounts(); // initial publish — all 'unclassified'
 
-          soamView.events.onDeactivate(function () {
-            _viewActive = false;
-            /* Stop poller when view is deactivated (tab switch, lock). */
-            if (_refreshTimer !== null) { clearInterval(_refreshTimer); _refreshTimer = null; }
+              /* Step 2–4: async classify pass on whole window (mutates ev.classification).
+               * Classification cached on event objects; reused across view-switches in window. */
+              runClassifyPass(evs, win, classifySeq);
+            }
           });
+        }
 
-        }).catch(function (err) {
-          loadError = 'Capability error: ' + ((err && err.message) || String(err));
-          renderCalArea();
+        /* ── Refresh settings + poller ──────────────────────────────────── */
+        function applyRefreshSettings(s) {
+          if (!s || typeof s.mode !== 'string' || typeof s.intervalMin !== 'number') return;
+          _refreshMode = s.mode === 'auto' || s.mode === 'manual' ? s.mode : 'manual';
+          _refreshIntervalMin = s.intervalMin >= 1 ? Math.floor(s.intervalMin) : 15;
+          // Clear any running timer.
+          if (_refreshTimer !== null) {
+            clearInterval(_refreshTimer);
+            _refreshTimer = null;
+          }
+          // Start auto-poller only when view is active. A settings push that arrives
+          // while the tab is deactivated only updates mode/interval; the next
+          // onActivate starts the timer.
+          if (_refreshMode === 'auto' && _viewActive) {
+            _refreshTimer = setInterval(function () {
+              triggerBackgroundSync();
+            }, _refreshIntervalMin * 60000);
+          }
+        }
+
+        /* ── Event popover ───────────────────────────────────────────────── */
+        /* Clipboard fallback via hidden textarea + execCommand (must run in click handler) */
+        function fallbackCopy(text, onSuccess) {
+          try {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            var ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (ok && onSuccess) onSuccess();
+          } catch (err) {
+            /* silently ignore */
+          }
+        }
+
+        function openPopover(ev, anchorEl) {
+          var rect = anchorEl.getBoundingClientRect();
+          setSelection(ev.id); // highlight in place — no grid rebuild, no scroll jump
+          _popoverEv = ev;
+
+          elPopTitle.textContent = ev.title || '(No title)';
+          elPopStrip.className = 'popover-kind-strip ' + classClass(ev);
+          elPopClsBadge.textContent = classLabel(ev);
+          elPopClsBadge.className = 'event-kind-badge ' + classClass(ev);
+
+          elPopClose.innerHTML = icon('x', 14);
+
+          elPopBody.innerHTML = '';
+
+          // Time row
+          var timeRow = el('div', 'popover-row');
+          var timeIco = el('span', 'popover-row-icon');
+          timeIco.innerHTML = icon('clock', 13);
+          var timeTxt = el('span', 'popover-row-text');
+          if (ev.allDay) {
+            timeTxt.textContent = 'All day';
+          } else {
+            timeTxt.innerHTML =
+              '<strong>' + fmtTime(ev.start) + ' – ' + fmtTime(ev.end) + '</strong>';
+            // Append duration badge if computable
+            if (ev.start && ev.end && ev.start.length > 10 && ev.end.length > 10) {
+              var startMs = new Date(ev.start).getTime();
+              var endMs = new Date(ev.end).getTime();
+              var durMin = Math.round((endMs - startMs) / 60000);
+              if (durMin > 0) {
+                var durBadge = txt('span', 'popover-duration-badge', fmtDuration(durMin));
+                timeTxt.appendChild(durBadge);
+              }
+            }
+          }
+          timeRow.appendChild(timeIco);
+          timeRow.appendChild(timeTxt);
+          elPopBody.appendChild(timeRow);
+
+          // Calendar row
+          if (ev.calendarName) {
+            var calRow = el('div', 'popover-row');
+            var calIco = el('span', 'popover-row-icon');
+            calIco.innerHTML = icon('layers', 13);
+            var calTxt = el('div', 'popover-row-text');
+            calTxt.appendChild(txt('span', 'popover-cal-badge', ev.calendarName));
+            calRow.appendChild(calIco);
+            calRow.appendChild(calTxt);
+            elPopBody.appendChild(calRow);
+          }
+
+          // Location row
+          if (ev.location) {
+            var locRow = el('div', 'popover-row');
+            var locIco = el('span', 'popover-row-icon');
+            locIco.innerHTML = icon('location', 13);
+            var locTxt = txt('span', 'popover-row-text', ev.location);
+            locRow.appendChild(locIco);
+            locRow.appendChild(locTxt);
+            elPopBody.appendChild(locRow);
+          }
+
+          // Meeting link row — Join (openExternal) + selectable URL + copy.
+          if (ev.meetingLink) {
+            var joinRow = el('div', 'popover-row');
+            var joinIco = el('span', 'popover-row-icon');
+            joinIco.innerHTML = icon('globe', 13);
+            var joinTxt = el('div', 'popover-row-text');
+            joinTxt.appendChild(txt('div', 'popover-join-label', 'Meeting link'));
+
+            var joinUrlRow = el('div', '');
+            joinUrlRow.style.display = 'flex';
+            joinUrlRow.style.alignItems = 'center';
+            joinUrlRow.style.gap = '6px';
+            joinUrlRow.style.flexWrap = 'wrap';
+
+            var joinUrl = txt('span', 'popover-join-url', ev.meetingLink);
+            joinUrlRow.appendChild(joinUrl);
+
+            /* Join button — launches via shell.openExternal (sandboxed iframe can't navigate) */
+            if (_soamView) {
+              var joinBtn = el('div', 'popover-link-btn');
+              joinBtn.type = 'div';
+              joinBtn.title = 'Join link';
+              joinBtn.innerHTML = icon('globe', 14);
+              joinBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (_soamView) _soamView.openExternal(ev.meetingLink);
+              });
+              joinUrlRow.appendChild(joinBtn);
+            }
+
+            /* Copy button */
+            var copyBtn = el('div', 'popover-link-btn');
+            copyBtn.type = 'div';
+            copyBtn.title = 'Copy link';
+            copyBtn.innerHTML = icon('copy', 14);
+            var copyTimer = null;
+            copyBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              var url = ev.meetingLink;
+              function showCopied() {
+                copyBtn.innerHTML = icon('check-all', 14);
+                if (copyTimer) clearTimeout(copyTimer);
+                copyTimer = setTimeout(function () {
+                  copyBtn.innerHTML = icon('copy', 14);
+                }, 1200);
+              }
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard
+                  .writeText(url)
+                  .then(showCopied)
+                  .catch(function () {
+                    fallbackCopy(url, showCopied);
+                  });
+              } else {
+                fallbackCopy(url, showCopied);
+              }
+            });
+            joinUrlRow.appendChild(copyBtn);
+
+            joinTxt.appendChild(joinUrlRow);
+            joinRow.appendChild(joinIco);
+            joinRow.appendChild(joinTxt);
+            elPopBody.appendChild(joinRow);
+          }
+
+          // Participants section
+          var hasAttendees = ev.attendees && ev.attendees.length > 0;
+          var hasOrganizerOnly =
+            !hasAttendees && ev.organizer && (ev.organizer.email || ev.organizer.displayName);
+          if (hasAttendees || hasOrganizerOnly) {
+            elPopBody.appendChild(el('div', 'popover-divider'));
+
+            var secLabel = el('div', 'popover-section-label');
+            secLabel.innerHTML = icon('person', 11) + ' Participants';
+            elPopBody.appendChild(secLabel);
+
+            var participantsList = el('div', 'popover-participants');
+            var orgEmail =
+              ev.organizer && ev.organizer.email ? ev.organizer.email.toLowerCase() : null;
+            function isOrganiser(a) {
+              return (
+                a.organizer === true || (orgEmail && (a.email || '').toLowerCase() === orgEmail)
+              );
+            }
+
+            if (hasAttendees) {
+              var maxShown = 8;
+              ev.attendees.slice(0, maxShown).forEach(function (a) {
+                var nameStr = a.name || a.displayName || a.email || '?';
+                var initials = nameStr
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map(function (w) {
+                    return w.charAt(0);
+                  })
+                  .join('');
+                var pRow = el('div', 'popover-participant');
+                pRow.appendChild(txt('div', 'popover-avatar', initials || '?'));
+                pRow.appendChild(
+                  txt(
+                    'div',
+                    'popover-participant-name',
+                    a.name || a.displayName || a.email || 'Unknown',
+                  ),
+                );
+                if (a.self) pRow.appendChild(txt('span', 'popover-participant-role', 'you'));
+                if (isOrganiser(a))
+                  pRow.appendChild(txt('span', 'popover-participant-role', 'organiser'));
+                participantsList.appendChild(pRow);
+              });
+              if (ev.attendees.length > maxShown) {
+                var moreEl = txt(
+                  'div',
+                  'popover-row-text',
+                  '+' + (ev.attendees.length - maxShown) + ' more',
+                );
+                moreEl.style.fontSize = '11px';
+                moreEl.style.paddingLeft = '30px';
+                moreEl.style.color = 'var(--color-fg-muted)';
+                participantsList.appendChild(moreEl);
+              }
+            } else {
+              var org = ev.organizer;
+              var orgName = org.displayName || org.email || '?';
+              var orgInitials = orgName
+                .split(/\s+/)
+                .slice(0, 2)
+                .map(function (w) {
+                  return w.charAt(0);
+                })
+                .join('');
+              var orgRow = el('div', 'popover-participant');
+              orgRow.appendChild(txt('div', 'popover-avatar', orgInitials || '?'));
+              orgRow.appendChild(txt('div', 'popover-participant-name', orgName));
+              orgRow.appendChild(txt('span', 'popover-participant-role', 'organiser'));
+              participantsList.appendChild(orgRow);
+            }
+            elPopBody.appendChild(participantsList);
+          }
+
+          // Footer — Open in side panel (escape to the aux event-detail view)
+          if (_soamView) {
+            var footer = el('div', 'popover-footer');
+            var sideBtn = el('button', 'popover-side-btn');
+            sideBtn.type = 'button';
+            sideBtn.innerHTML = icon('open-in-window', 12) + 'Open in side panel';
+            sideBtn.addEventListener('click', function () {
+              if (_soamView) _soamView.setActiveEvent(ev);
+              closePopover();
+            });
+            footer.appendChild(sideBtn);
+            elPopBody.appendChild(footer);
+          }
+
+          // Position near anchor, clamped within iframe viewport. Backdrop first.
+          elBackdrop.classList.remove('hidden');
+          var pop = elPopover;
+          pop.classList.remove('hidden');
+          pop.style.top = '';
+          pop.style.left = '';
+          pop.style.right = '';
+
+          var popW = pop.offsetWidth || 380;
+          var popH = pop.offsetHeight || 320;
+          var vw = window.innerWidth,
+            vh = window.innerHeight,
+            margin = 8;
+
+          var left = rect.right + margin;
+          if (left + popW > vw - margin) left = rect.left - popW - margin;
+          left = Math.max(margin, Math.min(left, vw - popW - margin));
+
+          var top = rect.top;
+          if (top + popH > vh - margin) top = rect.bottom - popH;
+          top = Math.max(margin, Math.min(top, vh - popH - margin));
+
+          pop.style.left = left + 'px';
+          pop.style.top = top + 'px';
+          pop.focus({ preventScroll: true });
+        }
+
+        function closePopover() {
+          if (elPopover.classList.contains('hidden')) return;
+          elPopover.classList.add('hidden');
+          elBackdrop.classList.add('hidden');
+          _popoverEv = null;
+          setSelection(null); // clear highlight in place — no rebuild/scroll jump
+        }
+
+        // Popover listeners (registered once over the static markup).
+        elPopClose.addEventListener('click', closePopover);
+        elPopover.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') closePopover();
+        });
+        elBackdrop.addEventListener('click', closePopover);
+        elPopover.addEventListener('click', function (e) {
+          e.stopPropagation();
+        });
+        // Sandboxed iframe swallows parent mousedown — a click outside the iframe blurs
+        // the window; dismiss the popover then (Dev Gotcha: popovers must close on blur).
+        window.addEventListener('blur', function () {
+          if (!elPopover.classList.contains('hidden')) closePopover();
         });
 
-      }).catch(function (err) {
-        elBridgeWait.textContent = 'Bridge error: ' + ((err && err.message) ? err.message : String(err));
-      });
+        /* ── Background sync (slice 6) ──────────────────────────────────── */
+        /* Fire syncEvents non-blocking after first paint from cache.
+         * If sync produces changes (upserts or deletions > 0), invalidate the
+         * window-events cache so the view refetches and repaints from the updated DB.
+         * Safe to call multiple times — each call is independent; stale calls ignored. */
+        function triggerBackgroundSync() {
+          if (!cmdCap) return Promise.resolve();
+          return cmdCap
+            .call('syncEvents', [])
+            .then(function (result) {
+              if (!result) return;
+              var changed = result.upserts > 0 || result.deletions > 0;
+              if (changed && window.__viewQuery) {
+                window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
+              }
+              // Part C3: if any accounts were disconnected due to auth failure,
+              // bump calRev so nav.html refreshes the account list.
+              if (result.disconnectedAccounts && result.disconnectedAccounts.length > 0) {
+                if (_soamView && _soamView.bumpScheduleData) _soamView.bumpScheduleData();
+              }
+            })
+            .catch(function () {
+              /* Sync failure is non-fatal — cached events remain visible. */
+            });
+        }
 
-    })();
+        /* ── Connect / disconnect ─────────────────────────────────────── */
+        function doConnect() {
+          if (!cmdCap || connecting) return;
+          connecting = true;
+          renderCalArea();
+
+          cmdCap
+            .call('connect', [])
+            .then(function (result) {
+              connecting = false;
+              if (result && result.ok) {
+                connected = true;
+                loadEvents();
+                /* After connecting, do an initial full sync to populate the cache. */
+                triggerBackgroundSync();
+              } else {
+                loadError = 'Connection failed: ' + ((result && result.error) || 'Unknown error');
+                renderCalArea();
+              }
+            })
+            .catch(function (err) {
+              connecting = false;
+              loadError = 'Connection failed: ' + ((err && err.message) || String(err));
+              renderCalArea();
+            });
+        }
+
+        function doDisconnect() {
+          if (!cmdCap) return;
+          cmdCap
+            .call('disconnect', [])
+            .then(function () {
+              connected = false;
+              events = [];
+              destroyEventsObserver();
+              renderCalArea();
+            })
+            .catch(function () {
+              connected = false;
+              events = [];
+              destroyEventsObserver();
+              renderCalArea();
+            });
+        }
+
+        /* ── Date nav ─────────────────────────────────────────────────── */
+        function updateRangeLabel() {
+          var range = rangeForView();
+          elRangeLabel.textContent = range.label;
+        }
+
+        elBtnPrev.addEventListener('click', function () {
+          offset--;
+          if (connected) loadEvents();
+          else updateRangeLabel();
+        });
+        elBtnNext.addEventListener('click', function () {
+          offset++;
+          if (connected) loadEvents();
+          else updateRangeLabel();
+        });
+        elBtnToday.addEventListener('click', function () {
+          offset = 0;
+          if (connected) loadEvents();
+          else updateRangeLabel();
+        });
+
+        // Refresh button — codicon glyph + spin while a manual sync is in flight.
+        elBtnRefresh.innerHTML = icon('refresh', 15);
+        elBtnRefresh.addEventListener('click', function () {
+          if (elBtnRefresh.classList.contains('spinning')) return;
+          elBtnRefresh.classList.add('spinning');
+          var started = Date.now();
+          Promise.resolve(triggerBackgroundSync()).then(function () {
+            // Keep the spin visible for at least one rotation so it doesn't flicker.
+            var elapsed = Date.now() - started;
+            setTimeout(
+              function () {
+                elBtnRefresh.classList.remove('spinning');
+              },
+              Math.max(0, 700 - elapsed),
+            );
+          });
+        });
+
+        /* ── View switcher ───────────────────────────────────────────── */
+        /* Clicks round-trip through ScheduleViewStateService (P-B channel).         *
+         * Do NOT mutate `view` here — the inbound scheduleViewState push drives      *
+         * the actual view change to avoid double-render (O455 mirror pattern).       *
+         * Preserve _lastCalRev when writing; never reset it (would trigger spurious  *
+         * refetch / fight with nav.html's authoritative calRev counter).             */
+        Array.prototype.forEach.call(elViewSwitch.querySelectorAll('.view-tab'), function (tab) {
+          tab.addEventListener('click', function () {
+            var v = tab.dataset.view;
+            if (view === v) return;
+            if (window.soamView && window.soamView.setScheduleViewState) {
+              window.soamView.setScheduleViewState({
+                view: v,
+                calRev: _lastCalRev,
+                classFilter: _lastClassFilter,
+              });
+            } else {
+              /* Fallback if bridge verb unavailable: apply locally (graceful degradation). */
+              view = v;
+              offset = 0;
+              selectedId = null;
+              if (connected) loadEvents();
+              else renderCalArea();
+            }
+          });
+        });
+
+        /* ── Apply inbound scheduleViewState ────────────────────────── */
+        /* Called on init, context, and dedicated scheduleViewState pushes.          *
+         * Drives the active view; triggers listAggregatedEvents refetch on calRev   *
+         * change (nav.html bumps calRev on any account/calendar mutation).           *
+         * A view change resets offset+selection to avoid stale grid state.           */
+        function applyScheduleViewState(state) {
+          if (!state || typeof state.view !== 'string') return;
+          var newView = state.view;
+          var newRev = typeof state.calRev === 'number' ? state.calRev : 0;
+          /* classFilter: new shape = string | null (focusedClass). Back-compat: old
+           * Record<string,boolean> shape (from stale localStorage) → treat as null. */
+          var newFilter =
+            typeof state.classFilter === 'string' && state.classFilter.length > 0
+              ? state.classFilter
+              : null;
+          var viewChanged = newView !== view;
+          var revChanged = newRev !== _lastCalRev;
+          var filterChanged = newFilter !== _classFilter;
+          if (!viewChanged && !revChanged && !filterChanged) return; // no-op on equal state
+          _lastCalRev = newRev;
+          _classFilter = newFilter;
+          _lastClassFilter = newFilter;
+          if (viewChanged) {
+            view = newView;
+            offset = 0;
+            selectedId = null;
+            /* view change: loadEvents handles same-window fast-path or new window fetch. */
+            if (connected) loadEvents();
+            else renderCalArea();
+          } else if (revChanged) {
+            /* calRev changed — determine if calendar SET changed (add/remove account or
+             * calendar) vs only visibility (selected toggle).
+             *   - Set changed  → window cache is stale (missing added cal's events) →
+             *     invalidate window key, reload.
+             *   - Visibility only → update _calVisibility client-side, re-render — NO fetch. */
+            if (connected) {
+              refreshCalVisibility().then(function (diff) {
+                if (diff.addedSetChanged) {
+                  /* Added/removed a calendar — the window cache no longer covers the new
+                   * calendar set. INVALIDATE (not destroy+reload): the live observer
+                   * refetches the same window key with the updated calendar.list. A plain
+                   * destroy+loadEvents would re-subscribe to the still-fresh cached query
+                   * and miss the new calendar's events until staleTime expired.
+                   * Slice 6: also trigger a background sync so the newly-added calendar's
+                   * events are populated into the event cache; invalidate again on completion. */
+                  window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
+                  triggerBackgroundSync();
+                } else if (diff.visibilityChanged) {
+                  /* Selected flags changed only — instant client-side re-render, then
+                   * re-run classify pass so PHI-read toggle / roster changes take effect. */
+                  renderCalArea();
+                  publishCounts();
+                  runClassifyPass(events, fetchWindow(), ++_loadSeq);
+                } else {
+                  /* calRev bump with calendar SET and visibility-flags unchanged.
+                   * Two causes converge here:
+                   *   (a) a classification input changed (PHI-read toggle, roster
+                   *       mutation, triage) — needs a re-classify; AND
+                   *   (b) a calendar METADATA edit (color / name) — that metadata is
+                   *       baked onto the cached event objects at fetch time (JOIN in
+                   *       listWindowEvents), so reclassifying the in-memory events would
+                   *       repaint the STALE color. It must be re-fetched.
+                   * Invalidate the window cache so events refetch with fresh calendar
+                   * metadata; the observer's onData handler then re-runs the classify
+                   * pass. The refetch reads the local event cache (no Google call) — cheap,
+                   * and covers (a) too (onData re-classifies). */
+                  window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
+                }
+              });
+            } else {
+              renderCalArea();
+            }
+          } else {
+            /* classFilter changed only — re-render in place, no network fetch. */
+            renderCalArea();
+          }
+        }
+
+        /* ── Bootstrap ───────────────────────────────────────────────── */
+        var boot = window.__viewBoot;
+
+        window.addEventListener('message', function (e) {
+          var d = e.data;
+          if (!d || d.__soamView !== true) return;
+          boot.applyTheme(d);
+          /* Consume scheduleViewState from init + context messages. */
+          if ((d.kind === 'init' || d.kind === 'context') && d.scheduleViewState) {
+            applyScheduleViewState(d.scheduleViewState);
+          }
+          /* Dedicated push from onDidChange. */
+          if (d.kind === 'scheduleViewState' && d.state) {
+            applyScheduleViewState(d.state);
+          }
+          /* Refresh settings: init/context + dedicated push. */
+          if ((d.kind === 'init' || d.kind === 'context') && d.scheduleRefreshSettings) {
+            applyRefreshSettings(d.scheduleRefreshSettings);
+          }
+          if (d.kind === 'scheduleRefreshSettings' && d.settings) {
+            applyRefreshSettings(d.settings);
+          }
+          /* Aux sidebar visibility: init/context + dedicated push. */
+          if ((d.kind === 'init' || d.kind === 'context') && typeof d.auxVisible === 'boolean') {
+            _auxVisible = d.auxVisible;
+          }
+          if (d.kind === 'auxVisible' && typeof d.visible === 'boolean') {
+            _auxVisible = d.visible;
+            /* When aux closes while a popover is open, re-open the popover for the selected event.
+             * When aux opens, close any open popover (aux takes over the detail role). */
+            if (_auxVisible && _popoverEv) closePopover();
+          }
+        });
+
+        boot
+          .awaitBridge()
+          .then(function (soamView) {
+            _soamView = soamView;
+            window.soamView = soamView;
+
+            elBridgeWait.classList.add('hidden');
+            elRoot.style.display = '';
+
+            boot.applyCodicons();
+
+            // Render initial state (disconnected).
+            updateRangeLabel();
+            renderCalArea();
+
+            // Bind CQRS-split caps:
+            //   schedule.calendar.query@1.0  (kind:query)   → getStatus, listEvents
+            //   schedule.calendar@1.0        (kind:command)  → connect, disconnect
+            // Optional cross-bundle classify caps (SD-11) — bind failures are swallowed;
+            // view-bridge bindQuery is NOT gated by manifest dep list so no cycle risk.
+            //   sessions.meeting.query@1.0   (kind:query)   → listLinkedProvider
+            //   record.patient.query@1.0     (kind:query)   → resolveParticipant
+            Promise.all([
+              soamView.bindQuery('schedule.calendar.query', '1.0'),
+              soamView.bindCommand('schedule.calendar', '1.0'),
+              soamView.bindQuery('sessions.meeting.query', '1.0').catch(function () {
+                return null;
+              }),
+              soamView.bindQuery('record.patient.query', '1.0').catch(function () {
+                return null;
+              }),
+            ])
+              .then(function (caps) {
+                queryCap = caps[0];
+                cmdCap = caps[1];
+                sessionsQuery = caps[2]; // null if not available
+                recordQuery = caps[3]; // null if not available
+
+                /* Seed _calVisibility before first loadEvents so eventsForDay/publishCounts
+                 * have correct visibility state on the initial render pass. */
+                var visibilitySeedDone = refreshCalVisibility();
+
+                /* Read persisted refresh settings from cap (source of truth on cold load;
+                 * BundleViewIframe also pushes them via init/context but cap-read is the
+                 * canonical first-load value before any push arrives). */
+                queryCap
+                  .call('getRefreshSettings', [])
+                  .then(function (s) {
+                    if (s) applyRefreshSettings(s);
+                  })
+                  .catch(function () {
+                    /* non-fatal; defaults remain */
+                  });
+
+                soamView.events.onActivate(function () {
+                  _viewActive = true;
+                  /* Start auto-poller on activate (only if mode=auto; clears previous timer). */
+                  if (_refreshTimer !== null) {
+                    clearInterval(_refreshTimer);
+                    _refreshTimer = null;
+                  }
+                  if (_refreshMode === 'auto') {
+                    _refreshTimer = setInterval(function () {
+                      triggerBackgroundSync();
+                    }, _refreshIntervalMin * 60000);
+                  }
+
+                  queryCap
+                    .call('getStatus', [])
+                    .then(function (status) {
+                      var wasConnected = connected;
+                      connected = !!(status && status.connected);
+                      if (connected && !wasConnected) {
+                        /* Wait for visibility seed before first loadEvents so the initial
+                         * render has correct _calVisibility (best-effort; catch is no-op). */
+                        visibilitySeedDone
+                          .then(function () {
+                            loadEvents();
+                            /* Slice 6: trigger background sync AFTER first paint from cache.
+                             * loadEvents now reads from the event table instantly; sync
+                             * refreshes the cache in the background and invalidates on changes. */
+                            triggerBackgroundSync();
+                          })
+                          .catch(function () {
+                            loadEvents();
+                            triggerBackgroundSync();
+                          });
+                      } else if (connected) {
+                        /* Already was connected (re-activate) — paint from cache then re-sync. */
+                        loadEvents();
+                        triggerBackgroundSync();
+                      } else {
+                        renderCalArea();
+                      }
+                    })
+                    .catch(function () {
+                      connected = false;
+                      renderCalArea();
+                    });
+                });
+
+                soamView.events.onDeactivate(function () {
+                  _viewActive = false;
+                  /* Stop poller when view is deactivated (tab switch, lock). */
+                  if (_refreshTimer !== null) {
+                    clearInterval(_refreshTimer);
+                    _refreshTimer = null;
+                  }
+                });
+              })
+              .catch(function (err) {
+                loadError = 'Capability error: ' + ((err && err.message) || String(err));
+                renderCalArea();
+              });
+          })
+          .catch(function (err) {
+            elBridgeWait.textContent =
+              'Bridge error: ' + (err && err.message ? err.message : String(err));
+          });
+      })();
     </script>
   </body>
 </html>
