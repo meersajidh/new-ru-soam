@@ -16,6 +16,7 @@ import {
   ActivityBarDensityServiceId,
   CloudSessionServiceId,
   FontServiceId,
+  ScheduleRefreshSettingsServiceId,
   ThemeServiceId,
   TelemetryModeServiceId,
 } from '../../platform/services/ids';
@@ -23,12 +24,13 @@ import type { FontSetDescriptor } from '../../platform/font/font-service';
 import type { ThemeDescriptor } from '../../platform/theme/tokens';
 import type { Density } from '../../platform/activity-bar/density-service';
 import type { TelemetryMode } from '../../platform/telemetry/telemetry-mode-service';
+import type { RefreshSettings } from '../../platform/view-mode/schedule-refresh-settings';
 import { usePopover } from '../../platform/popover/use-popover';
 import Popover from '../../platform/popover/Popover';
 import DeleteWorkspaceDialog from './DeleteWorkspaceDialog';
 import './SettingsMenu.css';
 
-type PanelView = 'root' | 'appearance' | 'system';
+type PanelView = 'root' | 'appearance' | 'system' | 'schedule';
 
 export default function SettingsMenu() {
   const kekLocked = useContextKey('workspace.kekLocked') as boolean;
@@ -40,6 +42,7 @@ export default function SettingsMenu() {
   const densitySvc = useService(ActivityBarDensityServiceId);
   const telemetrySvc = useService(TelemetryModeServiceId);
   const cloudSessionSvc = useService(CloudSessionServiceId);
+  const refreshSettingsSvc = useService(ScheduleRefreshSettingsServiceId);
 
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [panelView, setPanelView] = useState<PanelView>('root');
@@ -52,6 +55,11 @@ export default function SettingsMenu() {
   // Telemetry mode — driven by TelemetryModeService.
   const [telemetryMode, setTelemetryModeState] = useState<TelemetryMode>(
     () => telemetrySvc.getMode(),
+  );
+
+  // Schedule refresh settings — driven by ScheduleRefreshSettingsService.
+  const [refreshSettings, setRefreshSettingsState] = useState<RefreshSettings>(
+    () => refreshSettingsSvc.getSettings(),
   );
 
   // Appearance state — live-subscribed so active highlight stays in sync.
@@ -85,6 +93,7 @@ export default function SettingsMenu() {
     const offDensity = densitySvc.onDidChangeDensity(setDensity);
     const offTelemetry = telemetrySvc.onChange(setTelemetryModeState);
     const offCloud = cloudSessionSvc.onChange(setCloudStatus);
+    const offRefresh = refreshSettingsSvc.onDidChange(setRefreshSettingsState);
     return () => {
       offTheme();
       offDark();
@@ -92,8 +101,9 @@ export default function SettingsMenu() {
       offDensity();
       offTelemetry();
       offCloud();
+      offRefresh();
     };
-  }, [themeSvc, fontSvc, densitySvc, telemetrySvc, cloudSessionSvc]);
+  }, [themeSvc, fontSvc, densitySvc, telemetrySvc, cloudSessionSvc, refreshSettingsSvc]);
 
   // Reset to root view each time popover opens.
   const prevOpen = useRef(false);
@@ -173,6 +183,16 @@ export default function SettingsMenu() {
                   onClick={() => setPanelView('appearance')}
                 >
                   <span className="settings-nav-label">Appearance</span>
+                  <span className="settings-nav-chevron" aria-hidden="true">
+                    <Icon name="chevron-right" size={13} />
+                  </span>
+                </button>
+                <button
+                  className="settings-nav-row"
+                  role="menuitem"
+                  onClick={() => setPanelView('schedule')}
+                >
+                  <span className="settings-nav-label">Schedule</span>
                   <span className="settings-nav-chevron" aria-hidden="true">
                     <Icon name="chevron-right" size={13} />
                   </span>
@@ -274,6 +294,83 @@ export default function SettingsMenu() {
                     </button>
                   ))}
                 </div>
+              </div>
+            </>
+          )}
+
+          {panelView === 'schedule' && (
+            <>
+              {backButton('Schedule', () => setPanelView('root'))}
+
+              {/* ── Calendar auto-refresh ─────────────────────────────────────── */}
+              <div className="settings-section">
+                <div className="settings-section-label">Calendar</div>
+
+                {/* Auto-refresh toggle row */}
+                <div className="settings-toggle-row">
+                  <div className="settings-toggle-label-group">
+                    <span className="settings-toggle-label">Auto-refresh</span>
+                    <span className="settings-toggle-hint">
+                      Check your calendars for changes on a timer.
+                    </span>
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={refreshSettings.mode === 'auto'}
+                    className="settings-switch"
+                    data-on={refreshSettings.mode === 'auto' || undefined}
+                    onClick={() => {
+                      const next = refreshSettings.mode === 'auto' ? 'manual' : 'auto';
+                      refreshSettingsSvc.setSettings({ mode: next, intervalMin: refreshSettings.intervalMin });
+                    }}
+                    aria-label="Auto-refresh calendars"
+                  >
+                    <span className="settings-switch-knob" aria-hidden="true" />
+                  </button>
+                </div>
+
+                {/* Refresh interval row */}
+                <div
+                  className="settings-toggle-row settings-interval-row"
+                  aria-disabled={refreshSettings.mode === 'manual'}
+                  data-disabled={refreshSettings.mode === 'manual' || undefined}
+                >
+                  <span className="settings-toggle-label">Refresh interval</span>
+                  <div className="settings-stepper">
+                    <button
+                      className="settings-stepper-btn"
+                      aria-label="Decrease refresh interval"
+                      disabled={refreshSettings.mode === 'manual' || refreshSettings.intervalMin <= 1}
+                      onClick={() => {
+                        const next = Math.max(1, refreshSettings.intervalMin - 1);
+                        refreshSettingsSvc.setSettings({ mode: refreshSettings.mode, intervalMin: next });
+                      }}
+                    >
+                      −
+                    </button>
+                    <span className="settings-stepper-value" aria-live="polite">
+                      {refreshSettings.intervalMin}
+                    </span>
+                    <button
+                      className="settings-stepper-btn"
+                      aria-label="Increase refresh interval"
+                      disabled={refreshSettings.mode === 'manual'}
+                      onClick={() => {
+                        const next = refreshSettings.intervalMin + 1;
+                        refreshSettingsSvc.setSettings({ mode: refreshSettings.mode, intervalMin: next });
+                      }}
+                    >
+                      +
+                    </button>
+                    <span className="settings-stepper-unit">min</span>
+                  </div>
+                </div>
+
+                {refreshSettings.mode === 'manual' && (
+                  <p className="settings-analytics-notice">
+                    Refresh manually from the calendar toolbar.
+                  </p>
+                )}
               </div>
             </>
           )}

@@ -108,12 +108,17 @@ function notFound(message) {
 
 // ── Capability handler ─────────────────────────────────────────────────────────
 
+// Pref keys for refresh settings.
+const REFRESH_MODE_KEY     = 'schedule.refreshMode';
+const REFRESH_INTERVAL_KEY = 'schedule.refreshIntervalMin';
+
 export function activate(ctx) {
   // Bind Main base caps.
   const broker     = ctx.bindCapability('credential.broker', '1.0');
   const netFetch   = ctx.bindCapability('net.brokeredFetch', '1.0');
   const storeQuery = ctx.bindCapability('store.query', '1.0');
   const storeWrite = ctx.bindCapability('store.write', '1.0');
+  const prefs      = ctx.bindCapability('prefs', '1.0');
 
   // Instantiate Google adapter bound to broker + netFetch.
   const adapter = createGoogleCalendarAdapter(broker, netFetch);
@@ -226,6 +231,17 @@ export function activate(ctx) {
         const to   = toISOArg(args[1], 'schedule.calendar.query.listWindowEvents');
         const rows = await storeQuery.call('run', ['event.listForWindow', { from, to }]);
         return rows.map(mapEventRow);
+      }
+
+      case 'getRefreshSettings': {
+        // Return persisted refresh settings (mode, intervalMin) with safe defaults.
+        const modeResult     = await prefs.call('get', [REFRESH_MODE_KEY]);
+        const intervalResult = await prefs.call('get', [REFRESH_INTERVAL_KEY]);
+        const modeRaw = modeResult && modeResult.value;
+        const mode = (modeRaw === 'auto' || modeRaw === 'manual') ? modeRaw : 'manual';
+        const intervalRaw = parseInt(intervalResult && intervalResult.value, 10);
+        const intervalMin = (Number.isInteger(intervalRaw) && intervalRaw >= 1) ? intervalRaw : 15;
+        return { mode, intervalMin };
       }
 
       default:
@@ -630,12 +646,13 @@ export function activate(ctx) {
         // PHI-free audit (no titles, no emails).
 
         const calRows = await storeQuery.call('run', ['calendar.list', {}]);
-        if (calRows.length === 0) return { calendarCount: 0, upserts: 0, deletions: 0, pruned: 0, errors: 0 };
+        if (calRows.length === 0) return { calendarCount: 0, upserts: 0, deletions: 0, pruned: 0, errors: 0, disconnectedAccounts: [] };
 
         let totalUpserts   = 0;
         let totalDeletions = 0;
         let totalPruned    = 0;
         let totalErrors    = 0;
+        const disconnectedAccounts = [];
         const now = Date.now();
 
         for (const cal of calRows) {
@@ -729,6 +746,55 @@ export function activate(ctx) {
                 totalErrors++;
                 continue;
               }
+            } else if (err && err.code === 'auth.invalid') {
+              // Auth failure (401/403) — token revoked or access denied.
+              // Disconnect the account and clear all its calendars' sync tokens,
+              // matching exactly what the 'disconnectAccount' command does (minus
+              // revoking the provider token, which is already invalid).
+              const authNow = Date.now();
+              await storeWrite.call('update', [
+                'provider_account',
+                acct.id,
+                { connection_state: 'disconnected', updated_at: authNow },
+                {
+                  event:      'schedule.account.disconnected',
+                  recordType: 'provider_account',
+                  recordId:   acct.id,
+                  detail:     { providerType: acct.provider_type, reason: 'auth_failure' },
+                },
+              ]);
+              // Clear sync tokens + uncheck calendars for this account (mirrors disconnectAccount).
+              const authCalRows = await storeQuery.call('run', ['calendar.listForAccount', { accountId: acct.id }]);
+              for (const authCal of authCalRows) {
+                if (authCal.selected) {
+                  await storeWrite.call('update', [
+                    'calendar',
+                    authCal.id,
+                    { selected: 0, sync_token: null, last_synced_at: null, sync_status: null, updated_at: authNow },
+                    {
+                      event:      'schedule.calendar.updated',
+                      recordType: 'calendar',
+                      recordId:   authCal.id,
+                    },
+                  ]);
+                } else {
+                  await storeWrite.call('update', [
+                    'calendar',
+                    authCal.id,
+                    { sync_token: null, last_synced_at: null, sync_status: null, updated_at: authNow },
+                    {
+                      event:      'schedule.calendar.updated',
+                      recordType: 'calendar',
+                      recordId:   authCal.id,
+                    },
+                  ]);
+                }
+              }
+              if (!disconnectedAccounts.includes(acct.id)) {
+                disconnectedAccounts.push(acct.id);
+              }
+              totalErrors++;
+              continue;
             } else {
               // Other error (network, 4xx, etc.) — mark error and move to next calendar.
               await storeWrite.call('update', [
@@ -901,11 +967,12 @@ export function activate(ctx) {
 
         // PHI-free audit summary return.
         return {
-          calendarCount: calRows.length,
-          upserts:       totalUpserts,
-          deletions:     totalDeletions,
-          pruned:        totalPruned,
-          errors:        totalErrors,
+          calendarCount:        calRows.length,
+          upserts:              totalUpserts,
+          deletions:            totalDeletions,
+          pruned:               totalPruned,
+          errors:               totalErrors,
+          disconnectedAccounts: disconnectedAccounts,
         };
       }
 
@@ -923,6 +990,7 @@ export function activate(ctx) {
       netFetch.dispose();
       storeQuery.dispose();
       storeWrite.dispose();
+      prefs.dispose();
     },
   };
 }

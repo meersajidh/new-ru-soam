@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useService } from '../../platform/services/hooks';
-import { ActiveEventServiceId, ContributionServiceId, EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleCountsServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
+import { ActiveEventServiceId, ContributionServiceId, EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleCountsServiceId, ScheduleRefreshSettingsServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
 import { SlotId } from '../../platform/layout/slots';
 import { aspectFocus } from '../../platform/views/aspect-focus';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
@@ -60,6 +60,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
   const scheduleViewState = useService(ScheduleViewStateServiceId);
   const scheduleCounts = useService(ScheduleCountsServiceId);
   const activeEvent = useService(ActiveEventServiceId);
+  const scheduleRefreshSettings = useService(ScheduleRefreshSettingsServiceId);
   const contributions = useService(ContributionServiceId);
   const layout = useService(LayoutServiceId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -134,7 +135,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
         case 'view.ready': {
           viewReadyRef.current = true;
           clearTimeout(readyTimeout);
-          post({ __soamView: true, kind: 'init', theme: appearance(), maturityHighlight: maturity.isEnabled(), overviewViewMode: overviewViewMode.getMode(), scheduleViewState: scheduleViewState.getState(), scheduleCounts: scheduleCounts.getCounts(), activeEvent: activeEvent.getActiveEvent() });
+          post({ __soamView: true, kind: 'init', theme: appearance(), maturityHighlight: maturity.isEnabled(), overviewViewMode: overviewViewMode.getMode(), scheduleViewState: scheduleViewState.getState(), scheduleCounts: scheduleCounts.getCounts(), activeEvent: activeEvent.getActiveEvent(), scheduleRefreshSettings: scheduleRefreshSettings.getSettings(), auxVisible: layout.isVisible(SlotId.AuxSideBar) });
           if (!activated) {
             activated = true;
             // Include entityId in activate payload so view gets it on first load.
@@ -144,7 +145,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           // Include overviewViewMode here (not just init) because this context message is
           // replayed on DOMContentLoaded by the bridge — large docs whose listener registers
           // after init fires would otherwise silently revert to the default mode.
-          post({ __soamView: true, kind: 'context', entityId: entityIdRef.current ?? null, overviewViewMode: overviewViewMode.getMode(), scheduleViewState: scheduleViewState.getState(), scheduleCounts: scheduleCounts.getCounts(), activeEvent: activeEvent.getActiveEvent() });
+          post({ __soamView: true, kind: 'context', entityId: entityIdRef.current ?? null, overviewViewMode: overviewViewMode.getMode(), scheduleViewState: scheduleViewState.getState(), scheduleCounts: scheduleCounts.getCounts(), activeEvent: activeEvent.getActiveEvent(), scheduleRefreshSettings: scheduleRefreshSettings.getSettings(), auxVisible: layout.isVisible(SlotId.AuxSideBar) });
           // If a focus request is already pending (e.g. aspects iframe freshly mounted after
           // "Open record" set patient.activeId for the first time), deliver it now.
           if (focusSectionRef.current) {
@@ -350,6 +351,14 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
     const offActiveEvent = activeEvent.onDidChange((event) =>
       requestAnimationFrame(() => post({ __soamView: true, kind: 'activeEvent', event })),
     );
+    const offScheduleRefreshSettings = scheduleRefreshSettings.onDidChange((settings) =>
+      requestAnimationFrame(() => post({ __soamView: true, kind: 'scheduleRefreshSettings', settings })),
+    );
+    const offLayoutVisibility = layout.onDidChangePartVisibility((slotId, visible) => {
+      if (slotId === SlotId.AuxSideBar) {
+        requestAnimationFrame(() => post({ __soamView: true, kind: 'auxVisible', visible }));
+      }
+    });
 
     return () => {
       disposed = true;
@@ -365,12 +374,14 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
       offScheduleViewState();
       offScheduleCounts();
       offActiveEvent();
+      offScheduleRefreshSettings();
+      offLayoutVisibility();
       for (const p of proxyCache.values()) {
         p.then((proxy) => proxy.dispose()).catch(() => undefined);
       }
       proxyCache.clear();
     };
-  }, [resource, instanceId, theme, font, editor, menu, maturity, overviewViewMode, scheduleViewState, scheduleCounts, activeEvent, contributions, layout, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
+  }, [resource, instanceId, theme, font, editor, menu, maturity, overviewViewMode, scheduleViewState, scheduleCounts, activeEvent, scheduleRefreshSettings, contributions, layout, onRequestClose, onRequestFocus]); // entityId intentionally excluded: handled by separate effect to avoid re-handshake
 
   // Separate effect: push context message when entityId changes while mounted.
   // Does NOT trigger re-handshake — only sends a lightweight context update.

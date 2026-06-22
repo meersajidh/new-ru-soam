@@ -205,6 +205,287 @@
         outline-offset: 1px;
       }
 
+      /* Refresh button */
+      .btn-refresh {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-sm);
+        color: var(--color-fg-secondary);
+        font-size: 16px;
+        flex-shrink: 0;
+        transition: background var(--transition), color var(--transition);
+      }
+      .btn-refresh:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
+      .btn-refresh:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
+      .btn-refresh.spinning > svg { animation: btn-refresh-spin 0.7s linear infinite; }
+      @keyframes btn-refresh-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) {
+        .btn-refresh.spinning > svg { animation: none; }
+      }
+      .header-divider {
+        width: 1px;
+        height: 20px;
+        background: var(--color-border);
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+
+      /* ── Inline event-detail popover ───────────────────────────── */
+      #detail-popover {
+        position: fixed;
+        z-index: 200;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        box-shadow:
+          0 4px 6px -1px color-mix(in srgb, #000 30%, transparent),
+          0 10px 20px -4px color-mix(in srgb, #000 25%, transparent);
+        padding: 0;
+        min-width: 300px;
+        max-width: 380px;
+        overflow: hidden;
+        outline: none;
+      }
+      #detail-popover.hidden { display: none; }
+
+      .popover-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+      }
+      .popover-kind-strip {
+        width: 3px;
+        border-radius: 2px;
+        align-self: stretch;
+        min-height: 20px;
+        flex-shrink: 0;
+        background: var(--color-fg-muted);
+        opacity: 0.5;
+        margin-top: 1px;
+      }
+      .popover-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+        line-height: 1.35;
+        flex: 1;
+        min-width: 0;
+        word-break: break-word;
+      }
+      .popover-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: var(--radius-sm);
+        color: var(--color-fg-muted);
+        flex-shrink: 0;
+        cursor: pointer;
+        border: none;
+        background: none;
+        padding: 0;
+        transition: background var(--transition), color var(--transition);
+      }
+      .popover-close:hover {
+        background: var(--color-surface-active);
+        color: var(--color-fg-primary);
+      }
+      .popover-close:focus-visible {
+        outline: 2px solid var(--color-border-focus);
+        outline-offset: 1px;
+      }
+
+      .popover-body {
+        padding: 12px 16px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .popover-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        font-size: 12px;
+      }
+      .popover-row-icon {
+        color: var(--color-fg-muted);
+        flex-shrink: 0;
+        margin-top: 1px;
+        display: inline-flex;
+        align-items: center;
+        min-width: 14px;
+      }
+      .popover-row-text {
+        color: var(--color-fg-secondary);
+        line-height: 1.4;
+        flex: 1;
+        min-width: 0;
+        word-break: break-word;
+      }
+      .popover-row-text strong {
+        color: var(--color-fg-primary);
+        font-weight: 500;
+      }
+      .popover-duration-badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--color-fg-secondary);
+        background: var(--color-surface-base);
+        border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+        border-radius: 3px;
+        padding: 1px 5px;
+        margin-left: 6px;
+      }
+      .popover-cal-badge {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+        border-radius: 3px;
+        padding: 1px 5px;
+      }
+      .popover-join-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-fg-secondary);
+        margin-bottom: 2px;
+      }
+      .popover-join-url {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        line-height: 1.45;
+        color: var(--color-accent);
+        user-select: text;
+        cursor: text;
+        word-break: break-all;
+      }
+      /* Inline action buttons in the meeting-link row (Join / Copy) */
+      .popover-link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 22px;
+        padding: 0 8px;
+        border-radius: var(--radius-sm);
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-accent);
+        border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+        background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background var(--transition);
+      }
+      .popover-link-btn:hover { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
+      .popover-link-btn:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
+
+      /* Participants section */
+      .popover-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--color-fg-muted);
+        margin-bottom: 4px;
+        padding-left: 23px; /* align under row text (9px gap + 14px icon) */
+      }
+      .popover-participants {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .popover-participant {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11.5px;
+      }
+      .popover-avatar {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface-base) 80%);
+        border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+        color: var(--color-accent);
+        font-size: 9px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        text-transform: uppercase;
+        letter-spacing: -0.01em;
+      }
+      .popover-participant-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--color-fg-secondary);
+      }
+      .popover-participant-role {
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--color-fg-muted);
+        background: color-mix(in srgb, var(--color-surface-base) 80%, transparent);
+        border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+        border-radius: 3px;
+        padding: 0 4px;
+        flex-shrink: 0;
+        line-height: 1.6;
+      }
+      .popover-divider {
+        height: 1px;
+        background: color-mix(in srgb, var(--color-border) 50%, transparent);
+        margin: 2px 0;
+      }
+      /* Footer — "Open in side panel" escape to the aux detail view */
+      .popover-footer {
+        margin-top: 4px;
+        padding-top: 10px;
+        border-top: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+      }
+      .popover-side-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        justify-content: center;
+        height: 28px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--color-fg-secondary);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-base);
+        cursor: pointer;
+        transition: background var(--transition), color var(--transition);
+      }
+      .popover-side-btn:hover { background: var(--color-surface-active); color: var(--color-fg-primary); }
+      .popover-side-btn:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
+
+      /* ── Popover backdrop ───────────────────────────────────────── */
+      #popover-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 199;
+        background: transparent;
+      }
+      #popover-backdrop.hidden { display: none; }
+
       /* PHI chip — static visual placeholder (P-D wires the real value) */
       .phi-chip {
         display: inline-flex;
@@ -1124,10 +1405,26 @@
           <button class="view-tab" data-view="week"   type="button">Week</button>
           <button class="view-tab" data-view="month"  type="button">Month</button>
         </div>
+        <span class="header-divider" aria-hidden="true"></span>
+        <button class="btn-refresh" id="btn-refresh" type="button" title="Refresh calendar" aria-label="Refresh calendar"></button>
       </div>
 
       <!-- Dynamic calendar area -->
       <div id="cal-area"></div>
+
+      <!-- Popover backdrop: prevents grid scroll while popover open -->
+      <div id="popover-backdrop" class="hidden"></div>
+
+      <!-- Inline event detail popover -->
+      <div id="detail-popover" class="hidden" role="dialog" aria-modal="true" aria-label="Event detail" tabindex="-1">
+        <div class="popover-header">
+          <div class="popover-kind-strip" id="pop-strip"></div>
+          <div class="popover-title" id="pop-title"></div>
+          <div class="event-kind-badge" id="pop-cls-badge" style="flex-shrink:0;align-self:center"></div>
+          <button class="popover-close" id="pop-close" type="button" aria-label="Close"></button>
+        </div>
+        <div class="popover-body" id="pop-body"></div>
+      </div>
 
     </div>
 
@@ -1155,6 +1452,7 @@
         'organization':   'organization',
         'copy':           'copy',
         'check':          'check',
+        'refresh':        'refresh',
       };
       function icon(name, size) {
         var n = ICON_MAP[name] || name;
@@ -1286,6 +1584,20 @@
       var _calVisibility       = {};   // calendarId → bool (true = visible)
       var _addedCalIds         = '';   // sorted calendarIds joined — change = refetch
 
+      /* ── Refresh settings + poller state ─────────────────────────── */
+      var _refreshMode        = 'manual'; // 'auto' | 'manual'
+      var _refreshIntervalMin = 15;
+      var _refreshTimer       = null;
+
+      /* ── Aux sidebar visibility ───────────────────────────────────── */
+      var _auxVisible = false;
+
+      /* ── View activation state (gates the auto-refresh poller) ──────── */
+      var _viewActive = false;
+
+      /* ── Event popover state ──────────────────────────────────────── */
+      var _popoverEv  = null; // event object currently shown in popover (null = closed)
+
       /* ── DOM refs ─────────────────────────────────────────────────── */
       var elBridgeWait  = document.getElementById('bridge-wait');
       var elRoot        = document.getElementById('root');
@@ -1295,6 +1607,16 @@
       var elBtnNext     = document.getElementById('btn-next');
       var elBtnToday    = document.getElementById('btn-today');
       var elViewSwitch  = document.getElementById('view-switcher');
+      var elBtnRefresh  = document.getElementById('btn-refresh');
+
+      /* Event-detail popover DOM refs (static markup) */
+      var elBackdrop    = document.getElementById('popover-backdrop');
+      var elPopover     = document.getElementById('detail-popover');
+      var elPopTitle    = document.getElementById('pop-title');
+      var elPopStrip    = document.getElementById('pop-strip');
+      var elPopClsBadge = document.getElementById('pop-cls-badge');
+      var elPopClose    = document.getElementById('pop-close');
+      var elPopBody     = document.getElementById('pop-body');
 
       /* ── Classification map (SD-11) ─────────────────────────────── */
       /* ev.classification is a DERIVED PROJECTION — never stored, never sent to provider. */
@@ -1486,7 +1808,11 @@
         card.addEventListener('click', function (e) {
           e.stopPropagation();
           setSelection(ev.id);
-          if (_soamView) _soamView.setActiveEvent(ev);
+          if (_auxVisible) {
+            if (_soamView) _soamView.setActiveEvent(ev);
+          } else {
+            openPopover(ev, card);
+          }
         });
         return card;
       }
@@ -1694,7 +2020,11 @@
           block.addEventListener('click', function (e) {
             e.stopPropagation();
             setSelection(ev.id);
-            if (_soamView) _soamView.setActiveEvent(ev);
+            if (_auxVisible) {
+              if (_soamView) _soamView.setActiveEvent(ev);
+            } else {
+              openPopover(ev, block);
+            }
           });
           colEl.appendChild(block);
         });
@@ -1757,7 +2087,11 @@
               pill.addEventListener('click', function (e) {
                 e.stopPropagation();
                 setSelection(ev.id);
-                if (_soamView) _soamView.setActiveEvent(ev);
+                if (_auxVisible) {
+                  if (_soamView) _soamView.setActiveEvent(ev);
+                } else {
+                  openPopover(ev, pill);
+                }
               });
               adCol.appendChild(pill);
             });
@@ -1892,7 +2226,11 @@
             pill.addEventListener('click', function (e) {
               e.stopPropagation();
               setSelection(ev.id);
-              if (_soamView) _soamView.setActiveEvent(ev);
+              if (_auxVisible) {
+                if (_soamView) _soamView.setActiveEvent(ev);
+              } else {
+                openPopover(ev, pill);
+              }
             });
             cell.appendChild(pill);
           });
@@ -2337,19 +2675,287 @@
         });
       }
 
+      /* ── Refresh settings + poller ──────────────────────────────────── */
+      function applyRefreshSettings(s) {
+        if (!s || typeof s.mode !== 'string' || typeof s.intervalMin !== 'number') return;
+        _refreshMode        = (s.mode === 'auto' || s.mode === 'manual') ? s.mode : 'manual';
+        _refreshIntervalMin = (s.intervalMin >= 1) ? Math.floor(s.intervalMin) : 15;
+        // Clear any running timer.
+        if (_refreshTimer !== null) {
+          clearInterval(_refreshTimer);
+          _refreshTimer = null;
+        }
+        // Start auto-poller only when view is active. A settings push that arrives
+        // while the tab is deactivated only updates mode/interval; the next
+        // onActivate starts the timer.
+        if (_refreshMode === 'auto' && _viewActive) {
+          _refreshTimer = setInterval(function () { triggerBackgroundSync(); }, _refreshIntervalMin * 60000);
+        }
+      }
+
+      /* ── Event popover ───────────────────────────────────────────────── */
+      /* Clipboard fallback via hidden textarea + execCommand (must run in click handler) */
+      function fallbackCopy(text, onSuccess) {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          var ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          if (ok && onSuccess) onSuccess();
+        } catch (err) { /* silently ignore */ }
+      }
+
+      function openPopover(ev, anchorEl) {
+        var rect = anchorEl.getBoundingClientRect();
+        setSelection(ev.id); // highlight in place — no grid rebuild, no scroll jump
+        _popoverEv = ev;
+
+        elPopTitle.textContent    = ev.title || '(No title)';
+        elPopStrip.className      = 'popover-kind-strip ' + classClass(ev);
+        elPopClsBadge.textContent = classLabel(ev);
+        elPopClsBadge.className   = 'event-kind-badge ' + classClass(ev);
+
+        elPopClose.innerHTML = icon('x', 14);
+
+        elPopBody.innerHTML = '';
+
+        // Time row
+        var timeRow = el('div', 'popover-row');
+        var timeIco = el('span', 'popover-row-icon');
+        timeIco.innerHTML = icon('clock', 13);
+        var timeTxt = el('span', 'popover-row-text');
+        if (ev.allDay) {
+          timeTxt.textContent = 'All day';
+        } else {
+          timeTxt.innerHTML = '<strong>' + fmtTime(ev.start) + ' – ' + fmtTime(ev.end) + '</strong>';
+          // Append duration badge if computable
+          if (ev.start && ev.end && ev.start.length > 10 && ev.end.length > 10) {
+            var startMs = new Date(ev.start).getTime();
+            var endMs   = new Date(ev.end).getTime();
+            var durMin  = Math.round((endMs - startMs) / 60000);
+            if (durMin > 0) {
+              var durBadge = txt('span', 'popover-duration-badge', fmtDuration(durMin));
+              timeTxt.appendChild(durBadge);
+            }
+          }
+        }
+        timeRow.appendChild(timeIco);
+        timeRow.appendChild(timeTxt);
+        elPopBody.appendChild(timeRow);
+
+        // Calendar row
+        if (ev.calendarName) {
+          var calRow = el('div', 'popover-row');
+          var calIco = el('span', 'popover-row-icon');
+          calIco.innerHTML = icon('layers', 13);
+          var calTxt = el('div', 'popover-row-text');
+          calTxt.appendChild(txt('span', 'popover-cal-badge', ev.calendarName));
+          calRow.appendChild(calIco);
+          calRow.appendChild(calTxt);
+          elPopBody.appendChild(calRow);
+        }
+
+        // Location row
+        if (ev.location) {
+          var locRow = el('div', 'popover-row');
+          var locIco = el('span', 'popover-row-icon');
+          locIco.innerHTML = icon('location', 13);
+          var locTxt = txt('span', 'popover-row-text', ev.location);
+          locRow.appendChild(locIco);
+          locRow.appendChild(locTxt);
+          elPopBody.appendChild(locRow);
+        }
+
+        // Meeting link row — Join (openExternal) + selectable URL + copy.
+        if (ev.meetingLink) {
+          var joinRow = el('div', 'popover-row');
+          var joinIco = el('span', 'popover-row-icon');
+          joinIco.innerHTML = icon('globe', 13);
+          var joinTxt = el('div', 'popover-row-text');
+          joinTxt.appendChild(txt('div', 'popover-join-label', 'Meeting link'));
+
+          var joinUrlRow = el('div', '');
+          joinUrlRow.style.display = 'flex';
+          joinUrlRow.style.alignItems = 'center';
+          joinUrlRow.style.gap = '6px';
+          joinUrlRow.style.flexWrap = 'wrap';
+
+          var joinUrl = txt('span', 'popover-join-url', ev.meetingLink);
+          joinUrlRow.appendChild(joinUrl);
+
+          /* Join button — launches via shell.openExternal (sandboxed iframe can't navigate) */
+          if (_soamView) {
+            var joinBtn = el('button', 'popover-link-btn');
+            joinBtn.type = 'button';
+            joinBtn.innerHTML = icon('globe', 11) + 'Join';
+            joinBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (_soamView) _soamView.openExternal(ev.meetingLink);
+            });
+            joinUrlRow.appendChild(joinBtn);
+          }
+
+          /* Copy button */
+          var copyBtn = el('button', 'popover-link-btn');
+          copyBtn.type = 'button';
+          copyBtn.title = 'Copy link';
+          copyBtn.innerHTML = icon('copy', 11) + 'Copy';
+          var copyTimer = null;
+          copyBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var url = ev.meetingLink;
+            function showCopied() {
+              copyBtn.innerHTML = icon('check', 11) + 'Copied';
+              if (copyTimer) clearTimeout(copyTimer);
+              copyTimer = setTimeout(function () {
+                copyBtn.innerHTML = icon('copy', 11) + 'Copy';
+              }, 1200);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(url).then(showCopied).catch(function () {
+                fallbackCopy(url, showCopied);
+              });
+            } else {
+              fallbackCopy(url, showCopied);
+            }
+          });
+          joinUrlRow.appendChild(copyBtn);
+
+          joinTxt.appendChild(joinUrlRow);
+          joinRow.appendChild(joinIco);
+          joinRow.appendChild(joinTxt);
+          elPopBody.appendChild(joinRow);
+        }
+
+        // Participants section
+        var hasAttendees = ev.attendees && ev.attendees.length > 0;
+        var hasOrganizerOnly = !hasAttendees && ev.organizer && (ev.organizer.email || ev.organizer.displayName);
+        if (hasAttendees || hasOrganizerOnly) {
+          elPopBody.appendChild(el('div', 'popover-divider'));
+
+          var secLabel = el('div', 'popover-section-label');
+          secLabel.innerHTML = icon('person', 11) + ' Participants';
+          elPopBody.appendChild(secLabel);
+
+          var participantsList = el('div', 'popover-participants');
+          var orgEmail = ev.organizer && ev.organizer.email ? ev.organizer.email.toLowerCase() : null;
+          function isOrganiser(a) {
+            return a.organizer === true || (orgEmail && (a.email || '').toLowerCase() === orgEmail);
+          }
+
+          if (hasAttendees) {
+            var maxShown = 8;
+            ev.attendees.slice(0, maxShown).forEach(function (a) {
+              var nameStr = a.name || a.displayName || a.email || '?';
+              var initials = nameStr.split(/\s+/).slice(0, 2)
+                .map(function (w) { return w.charAt(0); }).join('');
+              var pRow = el('div', 'popover-participant');
+              pRow.appendChild(txt('div', 'popover-avatar', initials || '?'));
+              pRow.appendChild(txt('div', 'popover-participant-name', a.name || a.displayName || a.email || 'Unknown'));
+              if (a.self) pRow.appendChild(txt('span', 'popover-participant-role', 'you'));
+              if (isOrganiser(a)) pRow.appendChild(txt('span', 'popover-participant-role', 'organiser'));
+              participantsList.appendChild(pRow);
+            });
+            if (ev.attendees.length > maxShown) {
+              var moreEl = txt('div', 'popover-row-text', '+' + (ev.attendees.length - maxShown) + ' more');
+              moreEl.style.fontSize = '11px';
+              moreEl.style.paddingLeft = '30px';
+              moreEl.style.color = 'var(--color-fg-muted)';
+              participantsList.appendChild(moreEl);
+            }
+          } else {
+            var org = ev.organizer;
+            var orgName = org.displayName || org.email || '?';
+            var orgInitials = orgName.split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('');
+            var orgRow = el('div', 'popover-participant');
+            orgRow.appendChild(txt('div', 'popover-avatar', orgInitials || '?'));
+            orgRow.appendChild(txt('div', 'popover-participant-name', orgName));
+            orgRow.appendChild(txt('span', 'popover-participant-role', 'organiser'));
+            participantsList.appendChild(orgRow);
+          }
+          elPopBody.appendChild(participantsList);
+        }
+
+        // Footer — Open in side panel (escape to the aux event-detail view)
+        if (_soamView) {
+          var footer = el('div', 'popover-footer');
+          var sideBtn = el('button', 'popover-side-btn');
+          sideBtn.type = 'button';
+          sideBtn.innerHTML = icon('open-in-window', 12) + 'Open in side panel';
+          sideBtn.addEventListener('click', function () {
+            if (_soamView) _soamView.setActiveEvent(ev);
+            closePopover();
+          });
+          footer.appendChild(sideBtn);
+          elPopBody.appendChild(footer);
+        }
+
+        // Position near anchor, clamped within iframe viewport. Backdrop first.
+        elBackdrop.classList.remove('hidden');
+        var pop = elPopover;
+        pop.classList.remove('hidden');
+        pop.style.top = ''; pop.style.left = ''; pop.style.right = '';
+
+        var popW = pop.offsetWidth  || 380;
+        var popH = pop.offsetHeight || 320;
+        var vw = window.innerWidth, vh = window.innerHeight, margin = 8;
+
+        var left = rect.right + margin;
+        if (left + popW > vw - margin) left = rect.left - popW - margin;
+        left = Math.max(margin, Math.min(left, vw - popW - margin));
+
+        var top = rect.top;
+        if (top + popH > vh - margin) top = rect.bottom - popH;
+        top = Math.max(margin, Math.min(top, vh - popH - margin));
+
+        pop.style.left = left + 'px';
+        pop.style.top  = top  + 'px';
+        pop.focus({ preventScroll: true });
+      }
+
+      function closePopover() {
+        if (elPopover.classList.contains('hidden')) return;
+        elPopover.classList.add('hidden');
+        elBackdrop.classList.add('hidden');
+        _popoverEv = null;
+        setSelection(null); // clear highlight in place — no rebuild/scroll jump
+      }
+
+      // Popover listeners (registered once over the static markup).
+      elPopClose.addEventListener('click', closePopover);
+      elPopover.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closePopover();
+      });
+      elBackdrop.addEventListener('click', closePopover);
+      elPopover.addEventListener('click', function (e) { e.stopPropagation(); });
+      // Sandboxed iframe swallows parent mousedown — a click outside the iframe blurs
+      // the window; dismiss the popover then (Dev Gotcha: popovers must close on blur).
+      window.addEventListener('blur', function () {
+        if (!elPopover.classList.contains('hidden')) closePopover();
+      });
+
       /* ── Background sync (slice 6) ──────────────────────────────────── */
       /* Fire syncEvents non-blocking after first paint from cache.
        * If sync produces changes (upserts or deletions > 0), invalidate the
        * window-events cache so the view refetches and repaints from the updated DB.
        * Safe to call multiple times — each call is independent; stale calls ignored. */
       function triggerBackgroundSync() {
-        if (!cmdCap) return;
-        cmdCap.call('syncEvents', [])
+        if (!cmdCap) return Promise.resolve();
+        return cmdCap.call('syncEvents', [])
           .then(function (result) {
             if (!result) return;
             var changed = (result.upserts > 0 || result.deletions > 0);
             if (changed && window.__viewQuery) {
               window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
+            }
+            // Part C3: if any accounts were disconnected due to auth failure,
+            // bump calRev so nav.html refreshes the account list.
+            if (result.disconnectedAccounts && result.disconnectedAccounts.length > 0) {
+              if (_soamView && _soamView.bumpScheduleData) _soamView.bumpScheduleData();
             }
           })
           .catch(function () {
@@ -2407,6 +3013,19 @@
       elBtnToday.addEventListener('click', function () {
         offset = 0;
         if (connected) loadEvents(); else updateRangeLabel();
+      });
+
+      // Refresh button — codicon glyph + spin while a manual sync is in flight.
+      elBtnRefresh.innerHTML = icon('refresh', 15);
+      elBtnRefresh.addEventListener('click', function () {
+        if (elBtnRefresh.classList.contains('spinning')) return;
+        elBtnRefresh.classList.add('spinning');
+        var started = Date.now();
+        Promise.resolve(triggerBackgroundSync()).then(function () {
+          // Keep the spin visible for at least one rotation so it doesn't flicker.
+          var elapsed = Date.now() - started;
+          setTimeout(function () { elBtnRefresh.classList.remove('spinning'); }, Math.max(0, 700 - elapsed));
+        });
       });
 
       /* ── View switcher ───────────────────────────────────────────── */
@@ -2521,6 +3140,23 @@
         if (d.kind === 'scheduleViewState' && d.state) {
           applyScheduleViewState(d.state);
         }
+        /* Refresh settings: init/context + dedicated push. */
+        if ((d.kind === 'init' || d.kind === 'context') && d.scheduleRefreshSettings) {
+          applyRefreshSettings(d.scheduleRefreshSettings);
+        }
+        if (d.kind === 'scheduleRefreshSettings' && d.settings) {
+          applyRefreshSettings(d.settings);
+        }
+        /* Aux sidebar visibility: init/context + dedicated push. */
+        if ((d.kind === 'init' || d.kind === 'context') && typeof d.auxVisible === 'boolean') {
+          _auxVisible = d.auxVisible;
+        }
+        if (d.kind === 'auxVisible' && typeof d.visible === 'boolean') {
+          _auxVisible = d.visible;
+          /* When aux closes while a popover is open, re-open the popover for the selected event.
+           * When aux opens, close any open popover (aux takes over the detail role). */
+          if (_auxVisible && _popoverEv) closePopover();
+        }
       });
 
       boot.awaitBridge().then(function (soamView) {
@@ -2558,7 +3194,21 @@
            * have correct visibility state on the initial render pass. */
           var visibilitySeedDone = refreshCalVisibility();
 
+          /* Read persisted refresh settings from cap (source of truth on cold load;
+           * BundleViewIframe also pushes them via init/context but cap-read is the
+           * canonical first-load value before any push arrives). */
+          queryCap.call('getRefreshSettings', []).then(function (s) {
+            if (s) applyRefreshSettings(s);
+          }).catch(function () { /* non-fatal; defaults remain */ });
+
           soamView.events.onActivate(function () {
+            _viewActive = true;
+            /* Start auto-poller on activate (only if mode=auto; clears previous timer). */
+            if (_refreshTimer !== null) { clearInterval(_refreshTimer); _refreshTimer = null; }
+            if (_refreshMode === 'auto') {
+              _refreshTimer = setInterval(function () { triggerBackgroundSync(); }, _refreshIntervalMin * 60000);
+            }
+
             queryCap.call('getStatus', [])
               .then(function (status) {
                 var wasConnected = connected;
@@ -2588,6 +3238,12 @@
                 connected = false;
                 renderCalArea();
               });
+          });
+
+          soamView.events.onDeactivate(function () {
+            _viewActive = false;
+            /* Stop poller when view is deactivated (tab switch, lock). */
+            if (_refreshTimer !== null) { clearInterval(_refreshTimer); _refreshTimer = null; }
           });
 
         }).catch(function (err) {

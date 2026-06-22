@@ -82,7 +82,8 @@
       "credential.broker@1.0",
       "net.brokeredFetch@1.0",
       "store.write@1.0",
-      "store.query@1.0"
+      "store.query@1.0",
+      "prefs@1.0"
     ]
   },
   "apiHosts": ["www.googleapis.com"],

@@ -767,3 +767,88 @@ covers the classification-input case too. Verified: Primary color → pink refle
 Files: schedule-view-state.ts (+bumpCalRev), PhiSafetyPopover.tsx, ClientEraseDialog.tsx,
 BundleViewIframe.tsx, bootstrap.ts (service bump), schedule.html (spurious→invalidate);
 schedule-cal-rev.ts DELETED. Compile + lint + html-syntax green.
+
+### Commit status (2026-06-22)
+O503 fully landed: round 1 (5 dogfood items) = `9b66bf9`; calRev-reactivity follow-up
+(module-singleton → service-method bump + refetch-on-edit) = `1eabdec`. Tree clean.
+
+---
+
+## SD-26 — Refresh settings + event-popover hybrid + account auto-disconnect (O505, post-O503 discussion)
+
+Three small UX slices from a design discussion (2026-06-22). Item #1 (rename "PHI read"
+toggle → clinical-linking framing) was PARKED for later. Built in one implementer pass +
+one Opus correction (poller active-gating); compile + lint + html-syntax green; all three
+dogfood-verified on the live app via raw-CDP into the opaque iframes. UNCOMMITTED (read-only-git).
+
+**#2 — Calendar refresh settings + auto-poller + manual Refresh button.**
+- Two prefs on the schedule bundle: `schedule.refreshMode` ('auto'|'manual', default **manual**)
+  + `schedule.refreshIntervalMin` (integer ≥ 1, default **15**). New CQRS cap methods
+  `schedule.calendar.query.getRefreshSettings` + command `schedule.calendar.setRefreshSettings`
+  (validates mode + interval≥1; persists via `prefs@1.0`, added to manifest deps; prefs.set auto-audits).
+- Settings UI = new **SETTINGS section in the schedule nav sidebar** (Auto-refresh checkbox +
+  interval number input, dimmed/disabled when manual). On change → persist via cap AND live-push
+  via the new relay.
+- Live cross-iframe push = new **`ScheduleRefreshSettingsService`** (non-persisted renderer relay,
+  mirrors `schedule-counts.ts`) + `ScheduleRefreshSettingsServiceId` + boot register +
+  `soamView.setScheduleRefreshSettings` verb + `request.setScheduleRefreshSettings` handler +
+  init/context/`scheduleRefreshSettings` push in BundleViewIframe.
+- Poller lives in schedule.html: `applyRefreshSettings` (re)starts `setInterval(triggerBackgroundSync,
+  intervalMin·60000)` only when mode='auto' **and the view is active** (`_viewActive` flag, set in
+  `events.onActivate`/`onDeactivate`). A settings push while deactivated only updates mode/interval;
+  next onActivate starts the timer. View only exists while unlocked (lock unmounts iframe) → "unlocked"
+  is implicit. Manual **Refresh** button (`↻`, `#btn-refresh`) in the work-header → `triggerBackgroundSync`,
+  always enabled.
+- **Opus correction:** implementer first gated the poller start on `_soamView` (bridge exists) instead
+  of view-active → a push while deactivated would start a background Google-sync poller. Fixed to
+  `_viewActive`.
+
+**#3 — Event popover hybrid (revives the popover removed in ingress slice A1 `e9b4a2f`).**
+- aux **closed** → clicking an event shows a lightweight popover (`#ev-pop-container` + backdrop):
+  title/time/location/participants(You·Organiser badges)/Copy link/Join + a primary
+  **"Open in side panel"** button. All text via `textContent` (PHI-safe). Recovered markup/positioning
+  from the proven pre-A1 implementation, trimmed (no client-link action hub — that stays in aux event-detail).
+- aux **open** → no popover; clicking an event keeps current behavior (`setActiveEvent` updates aux).
+- "Open in side panel" → `setActiveEvent(ev)` (BundleViewIframe reveals aux when hidden) + close popover.
+- aux visibility pushed into schedule.html via BundleViewIframe `layout.onDidChangePartVisibility`
+  (filtered to `SlotId.AuxSideBar`) → `auxVisible` on init/context + `kind:'auxVisible'` push;
+  schedule tracks `_auxVisible`, closes any open popover when aux becomes visible.
+
+**#4 — Account auto-disconnect on sync auth-failure.**
+- Adapter `syncEvents`: 401/403 → throw `{ code: 'auth.invalid' }` (ordered after the existing 410 →
+  `sync.token_expired`). index.mjs `syncEvents` catch for `auth.invalid` → set the account
+  `connection_state='disconnected'` + clear its calendars' sync_token/uncheck (mirrors `disconnectAccount`)
+  + PII-free audit `{reason:'auth_failure'}`; continues other accounts; returns `disconnectedAccounts[]`.
+  schedule.html `triggerBackgroundSync` → if `result.disconnectedAccounts.length` → `soamView.bumpScheduleData()`
+  so the nav account list refreshes to show disconnected.
+
+**Dogfood (real Google Calendar, raw-CDP `suppress_origin=True` into the opaque iframes):**
+- #2 caps: default {manual,15}; set→{auto,3} persist+readback; intervalMin=0 + bad-mode both throw;
+  restore {manual,15}. Nav toggle → interval enables, pref persists {auto}, **relay service receives push**
+  {auto,15} (same plumbing proven live by activeEvent). Refresh button click = no throw.
+- #3: aux-closed click → popover "O493 Collision Test" + [Copy link, Join, Open in side panel] + backdrop +
+  selection; "Open in side panel" → popover closes + **aux reveals** + `event-detail.html` mounts +
+  activeEvent set; aux-open click on a 2nd event → **no popover**, aux updates to new event. Popover renders
+  cleanly positioned right of the anchor, no overflow.
+- #4: `syncEvents` return now carries `disconnectedAccounts:[]` on a healthy token (1 cal, 0 errors).
+  The auth-failure disconnect branch is code-reviewed only (can't revoke the Google grant on demand).
+
+Files: schedule-refresh-settings.ts (NEW), ids.ts, boot.ts, view-bridge.ts, BundleViewIframe.tsx,
+manifest.json, index.mjs, google-calendar-adapter.mjs, schedule.html, nav.html.
+
+**Still open:** O502 (idle auto-lock interval setting), #1 PHI-toggle rename (parked).
+
+### SD-26 follow-up — refresh settings moved to the gear Settings menu (2026-06-22)
+User clarified "settings" = the global **gear → Settings** popover (Appearance | System), NOT the schedule nav sidebar. Relocated #2's controls + made them professional (frontend-design pass):
+- New **"Schedule" panel** in `SettingsMenu` (3rd root row, after Appearance) = a `settings-section` "Calendar" with an **Auto-refresh toggle SWITCH** (`role="switch"`, iOS-pill 34×18, accent track + sliding knob, reduced-motion-safe, keyboard-focusable — not a checkbox) + a **Refresh-interval stepper** (`− 15 + min`, min 1, dimmed/disabled when manual) + a manual-mode hint "Refresh manually from the calendar toolbar." Copy is end-user voice ("Check your calendars for changes on a timer.").
+- **`ScheduleRefreshSettingsService` refactored → prefs-backed** (mirrors `TelemetryModeService`): binds `prefs@1.0`, reads `schedule.refreshMode`/`schedule.refreshIntervalMin` on init + workspace-change (O474 guard), `setSettings(Partial<RefreshSettings>)` validates/clamps + persists both keys. The Settings menu is now the **sole writer** (renderer writes prefs directly — no schedule-bundle activation on settings-open). schedule.html still reads the same prefs via its `getRefreshSettings` query + receives live updates via the unchanged BundleViewIframe outbound push.
+- **Removed (dead after relocation):** nav.html SETTINGS section + JS; the `soamView.setScheduleRefreshSettings` view verb + its `request.setScheduleRefreshSettings` handler (no view writes settings anymore); the bundle `setRefreshSettings` command (renderer writes prefs now). Kept: `getRefreshSettings` query, `prefs@1.0` dep, the outbound `scheduleRefreshSettings` push + `_viewActive`-gated poller.
+- **Dogfood (real GCal, CDP):** gear → Schedule renders (toggle off / dimmed stepper / manual note); toggle → auto (accent track, knob right, stepper enabled, service `{auto,15}`); stepper +2−1 → 16 (DOM + service + **prefs persisted** `auto`/`16` read back via prefs cap); toggle → manual pushed `{manual,16}` **into the open schedule.html iframe** (wiretap captured it — live poller update path proven end-to-end); nav SETTINGS section confirmed gone (sections = Calendars/Filter/Accounts); restored `{manual,15}`. Compile+lint+node-check green, zero app errors.
+Files: schedule-refresh-settings.ts (prefs-backed rewrite), SettingsMenu.tsx, SettingsMenu.css, nav.html (−section), view-bridge.ts (−verb), BundleViewIframe.tsx (−handler), index.mjs (−setRefreshSettings).
+
+### SD-26 polish — refresh button + popover restored to original UI (2026-06-22)
+User flagged the prior pass's quality: refresh button looked like a "patch", and the popover was a flatter rebuild, not the original. Both fixed (Opus did these directly, not delegated):
+- **Refresh button:** replaced the raw unicode `↻` with a real **`refresh` codicon** (added the glyph to `view-codicons.ts` platform set, real @vscode/codicons path) rendered via `window.codicon('refresh',15)`, + a `.header-divider` hairline before it so it reads as an intentional toolbar action, not a floating glyph. Added a `.spinning` rotation while a manual sync is in flight (reduced-motion-safe, min one rotation so it doesn't flicker).
+- **Popover:** RESTORED the original `#detail-popover` design from git (`e9b4a2f^`) verbatim — kind-strip, title + class badge, time row + duration badge, calendar badge, location, meeting-link as monospace selectable URL, divider, PARTICIPANTS with avatars (initials) + you/organiser role tags. Replaced the rebuilt `.ev-pop*` markup/CSS/JS (`showEventPopover`) entirely with the original `openPopover`/`closePopover` (static markup + DOM refs + once-registered listeners + window-blur dismissal). Folded the two new affordances in faithfully: inline accent **Join** (`openExternal`) + **Copy** buttons in the meeting-link row, and a single ghost **"Open in side panel"** footer button (escape to aux). The hybrid behavior is unchanged (aux-closed→popover, aux-open→setActiveEvent).
+- **Dogfood (real GCal, CDP):** header refresh = crisp codicon + divider; popover renders the full rich layout (duration "1hr", "My Primary" badge, monospace meet link + Join/Copy, avatars + you/organiser); "Open in side panel" → popover closes + aux reveals + activeEvent set; aux-open click → no popover (hybrid intact). Compile+lint+node-check green, zero app errors.
+Files: view-codicons.ts (+refresh glyph), schedule.html (popover restore + refresh button + header-divider).

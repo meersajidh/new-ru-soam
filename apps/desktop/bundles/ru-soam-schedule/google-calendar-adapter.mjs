@@ -382,6 +382,13 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
             { code: 'sync.token_expired' },
           );
         }
+        if (resp.status === 401 || resp.status === 403) {
+          // Auth failure — token revoked or access denied; signal caller to disconnect account.
+          throw Object.assign(
+            new Error(`syncEvents: auth failed (${resp.status}) for ${providerCalendarId}`),
+            { code: 'auth.invalid' },
+          );
+        }
         throw Object.assign(
           new Error(`syncEvents: Google Calendar API error ${resp.status} for ${providerCalendarId}`),
           { code: 'sync.api_error' },

@@ -20,6 +20,7 @@ import type { IOverviewViewModeService } from '../view-mode/overview-view-mode';
 import type { IScheduleViewStateService } from '../view-mode/schedule-view-state';
 import type { IScheduleCountsService } from '../view-mode/schedule-counts';
 import type { IActiveEventService } from '../view-mode/active-event';
+import type { IScheduleRefreshSettingsService } from '../view-mode/schedule-refresh-settings';
 import type { ITelemetryModeService } from '../telemetry/telemetry-mode-service';
 import type { ICloudSessionService } from '../cloud/cloud-session-service';
 import { createContext } from 'react';
@@ -83,6 +84,9 @@ export const ScheduleCountsServiceId = serviceId<IScheduleCountsService>('workbe
 
 // Active event — non-persisted currently-selected calendar event relayed from schedule.html
 export const ActiveEventServiceId = serviceId<IActiveEventService>('workbench.activeEvent');
+
+// Schedule refresh settings — non-persisted relay for auto/manual mode + interval
+export const ScheduleRefreshSettingsServiceId = serviceId<IScheduleRefreshSettingsService>('workbench.scheduleRefreshSettings');
 
 // Telemetry mode (off/online-only/on, prefs-backed, shared source of truth)
 export const TelemetryModeServiceId = serviceId<ITelemetryModeService>('workbench.telemetryMode');
