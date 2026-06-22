@@ -56,13 +56,14 @@ syncs up when the provider reattaches.
 
 ### 4. Identity resolution & promotion — resolver owned by `record.patient`; Sessions orchestrates (SD-10)
 
-Linking an event to a client = **participant identity resolution**, keyed on match strength, **gated by
-the PHI-read opt-in (ADR-313)**:
+Linking an event to a client = **participant identity resolution**, keyed on match strength. *(Originally
+gated by the PHI-read opt-in; that gate was **removed by ADR-313 Amendment 2** — local provider-PHI reads are
+not an egress. Linking is always-on.)*
 
 | Scenario | Signal | Action | Learns |
 |---|---|---|---|
 | **Auto** | strong-id (email/phone) exact in roster | auto-link → Client Meeting + `client_session` | — |
-| **Candidate** | name matches, strong-id differs/absent | `probable_client_session`, surface for confirm | confirm ⇒ add id as an **alias on the client record** → future auto |
+| **Candidate** | name matches, strong-id differs/absent | surface for confirm (candidate queue) | confirm ⇒ add id as an **alias on the client record** → future auto |
 | **Manual** *(default)* | no match | **promote → new client + Client Meeting**, or **exclude → suppression** + `not_client_session` | exclude ⇒ **suppression set** |
 
 - **`record.patient` (Practice) = identity authority** — exposes
@@ -77,10 +78,17 @@ the PHI-read opt-in (ADR-313)**:
 
 ### 5. Classification tags are derived from durable Sessions/identity state (SD-11)
 
-`client_session` (intrinsic to a Client Meeting row), `probable_client_session` (the pending-candidate
-queue — the one genuinely new state), `not_client_session` (the hashed suppression set), `unclassified`
-(none). Schedule **reads** these (ADR-507 §6); Sessions stores no per-event tag and **writes nothing to
-the provider**.
+**Four grid classes (2026-06-22, "drop Probable"):** `client_session` (intrinsic to a Client Meeting row),
+`not_client_session` (the hashed suppression set), `personal` (no external participants), `unclassified`
+(none / unresolved). Schedule **reads** these (ADR-507 §6); Sessions stores no per-event tag and **writes
+nothing to the provider**.
+
+The `candidate` outcome (name-match, ambiguous) is **no longer a grid display class** — it confused the
+calendar. The resolver still emits it; the event takes the `unclassified` grid class but carries a
+`_match.candidates` enrichment so the **aux event-detail + needs-linking triage** can still offer
+candidate-confirm. The pending-candidate concept lives in the triage funnel, not as a calendar color.
+*(Richer per-meeting context = a future additive **tag** layer, auto + manual, on `client_meeting`, designed
+into the O501 Notes ADR sharing its search substrate — distinct from these mutually-exclusive triage classes.)*
 
 ### 6. `MeetingProvider` port — online meetings (Meet / Zoom / …) (NEW, SD-6/7/8 discipline)
 

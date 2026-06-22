@@ -43,10 +43,7 @@ export type AuditEventKind =
   | 'record.patient.document.removed'
   // O454: protected blob store base events
   | 'blob.put'
-  | 'blob.delete'
-  // ADR-313 Am1: Sessions PHI-read opt-in consent events
-  | 'sessions.phi_read.opted_in'
-  | 'sessions.phi_read.opted_out';
+  | 'blob.delete';
 
 /**
  * Arbitrary detail attached to an audit entry.

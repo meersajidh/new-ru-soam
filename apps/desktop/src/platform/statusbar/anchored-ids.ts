@@ -144,18 +144,4 @@ export const ANCHORED_ENTRIES: StatusBarEntry[] = [
     visible: true,
     icon: 'telemetry-off',
   },
-  {
-    // ADR-313 Am1 — PHI Safety Score. Workspace-scoped (hides on lock).
-    // Icon + text updated by boot.ts after score fetch. Click opens the consent
-    // popover via workbench.phi-safety.show (a custom render in StatusBar.tsx,
-    // not a plain command dispatch).
-    id: 'workbench.phi-safety',
-    region: 'right',
-    priority: 65,
-    text: '',
-    tooltip: 'PHI Safety Score — click to review provider data posture',
-    visible: true,
-    icon: 'shield',
-    // No `scope: 'always'` → hides when variant==='lock' (workspace-scoped).
-  },
 ];

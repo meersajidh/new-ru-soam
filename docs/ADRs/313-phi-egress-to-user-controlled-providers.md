@@ -104,7 +104,8 @@ Reading provider PHI pulls it into our process — we become a processor of it. 
 
 ## Open Items
 
-- **O483** — PHI ramp build. **Scale design = RESOLVED here (Amendment 1).** Read-half (PHI-read opt-in + gate + score engine + P-D status-bar chrome) builds in Schedule P2; **write-half** (calendar write-back + PHI-write opt-in + the `writeOptIn`/`E<M` score paths) deferred to **O499**.
+- **O483 — CLOSED/REVERSED.** Read-half (PHI-read opt-in + gate + score engine + P-D status-bar chrome) built + dogfooded, then **removed by Amendment 2** (reading the user's own provider PHI locally is not an egress → no gate; the read-half does not belong in the score). Linking is now always-on. The **whole PHI Safety Score is deferred to O499** and rebuilt there keyed to write-back egress. Am1's read-half metric (A1.1–A1.2) is withdrawn.
+- **O499** — write-half: calendar write-back + the single **PHI-write** opt-in + the Safety Score (rebuilt fresh, keyed to write-back egress). The only direction that originates a real PHI egress.
 - Downstream homes: the gradient mechanism is exercised by ADR-507 (Schedule UI) + ADR-508 (Sessions↔provider sync, where the ramp localizes).
 
 ---
@@ -165,3 +166,61 @@ the same obligation.
 Calendar write-back (`createEvent`/`updateEvent`/`deleteEvent`, opaque "Busy" blocks per §4.2), the **PHI-write
 opt-in**, and the `writeOptIn = true` / `E < M` score paths. The factors are reserved here so the metric shape is
 stable when O499 lands.
+
+---
+
+## Amendment 2 — read is not egress: drop the PHI-read gate + the read-half score — 2026-06-22
+
+Built, dogfooded, then reversed. Am1 gated **reading** provider PHI behind an opt-in and let that read-half
+*lower* the Safety Score. On reflection both were wrong. This amendment removes them. **§1 (PHI → our cloud =
+absolute, structural, frozen) is untouched and stays Final** — this only corrects the §2/§3 treatment of the
+*read* direction.
+
+### A2.1 — Reading the user's own provider PHI is not an egress; it needs no gate
+
+The read path pulls client-identifying detail **the practitioner themselves put in their own Google calendar**
+into our **local** process, matches it to the roster, and persists only linked rows into the **protected
+KEK-wrapped store** (erase-cascaded, O490). Nothing crosses a trust boundary the app didn't already cross
+(calendar events already enter the renderer as a trusted PHI peer via the `phi:true` lock-gated cap), and
+**nothing leaves the device**. Gating a no-egress, all-local correlation behind a consent toggle is consent
+theater; worse, **default-off ships a dumb app** — the calendar is dead pixels until the user hunts a setting,
+when correlating one's schedule with one's clients *is the product*.
+
+Therefore: **linking is always-on, expected behaviour.** The PHI-**read** opt-in is removed:
+
+- pref `sessions.calendarPhiReadOptIn` — **removed** (orphan values ignored; no migration).
+- caps `getPhiReadOptIn` / `setPhiReadOptIn` — **removed**.
+- audit kinds `sessions.phi_read.opted_in` / `opted_out` — **removed**.
+- The A1.4 "gate is a policy honored by two consumers" obligation is **void** — both consumers (Sessions
+  `sync`, Schedule render-time classification) now run unconditionally.
+
+The §5 hygiene rule **stands**: ingest → match-to-client → **persist only linked, discard unlinked**. That was
+never the gate; it is good practice and remains.
+
+The "two separate opt-ins" of §2 collapses to **one** — the **PHI-*write*** opt-in (deferred to O499). Writing
+client detail *back* to the provider is a genuine app-originated egress and keeps its consent step + audit +
+honesty rule. Reading does not.
+
+### A2.2 — The read-half does not belong in the Safety Score
+
+Am1's metric *penalized* the read-half: `E = M` (every provider-linked meeting names its client) dragged the
+score to 40. But that naming is the user's **own pre-existing calendar content** — the app **reading** it
+locally adds **zero new exposure**. Scoring it punishes the app for data the user placed there by their own
+hand, outside the app. Incoherent.
+
+Real exposure lives **only** in the **write-half** (O499): client detail the app writes *back* to the provider,
+or (never, per §1) to our cloud. So:
+
+- The **read-half contributes nothing** to the score. With the write-half not yet built, the score has **no live
+  input** — it would be a constant "100 / all-safe" badge = false comfort + noise.
+- caps `getSafetyScore` — **removed**. The **P-D status-bar PHI-Safety chrome** (chip + `PhiSafetyPopover` +
+  `workbench.phi-safety.show`) is **removed entirely**.
+- The **PHI Safety Score is deferred whole to O499**, where it is rebuilt fresh keyed to actual write-back
+  egress (the only thing that moves PHI anywhere new). The §3 "score = the self-closing engine" intent survives;
+  Am1's specific 0–100 read-half formula (A1.1–A1.2) is **withdrawn** and re-derived under O499.
+
+### A2.3 — What survives
+
+§1 (cloud absolute). §2 default-off **PHI-write**. §4 ramp. §5 read-as-inflow + persist-only-linked hygiene.
+The score-as-engine *concept* (§3). What's gone: the read gate, the double-opt-in (now single, write-only),
+and Am1's read-half metric + its chrome.

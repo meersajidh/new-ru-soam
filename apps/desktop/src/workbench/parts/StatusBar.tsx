@@ -1,12 +1,10 @@
 import './StatusBar.css';
 import { Icon } from '../../platform/icons/Icon';
 import { useStatusBarEntries, useService } from '../../platform/services/hooks';
-import { CommandServiceId, StatusBarServiceId } from '../../platform/services/ids';
+import { CommandServiceId } from '../../platform/services/ids';
 import type { StatusBarEntry } from '../../platform/statusbar/statusbar-service';
 import type { WorkbenchMode } from '../hooks/useWorkbenchMode';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
-import PhiSafetyPopover from './PhiSafetyPopover';
-import type { SafetyScore } from './PhiSafetyPopover';
 
 // StatusBar icon key → semantic icon id mapping.
 // Keys are the string ids contributed by platform-commands (StatusBarEntry.icon).
@@ -105,7 +103,6 @@ export default function StatusBar({ variant = 'workspace' }: StatusBarProps = {}
   const allLeft = useStatusBarEntries('left');
   const allRight = useStatusBarEntries('right');
   const commands = useService(CommandServiceId);
-  const statusBarService = useService(StatusBarServiceId);
 
   const left = filterByMode(allLeft, variant);
   const right = filterByMode(allRight, variant);
@@ -114,16 +111,6 @@ export default function StatusBar({ variant = 'workspace' }: StatusBarProps = {}
   const rightItems = withDividers(right, 800);
 
   const handleCommand = (cmd: string) => void commands.execute(cmd);
-
-  // When PhiSafetyPopover fetches a fresh score, push score number into the
-  // status-bar entry text so the chip shows e.g. "100" in the bar.
-  function handleScoreChange(score: SafetyScore | null): void {
-    if (!score) return;
-    statusBarService.update('workbench.phi-safety', {
-      text: String(score.score),
-      tooltip: `PHI Safety Score: ${score.score}% kept local — click to review provider data posture`,
-    });
-  }
 
   return (
     <div className="part-statusbar" role="status" aria-label="Status Bar">
@@ -142,8 +129,6 @@ export default function StatusBar({ variant = 'workspace' }: StatusBarProps = {}
         {rightItems.map((item, idx) =>
           item === 'divider' ? (
             <span key={`div-${idx}`} className="sb-divider" aria-hidden="true" />
-          ) : item.id === 'workbench.phi-safety' ? (
-            <PhiSafetyPopover key={item.id} entry={item} onScoreChange={handleScoreChange} />
           ) : (
             <EntryNode key={item.id} entry={item} onCommand={handleCommand} />
           ),

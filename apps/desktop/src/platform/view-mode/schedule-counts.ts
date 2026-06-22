@@ -9,9 +9,8 @@
  * Counts cover ALL loaded events regardless of classFilter — the filter only
  * hides events in the calendar grid; counts always reflect the full window.
  *
- * Keys are the 5 classification ids:
- *   'client_session' | 'probable_client_session' | 'not_client_session' |
- *   'personal' | 'unclassified'
+ * Keys are the 4 classification ids:
+ *   'client_session' | 'not_client_session' | 'personal' | 'unclassified'
  */
 
 export type ScheduleCounts = Record<string, number>;

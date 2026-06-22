@@ -60,7 +60,6 @@
     "capabilities": [
       "store.write@1.0",
       "store.query@1.0",
-      "prefs@1.0",
       "record.patient.query@1.0",
       "schedule.calendar.query@1.0",
       "schedule.calendar@1.0"

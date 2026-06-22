@@ -699,25 +699,22 @@
 
       /* ── Classification maps ─────────────────────────────────────── */
       var CLS_CLASS = {
-        'client_session':          'cls-client',
-        'probable_client_session': 'cls-probable',
-        'not_client_session':      'cls-not',
-        'personal':                'cls-personal',
-        'unclassified':            'cls-unclassified',
+        'client_session':     'cls-client',
+        'not_client_session': 'cls-not',
+        'personal':           'cls-personal',
+        'unclassified':       'cls-unclassified',
       };
       var CLS_LABEL = {
-        'client_session':          'CLIENT',
-        'probable_client_session': 'PROBABLE',
-        'not_client_session':      'EXCLUDED',
-        'personal':                'PERSONAL',
-        'unclassified':            'UNCLASSIFIED',
+        'client_session':     'CLIENT',
+        'not_client_session': 'EXCLUDED',
+        'personal':           'PERSONAL',
+        'unclassified':       'UNCLASSIFIED',
       };
       var CLS_HUMAN = {
-        'client_session':          'Client session',
-        'probable_client_session': 'Probable client',
-        'not_client_session':      'Not a client',
-        'personal':                'Personal · admin',
-        'unclassified':            'Unrecognised',
+        'client_session':     'Client session',
+        'not_client_session': 'Not a client',
+        'personal':           'Personal · admin',
+        'unclassified':       'Unrecognised',
       };
       function clsClass(ev) {
         var c = (ev && ev.classification) || 'unclassified';
@@ -1011,97 +1008,31 @@
             })(_renderToken, matchClientId, strong, titleEl);
           }
 
-        // ── State: PROBABLE, single match ──
-        } else if (cls === 'probable_client_session' && matchClientId) {
-          var pName = null; // filled by lookup below
-          var nameSpan = el('strong', '');
-          nameSpan.textContent = '…';
-          desc.textContent = '';
-          desc.appendChild(document.createTextNode('Matches '));
-          desc.appendChild(nameSpan);
-          desc.appendChild(document.createTextNode(' in your roster but isn\'t linked yet.'));
+        // ── State: ambiguous candidates (unclassified + _match.candidates present) ──
+        // Applies when resolver found multiple possible roster matches for a participant.
+        // Classification is 'unclassified' (no "probable" class); candidate data lives on _match.candidates.
+        } else if (cls === 'unclassified' && candidates.length > 0) {
+          desc.textContent = candidates.length === 1 ? 'Possible roster match — confirm to link.' : 'Multiple roster matches.';
           block.appendChild(desc);
 
-          var linkBtn = el('button', 'det-act-btn primary');
-          linkBtn.type = 'button';
-          linkBtn.textContent = 'Link to …';
-          linkBtn.addEventListener('click', function () {
-            doLink(matchClientId, nameSpan.textContent);
-          });
-          acts.appendChild(linkBtn);
-
-          if (repEmail) {
-            var notBtn = el('button', 'det-act-btn');
-            notBtn.type = 'button';
-            notBtn.textContent = 'Not a client';
-            notBtn.addEventListener('click', function () {
-              if (!_recordCmd) { setBlockMsg(msgEl, 'record.patient cap unavailable', 'err'); return; }
-              disableBlock(block);
-              _recordCmd.call('suppressParticipant', { email: repEmail })
-                .then(function () {
-                  block.innerHTML = '';
-                  block.appendChild(txt('div', 'det-link-desc', 'Marked as not a client.'));
-                  bumpCalRev();
-                })
-                .catch(function (err) {
-                  enableBlock(block);
-                  if (window.__viewBoot.isLockedError(err)) {
-                    setBlockMsg(msgEl, 'Workspace locked.', 'err');
-                  } else {
-                    setBlockMsg(msgEl, 'Failed: ' + (err && err.message ? err.message : String(err)), 'err');
-                  }
-                });
-            });
-            acts.appendChild(notBtn);
-          }
-
-          block.appendChild(acts);
-          block.appendChild(msgEl);
-
-          // Async name lookup
-          if (_recordQuery && matchClientId) {
-            (function (token, clientId, nameSpanEl, linkBtnEl) {
-              _recordQuery.call('get', clientId).then(function (rec) {
-                if (_renderToken !== token) return;
-                var name = rec && rec.displayName ? rec.displayName : null;
-                if (name) {
-                  nameSpanEl.textContent = name;
-                  linkBtnEl.textContent = 'Link to ' + name;
-                  if (titleEl) titleEl.textContent = name;
-                } else {
-                  nameSpanEl.textContent = clientId;
-                  linkBtnEl.textContent = 'Link to client';
-                }
-              }).catch(function () {
-                nameSpanEl.textContent = matchClientId;
-                linkBtnEl.textContent = 'Link to client';
-              });
-            })(_renderToken, matchClientId, nameSpan, linkBtn);
-          }
-
-        // ── State: PROBABLE, multiple candidates ──
-        } else if (cls === 'probable_client_session' && candidates.length > 1) {
-          desc.textContent = 'Multiple roster matches.';
-          block.appendChild(desc);
-
-          var picker1 = buildPickerWrap(function (cid, cname) {
-            picker1._close();
+          var pickerC = buildPickerWrap(function (cid, cname) {
+            pickerC._close();
             doLink(cid, cname);
           });
 
-          var linkMultiBtn = el('button', 'det-act-btn primary');
-          linkMultiBtn.type = 'button';
-          linkMultiBtn.textContent = 'Link to client…';
-          linkMultiBtn.addEventListener('click', function () {
-            loadRoster().then(function () { picker1._open(); });
+          var linkCandBtn = el('button', 'det-act-btn primary');
+          linkCandBtn.type = 'button';
+          linkCandBtn.textContent = 'Link to client…';
+          linkCandBtn.addEventListener('click', function () {
+            loadRoster().then(function () { pickerC._open(); });
           });
-          acts.appendChild(linkMultiBtn);
+          acts.appendChild(linkCandBtn);
 
           if (repEmail) {
-            var notBtn2 = el('button', 'det-act-btn');
-            notBtn2.type = 'button';
-            notBtn2.textContent = 'Not a client';
-            notBtn2.addEventListener('click', function () {
+            var notBtnC = el('button', 'det-act-btn');
+            notBtnC.type = 'button';
+            notBtnC.textContent = 'Not a client';
+            notBtnC.addEventListener('click', function () {
               if (!_recordCmd) { setBlockMsg(msgEl, 'record.patient cap unavailable', 'err'); return; }
               disableBlock(block);
               _recordCmd.call('suppressParticipant', { email: repEmail })
@@ -1119,11 +1050,11 @@
                   }
                 });
             });
-            acts.appendChild(notBtn2);
+            acts.appendChild(notBtnC);
           }
 
           block.appendChild(acts);
-          block.appendChild(picker1);
+          block.appendChild(pickerC);
           block.appendChild(msgEl);
 
         // ── State: EXCLUDED ──
@@ -1566,160 +1497,139 @@
       }
 
       /* ── Re-classify current event on calRev change ─────────────── */
-      /* Called when scheduleViewState.calRev changes (PHI toggle, roster mutation,
-       * calendar/account change). Re-derives classification + _match from caps
-       * WITHOUT needing schedule.html to push a new setActiveEvent.
-       *
-       * PHI-gate (ADR-313 Am1): if PHI-read opt-in is off, strip classification
-       * fields and render as unclassified (fail-closed), same policy as schedule.html. */
+      /* Called when scheduleViewState.calRev changes (roster mutation, calendar/account
+       * change). Re-derives classification + _match from caps WITHOUT needing
+       * schedule.html to push a new setActiveEvent. */
       function reclassifyAndRender() {
         if (!_currentEv) return;  // no event selected — nothing to do
 
         var ev = _currentEv;
         var token = _renderToken;  // capture before any async
 
-        /* PHI gate first. */
-        var phiPromise = (_sessionsMeetingQuery)
-          ? _sessionsMeetingQuery.call('getPhiReadOptIn', {}).catch(function () { return { enabled: false }; })
-          : Promise.resolve({ enabled: false });
+        if (!_recordQuery) {
+          /* Record query unavailable — re-render with existing classification as-is. */
+          renderDetail(_currentEv);
+          return;
+        }
 
-        phiPromise.then(function (optIn) {
-          if (_renderToken !== token) return;  // stale — newer event was set
-          if (!optIn || !optIn.enabled) {
-            /* PHI off — fail-closed: render as unclassified, strip identity data. */
-            var copy = {};
-            for (var k in ev) { if (Object.prototype.hasOwnProperty.call(ev, k)) copy[k] = ev[k]; }
-            copy.classification = 'unclassified';
-            copy._match = null;
-            /* Strip attendees + organizer to avoid identity-revealing participant block. */
-            copy.attendees = [];
-            copy.organizer = null;
-            if (_renderToken !== token) return;
-            _currentEv = copy;
-            renderDetail(_currentEv);
-            return;
-          }
-
-          if (!_recordQuery) {
-            /* Record query unavailable — re-render with existing classification as-is. */
-            renderDetail(_currentEv);
-            return;
-          }
-
-          /* Build participant list from current event (same logic as schedule.html). */
-          var participants = [];
-          if (ev.attendees) {
-            ev.attendees.forEach(function (a) {
-              if (!a.self && (a.email || a.name)) {
-                participants.push({ email: a.email || null, name: a.name || null });
-              }
+        /* Build participant list from current event (same logic as schedule.html). */
+        var participants = [];
+        if (ev.attendees) {
+          ev.attendees.forEach(function (a) {
+            if (!a.self && (a.email || a.name)) {
+              participants.push({ email: a.email || null, name: a.name || null });
+            }
+          });
+        }
+        if (ev.organizer && ev.organizer.email && !ev.organizer.self) {
+          var orgEmail = String(ev.organizer.email).toLowerCase();
+          var alreadySelf = ev.attendees && ev.attendees.some(function (a) {
+            return a.self && String(a.email || '').toLowerCase() === orgEmail;
+          });
+          if (!alreadySelf) {
+            var alreadyAdded = participants.some(function (p) {
+              return p.email && p.email.toLowerCase() === orgEmail;
             });
+            if (!alreadyAdded) {
+              participants.push({ email: ev.organizer.email, name: (ev.organizer.displayName || null) });
+            }
           }
-          if (ev.organizer && ev.organizer.email && !ev.organizer.self) {
-            var orgEmail = String(ev.organizer.email).toLowerCase();
-            var alreadySelf = ev.attendees && ev.attendees.some(function (a) {
-              return a.self && String(a.email || '').toLowerCase() === orgEmail;
-            });
-            if (!alreadySelf) {
-              var alreadyAdded = participants.some(function (p) {
-                return p.email && p.email.toLowerCase() === orgEmail;
-              });
-              if (!alreadyAdded) {
-                participants.push({ email: ev.organizer.email, name: (ev.organizer.displayName || null) });
-              }
+        }
+
+        if (participants.length === 0) {
+          /* No external participants → personal. */
+          var copy2 = {};
+          for (var k2 in ev) { if (Object.prototype.hasOwnProperty.call(ev, k2)) copy2[k2] = ev[k2]; }
+          copy2.classification = 'personal';
+          copy2._match = null;
+          if (_renderToken !== token) return;
+          _currentEv = copy2;
+          renderDetail(_currentEv);
+          return;
+        }
+
+        /* First check if this event is linked (highest precedence). */
+        var linkedPromise = _sessionsMeetingQuery
+          ? _sessionsMeetingQuery.call('listLinkedProvider', {
+              providerId: 'google-calendar',
+              from: ev.start ? new Date(ev.start).getTime() : 0,
+              to:   ev.end   ? new Date(ev.end).getTime()   : 0,
+            }).catch(function () { return []; })
+          : Promise.resolve([]);
+
+        linkedPromise.then(function (rows) {
+          if (_renderToken !== token) return;
+          rows = rows || [];
+          var linkedRow = null;
+          for (var i = 0; i < rows.length; i++) {
+            if (rows[i].provider_event_id === (ev.providerEventId || ev.id)) {
+              linkedRow = rows[i];
+              break;
             }
           }
 
-          if (participants.length === 0) {
-            /* No external participants → personal. */
-            var copy2 = {};
-            for (var k2 in ev) { if (Object.prototype.hasOwnProperty.call(ev, k2)) copy2[k2] = ev[k2]; }
-            copy2.classification = 'personal';
-            copy2._match = null;
+          if (linkedRow) {
+            /* Linked — instant client_session. */
+            var copy3 = {};
+            for (var k3 in ev) { if (Object.prototype.hasOwnProperty.call(ev, k3)) copy3[k3] = ev[k3]; }
+            copy3.classification = 'client_session';
+            copy3._match = linkedRow.patient_id ? { matchClientId: linkedRow.patient_id, source: 'linked' } : { source: 'linked' };
             if (_renderToken !== token) return;
-            _currentEv = copy2;
+            _currentEv = copy3;
             renderDetail(_currentEv);
             return;
           }
 
-          /* First check if this event is linked (highest precedence). */
-          var linkedPromise = _sessionsMeetingQuery
-            ? _sessionsMeetingQuery.call('listLinkedProvider', {
-                providerId: 'google-calendar',
-                from: ev.start ? new Date(ev.start).getTime() : 0,
-                to:   ev.end   ? new Date(ev.end).getTime()   : 0,
-              }).catch(function () { return []; })
-            : Promise.resolve([]);
+          /* Resolve participants sequentially (mirrors schedule.html resolveNext).
+           * Precedence: match > suppressed > none. Candidates maps to unclassified grid
+           * class but enrichment (_match.candidates) preserved for candidate-resolution UI. */
+          var PREC = { 'client_session': 2, 'not_client_session': 1, 'unclassified': 0 };
+          var _bestMatch2 = null;
 
-          linkedPromise.then(function (rows) {
-            if (_renderToken !== token) return;
-            rows = rows || [];
-            var linkedRow = null;
-            for (var i = 0; i < rows.length; i++) {
-              if (rows[i].provider_event_id === (ev.providerEventId || ev.id)) {
-                linkedRow = rows[i];
-                break;
-              }
-            }
-
-            if (linkedRow) {
-              /* Linked — instant client_session. */
-              var copy3 = {};
-              for (var k3 in ev) { if (Object.prototype.hasOwnProperty.call(ev, k3)) copy3[k3] = ev[k3]; }
-              copy3.classification = 'client_session';
-              copy3._match = linkedRow.patient_id ? { matchClientId: linkedRow.patient_id, source: 'linked' } : { source: 'linked' };
-              if (_renderToken !== token) return;
-              _currentEv = copy3;
-              renderDetail(_currentEv);
-              return;
-            }
-
-            /* Resolve participants sequentially (mirrors schedule.html resolveNext). */
-            var PREC = { 'client_session': 3, 'probable_client_session': 2, 'not_client_session': 1, 'unclassified': 0 };
-            var _bestMatch2 = null;
-
-            function resolveNext(idx, best) {
-              if (best === 'client_session') return Promise.resolve({ cls: 'client_session' });
-              if (idx >= participants.length) return Promise.resolve({ cls: best });
-              var p = participants[idx];
-              var query = {};
-              if (p.email) query.email = p.email;
-              if (p.name)  query.name  = p.name;
-              return _recordQuery.call('resolveParticipant', query)
-                .then(function (result) {
-                  var outcome = (result && result.outcome) || 'none';
-                  var cls;
-                  if (outcome === 'match')           cls = 'client_session';
-                  else if (outcome === 'candidates') cls = 'probable_client_session';
-                  else if (outcome === 'suppressed') cls = 'not_client_session';
-                  else                               cls = 'unclassified';
-                  if (PREC[cls] > PREC[best]) {
-                    if (outcome === 'match' && result.clientId) {
-                      _bestMatch2 = { matchClientId: result.clientId, source: 'resolver' };
-                    } else if (outcome === 'candidates' && result.candidates) {
-                      _bestMatch2 = { candidates: result.candidates, source: 'resolver' };
-                    } else {
-                      _bestMatch2 = null;
-                    }
+          function resolveNext(idx, best) {
+            if (best === 'client_session') return Promise.resolve({ cls: 'client_session' });
+            if (idx >= participants.length) return Promise.resolve({ cls: best });
+            var p = participants[idx];
+            var query = {};
+            if (p.email) query.email = p.email;
+            if (p.name)  query.name  = p.name;
+            return _recordQuery.call('resolveParticipant', query)
+              .then(function (result) {
+                var outcome = (result && result.outcome) || 'none';
+                var cls;
+                if (outcome === 'match')           cls = 'client_session';
+                else if (outcome === 'suppressed') cls = 'not_client_session';
+                else                               cls = 'unclassified'; // candidates + none
+                if (PREC[cls] > PREC[best]) {
+                  if (outcome === 'match' && result.clientId) {
+                    _bestMatch2 = { matchClientId: result.clientId, source: 'resolver' };
+                  } else {
+                    _bestMatch2 = null;
                   }
-                  return resolveNext(idx + 1, (PREC[cls] > PREC[best]) ? cls : best);
-                })
-                .catch(function () { return resolveNext(idx + 1, best); });
-            }
+                }
+                /* Candidates: always capture enrichment regardless of precedence so
+                 * the candidate-resolution UI can offer disambiguation. Only set if
+                 * no better (client_session) match already captured. */
+                if (outcome === 'candidates' && result.candidates && best !== 'client_session' && (!_bestMatch2 || !_bestMatch2.matchClientId)) {
+                  _bestMatch2 = { candidates: result.candidates, source: 'resolver' };
+                }
+                return resolveNext(idx + 1, (PREC[cls] > PREC[best]) ? cls : best);
+              })
+              .catch(function () { return resolveNext(idx + 1, best); });
+          }
 
-            resolveNext(0, 'unclassified').then(function (r) {
-              if (_renderToken !== token) return;
-              var copy4 = {};
-              for (var k4 in ev) { if (Object.prototype.hasOwnProperty.call(ev, k4)) copy4[k4] = ev[k4]; }
-              copy4.classification = r.cls;
-              copy4._match = _bestMatch2 || null;
-              _currentEv = copy4;
-              renderDetail(_currentEv);
-            }).catch(function () {
-              /* Resolve error — leave classification as-is. */
-              if (_renderToken !== token) return;
-              renderDetail(_currentEv);
-            });
+          resolveNext(0, 'unclassified').then(function (r) {
+            if (_renderToken !== token) return;
+            var copy4 = {};
+            for (var k4 in ev) { if (Object.prototype.hasOwnProperty.call(ev, k4)) copy4[k4] = ev[k4]; }
+            copy4.classification = r.cls;
+            copy4._match = _bestMatch2 || null;
+            _currentEv = copy4;
+            renderDetail(_currentEv);
+          }).catch(function () {
+            /* Resolve error — leave classification as-is. */
+            if (_renderToken !== token) return;
+            renderDetail(_currentEv);
           });
         });
       }

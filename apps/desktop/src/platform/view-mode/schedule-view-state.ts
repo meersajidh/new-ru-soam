@@ -16,10 +16,9 @@
  * the old client-side calVisibility filter is gone.
  *
  * classFilter: single-focus classification filter. null = all visible (default);
- * a string = only events with that classification id are shown. The 5 ids:
- * 'client_session', 'probable_client_session', 'not_client_session', 'personal',
- * 'unclassified'. schedule.html applies this as a client-side render filter — no
- * refetch.
+ * a string = only events with that classification id are shown. The 4 ids:
+ * 'client_session', 'not_client_session', 'personal', 'unclassified'.
+ * schedule.html applies this as a client-side render filter — no refetch.
  *
  * Back-compat: consumers that received the old Record<string,boolean> shape from
  * localStorage will fall through validation and default to null (all visible).

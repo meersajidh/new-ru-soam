@@ -64,28 +64,6 @@ export function activate(ctx) {
   const calendarCommand = ctx.bindCapability('schedule.calendar', '1.0');
   // Bind record.patient.query@1.0 — cross-bundle, participant resolution.
   const recordPatientQuery = ctx.bindCapability('record.patient.query', '1.0');
-  // Bind prefs@1.0 — workspace-scoped key/value preferences (operational store, always open).
-  const prefs = ctx.bindCapability('prefs', '1.0');
-
-  // ── PHI read opt-in pref key ───────────────────────────────────────────────
-
-  const PHI_READ_OPT_IN_KEY = 'sessions.calendarPhiReadOptIn';
-
-  /**
-   * Returns true when the practitioner has explicitly opted in to PHI-read
-   * participant matching (ADR-313 Am1). Default-off: absent / non-'true' = false.
-   *
-   * @returns {Promise<boolean>}
-   */
-  async function isPhiReadEnabled() {
-    try {
-      const result = await prefs.call('get', [PHI_READ_OPT_IN_KEY]);
-      return result && result.value === 'true';
-    } catch (_err) {
-      // Prefs unavailable (no active workspace) — treat as disabled.
-      return false;
-    }
-  }
 
   // ── linkEvent — shared upsert keyed on full provider triple (ADR-508 Am1, O493) ──
   //
@@ -273,58 +251,6 @@ export function activate(ctx) {
           { providerId, from, to },
         ]);
         return rows;
-      }
-
-      // ADR-313 Am1: PHI-read opt-in read accessor — used by schedule.html classify pass
-      // and any future score/status-bar consumer.
-      case 'getPhiReadOptIn': {
-        const enabled = await isPhiReadEnabled();
-        return { enabled };
-      }
-
-      // ADR-313 Am1 §A1.2 — PHI Safety Score.
-      // Returns a PHI-free aggregate: { score, factors }.
-      // score = readOptIn===false ? 100 : max(0, 100 - round(60*E/max(M,1)) - (writeOptIn?40:0))
-      // v1: E = M (no opaque-write path yet; every linked meeting exposes a client).
-      case 'getSafetyScore': {
-        const readOptIn = await isPhiReadEnabled();
-
-        // writeOptIn — reserved factor; always false in v1 (O499 deferred).
-        let writeOptIn = false;
-        try {
-          const wResult = await prefs.call('get', ['sessions.calendarPhiWriteOptIn']);
-          writeOptIn = !!(wResult && wResult.value === 'true');
-        } catch (_err) {
-          // Prefs unavailable — treat as disabled.
-        }
-
-        if (!readOptIn) {
-          return {
-            score: 100,
-            factors: { readOptIn: false, writeOptIn, linkedMeetings: 0, exposed: 0 },
-          };
-        }
-
-        // Count provider-origin linked meetings (M).
-        let linkedMeetings = 0;
-        try {
-          const countRows = await storeQuery.call('run', ['meeting.countLinkedProvider', {}]);
-          linkedMeetings = (countRows[0]?.n ?? 0);
-        } catch (_err) {
-          linkedMeetings = 0;
-        }
-
-        // v1: E = M (every linked meeting carries identifying detail on provider).
-        const exposed = linkedMeetings;
-        const M = linkedMeetings;
-        const E = exposed;
-
-        const score = Math.max(0, 100 - Math.round((60 * E) / Math.max(M, 1)) - (writeOptIn ? 40 : 0));
-
-        return {
-          score,
-          factors: { readOptIn: true, writeOptIn, linkedMeetings: M, exposed: E },
-        };
       }
 
       default:
@@ -521,28 +447,7 @@ export function activate(ctx) {
         return { deleted: id };
       }
 
-      // ADR-313 Am1: toggle PHI-read opt-in. Writes pref + is audited by prefs.set
-      // auto-audit (key: 'sessions.calendarPhiReadOptIn'). The Sessions-specific
-      // event kinds (sessions.phi_read.opted_in/out) are registered in audit-types.ts
-      // for future use when a bundle-audit cap is available.
-      case 'setPhiReadOptIn': {
-        const enabled = args[0];
-        if (typeof enabled !== 'boolean') {
-          throw new Error('sessions.meeting.setPhiReadOptIn: enabled must be a boolean');
-        }
-        // prefs.set auto-audits with { key } — that IS the PHI-free audit record.
-        await prefs.call('set', [PHI_READ_OPT_IN_KEY, enabled ? 'true' : 'false']);
-        return { ok: true, enabled };
-      }
-
       case 'sync': {
-        // ADR-313 Am1: PHI-read gate — default-off. If not opted in, return empty
-        // shape immediately without calling syncEvents / resolveParticipant.
-        const phiReadEnabled = await isPhiReadEnabled();
-        if (!phiReadEnabled) {
-          return { linked: 0, reconciled: 0, orphaned: 0, needsLinking: [] };
-        }
-
         const fromMs = Date.now();
         const toMs = fromMs + 90 * 24 * 60 * 60 * 1000;
         const from = new Date(fromMs).toISOString();
@@ -752,7 +657,6 @@ export function activate(ctx) {
       calendarQuery.dispose();
       calendarCommand.dispose();
       recordPatientQuery.dispose();
-      prefs.dispose();
     },
   };
 }

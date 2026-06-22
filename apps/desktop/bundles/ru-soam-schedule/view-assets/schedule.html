@@ -1791,7 +1791,6 @@
         /* ev.classification is a DERIVED PROJECTION — never stored, never sent to provider. */
         var CLS_CLASS = {
           client_session: 'cls-client',
-          probable_client_session: 'cls-probable',
           not_client_session: 'cls-not',
           personal: 'cls-personal',
           unclassified: 'cls-unclassified',
@@ -1804,7 +1803,6 @@
         /* ── Classification label for badge ─────────────────────────── */
         var CLS_LABEL = {
           client_session: 'CLIENT',
-          probable_client_session: 'PROBABLE',
           not_client_session: 'EXCLUDED',
           personal: 'PERSONAL',
           unclassified: 'UNCLASSIFIED',
@@ -1821,7 +1819,6 @@
          * classify pass or calendar-visibility change via soamView.setScheduleCounts.   */
         var CLS_IDS = [
           'client_session',
-          'probable_client_session',
           'not_client_session',
           'personal',
           'unclassified',
@@ -2663,36 +2660,10 @@
         function runClassifyPass(evs, range, classifySeq) {
           /* Step 2: if either classify cap missing, stop (already painted unclassified). */
           if (!sessionsQuery || !recordQuery) return;
-
-          /* ADR-313 Am1: PHI-read opt-in gate — default-off. Read on each pass so toggling
-           * takes effect on the next window fetch + classify. When disabled, skip
-           * resolveParticipant entirely; every event stays unclassified. */
-          sessionsQuery
-            .call('getPhiReadOptIn', {})
-            .catch(function () {
-              return { enabled: false };
-            })
-            .then(function (optIn) {
-              if (!optIn || !optIn.enabled) {
-                /* Opt-in off — fails-closed. On a FRESH fetch the events arrive
-                 * unclassified, but on a LIVE toggle (calRev bump, no re-fetch) the
-                 * in-memory events still carry their prior classification/_match from
-                 * when read was ON. Reset every event to unclassified + clear match
-                 * enrichment, repaint, then publish — otherwise stale classes linger. */
-                if (classifySeq !== _loadSeq) return; // stale guard
-                evs.forEach(function (ev) {
-                  ev.classification = 'unclassified';
-                  ev._match = null;
-                });
-                renderCalArea();
-                publishCounts();
-                return;
-              }
-              runClassifyPassInner(evs, range, classifySeq);
-            });
+          runClassifyPassInner(evs, range, classifySeq);
         }
 
-        /* Inner classify pass — runs only when PHI-read opt-in is enabled. */
+        /* Inner classify pass. */
         function runClassifyPassInner(evs, range, classifySeq) {
           /* Step 3: batch-fetch linked rows for this window (best-effort). */
           var fromMs = range.from.getTime();
@@ -2766,14 +2737,16 @@
                 }
 
                 /* Resolve participants sequentially; short-circuit on first match. */
-                /* Precedence: match > candidates > suppressed > none */
+                /* Precedence: match > suppressed > none (candidates maps to unclassified
+                 * for grid display but still captures enrichment for aux event-detail). */
                 var PREC = {
-                  client_session: 3,
-                  probable_client_session: 2,
+                  client_session: 2,
                   not_client_session: 1,
                   unclassified: 0,
                 };
-                /* _bestMatch carries enrichment data for the winning classification. */
+                /* _bestMatch carries enrichment data for the winning classification.
+                 * For candidates outcome: class = unclassified but _match.candidates preserved
+                 * so aux event-detail can still offer candidate-resolution actions. */
                 var _bestMatch = null;
 
                 function resolveNext(idx, best) {
@@ -2794,18 +2767,21 @@
                       var outcome = (result && result.outcome) || 'none';
                       var cls;
                       if (outcome === 'match') cls = 'client_session';
-                      else if (outcome === 'candidates') cls = 'probable_client_session';
                       else if (outcome === 'suppressed') cls = 'not_client_session';
-                      else cls = 'unclassified';
-                      /* Capture enrichment data if this outcome wins. */
-                      if (PREC[cls] > PREC[best]) {
-                        if (outcome === 'match' && result.clientId) {
-                          _bestMatch = { matchClientId: result.clientId, source: 'resolver' };
-                        } else if (outcome === 'candidates' && result.candidates) {
-                          _bestMatch = { candidates: result.candidates, source: 'resolver' };
-                        } else {
-                          _bestMatch = null;
-                        }
+                      else cls = 'unclassified'; // candidates + none both map to unclassified grid class
+                      /* Capture match enrichment. A non-match outcome (suppressed/none) may
+                       * raise the grid class via PREC, but must NOT clear an already-captured
+                       * candidates enrichment — so we only ever SET _bestMatch on match here,
+                       * never null it. (_bestMatch starts null; match overrides candidates via
+                       * the candidates guard below.) */
+                      if (PREC[cls] > PREC[best] && outcome === 'match' && result.clientId) {
+                        _bestMatch = { matchClientId: result.clientId, source: 'resolver' };
+                      }
+                      /* Candidates: always capture enrichment regardless of precedence so
+                       * aux event-detail can offer disambiguation — but only if no better
+                       * match (client_session) has already been captured. */
+                      if (outcome === 'candidates' && result.candidates && best !== 'client_session' && (!_bestMatch || !_bestMatch.matchClientId)) {
+                        _bestMatch = { candidates: result.candidates, source: 'resolver' };
                       }
                       var next = PREC[cls] > PREC[best] ? cls : best;
                       return resolveNext(idx + 1, next);
