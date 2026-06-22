@@ -15,7 +15,6 @@ import { ProductConfigServiceId, ContextKeyServiceId, EditorServiceId, CommandSe
 import { PRODUCT_TAGLINE, DELETE_WARNING_ADDENDUM } from './product';
 import { showClientErase } from './clientEraseState';
 import { requestOpenPhiSafetyPopover } from '../workbench/parts/phi-safety-events';
-import { registerScheduleCalRevBump } from '../platform/view-mode/schedule-cal-rev';
 
 export function domainBootstrap(registry: ServiceRegistry): void {
   const productConfig = registry.get(ProductConfigServiceId);
@@ -179,15 +178,13 @@ export function domainBootstrap(registry: ServiceRegistry): void {
   // PHI never enters Bundle Host: cap calls go through window.soam only.
   // ctx is the untrusted forwarded menu context object from the calendar nav iframe.
 
+  // Schedule context-menu commands bump calRev directly on the service (a true
+  // registry singleton) so an open calendar re-classifies / refreshes after a
+  // calendar edit/delete/(re)connect. No module-level singleton indirection — that
+  // pattern is not swapped by HMR (boot-singleton gotcha) and can duplicate.
   function bumpScheduleCalRev(): void {
-    const svc = registry.get(ScheduleViewStateServiceId);
-    const s = svc.getState();
-    svc.setState({ view: s.view, calRev: s.calRev + 1, classFilter: s.classFilter });
+    registry.get(ScheduleViewStateServiceId).bumpCalRev();
   }
-
-  // Register the shared bump fn so external modules (PhiSafetyPopover, ClientEraseDialog)
-  // can call bumpScheduleCalRev() without importing the service registry.
-  registerScheduleCalRevBump(bumpScheduleCalRev);
 
   commands.register(
     'ru-soam-schedule.calendar.edit',

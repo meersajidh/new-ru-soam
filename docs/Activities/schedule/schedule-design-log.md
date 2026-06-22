@@ -739,3 +739,31 @@ All 6 resume-checklist items closed; compile + lint + script-syntax green; 14 fi
 Files: schedule.html, event-detail.html (no change needed — verified), needs-linking.html (sessions),
 view-bridge.ts, BundleViewIframe.tsx, schedule-cal-rev.ts (new), + prior-session set
 (bootstrap.ts, ClientEraseDialog.tsx, PhiSafetyPopover.tsx, schedule-view-state.ts, index.mjs, nav.html).
+
+### Follow-up — calRev reactivity bugs found post-commit, FIXED + dogfood-verified (2026-06-22)
+User retest after the O503 commit found #1 + #2 still failing live ("requires close/reopen").
+Two distinct root causes; the first dogfood missed both because it bumped calRev via
+`scheduleViewState.setState` directly, never exercising the real consumer paths.
+
+**Bug 1 — module-singleton bump no-op.** `schedule-cal-rev.ts` held the bump as a module-level
+`let _bump` registered by `domainBootstrap`. The real consumers (PhiSafetyPopover, ClientEraseDialog,
+the context-menu helper, and this session's needs-linking `bumpScheduleData`) read a *different*
+module instance where `_bump` was null → `_bump?.()` silently no-ops → calRev never incremented →
+no push → no reclassify. CDP-proven: importing the module + calling the export left calRev frozen
+(281→281) while a probe-registered fn fired and the edit command was registered (bootstrap ran).
+Classic "HMR doesn't swap boot-instantiated singletons" gotcha — a module-level mutable singleton.
+FIX: `bumpCalRev()` method on `ScheduleViewStateService` (a true registry singleton); all renderer
+consumers call `useService(ScheduleViewStateServiceId).bumpCalRev()`; `schedule-cal-rev.ts` DELETED;
+`domainBootstrap`'s local helper now delegates to `registry.get(...).bumpCalRev()`.
+Verified: real popover toggle → calRev 281→282, counts ON `nc1/p1/u1` → OFF `unclassified:3`, live.
+
+**Bug 2 — stale calendar color on edit.** Calendar metadata (color/name) is baked onto cached event
+objects at fetch (the `listWindowEvents` JOIN). The calRev "spurious bump" branch only re-ran
+`runClassifyPass` on the in-memory events → repainted the STALE color. FIX: that branch now
+`__viewQuery.invalidate(['schedule.calendar','windowEvents'])` → refetch with fresh JOIN metadata →
+observer onData re-classifies. Refetch reads the local event cache (no Google call) — cheap, and
+covers the classification-input case too. Verified: Primary color → pink reflected live (no reopen).
+
+Files: schedule-view-state.ts (+bumpCalRev), PhiSafetyPopover.tsx, ClientEraseDialog.tsx,
+BundleViewIframe.tsx, bootstrap.ts (service bump), schedule.html (spurious→invalidate);
+schedule-cal-rev.ts DELETED. Compile + lint + html-syntax green.

@@ -47,6 +47,15 @@ function deepEqual(a: ScheduleViewState, b: ScheduleViewState): boolean {
 export interface IScheduleViewStateService {
   getState(): ScheduleViewState;
   setState(s: ScheduleViewState): void;
+  /**
+   * Increment `calRev` (view+classFilter unchanged), broadcasting to all schedule
+   * iframes so they re-classify / refresh. The single sanctioned cross-module
+   * refresh trigger — call this from any renderer consumer that mutates a
+   * classification input (PHI-read toggle, roster erase, calendar edit, triage).
+   * Encapsulated on the service (a true registry singleton) so it never depends
+   * on a module-level singleton, which HMR does not swap (boot-singleton gotcha).
+   */
+  bumpCalRev(): void;
   onDidChange(listener: (s: ScheduleViewState) => void): () => void;
 }
 
@@ -71,6 +80,11 @@ export class ScheduleViewStateService implements IScheduleViewStateService {
       /* storage unavailable */
     }
     for (const l of this._listeners) l(this._state);
+  }
+
+  bumpCalRev(): void {
+    const s = this._state;
+    this.setState({ view: s.view, calRev: s.calRev + 1, classFilter: s.classFilter });
   }
 
   onDidChange(listener: (s: ScheduleViewState) => void): () => void {

@@ -15,14 +15,13 @@ import { Button } from '../platform/ui/Button';
 import { TextInput } from '../platform/ui/TextInput';
 import { FormField } from '../platform/ui/FormField';
 import { useService } from '../platform/services/hooks';
-import { EditorServiceId } from '../platform/services/ids';
+import { EditorServiceId, ScheduleViewStateServiceId } from '../platform/services/ids';
 import {
   getClientEraseState,
   clearClientErase,
   subscribeClientErase,
 } from './clientEraseState';
 import { DELETE_WARNING_ADDENDUM } from './product';
-import { bumpScheduleCalRev } from '../platform/view-mode/schedule-cal-rev';
 import './ClientEraseDialog.css';
 
 function ClientEraseDialogInner({
@@ -35,6 +34,7 @@ function ClientEraseDialogInner({
   onClose: () => void;
 }) {
   const editor = useService(EditorServiceId);
+  const scheduleViewState = useService(ScheduleViewStateServiceId);
   const [nameInput, setNameInput] = useState('');
   const [nameError, setNameError] = useState('');
   const [generalError, setGeneralError] = useState('');
@@ -78,7 +78,7 @@ function ClientEraseDialogInner({
 
       // Bump calRev so the open schedule calendar re-classifies events for this
       // client (erased client can no longer be PROBABLE/CLIENT — falls to unclassified).
-      bumpScheduleCalRev();
+      scheduleViewState.bumpCalRev();
 
       onClose();
     } catch (err) {

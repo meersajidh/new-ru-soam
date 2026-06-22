@@ -2482,12 +2482,19 @@
                 publishCounts();
                 runClassifyPass(events, fetchWindow(), ++_loadSeq);
               } else {
-                /* Spurious calRev bump (e.g. PHI-read toggle, roster mutation) — calendar
-                 * set and visibility unchanged but classification inputs may have changed.
-                 * Re-run classify pass on current in-memory events; no network fetch. */
-                if (events.length > 0) {
-                  runClassifyPass(events, fetchWindow(), ++_loadSeq);
-                }
+                /* calRev bump with calendar SET and visibility-flags unchanged.
+                 * Two causes converge here:
+                 *   (a) a classification input changed (PHI-read toggle, roster
+                 *       mutation, triage) — needs a re-classify; AND
+                 *   (b) a calendar METADATA edit (color / name) — that metadata is
+                 *       baked onto the cached event objects at fetch time (JOIN in
+                 *       listWindowEvents), so reclassifying the in-memory events would
+                 *       repaint the STALE color. It must be re-fetched.
+                 * Invalidate the window cache so events refetch with fresh calendar
+                 * metadata; the observer's onData handler then re-runs the classify
+                 * pass. The refetch reads the local event cache (no Google call) — cheap,
+                 * and covers (a) too (onData re-classifies). */
+                window.__viewQuery.invalidate(['schedule.calendar', 'windowEvents']);
               }
             });
           } else {

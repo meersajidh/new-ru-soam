@@ -3,7 +3,6 @@ import { useService } from '../../platform/services/hooks';
 import { ActiveEventServiceId, ContributionServiceId, EditorServiceId, FontServiceId, LayoutServiceId, MaturityHighlightServiceId, MenuServiceId, OverviewViewModeServiceId, ScheduleCountsServiceId, ScheduleViewStateServiceId, ThemeServiceId } from '../../platform/services/ids';
 import { SlotId } from '../../platform/layout/slots';
 import { aspectFocus } from '../../platform/views/aspect-focus';
-import { bumpScheduleCalRev } from '../../platform/view-mode/schedule-cal-rev';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 import type { ScheduleViewState } from '../../platform/view-mode/schedule-view-state';
 import type { ScheduleCounts } from '../../platform/view-mode/schedule-counts';
@@ -273,7 +272,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           // An iframe (e.g. Sessions needs-linking triage) mutated roster/link state
           // that affects Schedule classification. Bump calRev so an open schedule
           // calendar + aux event-detail re-classify on current in-memory events.
-          bumpScheduleCalRev();
+          scheduleViewState.bumpCalRev();
           break;
         }
         case 'request.setActiveEvent': {

@@ -18,7 +18,8 @@ import { Icon } from '../../platform/icons/Icon';
 import { usePopover } from '../../platform/popover/use-popover';
 import Popover from '../../platform/popover/Popover';
 import type { StatusBarEntry } from '../../platform/statusbar/statusbar-service';
-import { bumpScheduleCalRev } from '../../platform/view-mode/schedule-cal-rev';
+import { useService } from '../../platform/services/hooks';
+import { ScheduleViewStateServiceId } from '../../platform/services/ids';
 
 export interface SafetyScore {
   score: number;
@@ -85,6 +86,7 @@ async function setReadOptIn(enabled: boolean): Promise<void> {
 
 export default function PhiSafetyPopover({ entry, onScoreChange }: PhiSafetyPopoverProps) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const scheduleViewState = useService(ScheduleViewStateServiceId);
 
   // All state unconditional — no early return before hooks.
   const [score, setScore] = useState<SafetyScore | null>(null);
@@ -181,7 +183,7 @@ export default function PhiSafetyPopover({ entry, onScoreChange }: PhiSafetyPopo
     try {
       await setReadOptIn(enabled);
       // Bump calRev so open schedule calendar + aux event-detail re-classify immediately.
-      bumpScheduleCalRev();
+      scheduleViewState.bumpCalRev();
       // Refetch score after toggle.
       const s = await fetchScore();
       setScore(s);
