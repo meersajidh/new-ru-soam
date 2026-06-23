@@ -56,6 +56,24 @@ function mapCalendar(row) {
     addedAt:            row.added_at,
     createdAt:          row.created_at,
     updatedAt:          row.updated_at,
+    migrationStatus:    row.migration_status ?? 'pending',
+    lastMigratedAt:     row.last_migrated_at ?? null,
+    lastSyncedThrough:  row.last_synced_through ?? null,
+  };
+}
+
+function mapMigrationRun(row) {
+  return {
+    id:               row.id,
+    calendarId:       row.calendar_id,
+    kind:             row.kind,
+    startedAt:        row.started_at,
+    completedAt:      row.completed_at,
+    windowFrom:       row.window_from,
+    windowTo:         row.window_to,
+    eventsScanned:    row.events_scanned,
+    identitiesFound:  row.identities_found,
+    status:           row.status,
   };
 }
 
@@ -219,6 +237,16 @@ export function activate(ctx) {
         const to   = toISOArg(args[1], 'schedule.calendar.query.listWindowEvents');
         const rows = await storeQuery.call('run', ['event.listForWindow', { from, to }]);
         return rows.map(mapEventRow);
+      }
+
+      case 'listMigrationRuns': {
+        // Return migration run ledger for a calendar, newest first (PHI-free counts only).
+        const calendarId = args[0];
+        if (typeof calendarId !== 'string' || calendarId.length === 0) {
+          throw new Error('schedule.calendar.query.listMigrationRuns: calendarId must be a non-empty string');
+        }
+        const rows = await storeQuery.call('run', ['migration.runList', { calendarId }]);
+        return rows.map(mapMigrationRun);
       }
 
       case 'getRefreshSettings': {
@@ -952,6 +980,90 @@ export function activate(ctx) {
           errors:               totalErrors,
           disconnectedAccounts: disconnectedAccounts,
         };
+      }
+
+      case 'recordMigrationRun': {
+        // Write a migration run ledger row + update calendar migration state.
+        // All counts only — PHI-free (ADR-509 §2b).
+        const input = args[0];
+        if (!input || typeof input !== 'object') {
+          throw new Error('schedule.calendar.recordMigrationRun: input must be an object');
+        }
+        const {
+          calendarId,
+          kind,
+          startedAt,
+          completedAt,
+          windowFrom,
+          windowTo,
+          eventsScanned,
+          identitiesFound,
+          status,
+        } = input;
+
+        if (typeof calendarId !== 'string' || calendarId.length === 0) {
+          throw new Error('schedule.calendar.recordMigrationRun: calendarId must be a non-empty string');
+        }
+        if (typeof kind !== 'string' || kind.length === 0) {
+          throw new Error('schedule.calendar.recordMigrationRun: kind must be a non-empty string');
+        }
+        if (typeof status !== 'string' || status.length === 0) {
+          throw new Error('schedule.calendar.recordMigrationRun: status must be a non-empty string');
+        }
+
+        // Existence check on calendar.
+        const calRows = await storeQuery.call('run', ['calendar.getById', { id: calendarId }]);
+        if (calRows.length === 0) {
+          throw notFound(`schedule.calendar.recordMigrationRun: calendar not found: ${calendarId}`);
+        }
+
+        // Insert ledger row.
+        const runId = `mgrun_${globalThis.crypto.randomUUID()}`;
+        await storeWrite.call('insert', [
+          'calendar_migration_run',
+          {
+            id:               runId,
+            calendar_id:      calendarId,
+            kind:             kind,
+            started_at:       startedAt ?? null,
+            completed_at:     completedAt ?? null,
+            window_from:      windowFrom ?? null,
+            window_to:        windowTo ?? null,
+            events_scanned:   typeof eventsScanned === 'number' ? eventsScanned : null,
+            identities_found: typeof identitiesFound === 'number' ? identitiesFound : null,
+            status:           status,
+          },
+          {
+            event:      'schedule.calendar.migration.run',
+            recordType: 'calendar_migration_run',
+            recordId:   runId,
+            detail:     { calendarId, kind, eventsScanned: eventsScanned ?? null, identitiesFound: identitiesFound ?? null },
+          },
+        ]);
+
+        // Update calendar migration state cols.
+        const now = Date.now();
+        const calPatch = {
+          migration_status: status === 'complete' ? 'complete' : 'in_progress',
+          last_migrated_at: now,
+          updated_at:       now,
+        };
+        if (typeof windowTo === 'number') {
+          calPatch.last_synced_through = windowTo;
+        }
+        await storeWrite.call('update', [
+          'calendar',
+          calendarId,
+          calPatch,
+          {
+            event:      'schedule.calendar.migration.state.updated',
+            recordType: 'calendar',
+            recordId:   calendarId,
+            detail:     { migrationStatus: calPatch.migration_status },
+          },
+        ]);
+
+        return { runId, calendarId };
       }
 
       default:

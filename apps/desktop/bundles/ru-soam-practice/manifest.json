@@ -6,7 +6,9 @@
   "residency": "protected",
   "capabilities": [
     { "name": "record.patient.query", "version": "1.0", "phi": true, "kind": "query" },
-    { "name": "record.patient", "version": "1.0", "phi": true, "kind": "command" }
+    { "name": "record.patient", "version": "1.0", "phi": true, "kind": "command" },
+    { "name": "record.migration.query", "version": "1.0", "phi": true, "kind": "query" },
+    { "name": "record.migration", "version": "1.0", "phi": true, "kind": "command" }
   ],
   "views": [
     { "id": "roster", "path": "roster.html" },
@@ -145,7 +147,7 @@
     }
   ],
   "dependencies": {
-    "capabilities": ["store.write@1.0", "store.query@1.0", "store.eraseSubject@1.0", "blob.write@1.0"]
+    "capabilities": ["store.write@1.0", "store.query@1.0", "store.eraseSubject@1.0", "blob.write@1.0", "schedule.calendar.query@1.0", "schedule.calendar@1.0"]
   },
   "contributes": {
     "activityBar.items": [

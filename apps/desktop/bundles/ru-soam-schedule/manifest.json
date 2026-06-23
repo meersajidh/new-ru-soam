@@ -14,7 +14,7 @@
     { "id": "calendar-setup", "path": "calendar-setup.html" },
     { "id": "event-detail", "path": "event-detail.html" }
   ],
-  "ownedTables": ["provider_account", "calendar", "event"],
+  "ownedTables": ["provider_account", "calendar", "event", "calendar_migration_run"],
   "migrations": [
     {
       "version": 1,
@@ -25,6 +25,11 @@
       "version": 2,
       "description": "Schedule: event cache table + sync-bookkeeping cols on calendar (ADR-507 Am2, O495)",
       "sql": "CREATE TABLE IF NOT EXISTS event (\n  id                   TEXT PRIMARY KEY,\n  account_id           TEXT NOT NULL,\n  calendar_id          TEXT NOT NULL,\n  external_account_id  TEXT NOT NULL,\n  provider_calendar_id TEXT NOT NULL,\n  provider_event_id    TEXT NOT NULL,\n  title                TEXT NOT NULL,\n  start                TEXT NOT NULL,\n  end                  TEXT,\n  all_day              INTEGER NOT NULL DEFAULT 0,\n  location             TEXT,\n  meeting_link         TEXT,\n  organizer_email      TEXT,\n  organizer_name       TEXT,\n  organizer_self       INTEGER,\n  attendees            TEXT,\n  status               TEXT,\n  updated_at           INTEGER,\n  synced_at            INTEGER NOT NULL,\n  UNIQUE (external_account_id, provider_calendar_id, provider_event_id)\n);\nCREATE INDEX IF NOT EXISTS idx_event_calendar_start ON event(calendar_id, start);\nCREATE INDEX IF NOT EXISTS idx_event_window ON event(external_account_id, provider_calendar_id, start);\nALTER TABLE calendar ADD COLUMN sync_token TEXT;\nALTER TABLE calendar ADD COLUMN last_synced_at INTEGER;\nALTER TABLE calendar ADD COLUMN sync_status TEXT;\nALTER TABLE calendar ADD COLUMN sync_window_min INTEGER NOT NULL DEFAULT 7776000000;"
+    },
+    {
+      "version": 3,
+      "description": "Schedule: calendar migration state cols + calendar_migration_run ledger (ADR-509)",
+      "sql": "ALTER TABLE calendar ADD COLUMN migration_status TEXT NOT NULL DEFAULT 'pending';\nALTER TABLE calendar ADD COLUMN last_migrated_at INTEGER;\nALTER TABLE calendar ADD COLUMN last_synced_through INTEGER;\nCREATE TABLE IF NOT EXISTS calendar_migration_run (\n  id                TEXT PRIMARY KEY,\n  calendar_id       TEXT NOT NULL,\n  kind              TEXT NOT NULL,\n  started_at        INTEGER,\n  completed_at      INTEGER,\n  window_from       INTEGER,\n  window_to         INTEGER,\n  events_scanned    INTEGER,\n  identities_found  INTEGER,\n  status            TEXT NOT NULL\n);\nCREATE INDEX IF NOT EXISTS idx_migration_run_calendar ON calendar_migration_run(calendar_id, started_at DESC);"
     }
   ],
   "queryTemplates": [
@@ -42,19 +47,19 @@
     },
     {
       "id": "calendar.list",
-      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min FROM calendar ORDER BY added_at ASC"
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min, migration_status, last_migrated_at, last_synced_through FROM calendar ORDER BY added_at ASC"
     },
     {
       "id": "calendar.getById",
-      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min FROM calendar WHERE id = @id"
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min, migration_status, last_migrated_at, last_synced_through FROM calendar WHERE id = @id"
     },
     {
       "id": "calendar.listSelected",
-      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min FROM calendar WHERE selected = 1 ORDER BY added_at ASC"
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min, migration_status, last_migrated_at, last_synced_through FROM calendar WHERE selected = 1 ORDER BY added_at ASC"
     },
     {
       "id": "calendar.listForAccount",
-      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min FROM calendar WHERE account_id = @accountId ORDER BY added_at ASC"
+      "sql": "SELECT id, account_id, provider_calendar_id, display_name, color, is_primary, read_only, selected, added_at, created_at, updated_at, sync_token, last_synced_at, sync_status, sync_window_min, migration_status, last_migrated_at, last_synced_through FROM calendar WHERE account_id = @accountId ORDER BY added_at ASC"
     },
     {
       "id": "event.listForWindow",
@@ -75,6 +80,10 @@
     {
       "id": "event.listStaleIds",
       "sql": "SELECT id FROM event WHERE calendar_id = @calendarId AND start < @cutoff"
+    },
+    {
+      "id": "migration.runList",
+      "sql": "SELECT id, calendar_id, kind, started_at, completed_at, window_from, window_to, events_scanned, identities_found, status FROM calendar_migration_run WHERE calendar_id = @calendarId ORDER BY started_at DESC"
     }
   ],
   "dependencies": {

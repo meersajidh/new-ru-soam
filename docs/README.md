@@ -131,6 +131,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-506](ADRs/506-domain-module-cqrs-and-ownership.md) — Domain module model: **pure-base Main** + CQRS bundle-owned records (retires `core-domain`; command logic in First-Party-Host; hybrid validation; declared deps; base/domain/extensions tiers). _(Accepted)_
 - [ADR-507](ADRs/507-schedule-activity.md) — Schedule Activity: a **storeless UI over calendar providers** (`CalendarProvider` port, Google Flow-A adapter, provider = master of events; derived classification tags). Takes up ADR-310. _(Draft)_
 - [ADR-508](ADRs/508-sessions-client-meeting.md) — Sessions: the **Client Meeting** (persisted clinical subset of the calendar) — dual-origin, field-partitioned sync, identity-resolution seam, `MeetingProvider` port (Meet/Zoom). The only store in the Schedule/Sessions pair. _(Draft)_
+- [ADR-509](ADRs/509-calendar-client-migration.md) — Calendar → Client **migration**: onboarding an established practice from the calendar. Migration = independent bulk mode (not the per-event funnel); calendar state cols + PHI-free run ledger (Schedule); the incoming-client queue (`client_incoming`) is **transient/derivable** (no unconfirmed-PHI at rest), resolutions land in existing stores; promote-to-`migrated` decoupled from Sessions meeting-linking. _(Draft)_
 
 ### Proposals
 

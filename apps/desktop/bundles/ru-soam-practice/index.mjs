@@ -16,6 +16,7 @@
 const LIFECYCLE_STAGES = [
   { id: 'referral',   label: 'Referral'   },
   { id: 'intake',     label: 'Intake'     },
+  { id: 'migrated',   label: 'Migrated'   },
   { id: 'active',     label: 'Active'     },
   { id: 'on_hold',    label: 'On Hold'    },
   { id: 'discharged', label: 'Discharged' },
@@ -240,6 +241,80 @@ function mapAlias(row) {
   };
 }
 
+// ── Shared identity-resolution core (ADR-508 §4) ──────────────────────────────
+// Used by both record.patient.query resolveParticipant (with audit tags) and
+// record.migration run() (no audit tags). Pass audit:true to attach the
+// record.patient.participant.resolved audit tag on the first DB lookup.
+
+/**
+ * @param {object} storeQuery  bound store.query@1.0 cap
+ * @param {{ email?: string|null, phone?: string|null, name?: string|null }} input  already-normalised values
+ * @param {{ audit?: boolean }} [opts]
+ * @returns {Promise<{ outcome: 'match'|'candidates'|'none'|'suppressed', clientId?: string, candidates?: string[] }>}
+ */
+async function resolveParticipantCore(storeQuery, { email, phone, name }, { audit = false } = {}) {
+  if (!email && !phone && !name) {
+    return { outcome: 'none' };
+  }
+
+  // Suppression check — hashed, no audit tag (identifiers are PHI).
+  for (const [kind, val] of [['email', email], ['phone', phone]]) {
+    if (val == null) continue;
+    const h = await sha256hex(kind + ':' + val);
+    const suppRows = await storeQuery.call('run', ['patient.suppressionCheck', { hash: h }]);
+    if (suppRows.length > 0) {
+      return { outcome: 'suppressed' };
+    }
+  }
+
+  // Strong-id match. When audit=true, attach audit tag on the first executed lookup only.
+  const ids = new Set();
+  let firstLookupDone = false;
+
+  if (email) {
+    const auditTag = audit
+      ? { event: 'record.patient.participant.resolved', recordType: 'patients' }
+      : undefined;
+    const emailArgs = auditTag
+      ? ['patient.resolveByEmail', { email }, auditTag]
+      : ['patient.resolveByEmail', { email }];
+    const emailRows = await storeQuery.call('run', emailArgs);
+    firstLookupDone = true;
+    emailRows.forEach((r) => ids.add(r.id));
+  }
+  if (phone) {
+    const auditTag =
+      audit && !firstLookupDone
+        ? { event: 'record.patient.participant.resolved', recordType: 'patients' }
+        : undefined;
+    const phoneArgs = auditTag
+      ? ['patient.resolveByPhone', { phone }, auditTag]
+      : ['patient.resolveByPhone', { phone }];
+    const phoneRows = await storeQuery.call('run', phoneArgs);
+    firstLookupDone = true;
+    phoneRows.forEach((r) => ids.add(r.id));
+  }
+
+  if (ids.size === 1) return { outcome: 'match', clientId: [...ids][0] };
+  if (ids.size > 1) return { outcome: 'candidates', candidates: [...ids] };
+
+  // Name fallback.
+  if (name) {
+    const auditTag =
+      audit && !firstLookupDone
+        ? { event: 'record.patient.participant.resolved', recordType: 'patients' }
+        : undefined;
+    const nameArgs = auditTag
+      ? ['patient.resolveByName', { name }, auditTag]
+      : ['patient.resolveByName', { name }];
+    const nameRows = await storeQuery.call('run', nameArgs);
+    const cand = [...new Set(nameRows.map((r) => r.id))];
+    if (cand.length > 0) return { outcome: 'candidates', candidates: cand };
+  }
+
+  return { outcome: 'none' };
+}
+
 // ── Error helpers ─────────────────────────────────────────────────────────────
 
 function notFound(message) {
@@ -255,6 +330,12 @@ function parseBlobId(storageRef) {
 
 // ── Capability handler ────────────────────────────────────────────────────────
 
+// ── Migration transient candidate cache (module-scope, keyed by calendarId) ──────
+// ADR-509 §2d: candidate list produced by run() is cached in bundle memory so
+// listIncoming() can page without re-scanning. NOT persisted — survives the
+// activate() closure lifetime only (reset on FP-Host restart).
+const _migrationCache = new Map(); // calendarId → { candidates: [...], windowFrom, windowTo }
+
 export function activate(ctx) {
   // Bind store.query@1.0 — FP-Host consumer channel (O449 rung-0).
   const storeQuery = ctx.bindCapability('store.query', '1.0');
@@ -264,6 +345,9 @@ export function activate(ctx) {
   const blobWrite = ctx.bindCapability('blob.write', '1.0');
   // Bind store.eraseSubject@1.0 — cross-bundle DPDP cascade (O490).
   const storeEraseSubject = ctx.bindCapability('store.eraseSubject', '1.0');
+  // Bind cross-bundle Schedule caps for migration (ADR-509 §3; host→host sanctioned).
+  const scheduleCalendarQuery = ctx.bindCapability('schedule.calendar.query', '1.0');
+  const scheduleCalendar      = ctx.bindCapability('schedule.calendar', '1.0');
 
   // ── record.patient.query (read cap, rung D1) ───────────────────────────────
 
@@ -406,54 +490,7 @@ export function activate(ctx) {
         const email = input.email != null ? normalizeEmail(input.email) : null;
         const phone = input.phone != null ? normalizePhone(input.phone) : null;
         const name = input.name != null ? String(input.name).trim().toLowerCase() : null;
-
-        if (!email && !phone && !name) {
-          return { outcome: 'none' };
-        }
-
-        // Suppression check — hashed, no audit tag (identifiers are PHI).
-        for (const [kind, val] of [['email', email], ['phone', phone]]) {
-          if (val == null) continue;
-          const h = await sha256hex(kind + ':' + val);
-          const suppRows = await storeQuery.call('run', ['patient.suppressionCheck', { hash: h }]);
-          if (suppRows.length > 0) {
-            return { outcome: 'suppressed' };
-          }
-        }
-
-        // Strong-id match. Attach audit tag to the first executed lookup only.
-        const ids = new Set();
-        let firstLookupDone = false;
-
-        if (email) {
-          const auditTag = { event: 'record.patient.participant.resolved', recordType: 'patients' };
-          const emailRows = await storeQuery.call('run', ['patient.resolveByEmail', { email }, auditTag]);
-          firstLookupDone = true;
-          emailRows.forEach((r) => ids.add(r.id));
-        }
-        if (phone) {
-          const phoneArgs = firstLookupDone
-            ? ['patient.resolveByPhone', { phone }]
-            : ['patient.resolveByPhone', { phone }, { event: 'record.patient.participant.resolved', recordType: 'patients' }];
-          const phoneRows = await storeQuery.call('run', phoneArgs);
-          firstLookupDone = true;
-          phoneRows.forEach((r) => ids.add(r.id));
-        }
-
-        if (ids.size === 1) return { outcome: 'match', clientId: [...ids][0] };
-        if (ids.size > 1) return { outcome: 'candidates', candidates: [...ids] };
-
-        // Name fallback.
-        if (name) {
-          const nameArgs = firstLookupDone
-            ? ['patient.resolveByName', { name }]
-            : ['patient.resolveByName', { name }, { event: 'record.patient.participant.resolved', recordType: 'patients' }];
-          const nameRows = await storeQuery.call('run', nameArgs);
-          const cand = [...new Set(nameRows.map((r) => r.id))];
-          if (cand.length > 0) return { outcome: 'candidates', candidates: cand };
-        }
-
-        return { outcome: 'none' };
+        return resolveParticipantCore(storeQuery, { email, phone, name }, { audit: true });
       }
 
       case 'getAliases': {
@@ -1557,11 +1594,220 @@ export function activate(ctx) {
     }
   });
 
+  // ── record.migration.query (read cap, ADR-509) ────────────────────────────────
+  // Pages over the transient candidate set cached by record.migration.run.
+  // Pure derive — no writes.
+
+  ctx.registerCapability('record.migration.query', '1.0', async (method, args) => {
+    switch (method) {
+
+      case 'listIncoming': {
+        // listIncoming(calendarId, { limit, offset }) → { candidates, total }
+        // Returns paged view of the transient cache built by the last run().
+        // If no cache entry exists, returns empty (caller should run() first).
+        const calendarId = args[0];
+        const opts = args[1] || {};
+        if (typeof calendarId !== 'string' || calendarId.length === 0) {
+          throw new Error('record.migration.query.listIncoming: calendarId must be a non-empty string');
+        }
+        const limit  = typeof opts.limit  === 'number' && opts.limit  > 0 ? opts.limit  : 50;
+        const offset = typeof opts.offset === 'number' && opts.offset >= 0 ? opts.offset : 0;
+
+        const cached = _migrationCache.get(calendarId);
+        if (!cached) {
+          return { candidates: [], total: 0, cached: false };
+        }
+
+        const total = cached.candidates.length;
+        const page  = cached.candidates.slice(offset, offset + limit);
+        return {
+          candidates: page,
+          total,
+          cached: true,
+          windowFrom: cached.windowFrom,
+          windowTo:   cached.windowTo,
+        };
+      }
+
+      default:
+        throw Object.assign(
+          new Error('record.migration.query: unknown method ' + method),
+          { code: 'cap.method_not_found' },
+        );
+    }
+  });
+
+  // ── record.migration (command cap, ADR-509) ────────────────────────────────────
+  // Runs the scan, caches the transient candidate set, writes the PHI-free ledger
+  // via Schedule cap, returns { runId, count, candidates }.
+
+  ctx.registerCapability('record.migration', '1.0', async (method, args) => {
+    switch (method) {
+
+      case 'run': {
+        // run(calendarId) → Promise<{ runId, count, candidates }>
+        // Scans the event window, resolves each distinct participant once locally,
+        // keeps outcomes 'none' and 'candidates', caches in _migrationCache,
+        // writes PHI-free ledger to Schedule. kind = 'initial' (Slice 1).
+        const calendarId = args[0];
+        if (typeof calendarId !== 'string' || calendarId.length === 0) {
+          throw new Error('record.migration.run: calendarId must be a non-empty string');
+        }
+
+        // Window bounds: now − 3mo to now + 365d (mirroring syncEvents timeMin/timeMax constants).
+        const now         = Date.now();
+        const windowFrom  = now - 90 * 24 * 60 * 60 * 1000;   // 3 months back
+        const windowTo    = now + 365 * 24 * 60 * 60 * 1000;  // 1 year forward
+        const windowFromISO = new Date(windowFrom).toISOString();
+        const windowToISO   = new Date(windowTo).toISOString();
+        const startedAt   = now;
+
+        // Fetch events for the window via cross-bundle query cap (ALL added calendars
+        // query; Practice scopes to this calendar by filtering on calendarId).
+        // Internal cap calls use ARRAY-wrapped args.
+        const allEvents = await scheduleCalendarQuery.call('listWindowEvents', [windowFromISO, windowToISO]);
+
+        // Filter to the requested calendar only (listWindowEvents returns all added cals).
+        const events = allEvents.filter((ev) => ev.calendarId === calendarId);
+
+        // ── Bounded-memory scan: dedup participants into Map ───────────────────
+        // participantKey = 'email:<normalized>' | 'phone:<normalized>' | 'name:<normalized>'
+        // Priority: email > phone > name (mirrors Sessions sync extraction parity).
+        // Self (organizer.self=true) excluded — same as Sessions sync logic.
+
+        /** @type {Map<string, { seedName: string|null, seedEmail: string|null, seedPhone: string|null, eventRefs: string[] }>} */
+        const participantMap = new Map();
+
+        for (const ev of events) {
+          // Collect participants from attendees (excluding self) + organizer (if not self).
+          const participants = [];
+
+          if (Array.isArray(ev.attendees)) {
+            for (const att of ev.attendees) {
+              if (att.self) continue; // exclude self
+              participants.push({ email: att.email || null, name: att.displayName || att.name || null, phone: null });
+            }
+          }
+
+          if (ev.organizer && !ev.organizer.self) {
+            participants.push({ email: ev.organizer.email || null, name: ev.organizer.name || null, phone: null });
+          }
+
+          for (const p of participants) {
+            const emailNorm = p.email ? normalizeEmail(p.email) : null;
+            const phoneNorm = p.phone ? normalizePhone(p.phone) : null;
+            const nameNorm  = p.name  ? String(p.name).trim().toLowerCase() : null;
+
+            // Derive participantKey — highest-fidelity identifier wins.
+            let key = null;
+            if (emailNorm) {
+              key = 'email:' + emailNorm;
+            } else if (phoneNorm) {
+              key = 'phone:' + phoneNorm;
+            } else if (nameNorm) {
+              key = 'name:' + nameNorm;
+            }
+            if (!key) continue; // no usable identity signal — skip
+
+            if (!participantMap.has(key)) {
+              participantMap.set(key, {
+                seedName:  p.name || null,
+                seedEmail: p.email || null,
+                seedPhone: p.phone || null,
+                eventRefs: [],
+              });
+            }
+            const entry = participantMap.get(key);
+            // eventRefs = provider event IDs (PHI-adjacent — used for linking in later slices).
+            if (ev.id && !entry.eventRefs.includes(ev.id)) {
+              entry.eventRefs.push(ev.id);
+            }
+          }
+        }
+
+        // ── Resolve each distinct participant ONCE via local Practice resolver ─
+        // Outcomes 'none' and 'candidates' = unmatched = incoming candidates.
+        // 'match' and 'suppressed' are dropped (already known or excluded).
+        /** @type {Array<{ participantKey: string, seedName: string|null, seedEmail: string|null, seedPhone: string|null, eventRefs: string[], outcome: 'none'|'candidates', candidates?: string[] }>} */
+        const candidates = [];
+
+        for (const [participantKey, entry] of participantMap) {
+          // Build resolveParticipant input from the participantKey type.
+          const resolveInput = {};
+          if (entry.seedEmail) resolveInput.email = entry.seedEmail;
+          if (entry.seedPhone) resolveInput.phone = entry.seedPhone;
+          if (entry.seedName)  resolveInput.name  = entry.seedName;
+
+          // Call shared resolver (no cross-bundle hop, no audit tags — migration scan).
+          const email = resolveInput.email != null ? normalizeEmail(resolveInput.email) : null;
+          const phone = resolveInput.phone != null ? normalizePhone(resolveInput.phone) : null;
+          const name  = resolveInput.name  != null ? String(resolveInput.name).trim().toLowerCase() : null;
+          let resolveResult;
+          try {
+            resolveResult = await resolveParticipantCore(storeQuery, { email, phone, name });
+          } catch (_err) {
+            // Resolve failure — treat as 'none' (conservative; participant stays in candidates).
+            resolveResult = { outcome: 'none' };
+          }
+
+          // Keep only unmatched participants (none + candidates).
+          if (resolveResult.outcome === 'none' || resolveResult.outcome === 'candidates') {
+            candidates.push({
+              participantKey,
+              seedName:  entry.seedName,
+              seedEmail: entry.seedEmail,
+              seedPhone: entry.seedPhone,
+              eventRefs: entry.eventRefs,
+              outcome:   resolveResult.outcome,
+              ...(resolveResult.outcome === 'candidates' ? { candidates: resolveResult.candidates } : {}),
+            });
+          }
+          // 'match' and 'suppressed' dropped — already known or excluded.
+        }
+
+        // ── Cache transient candidate set ──────────────────────────────────────
+        _migrationCache.set(calendarId, { candidates, windowFrom, windowTo });
+
+        const completedAt      = Date.now();
+        const identitiesFound  = candidates.length;
+        const eventsScanned    = events.length;
+
+        // OI-6 crude mode: 'complete' if zero unmatched, else 'in_progress'.
+        const runStatus = identitiesFound === 0 ? 'complete' : 'in_progress';
+
+        // ── Write ledger row + flip calendar state via Schedule cap ───────────
+        // Practice must NOT write calendar/calendar_migration_run directly (sole-writer rule).
+        // Internal Schedule cap call is ARRAY-wrapped (index.mjs convention).
+        const { runId } = await scheduleCalendar.call('recordMigrationRun', [{
+          calendarId,
+          kind:             'initial',
+          startedAt,
+          completedAt,
+          windowFrom,
+          windowTo,
+          eventsScanned,
+          identitiesFound,
+          status:           runStatus,
+        }]);
+
+        return { runId, count: identitiesFound, candidates };
+      }
+
+      default:
+        throw Object.assign(
+          new Error('record.migration: unknown method ' + method),
+          { code: 'cap.method_not_found' },
+        );
+    }
+  });
+
   return {
     dispose() {
       storeQuery.dispose();
       storeWrite.dispose();
       blobWrite.dispose();
+      scheduleCalendarQuery.dispose();
+      scheduleCalendar.dispose();
     },
   };
 }
