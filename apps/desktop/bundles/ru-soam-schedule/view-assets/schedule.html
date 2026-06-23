@@ -2022,6 +2022,14 @@
           return e ? s + '–' + e : s;
         }
 
+        /* Return chip/card main label: client name for client_session, raw title otherwise. */
+        function eventDisplayTitle(ev) {
+          if (ev.classification === 'client_session' && ev._clientLabel) {
+            return ev._clientLabel;
+          }
+          return ev.title || '(No title)';
+        }
+
         function makeEventCard(ev) {
           var isAllDay = ev.allDay || !ev.start || ev.start.length <= 10;
           var card = el('div', 'event-card' + (ev.id === selectedId ? ' is-selected' : ''));
@@ -2042,7 +2050,7 @@
 
           /* Middle: title + modality */
           var body = el('div', 'event-body');
-          body.appendChild(txt('div', 'event-title', ev.title || '(No title)'));
+          body.appendChild(txt('div', 'event-title', eventDisplayTitle(ev)));
           var subline = modalitySubline(ev);
           if (subline) body.appendChild(txt('div', 'event-modality', subline));
           card.appendChild(body);
@@ -2236,17 +2244,17 @@
                 // data and may contain < or &); icon span built separately.
                 var tSpan = document.createElement('span');
                 tSpan.style.verticalAlign = 'middle';
-                tSpan.textContent = ev.title || '(No title)';
+                tSpan.textContent = eventDisplayTitle(ev);
                 var iSpan = document.createElement('span');
                 iSpan.style.cssText = 'vertical-align:middle;margin-left:4px;opacity:0.65';
                 iSpan.innerHTML = modalityIconHtml; // our own generated SVG
                 titleEl.appendChild(tSpan);
                 titleEl.appendChild(iSpan);
               } else {
-                titleEl.textContent = ev.title || '(No title)';
+                titleEl.textContent = eventDisplayTitle(ev);
               }
             } else {
-              titleEl.textContent = ev.title || '(No title)';
+              titleEl.textContent = eventDisplayTitle(ev);
             }
             block.appendChild(timeEl);
             block.appendChild(titleEl);
@@ -2255,8 +2263,9 @@
             var clsBadge = txt('div', 'tg-event-cls-badge ' + classClass(ev), classLabel(ev));
             block.appendChild(clsBadge);
 
-            /* Participant subline: prefer organiser name, else first non-self attendee; only on non-tiny */
-            if (hPx >= 30 && ev.attendees && ev.attendees.length > 0) {
+            /* Participant subline: prefer organiser name, else first non-self attendee; only on non-tiny.
+             * Suppressed for client_session — client name is already the chip main label. */
+            if (hPx >= 30 && ev.classification !== 'client_session' && ev.attendees && ev.attendees.length > 0) {
               var nonSelf = ev.attendees.filter(function (a) {
                 return !a.self;
               });
@@ -2358,7 +2367,7 @@
                 var pill = txt(
                   'div',
                   'tg-allday-pill ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : ''),
-                  ev.title || '(No title)',
+                  eventDisplayTitle(ev),
                 );
                 pill.dataset.evId = ev.id;
                 /* Calendar-color: thick left border + low-alpha background tint. */
@@ -2510,7 +2519,7 @@
               var pill = txt(
                 'div',
                 'month-event-pill ' + classClass(ev) + (ev.id === selectedId ? ' is-selected' : ''),
-                ev.title || '(No title)',
+                eventDisplayTitle(ev),
               );
               pill.dataset.evId = ev.id;
               /* Calendar-color: dot (::before via --cal-color) + low-alpha background tint. */
@@ -2742,24 +2751,20 @@
                   return Promise.resolve({ ev: ev, cls: 'personal' });
                 }
 
-                /* Resolve participants sequentially; short-circuit on first match. */
-                /* Precedence: match > suppressed > none (candidates maps to unclassified
-                 * for grid display but still captures enrichment for aux event-detail). */
+                /* Resolve participants sequentially — collect ALL matched clientIds
+                 * (no short-circuit on match) so multi-client events get all names.
+                 * Precedence for grid class still: match > suppressed > unclassified. */
                 var PREC = {
                   client_session: 2,
                   not_client_session: 1,
                   unclassified: 0,
                 };
-                /* _bestMatch carries enrichment data for the winning classification.
-                 * For candidates outcome: class = unclassified but _match.candidates preserved
-                 * so aux event-detail can still offer candidate-resolution actions. */
+                /* _bestMatch carries enrichment data for aux event-detail.
+                 * _matchedClientIds collects every resolver-matched clientId (for name label). */
                 var _bestMatch = null;
+                var _matchedClientIds = []; // all matched clientIds for this event
 
                 function resolveNext(idx, best) {
-                  if (best === 'client_session') {
-                    /* Highest precedence — short-circuit. */
-                    return Promise.resolve({ ev: ev, cls: 'client_session' });
-                  }
                   if (idx >= participants.length) {
                     return Promise.resolve({ ev: ev, cls: best });
                   }
@@ -2775,11 +2780,14 @@
                       if (outcome === 'match') cls = 'client_session';
                       else if (outcome === 'suppressed') cls = 'not_client_session';
                       else cls = 'unclassified'; // candidates + none both map to unclassified grid class
-                      /* Capture match enrichment. A non-match outcome (suppressed/none) may
-                       * raise the grid class via PREC, but must NOT clear an already-captured
-                       * candidates enrichment — so we only ever SET _bestMatch on match here,
-                       * never null it. (_bestMatch starts null; match overrides candidates via
-                       * the candidates guard below.) */
+                      /* Collect every matched clientId for name resolution (requirement #1). */
+                      if (outcome === 'match' && result.clientId) {
+                        /* Only collect unique ids. */
+                        if (_matchedClientIds.indexOf(result.clientId) === -1) {
+                          _matchedClientIds.push(result.clientId);
+                        }
+                      }
+                      /* Capture match enrichment for _match (first match wins; PREC guard). */
                       if (PREC[cls] > PREC[best] && outcome === 'match' && result.clientId) {
                         _bestMatch = { matchClientId: result.clientId, source: 'resolver' };
                       }
@@ -2803,19 +2811,94 @@
                   if (_bestMatch !== null) {
                     r.ev._match = _bestMatch;
                   }
+                  /* Store all matched ids for name-label resolution pass below. */
+                  r._matchedClientIds = _matchedClientIds;
                   return r;
                 });
               });
 
-              /* Wait for all events to classify, then repaint + publish counts. */
+              /* Wait for all events to classify, then resolve client names + repaint. */
               Promise.all(classifyPromises)
                 .then(function (results) {
                   if (classifySeq !== _loadSeq) return; // stale guard
                   results.forEach(function (r) {
                     r.ev.classification = r.cls;
                   });
-                  renderCalArea();
-                  publishCounts(); // final publish — classifications fully resolved
+
+                  /* Name-resolution pass: for each client_session event, fetch names
+                   * for all matched clientIds, format "Family, G.", sort alpha, pick first.
+                   * Cache per-pass so a client on many events is fetched once. */
+                  var nameCache = {}; // clientId → Promise<formattedName>
+
+                  function formatClientName(rec) {
+                    /* rec has givenName (always) + familyName (may be null/empty). */
+                    var given = (rec && rec.givenName) ? String(rec.givenName).trim() : '';
+                    var family = (rec && rec.familyName) ? String(rec.familyName).trim() : '';
+                    if (family && given) return family + ', ' + given.charAt(0) + '.';
+                    if (family) return family;
+                    return given || '(Unknown)';
+                  }
+
+                  function fetchClientName(clientId) {
+                    if (!nameCache[clientId]) {
+                      nameCache[clientId] = recordQuery
+                        .call('get', clientId)
+                        .then(function (rec) { return formatClientName(rec); })
+                        .catch(function () { return null; });
+                    }
+                    return nameCache[clientId];
+                  }
+
+                  /* Collect client_session events with resolver-matched ids.
+                   * Linked events have a single known matchClientId from _match;
+                   * resolver events collected _matchedClientIds above. */
+                  var labelPromises = results.map(function (r) {
+                    if (r.ev.classification !== 'client_session') return Promise.resolve();
+
+                    /* Build the full list of clientIds to look up. */
+                    var ids = [];
+                    /* Linked row path: use matchClientId from _match. */
+                    if (r.ev._match && r.ev._match.matchClientId) {
+                      ids.push(r.ev._match.matchClientId);
+                    }
+                    /* Resolver path: collected during resolveNext. */
+                    if (r._matchedClientIds) {
+                      r._matchedClientIds.forEach(function (id) {
+                        if (ids.indexOf(id) === -1) ids.push(id);
+                      });
+                    }
+                    if (ids.length === 0) return Promise.resolve();
+
+                    return Promise.all(ids.map(function (id) {
+                      return fetchClientName(id).then(function (name) {
+                        return { id: id, name: name };
+                      });
+                    })).then(function (entries) {
+                      /* Filter out failed lookups, sort alphabetically, pick first. */
+                      var valid = entries.filter(function (e) { return e.name; });
+                      valid.sort(function (a, b) {
+                        return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+                      });
+                      if (valid.length > 0) {
+                        r.ev._clientLabel = valid[0].name;
+                        /* Keep _match.matchClientId pointing to alphabetically-first client. */
+                        if (r.ev._match) {
+                          r.ev._match.matchClientId = valid[0].id;
+                        }
+                        /* Store full list for caller inspection. */
+                        r.ev._match = r.ev._match || {};
+                        r.ev._match.matchClientIds = valid.map(function (e) { return e.id; });
+                      }
+                    });
+                  });
+
+                  Promise.all(labelPromises)
+                    .catch(function () { /* non-fatal; labels just stay absent */ })
+                    .then(function () {
+                      if (classifySeq !== _loadSeq) return; // stale guard
+                      renderCalArea();
+                      publishCounts(); // final publish — classifications fully resolved
+                    });
                 })
                 .catch(function () {
                   /* If bulk Promise.all fails somehow, leave unclassified — already painted. */

@@ -660,6 +660,9 @@ export function activate(ctx) {
         let totalErrors    = 0;
         const disconnectedAccounts = [];
         const now = Date.now();
+        // Cache People API name maps per account for this sync run (one fetch per account,
+        // not per calendar). Keyed by external_account_id. Populated lazily inside the loop.
+        const nameMapsCache = {};
 
         for (const cal of calRows) {
           // Fetch account row for this calendar.
@@ -674,6 +677,15 @@ export function activate(ctx) {
           } catch {
             continue; // unknown adapter — skip
           }
+
+          // Pre-fetch People API name map once per account per sync run (best-effort).
+          if (!(acct.external_account_id in nameMapsCache)) {
+            nameMapsCache[acct.external_account_id] =
+              typeof a.getContactNameMap === 'function'
+                ? await a.getContactNameMap(acct.external_account_id)
+                : {};
+          }
+          const accountNameMap = nameMapsCache[acct.external_account_id];
 
           const syncWindowMin = cal.sync_window_min || 90 * 24 * 60 * 60 * 1000;
 
@@ -704,6 +716,7 @@ export function activate(ctx) {
                 timeMin:   !cal.sync_token
                   ? new Date(now - syncWindowMin).toISOString()
                   : undefined,
+                nameMap: accountNameMap,
               },
             );
             upserts       = result.upserts;
@@ -730,7 +743,7 @@ export function activate(ctx) {
                 const result2 = await a.syncEvents(
                   acct.external_account_id,
                   cal.provider_calendar_id,
-                  { timeMin: new Date(now - syncWindowMin).toISOString() },
+                  { timeMin: new Date(now - syncWindowMin).toISOString(), nameMap: accountNameMap },
                 );
                 upserts       = result2.upserts;
                 deletions     = result2.deletions;

@@ -23,12 +23,113 @@ export const GOOGLE_DESCRIPTOR = {
   authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
   tokenUrl: 'https://oauth2.googleapis.com/token',
   revokeUrl: 'https://oauth2.googleapis.com/revoke',
-  scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+  scopes: [
+    'https://www.googleapis.com/auth/calendar.readonly',
+    'https://www.googleapis.com/auth/contacts.readonly',
+    'https://www.googleapis.com/auth/contacts.other.readonly',
+  ],
 };
 
-const GCAL_API_BASE = 'https://www.googleapis.com/calendar/v3';
+const GCAL_API_BASE   = 'https://www.googleapis.com/calendar/v3';
+const PEOPLE_API_BASE = 'https://people.googleapis.com/v1';
 
 // ── Shared event mapper (extract for reuse between listEvents and listEventsForCalendars) ──
+
+/**
+ * Fetch a map of { lowercasedEmail → displayName } from the People API for a single account.
+ *
+ * Queries two endpoints (both paginated):
+ *   - /people/me/connections   (your contacts)
+ *   - /otherContacts           (people you've corresponded with)
+ *
+ * Best-effort: any non-2xx response or thrown error is swallowed and logged once.
+ * Connections win over otherContacts on email collision.
+ * Returns {} if both endpoints fail.
+ *
+ * @param {object} netFetch          - Bound net.brokeredFetch@1.0 capability handle
+ * @param {string} provider          - Provider string for the broker ('google-calendar')
+ * @param {string} externalAccountId - Google account id (broker key)
+ * @returns {Promise<Record<string, string>>}
+ */
+async function fetchContactNameMap(netFetch, provider, externalAccountId) {
+  const nameMap = {};
+
+  /**
+   * Fetch all pages of a People API endpoint, merge results into nameMap.
+   * @param {string} endpoint      - Full URL base (without pageToken)
+   * @param {string} fieldParam    - 'personFields' or 'readMask' query param name
+   * @param {string} fieldValue    - Value for that param ('names,emailAddresses')
+   * @param {boolean} winOnConflict - If true, this source overwrites existing map entries
+   */
+  async function fetchPeopleEndpoint(endpoint, fieldParam, fieldValue, winOnConflict) {
+    let pageToken = null;
+    do {
+      const params = new URLSearchParams({ [fieldParam]: fieldValue, pageSize: '1000' });
+      if (pageToken) params.set('pageToken', pageToken);
+
+      let resp;
+      try {
+        resp = await netFetch.call('fetch', [
+          {
+            provider,
+            accountId: externalAccountId,
+            url: `${endpoint}?${params}`,
+            method: 'GET',
+          },
+        ]);
+      } catch (err) {
+        console.warn('[schedule] People API fetch error:', endpoint, err && err.message);
+        return; // best-effort: abort this endpoint, keep whatever map we have
+      }
+
+      if (!resp.ok) {
+        // 403 = new scope not yet granted (account predates new scopes); tolerate silently.
+        console.warn('[schedule] People API non-2xx:', endpoint, resp.status);
+        return;
+      }
+
+      const data = resp.body;
+      const connections = (data && data.connections) || (data && data.otherContacts) || [];
+      for (const person of connections) {
+        const names  = person.names;
+        const emails = person.emailAddresses;
+        if (!names || names.length === 0 || !emails || emails.length === 0) continue;
+        const displayName = names[0].displayName;
+        if (!displayName) continue;
+        for (const emailEntry of emails) {
+          if (!emailEntry.value) continue;
+          const key = emailEntry.value.toLowerCase();
+          if (winOnConflict || !(key in nameMap)) {
+            nameMap[key] = displayName;
+          }
+        }
+      }
+
+      pageToken = (data && data.nextPageToken) || null;
+    } while (pageToken);
+  }
+
+  // otherContacts first (lower priority), then connections (win on conflict).
+  try {
+    await fetchPeopleEndpoint(
+      `${PEOPLE_API_BASE}/otherContacts`,
+      'readMask',
+      'names,emailAddresses',
+      false,
+    );
+    await fetchPeopleEndpoint(
+      `${PEOPLE_API_BASE}/people/me/connections`,
+      'personFields',
+      'names,emailAddresses',
+      true,
+    );
+  } catch (_err) {
+    // Outer safety net — People API must never break calendar sync.
+    console.warn('[schedule] fetchContactNameMap unexpected error:', _err && _err.message);
+  }
+
+  return nameMap;
+}
 
 /**
  * Returns true if the organizer email is a Google Calendar resource address
@@ -49,8 +150,12 @@ function isResourceOrganizer(email) {
  * @param {string} calendarId         - Provider-level calendar id (passed through; remapped to
  *                                      local handle by the caller for account-aware fetches)
  * @param {string} calendarName       - Display name of the calendar (for old compat field)
+ * @param {Record<string, string>} [nameMap] - Optional email→displayName map from People API.
+ *                                      Used to fill missing displayName fields. Never overrides
+ *                                      a real displayName returned by the Calendar API.
  */
-function mapEvent(item, calendarId, calendarName) {
+function mapEvent(item, calendarId, calendarName, nameMap) {
+  const _nameMap = nameMap || {};
   const startRaw = (item.start && (item.start.dateTime || item.start.date)) || '';
   const endRaw   = (item.end   && (item.end.dateTime   || item.end.date))   || '';
   const allDay   = !(item.start && item.start.dateTime);
@@ -76,9 +181,14 @@ function mapEvent(item, calendarId, calendarName) {
     // Resource organizer fix: secondary/holiday calendars use a resource email
     // (e.g. <hash>@group.calendar.google.com, en.indian#holiday@group.v.calendar.google.com).
     // Replace with the calendar's human name; drop the resource email so UI never shows a hash.
+    // Resource fix takes priority over People API name lookup.
     if (organizer.email && isResourceOrganizer(organizer.email)) {
       organizer.name = calendarName;
       delete organizer.email;
+    } else if (organizer.email && !organizer.name) {
+      // No displayName from Calendar API — try People API map.
+      const mapped = _nameMap[organizer.email.toLowerCase()];
+      if (mapped) organizer.name = mapped;
     }
   }
 
@@ -92,6 +202,11 @@ function mapEvent(item, calendarId, calendarName) {
       if (a.responseStatus !== undefined) att.responseStatus = a.responseStatus;
       if (a.organizer      !== undefined) att.organizer      = a.organizer;
       if (a.self           !== undefined) att.self           = a.self;
+      // People API enrichment: fill name if Calendar API gave no displayName.
+      if (!att.name && att.email) {
+        const mapped = _nameMap[att.email.toLowerCase()];
+        if (mapped) att.name = mapped;
+      }
       return att;
     });
   }
@@ -197,6 +312,9 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
       );
     }
 
+    // Fetch contact name map once for this call; best-effort (never throws).
+    const nameMap = await fetchContactNameMap(netFetch, provider, externalAccountId);
+
     const params = new URLSearchParams({
       timeMin: new Date(from).toISOString(),
       timeMax: new Date(to).toISOString(),
@@ -232,7 +350,7 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
         const items = data && data.items ? data.items : [];
         for (const item of items) {
           // calendarId = provider-level id; caller remaps to local handle + attaches color.
-          results.push(mapEvent(item, providerCalendarId, calendarName));
+          results.push(mapEvent(item, providerCalendarId, calendarName, nameMap));
         }
       } catch (_err) {
         // Tolerate single calendar failure.
@@ -263,10 +381,25 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
    * @returns {Promise<{ upserts: object[], deletions: string[], nextSyncToken: string }>}
    *   Full sync: `timeMax` is auto-set to now+365d; incremental unchanged.
    */
+  /**
+   * Fetch the People API contact name map for an account.
+   * Exposed so callers iterating multiple calendars for the same account can
+   * pre-fetch once and pass it into each syncEvents call via opts.nameMap.
+   * Best-effort — never throws.
+   */
+  async function getContactNameMap(externalAccountId) {
+    return fetchContactNameMap(netFetch, provider, externalAccountId);
+  }
+
   async function syncEvents(externalAccountId, providerCalendarId, opts) {
     opts = opts || {};
     const syncToken = opts.syncToken || null;
     const timeMin   = opts.timeMin   || null;
+
+    // Use caller-supplied nameMap if provided (callers iterating multiple calendars
+    // for the same account should pre-fetch once via getContactNameMap and pass it in).
+    // Fallback: fetch here (single-calendar usage or when nameMap not supplied).
+    const nameMap = opts.nameMap || await fetchContactNameMap(netFetch, provider, externalAccountId);
 
     const upserts   = [];
     const deletions = [];
@@ -349,7 +482,7 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
           if (item.id) deletions.push(item.id);
         } else {
           // Active event — map and collect.
-          upserts.push(mapEvent(item, providerCalendarId, calendarName));
+          upserts.push(mapEvent(item, providerCalendarId, calendarName, nameMap));
         }
       }
 
@@ -372,5 +505,7 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
     listEventsForCalendars,
     // Slice 6: event cache sync
     syncEvents,
+    // People API name enrichment
+    getContactNameMap,
   };
 }
