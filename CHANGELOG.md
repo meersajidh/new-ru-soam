@@ -7,6 +7,22 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-06-24
+
+### Added
+
+- Migrate existing clients from a calendar: when you add a calendar — or later via the calendar's "Re-run migration" right-click — review everyone on it and add them as clients in bulk, with multi-select and the option to link someone to a client you already have.
+- Calendar appointments now show the client's name on the event chip (across Day, Week, Month, and Agenda) instead of the raw calendar title.
+- Attendee and organiser names now resolve from your Google contacts, so events show real names instead of email addresses. (Reconnect a calendar account once to grant the new contacts permission.)
+
+### Changed
+
+- Schedule event details: a participant you previously marked "not a client" can now be added as a client directly (which also un-excludes them).
+
+### Removed
+
+- Removed the "Needs Linking" panel — its triage now lives in the event details panel and the new migration flow.
+
 ## [0.1.8] - 2026-06-23
 
 ### Fixed
