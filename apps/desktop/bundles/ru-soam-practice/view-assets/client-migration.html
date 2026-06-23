@@ -10,6 +10,7 @@
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
+      input  { font: inherit; color: inherit; }
 
       /* ── Design tokens (injected via postMessage; fallbacks for cold load) ── */
       :root {
@@ -122,6 +123,25 @@
       .toolbar-status.done     { color: var(--color-fg-muted); }
       .toolbar-status.error    { color: var(--color-error); }
 
+      /* Select-all checkbox */
+      .toolbar-select-all {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        cursor: pointer;
+        flex-shrink: 0;
+        user-select: none;
+      }
+      .toolbar-select-all input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        accent-color: var(--color-accent);
+        cursor: pointer;
+      }
+      .toolbar-select-all.hidden { display: none; }
+
       .btn-refresh {
         display: inline-flex;
         align-items: center;
@@ -141,6 +161,82 @@
         border-color: color-mix(in srgb, var(--color-fg-muted) 50%, transparent);
       }
       .btn-refresh:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      /* ── Batch action bar ─────────────────────────────────────────────────── */
+      #batch-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 20px;
+        background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface-panel));
+        border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 20%, var(--color-border));
+        flex-shrink: 0;
+      }
+      #batch-bar.hidden { display: none; }
+
+      .batch-count {
+        flex: 1;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--color-fg-secondary);
+      }
+
+      .batch-progress {
+        font-size: 11.5px;
+        color: var(--color-fg-muted);
+        flex: 1;
+        display: none;
+      }
+      .batch-progress.visible { display: block; }
+
+      .btn-batch-promote {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 500;
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+        border: none;
+        transition: background 100ms ease, opacity 100ms ease;
+        white-space: nowrap;
+      }
+      .btn-batch-promote:hover:not(:disabled) { background: var(--color-accent-hover); }
+      .btn-batch-promote:active:not(:disabled) { background: var(--color-accent-pressed); }
+      .btn-batch-promote:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      .btn-batch-exclude {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        border: 1px solid var(--color-border);
+        background: transparent;
+        transition: color 100ms ease, background 100ms ease, border-color 100ms ease;
+        white-space: nowrap;
+      }
+      .btn-batch-exclude:hover:not(:disabled) {
+        color: var(--color-error);
+        border-color: color-mix(in srgb, var(--color-error) 40%, transparent);
+        background: color-mix(in srgb, var(--color-error) 7%, transparent);
+      }
+      .btn-batch-exclude:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      .btn-batch-clear {
+        padding: 5px 10px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        background: transparent;
+        transition: color 100ms ease;
+      }
+      .btn-batch-clear:hover:not(:disabled) { color: var(--color-fg-secondary); }
+      .btn-batch-clear:disabled { opacity: 0.45; cursor: not-allowed; }
 
       /* ── Candidate list ───────────────────────────────────────────────────── */
       #list-area {
@@ -164,7 +260,7 @@
       .candidate-card {
         display: flex;
         align-items: flex-start;
-        gap: 12px;
+        gap: 10px;
         padding: 11px 20px;
         border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
         transition: background 100ms ease;
@@ -173,6 +269,26 @@
       .candidate-card:last-child  { border-bottom: none; }
       .candidate-card:hover {
         background: color-mix(in srgb, var(--color-fg-muted) 4%, transparent);
+      }
+      .candidate-card.is-selected {
+        background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+      }
+      .candidate-card.is-selected:hover {
+        background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+      }
+
+      /* Card checkbox */
+      .card-checkbox-wrap {
+        display: flex;
+        align-items: center;
+        padding-top: 9px;
+        flex-shrink: 0;
+      }
+      .card-checkbox {
+        width: 14px;
+        height: 14px;
+        accent-color: var(--color-accent);
+        cursor: pointer;
       }
 
       /* Avatar initial */
@@ -190,7 +306,6 @@
         font-weight: 600;
         color: var(--color-fg-secondary);
         margin-top: 1px;
-        /* subtle per-card color variety based on first char modulo, set inline */
         user-select: none;
       }
 
@@ -246,6 +361,50 @@
         color: var(--color-fg-muted);
       }
 
+      /* ── Confirm-candidate strip ──────────────────────────────────────────── */
+      .confirm-strip {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-top: 6px;
+        padding: 6px 8px;
+        border-radius: var(--radius-sm);
+        background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface-elevated));
+        border: 1px solid color-mix(in srgb, var(--color-warning) 20%, var(--color-border));
+        flex-wrap: wrap;
+      }
+      .confirm-strip.visible { display: flex; }
+
+      .confirm-strip-label {
+        font-size: 11.5px;
+        color: var(--color-fg-secondary);
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .btn-confirm-match {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        border-radius: var(--radius-sm);
+        font-size: 11.5px;
+        font-weight: 500;
+        background: color-mix(in srgb, var(--color-warning) 15%, var(--color-surface-elevated));
+        color: var(--color-warning);
+        border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
+        transition: background 100ms ease;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .btn-confirm-match:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--color-warning) 22%, var(--color-surface-elevated));
+      }
+      .btn-confirm-match:disabled { opacity: 0.45; cursor: not-allowed; }
+
       /* ── Action buttons ───────────────────────────────────────────────────── */
       .candidate-actions {
         display: flex;
@@ -253,6 +412,8 @@
         gap: 6px;
         flex-shrink: 0;
         padding-top: 2px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
 
       .btn-promote {
@@ -272,6 +433,25 @@
       .btn-promote:hover:not(:disabled) { background: var(--color-accent-hover); }
       .btn-promote:active:not(:disabled) { background: var(--color-accent-pressed); }
       .btn-promote:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      .btn-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 11px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        color: var(--color-info);
+        border: 1px solid color-mix(in srgb, var(--color-info) 30%, transparent);
+        background: color-mix(in srgb, var(--color-info) 7%, transparent);
+        transition: background 100ms ease, border-color 100ms ease, opacity 100ms ease;
+        white-space: nowrap;
+      }
+      .btn-link:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--color-info) 13%, transparent);
+        border-color: color-mix(in srgb, var(--color-info) 45%, transparent);
+      }
+      .btn-link:disabled { opacity: 0.45; cursor: not-allowed; }
 
       .btn-exclude {
         display: inline-flex;
@@ -371,6 +551,152 @@
         flex-shrink: 0;
         vertical-align: middle;
       }
+
+      /* ── Roster picker modal ─────────────────────────────────────────────── */
+      #picker-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #picker-overlay.hidden { display: none; }
+
+      .picker-modal {
+        background: var(--color-surface-panel);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-card);
+        width: 360px;
+        max-width: calc(100vw - 40px);
+        max-height: 480px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      }
+
+      .picker-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px 10px;
+        border-bottom: 1px solid var(--color-border);
+        flex-shrink: 0;
+      }
+
+      .picker-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-fg-primary);
+      }
+
+      .picker-subtitle {
+        font-size: 11.5px;
+        color: var(--color-fg-muted);
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 280px;
+      }
+
+      .picker-close {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-sm);
+        color: var(--color-fg-muted);
+        flex-shrink: 0;
+        transition: color 100ms ease, background 100ms ease;
+      }
+      .picker-close:hover { color: var(--color-fg-secondary); background: var(--color-surface-elevated); }
+
+      .picker-search-wrap {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--color-border);
+        flex-shrink: 0;
+      }
+
+      .picker-search {
+        width: 100%;
+        padding: 5px 10px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-elevated);
+        color: var(--color-fg-primary);
+        font-size: 12.5px;
+        outline: none;
+        transition: border-color 100ms ease;
+      }
+      .picker-search:focus { border-color: var(--color-border-focus); }
+      .picker-search::placeholder { color: var(--color-fg-muted); }
+
+      .picker-list {
+        flex: 1;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 25%, transparent) transparent;
+      }
+
+      .picker-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: background 80ms ease;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+      }
+      .picker-item:last-child { border-bottom: none; }
+      .picker-item:hover { background: var(--color-surface-elevated); }
+      .picker-item:active { background: var(--color-surface-active); }
+
+      .picker-item-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 600;
+        flex-shrink: 0;
+        border: 1px solid transparent;
+      }
+
+      .picker-item-name {
+        font-size: 12.5px;
+        color: var(--color-fg-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .picker-empty {
+        padding: 24px 16px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--color-fg-muted);
+      }
+
+      .picker-status {
+        padding: 10px 16px;
+        font-size: 11.5px;
+        color: var(--color-fg-muted);
+        border-top: 1px solid var(--color-border);
+        flex-shrink: 0;
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .picker-status--error { color: var(--color-error); }
     </style>
   </head>
   <body>
@@ -388,10 +714,26 @@
       <!-- ── Toolbar ───────────────────────────────────────────────────────── -->
       <div class="toolbar">
         <span class="toolbar-status" id="toolbar-status"></span>
+        <label class="toolbar-select-all hidden" id="toolbar-select-all-wrap">
+          <input type="checkbox" id="chk-select-all" />
+          All
+        </label>
         <button id="btn-refresh" class="btn-refresh" type="button" title="Re-scan this calendar">
           <span data-codicon="refresh" data-size="13"></span>
           Refresh
         </button>
+      </div>
+
+      <!-- ── Batch action bar ──────────────────────────────────────────────── -->
+      <div id="batch-bar" class="hidden">
+        <span class="batch-count" id="batch-count"></span>
+        <span class="batch-progress hidden" id="batch-progress"></span>
+        <button id="btn-batch-promote" class="btn-batch-promote" type="button">
+          <span data-codicon="person" data-size="12"></span>
+          Add as clients
+        </button>
+        <button id="btn-batch-exclude" class="btn-batch-exclude" type="button">Exclude</button>
+        <button id="btn-batch-clear" class="btn-batch-clear" type="button">Clear</button>
       </div>
 
       <!-- ── Candidate list ────────────────────────────────────────────────── -->
@@ -399,6 +741,33 @@
         <div id="list-inner" class="list-inner"></div>
       </div>
 
+    </div>
+
+    <!-- ── Roster picker modal ──────────────────────────────────────────────── -->
+    <div id="picker-overlay" class="hidden" role="dialog" aria-modal="true" aria-label="Link to existing client">
+      <div class="picker-modal">
+        <div class="picker-header">
+          <div>
+            <div class="picker-title">Link to existing client</div>
+            <div class="picker-subtitle" id="picker-subtitle"></div>
+          </div>
+          <button type="button" class="picker-close" id="picker-close" title="Cancel">
+            <span data-codicon="close" data-size="14"></span>
+          </button>
+        </div>
+        <div class="picker-search-wrap">
+          <input
+            type="text"
+            class="picker-search"
+            id="picker-search"
+            placeholder="Search clients..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <div class="picker-list" id="picker-list"></div>
+        <div class="picker-status" id="picker-status"></div>
+      </div>
     </div>
 
     <script>
@@ -417,24 +786,50 @@
       var PAGE_SIZE = 50;
 
       /* ── Module state ────────────────────────────────────────────────────── */
-      var boot        = window.__viewBoot;
-      var queryCap    = null;  /* record.migration.query */
-      var cmdCap      = null;  /* record.migration */
-      var patientCmd  = null;  /* record.patient */
-      var schQueryCap = null;  /* schedule.calendar.query (cross-bundle view-bind) */
-      var _calendarId = null;
-      var _scanning   = false;
-      var _candidates = [];   /* transient; re-populated on each run() */
-      var _shownCount = PAGE_SIZE;
+      var boot           = window.__viewBoot;
+      var queryCap       = null;  /* record.migration.query */
+      var cmdCap         = null;  /* record.migration */
+      var patientCmd     = null;  /* record.patient (command) */
+      var patientQuery   = null;  /* record.patient.query */
+      var schQueryCap    = null;  /* schedule.calendar.query (cross-bundle view-bind) */
+      var _calendarId    = null;
+      var _scanning      = false;
+      var _candidates    = [];    /* transient; re-populated on each run() */
+      var _shownCount    = PAGE_SIZE;
+
+      /* ── Selection state ─────────────────────────────────────────────────── */
+      var _selected      = new Set();  /* Set<participantKey> */
+      var _batchRunning  = false;
+
+      /* ── Picker state ────────────────────────────────────────────────────── */
+      var _pickerCandidate    = null;  /* candidate being linked */
+      var _pickerTargetClient = null;  /* client id pre-resolved for confirm-match */
+      var _rosterCache        = null;  /* cached list() result */
 
       /* ── DOM refs ────────────────────────────────────────────────────────── */
-      var elBridgeWait   = document.getElementById('bridge-wait');
-      var elRoot         = document.getElementById('root');
-      var elHdrTitle     = document.getElementById('hdr-title');
-      var elHdrSub       = document.getElementById('hdr-sub');
-      var elToolbarStatus = document.getElementById('toolbar-status');
-      var elBtnRefresh   = document.getElementById('btn-refresh');
-      var elListInner    = document.getElementById('list-inner');
+      var elBridgeWait         = document.getElementById('bridge-wait');
+      var elRoot               = document.getElementById('root');
+      var elHdrTitle           = document.getElementById('hdr-title');
+      var elHdrSub             = document.getElementById('hdr-sub');
+      var elToolbarStatus      = document.getElementById('toolbar-status');
+      var elSelectAllWrap      = document.getElementById('toolbar-select-all-wrap');
+      var elChkSelectAll       = document.getElementById('chk-select-all');
+      var elBtnRefresh         = document.getElementById('btn-refresh');
+      var elBatchBar           = document.getElementById('batch-bar');
+      var elBatchCount         = document.getElementById('batch-count');
+      var elBatchProgress      = document.getElementById('batch-progress');
+      var elBtnBatchPromote    = document.getElementById('btn-batch-promote');
+      var elBtnBatchExclude    = document.getElementById('btn-batch-exclude');
+      var elBtnBatchClear      = document.getElementById('btn-batch-clear');
+      var elListInner          = document.getElementById('list-inner');
+
+      /* Picker */
+      var elPickerOverlay  = document.getElementById('picker-overlay');
+      var elPickerSubtitle = document.getElementById('picker-subtitle');
+      var elPickerClose    = document.getElementById('picker-close');
+      var elPickerSearch   = document.getElementById('picker-search');
+      var elPickerList     = document.getElementById('picker-list');
+      var elPickerStatus   = document.getElementById('picker-status');
 
       /* ── Query params ────────────────────────────────────────────────────── */
       var _params = boot.parseQuery ? boot.parseQuery(window.location.search) : (function () {
@@ -473,6 +868,59 @@
         } else {
           setStatus(n + ' unrecognised ' + (n === 1 ? 'person' : 'people') + ' found.', 'done');
         }
+        /* Show/hide select-all control */
+        if (n > 0 && !_scanning) {
+          elSelectAllWrap.classList.remove('hidden');
+        } else {
+          elSelectAllWrap.classList.add('hidden');
+        }
+      }
+
+      /* ── Selection helpers ───────────────────────────────────────────────── */
+      function getParticipantKey(candidate) {
+        /* Use participantKey if present, else derive from email/name */
+        return candidate.participantKey || (candidate.seedEmail || candidate.seedName || '');
+      }
+
+      function updateSelectionUI() {
+        /* Update batch bar */
+        var n = _selected.size;
+        if (n > 0 && !_batchRunning) {
+          elBatchBar.classList.remove('hidden');
+          elBatchCount.textContent = n + ' selected';
+          elBatchProgress.classList.remove('visible');
+        } else if (n === 0) {
+          elBatchBar.classList.add('hidden');
+        }
+
+        /* Sync select-all checkbox indeterminate/checked state */
+        var total = Math.min(_candidates.length, _shownCount);
+        if (n === 0) {
+          elChkSelectAll.checked = false;
+          elChkSelectAll.indeterminate = false;
+        } else if (n >= total) {
+          elChkSelectAll.checked = true;
+          elChkSelectAll.indeterminate = false;
+        } else {
+          elChkSelectAll.checked = false;
+          elChkSelectAll.indeterminate = true;
+        }
+      }
+
+      function clearSelection() {
+        _selected.clear();
+        /* Uncheck all visible card checkboxes */
+        var checkboxes = elListInner.querySelectorAll('.card-checkbox');
+        for (var i = 0; i < checkboxes.length; i++) {
+          checkboxes[i].checked = false;
+        }
+        var cards = elListInner.querySelectorAll('.candidate-card');
+        for (var j = 0; j < cards.length; j++) {
+          cards[j].classList.remove('is-selected');
+        }
+        elBatchBar.classList.add('hidden');
+        elChkSelectAll.checked = false;
+        elChkSelectAll.indeterminate = false;
       }
 
       /* ── Load calendar name for header ───────────────────────────────────── */
@@ -494,6 +942,88 @@
         });
       }
 
+      /* ── Roster cache ────────────────────────────────────────────────────── */
+      function getRoster() {
+        if (_rosterCache) return Promise.resolve(_rosterCache);
+        if (!patientQuery) return Promise.reject(new Error('Not ready'));
+        return patientQuery.call('list').then(function (rows) {
+          _rosterCache = rows || [];
+          return _rosterCache;
+        });
+      }
+
+      /* Invalidate roster cache after a promote (new client now in roster) */
+      function invalidateRoster() {
+        _rosterCache = null;
+      }
+
+      /* ── Core single-card actions (reused by batch) ──────────────────────── */
+
+      /**
+       * Promote a candidate to a migrated client record.
+       * Returns a Promise that resolves on success, rejects on failure.
+       */
+      function doPromote(candidate) {
+        if (!patientCmd) return Promise.reject(new Error('Not ready — try again.'));
+
+        var seedName  = candidate.seedName  || '';
+        var seedEmail = candidate.seedEmail || '';
+
+        var displaySrc = seedName || seedEmail || '';
+        var parts = displaySrc.trim().split(/\s+/);
+        var givenName  = parts[0] || seedEmail || 'Unknown';
+        var familyName = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
+
+        var createPayload = { givenName: givenName };
+        if (familyName) createPayload.familyName = familyName;
+        if (seedEmail)  createPayload.contactEmail = seedEmail;
+
+        return patientCmd.call('create', createPayload)
+          .then(function (newClient) {
+            var newId = newClient && (newClient.id || newClient.patient_id || newClient.patientId);
+            if (!newId) throw new Error('create returned no id');
+            return patientCmd.call('setStage', newId, 'migrated', 'migration');
+          })
+          .then(function () {
+            invalidateRoster();
+          });
+      }
+
+      /**
+       * Exclude a candidate via suppressParticipant.
+       * Returns a Promise.
+       */
+      function doExclude(candidate) {
+        var seedEmail = candidate.seedEmail || '';
+        if (!seedEmail) {
+          /* No email — only remove from transient list (no hash-suppress possible) */
+          return Promise.resolve();
+        }
+        if (!patientCmd) return Promise.reject(new Error('Not ready — try again.'));
+        return patientCmd.call('suppressParticipant', { email: seedEmail, calendarId: _calendarId || '' });
+      }
+
+      /**
+       * Link a candidate to an existing client by adding an alias.
+       * addAlias(clientId, { email?, phone? }) — POSITIONAL.
+       * Returns a Promise.
+       */
+      function doLink(candidate, clientId) {
+        if (!patientCmd) return Promise.reject(new Error('Not ready — try again.'));
+        var seedEmail = candidate.seedEmail || '';
+        var seedPhone = candidate.seedPhone || '';
+        if (!seedEmail && !seedPhone) {
+          return Promise.reject(new Error('No email or phone to link with.'));
+        }
+        var aliasInput = {};
+        if (seedEmail) aliasInput.email = seedEmail;
+        if (seedPhone) aliasInput.phone = seedPhone;
+        return patientCmd.call('addAlias', clientId, aliasInput)
+          .then(function () {
+            invalidateRoster();
+          });
+      }
+
       /* ── Run migration scan ──────────────────────────────────────────────── */
       function runScan() {
         if (_scanning) return;
@@ -503,6 +1033,9 @@
         _scanning = true;
         _candidates = [];
         _shownCount = PAGE_SIZE;
+        _selected.clear();
+        elBatchBar.classList.add('hidden');
+        elSelectAllWrap.classList.add('hidden');
         elBtnRefresh.disabled = true;
         setStatus('Scanning calendar...', 'scanning');
         renderList();
@@ -520,6 +1053,7 @@
             setStatus(list.length + ' unrecognised ' + (list.length === 1 ? 'person' : 'people') + ' found.', 'done');
           }
           renderList();
+          updateCount();
         }).catch(function (err) {
           _scanning = false;
           elBtnRefresh.disabled = false;
@@ -602,18 +1136,35 @@
 
       /* ── Build single candidate card ─────────────────────────────────────── */
       function buildCard(candidate, idx) {
-        /* candidate: { seedName, seedEmail, eventRefs, outcome } */
+        /* candidate: { participantKey, seedName, seedEmail, seedPhone?, eventRefs, outcome, candidates? } */
         var seedName  = candidate.seedName  || '';
         var seedEmail = candidate.seedEmail || '';
+        var seedPhone = candidate.seedPhone || '';
         var outcome   = candidate.outcome   || 'none';
         var eventRefs = candidate.eventRefs || 0;
+        var pKey      = getParticipantKey(candidate);
+
+        var hasIdentifier = !!(seedEmail || seedPhone);
+        var hasCandidates = outcome === 'candidates' && Array.isArray(candidate.candidates) && candidate.candidates.length > 0;
 
         var initial = avatarInitial(seedName, seedEmail);
         var ac      = avatarColor(initial);
 
         var card = document.createElement('div');
-        card.className = 'candidate-card';
+        card.className = 'candidate-card' + (_selected.has(pKey) ? ' is-selected' : '');
         card.setAttribute('data-idx', String(idx));
+        card.setAttribute('data-pkey', pKey);
+
+        /* ── Checkbox ──────────────────────────────────────────────────────── */
+        var chkWrap = document.createElement('div');
+        chkWrap.className = 'card-checkbox-wrap';
+        var chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.className = 'card-checkbox';
+        chk.checked = _selected.has(pKey);
+        chk.setAttribute('aria-label', 'Select ' + (seedName || seedEmail || 'this person'));
+        chkWrap.appendChild(chk);
+        card.appendChild(chkWrap);
 
         /* Avatar */
         var avatar = document.createElement('div');
@@ -648,7 +1199,7 @@
 
         /* Outcome badge */
         var badge = document.createElement('span');
-        if (outcome === 'candidates') {
+        if (hasCandidates) {
           badge.className = 'badge badge--candidates';
           badge.textContent = 'Possible match';
         } else {
@@ -667,6 +1218,56 @@
 
         body.appendChild(meta);
 
+        /* ── Confirm-candidate strip (outcome === 'candidates') ────────────── */
+        /* Rendered per candidate ID; names fetched async below */
+        var confirmStrips = [];
+        if (hasCandidates) {
+          candidate.candidates.forEach(function (clientId) {
+            var strip = document.createElement('div');
+            strip.className = 'confirm-strip';
+
+            var stripLabel = document.createElement('span');
+            stripLabel.className = 'confirm-strip-label';
+            stripLabel.textContent = 'Loading...';
+            strip.appendChild(stripLabel);
+
+            var confirmBtn = document.createElement('button');
+            confirmBtn.type = 'button';
+            confirmBtn.className = 'btn-confirm-match';
+            confirmBtn.disabled = true;
+            var confirmIcon = document.createElement('span');
+            confirmIcon.setAttribute('data-codicon', 'link');
+            confirmIcon.setAttribute('data-size', '11');
+            confirmBtn.appendChild(confirmIcon);
+            confirmBtn.appendChild(document.createTextNode('Confirm'));
+            strip.appendChild(confirmBtn);
+
+            body.appendChild(strip);
+            confirmStrips.push({ strip: strip, label: stripLabel, btn: confirmBtn, clientId: clientId });
+
+            /* Fetch display name async */
+            if (patientQuery) {
+              patientQuery.call('get', clientId).then(function (rec) {
+                strip.classList.add('visible');
+                if (rec && rec.displayName) {
+                  stripLabel.textContent = 'Possible match: ' + rec.displayName;
+                } else {
+                  stripLabel.textContent = 'Possible match';
+                }
+                confirmBtn.disabled = false;
+              }).catch(function () {
+                strip.classList.add('visible');
+                stripLabel.textContent = 'Possible match (could not load name)';
+                confirmBtn.disabled = !hasIdentifier;
+              });
+            } else {
+              strip.classList.add('visible');
+              stripLabel.textContent = 'Possible match';
+              confirmBtn.disabled = !hasIdentifier;
+            }
+          });
+        }
+
         /* Feedback strip (hidden until action completes) */
         var feedbackEl = document.createElement('div');
         feedbackEl.className = 'card-feedback';
@@ -674,7 +1275,7 @@
 
         card.appendChild(body);
 
-        /* Actions */
+        /* ── Action buttons ──────────────────────────────────────────────── */
         var actions = document.createElement('div');
         actions.className = 'candidate-actions';
 
@@ -688,6 +1289,21 @@
         promoteBtn.appendChild(document.createTextNode('Add as client'));
         actions.appendChild(promoteBtn);
 
+        var linkBtn = document.createElement('button');
+        linkBtn.type = 'button';
+        linkBtn.className = 'btn-link';
+        var linkIcon = document.createElement('span');
+        linkIcon.setAttribute('data-codicon', 'link');
+        linkIcon.setAttribute('data-size', '12');
+        linkBtn.appendChild(linkIcon);
+        linkBtn.appendChild(document.createTextNode('Link to existing'));
+        /* Disable if no email or phone to form an alias */
+        if (!hasIdentifier) {
+          linkBtn.disabled = true;
+          linkBtn.title = 'No email or phone — cannot link by identity';
+        }
+        actions.appendChild(linkBtn);
+
         var excludeBtn = document.createElement('button');
         excludeBtn.type = 'button';
         excludeBtn.className = 'btn-exclude';
@@ -696,87 +1312,98 @@
 
         card.appendChild(actions);
 
+        /* ── Helper: disable/enable all card interactive elements ──────────── */
+        function setCardBusy(busy) {
+          promoteBtn.disabled = busy;
+          linkBtn.disabled    = busy || !hasIdentifier;
+          excludeBtn.disabled = busy;
+          chk.disabled        = busy;
+          confirmStrips.forEach(function (cs) { cs.btn.disabled = busy; });
+        }
+
+        /* ── Checkbox handler ──────────────────────────────────────────────── */
+        chk.addEventListener('change', function () {
+          if (chk.checked) {
+            _selected.add(pKey);
+            card.classList.add('is-selected');
+          } else {
+            _selected.delete(pKey);
+            card.classList.remove('is-selected');
+          }
+          updateSelectionUI();
+        });
+
         /* ── Promote handler ─────────────────────────────────────────────── */
         promoteBtn.addEventListener('click', function () {
           if (promoteBtn.disabled || excludeBtn.disabled) return;
-          promoteBtn.disabled = true;
-          excludeBtn.disabled = true;
+          setCardBusy(true);
           feedbackEl.className = 'card-feedback';
           feedbackEl.textContent = '';
 
-          if (!patientCmd) {
-            feedbackEl.className = 'card-feedback visible card-feedback--error';
-            feedbackEl.textContent = 'Not ready — try again.';
-            promoteBtn.disabled = false;
-            excludeBtn.disabled = false;
-            return;
-          }
-
-          /* Build create payload — name split heuristic: first word = given name */
-          var displaySrc = seedName || seedEmail || '';
-          var parts = displaySrc.trim().split(/\s+/);
-          var givenName  = parts[0] || seedEmail || 'Unknown';
-          var familyName = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
-
-          var createPayload = { givenName: givenName };
-          if (familyName) createPayload.familyName = familyName;
-          if (seedEmail)  createPayload.contactEmail = seedEmail;
-
-          patientCmd.call('create', createPayload)
-            .then(function (newClient) {
-              var newId = newClient && (newClient.id || newClient.patient_id || newClient.patientId);
-              if (!newId) throw new Error('create returned no id');
-              return patientCmd.call('setStage', newId, 'migrated', 'migration');
-            })
+          doPromote(candidate)
             .then(function () {
-              /* Optimistically remove from local list */
               _candidates = _candidates.filter(function (c) { return c !== candidate; });
-              /* Brief inline confirmation before card disappears */
+              _selected.delete(pKey);
               feedbackEl.className = 'card-feedback visible card-feedback--ok';
               feedbackEl.textContent = 'Added as migrated client.';
-              setTimeout(function () { renderList(); updateCount(); }, 900);
+              setTimeout(function () { renderList(); updateCount(); updateSelectionUI(); }, 900);
             })
             .catch(function (err) {
-              promoteBtn.disabled = false;
-              excludeBtn.disabled = false;
+              setCardBusy(false);
               var msg = (err && err.message) ? err.message : 'Could not add client. Try again.';
               feedbackEl.className = 'card-feedback visible card-feedback--error';
               feedbackEl.textContent = msg;
             });
         });
 
+        /* ── Link-to-existing handler ────────────────────────────────────── */
+        linkBtn.addEventListener('click', function () {
+          if (linkBtn.disabled) return;
+          openPicker(candidate, null);
+        });
+
+        /* ── Confirm-match handlers ──────────────────────────────────────── */
+        confirmStrips.forEach(function (cs) {
+          cs.btn.addEventListener('click', function () {
+            if (cs.btn.disabled) return;
+            setCardBusy(true);
+            feedbackEl.className = 'card-feedback';
+            feedbackEl.textContent = '';
+
+            doLink(candidate, cs.clientId)
+              .then(function () {
+                _candidates = _candidates.filter(function (c) { return c !== candidate; });
+                _selected.delete(pKey);
+                feedbackEl.className = 'card-feedback visible card-feedback--ok';
+                feedbackEl.textContent = 'Linked to existing client.';
+                setTimeout(function () { renderList(); updateCount(); updateSelectionUI(); }, 900);
+              })
+              .catch(function (err) {
+                setCardBusy(false);
+                var msg = (err && err.message) ? err.message : 'Could not link. Try again.';
+                feedbackEl.className = 'card-feedback visible card-feedback--error';
+                feedbackEl.textContent = msg;
+              });
+          });
+        });
+
         /* ── Exclude handler ─────────────────────────────────────────────── */
         excludeBtn.addEventListener('click', function () {
           if (promoteBtn.disabled || excludeBtn.disabled) return;
-          if (!seedEmail) {
-            /* No email — cannot hash-suppress; just remove from transient list */
-            _candidates = _candidates.filter(function (c) { return c !== candidate; });
-            renderList();
-            updateCount();
-            return;
-          }
-          promoteBtn.disabled = true;
-          excludeBtn.disabled = true;
+          setCardBusy(true);
           feedbackEl.className = 'card-feedback';
           feedbackEl.textContent = '';
 
-          if (!patientCmd) {
-            feedbackEl.className = 'card-feedback visible card-feedback--error';
-            feedbackEl.textContent = 'Not ready — try again.';
-            promoteBtn.disabled = false;
-            excludeBtn.disabled = false;
-            return;
-          }
-
-          patientCmd.call('suppressParticipant', { email: seedEmail, calendarId: _calendarId || '' })
+          doExclude(candidate)
             .then(function () {
               _candidates = _candidates.filter(function (c) { return c !== candidate; });
+              _selected.delete(pKey);
               renderList();
               updateCount();
+              updateSelectionUI();
             })
             .catch(function (err) {
-              promoteBtn.disabled = false;
-              excludeBtn.disabled = false;
+              setCardBusy(false);
               var msg = (err && err.message) ? err.message : 'Could not exclude. Try again.';
               feedbackEl.className = 'card-feedback visible card-feedback--error';
               feedbackEl.textContent = msg;
@@ -785,6 +1412,273 @@
 
         return card;
       }
+
+      /* ── Batch actions ───────────────────────────────────────────────────── */
+
+      function setBatchBusy(busy, progressText) {
+        _batchRunning = busy;
+        elBtnBatchPromote.disabled = busy;
+        elBtnBatchExclude.disabled = busy;
+        elBtnBatchClear.disabled   = busy;
+        elBtnRefresh.disabled      = busy;
+        elChkSelectAll.disabled    = busy;
+        if (busy && progressText) {
+          elBatchCount.style.display = 'none';
+          elBatchProgress.classList.add('visible');
+          elBatchProgress.textContent = progressText;
+        } else {
+          elBatchCount.style.display = '';
+          elBatchProgress.classList.remove('visible');
+        }
+      }
+
+      function runBatchOp(op) {
+        /* op: 'promote' | 'exclude' */
+        var keys    = Array.from(_selected);
+        var total   = keys.length;
+        if (total === 0) return;
+
+        /* Gather candidate objects for selected keys */
+        var toProcess = [];
+        keys.forEach(function (pKey) {
+          var found = null;
+          for (var i = 0; i < _candidates.length; i++) {
+            if (getParticipantKey(_candidates[i]) === pKey) { found = _candidates[i]; break; }
+          }
+          if (found) toProcess.push({ pKey: pKey, candidate: found });
+        });
+
+        setBatchBusy(true, (op === 'promote' ? 'Adding' : 'Excluding') + ' 1 of ' + total + '...');
+
+        var succeeded = [];
+        var failed    = [];
+
+        /* Sequential processing */
+        var idx = 0;
+        function processNext() {
+          if (idx >= toProcess.length) {
+            /* Done */
+            /* Remove succeeded from _candidates */
+            var succeededKeys = new Set(succeeded);
+            _candidates = _candidates.filter(function (c) {
+              return !succeededKeys.has(getParticipantKey(c));
+            });
+            /* Leave failed keys in _selected */
+            _selected.clear();
+            failed.forEach(function (k) { _selected.add(k); });
+
+            setBatchBusy(false, null);
+            renderList();
+            updateCount();
+            updateSelectionUI();
+
+            if (failed.length > 0) {
+              setStatus(
+                (total - failed.length) + ' done, ' + failed.length + ' failed — failed items still selected.',
+                'error'
+              );
+            }
+            return;
+          }
+
+          var item = toProcess[idx];
+          idx++;
+          var done = idx;
+
+          elBatchProgress.textContent = (op === 'promote' ? 'Adding' : 'Excluding') + ' ' + done + ' of ' + total + '...';
+
+          var p = op === 'promote' ? doPromote(item.candidate) : doExclude(item.candidate);
+          p.then(function () {
+            succeeded.push(item.pKey);
+            processNext();
+          }).catch(function () {
+            failed.push(item.pKey);
+            processNext();
+          });
+        }
+
+        processNext();
+      }
+
+      elBtnBatchPromote.addEventListener('click', function () {
+        if (_batchRunning) return;
+        runBatchOp('promote');
+      });
+
+      elBtnBatchExclude.addEventListener('click', function () {
+        if (_batchRunning) return;
+        runBatchOp('exclude');
+      });
+
+      elBtnBatchClear.addEventListener('click', function () {
+        if (_batchRunning) return;
+        clearSelection();
+        updateSelectionUI();
+      });
+
+      /* Select-all toolbar checkbox */
+      elChkSelectAll.addEventListener('change', function () {
+        if (elChkSelectAll.checked) {
+          /* Select all visible candidates */
+          var visible = _candidates.slice(0, _shownCount);
+          visible.forEach(function (c) { _selected.add(getParticipantKey(c)); });
+          /* Sync card checkboxes */
+          var checkboxes = elListInner.querySelectorAll('.card-checkbox');
+          var cards = elListInner.querySelectorAll('.candidate-card');
+          for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = true;
+          }
+          for (var j = 0; j < cards.length; j++) {
+            cards[j].classList.add('is-selected');
+          }
+        } else {
+          clearSelection();
+        }
+        updateSelectionUI();
+      });
+
+      /* ── Roster picker ───────────────────────────────────────────────────── */
+
+      var _pickerFilter = '';
+
+      function openPicker(candidate, preselectedClientId) {
+        _pickerCandidate    = candidate;
+        _pickerTargetClient = preselectedClientId;
+
+        /* Subtitle = PHI-safe display of seed identity */
+        var sub = candidate.seedName || candidate.seedEmail || '';
+        elPickerSubtitle.textContent = sub ? ('Linking: ' + sub) : '';
+
+        elPickerSearch.value = '';
+        _pickerFilter = '';
+        elPickerStatus.textContent = '';
+        elPickerStatus.className = 'picker-status';
+
+        elPickerOverlay.classList.remove('hidden');
+        renderPickerList('');
+
+        /* Focus search after DOM settles */
+        setTimeout(function () { elPickerSearch.focus(); }, 60);
+
+        /* Pre-fetch roster in background */
+        getRoster().catch(function () {});
+      }
+
+      function closePicker() {
+        elPickerOverlay.classList.add('hidden');
+        _pickerCandidate    = null;
+        _pickerTargetClient = null;
+      }
+
+      function renderPickerList(filter) {
+        elPickerList.innerHTML = '';
+
+        getRoster().then(function (roster) {
+          var lf = filter.trim().toLowerCase();
+          var filtered = lf
+            ? roster.filter(function (r) {
+                var name = (r.displayName || '').toLowerCase();
+                return name.indexOf(lf) !== -1;
+              })
+            : roster;
+
+          if (filtered.length === 0) {
+            var emptyEl = document.createElement('div');
+            emptyEl.className = 'picker-empty';
+            emptyEl.textContent = filter ? 'No clients match.' : 'No clients in roster.';
+            elPickerList.appendChild(emptyEl);
+            return;
+          }
+
+          filtered.forEach(function (client) {
+            var item = document.createElement('div');
+            item.className = 'picker-item';
+            item.setAttribute('role', 'button');
+            item.setAttribute('tabindex', '0');
+
+            var initial = (client.displayName && client.displayName[0]) ? client.displayName[0].toUpperCase() : '?';
+            var ac = avatarColor(initial);
+
+            var av = document.createElement('div');
+            av.className = 'picker-item-avatar';
+            av.style.background = ac.bg;
+            av.style.color = ac.fg;
+            /* PHI-safe: initial only */
+            av.textContent = initial;
+
+            var nameEl = document.createElement('div');
+            nameEl.className = 'picker-item-name';
+            /* PHI-safe textContent */
+            nameEl.textContent = client.displayName || client.id;
+
+            item.appendChild(av);
+            item.appendChild(nameEl);
+
+            function handlePick() {
+              if (!_pickerCandidate) return;
+              var candidate = _pickerCandidate;
+              elPickerStatus.className = 'picker-status';
+              elPickerStatus.textContent = 'Linking...';
+
+              /* Disable all picker items during operation */
+              var items = elPickerList.querySelectorAll('.picker-item');
+              for (var i = 0; i < items.length; i++) {
+                items[i].style.pointerEvents = 'none';
+                items[i].style.opacity = '0.5';
+              }
+
+              doLink(candidate, client.id)
+                .then(function () {
+                  closePicker();
+                  _candidates = _candidates.filter(function (c) { return c !== candidate; });
+                  _selected.delete(getParticipantKey(candidate));
+                  renderList();
+                  updateCount();
+                  updateSelectionUI();
+                })
+                .catch(function (err) {
+                  var msg = (err && err.message) ? err.message : 'Could not link. Try again.';
+                  elPickerStatus.className = 'picker-status picker-status--error';
+                  elPickerStatus.textContent = msg;
+                  /* Re-enable items */
+                  for (var i = 0; i < items.length; i++) {
+                    items[i].style.pointerEvents = '';
+                    items[i].style.opacity = '';
+                  }
+                });
+            }
+
+            item.addEventListener('click', handlePick);
+            item.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePick(); }
+            });
+
+            elPickerList.appendChild(item);
+          });
+
+          if (boot.applyCodicons) boot.applyCodicons();
+        }).catch(function (err) {
+          var emptyEl = document.createElement('div');
+          emptyEl.className = 'picker-empty';
+          emptyEl.textContent = 'Could not load clients.';
+          elPickerList.appendChild(emptyEl);
+        });
+      }
+
+      elPickerSearch.addEventListener('input', function () {
+        _pickerFilter = elPickerSearch.value;
+        renderPickerList(_pickerFilter);
+      });
+
+      elPickerClose.addEventListener('click', closePicker);
+
+      elPickerOverlay.addEventListener('click', function (e) {
+        if (e.target === elPickerOverlay) closePicker();
+      });
+
+      elPickerOverlay.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closePicker();
+      });
 
       /* ── Message handler ─────────────────────────────────────────────────── */
       window.addEventListener('message', function (e) {
@@ -827,11 +1721,13 @@
           soamView.bindCommand('record.migration', '1.0'),
           soamView.bindCommand('record.patient', '1.0'),
           soamView.bindQuery('schedule.calendar.query', '1.0'),
+          soamView.bindQuery('record.patient.query', '1.0'),
         ]).then(function (caps) {
-          queryCap    = caps[0];
-          cmdCap      = caps[1];
-          patientCmd  = caps[2];
-          schQueryCap = caps[3];
+          queryCap      = caps[0];
+          cmdCap        = caps[1];
+          patientCmd    = caps[2];
+          schQueryCap   = caps[3];
+          patientQuery  = caps[4];
 
           loadCalendarName();
           runScan();
