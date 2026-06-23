@@ -10,7 +10,6 @@
   ],
   "views": [
     { "id": "meetings", "path": "meetings.html" },
-    { "id": "needs-linking", "path": "needs-linking.html" },
     { "id": "meeting-record", "path": "meeting-record.html" }
   ],
   "ownedTables": ["client_meeting"],
@@ -66,16 +65,7 @@
     ]
   },
   "contributes": {
-    "panel.views": [
-      {
-        "id": "ru-soam-sessions.needs-linking",
-        "title": "Needs Linking",
-        "icon": "link",
-        "view": "needs-linking",
-        "when": "workspace.activeId",
-        "priority": 90
-      }
-    ],
+    "panel.views": [],
     "activityBar.items": [
       {
         "id": "ru-soam-sessions.activity",

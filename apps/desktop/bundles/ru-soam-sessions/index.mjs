@@ -469,11 +469,11 @@ export function activate(ctx) {
         try {
           events = await calendarQuery.call('listAggregatedEvents', [from, to]);
         } catch (_err) {
-          return { linked: 0, reconciled: 0, orphaned: 0, needsLinking: [] };
+          return { linked: 0, reconciled: 0, orphaned: 0 };
         }
 
         if (!Array.isArray(events) || events.length === 0) {
-          return { linked: 0, reconciled: 0, orphaned: 0, needsLinking: [] };
+          return { linked: 0, reconciled: 0, orphaned: 0 };
         }
 
         // Composite key: "<externalAccountId>|<providerCalendarId>|<providerEventId>"
@@ -490,7 +490,6 @@ export function activate(ctx) {
 
         let linked = 0;
         let reconciled = 0;
-        const needsLinking = [];
 
         for (const event of events) {
           const extAcct  = event.externalAccountId ?? null;
@@ -531,7 +530,6 @@ export function activate(ctx) {
 
           // Resolve each participant.
           const resolvedClientIds = new Set();
-          const participantsWithOutcomes = [];
 
           for (const p of participants) {
             let resolution;
@@ -542,12 +540,6 @@ export function activate(ctx) {
             } catch (_err) {
               resolution = { outcome: 'none' };
             }
-            participantsWithOutcomes.push({
-              name:       p.name,
-              email:      p.email,
-              outcome:    resolution.outcome,
-              candidates: resolution.candidates ?? undefined,
-            });
             if (resolution.outcome === 'match') {
               resolvedClientIds.add(resolution.clientId);
             }
@@ -561,18 +553,6 @@ export function activate(ctx) {
             } else {
               reconciled++;
             }
-          } else {
-            needsLinking.push({
-              providerEventId:    event.id,
-              externalAccountId:  extAcct,
-              providerCalendarId: provCal,
-              calendarId:         event.calendarId ?? null,
-              start:              event.start,
-              end:                event.end,
-              title:              event.title,
-              meetingLink:        event.meetingLink ?? null,
-              participants:       participantsWithOutcomes,
-            });
           }
         }
 
@@ -613,7 +593,7 @@ export function activate(ctx) {
           }
         }
 
-        return { linked, reconciled, orphaned, needsLinking };
+        return { linked, reconciled, orphaned };
       }
 
       case 'linkProviderEvent': {

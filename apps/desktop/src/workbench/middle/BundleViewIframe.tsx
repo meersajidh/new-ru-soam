@@ -271,7 +271,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
           break;
         }
         case 'request.bumpScheduleData': {
-          // An iframe (e.g. Sessions needs-linking triage) mutated roster/link state
+          // An iframe (e.g. the migration roster-builder or aux event-detail) mutated roster/link state
           // that affects Schedule classification. Bump calRev so an open schedule
           // calendar + aux event-detail re-classify on current in-memory events.
           scheduleViewState.bumpCalRev();
