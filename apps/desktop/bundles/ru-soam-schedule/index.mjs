@@ -166,18 +166,6 @@ export function activate(ctx) {
   ctx.registerCapability('schedule.calendar.query', '1.0', async (method, args) => {
     switch (method) {
 
-      // ── P0 methods (unchanged) ────────────────────────────────────────────
-
-      case 'getStatus': {
-        return adapter.getStatus();
-      }
-
-      case 'listEvents': {
-        const from = args[0];
-        const to   = args[1];
-        return adapter.listEvents(from, to);
-      }
-
       // ── Slice 2 query methods ─────────────────────────────────────────────
 
       case 'listAccounts': {
@@ -256,16 +244,6 @@ export function activate(ctx) {
 
   ctx.registerCapability('schedule.calendar', '1.0', async (method, args) => {
     switch (method) {
-
-      // ── P0 methods (unchanged) ────────────────────────────────────────────
-
-      case 'connect': {
-        return adapter.connect();
-      }
-
-      case 'disconnect': {
-        return adapter.disconnect();
-      }
 
       // ── Slice 2 command methods ───────────────────────────────────────────
 

@@ -1714,7 +1714,6 @@
 
         /* ── State ───────────────────────────────────────────────────── */
         var connected = false;
-        var connecting = false;
         var loadError = null;
         var events = [];
         var offset = 0; // week/day/month offset from today
@@ -2578,9 +2577,16 @@
             );
             var connectBtn = el('button', 'btn btn-accent');
             connectBtn.type = 'button';
-            connectBtn.textContent = connecting ? 'Connecting…' : 'Connect Google Calendar';
-            connectBtn.disabled = connecting;
-            connectBtn.addEventListener('click', doConnect);
+            connectBtn.textContent = 'Connect Google Calendar';
+            connectBtn.addEventListener('click', function () {
+              if (_soamView && _soamView.openInEditor) {
+                _soamView.openInEditor('calendar-setup', {
+                  query: 'mode=add',
+                  title: 'Add calendar',
+                  entityId: 'calendar-setup',
+                });
+              }
+            });
             disc.appendChild(connectBtn);
             elCalArea.innerHTML = '';
             elCalArea.appendChild(disc);
@@ -3333,51 +3339,6 @@
             });
         }
 
-        /* ── Connect / disconnect ─────────────────────────────────────── */
-        function doConnect() {
-          if (!cmdCap || connecting) return;
-          connecting = true;
-          renderCalArea();
-
-          cmdCap
-            .call('connect', [])
-            .then(function (result) {
-              connecting = false;
-              if (result && result.ok) {
-                connected = true;
-                loadEvents();
-                /* After connecting, do an initial full sync to populate the cache. */
-                triggerBackgroundSync();
-              } else {
-                loadError = 'Connection failed: ' + ((result && result.error) || 'Unknown error');
-                renderCalArea();
-              }
-            })
-            .catch(function (err) {
-              connecting = false;
-              loadError = 'Connection failed: ' + ((err && err.message) || String(err));
-              renderCalArea();
-            });
-        }
-
-        function doDisconnect() {
-          if (!cmdCap) return;
-          cmdCap
-            .call('disconnect', [])
-            .then(function () {
-              connected = false;
-              events = [];
-              destroyEventsObserver();
-              renderCalArea();
-            })
-            .catch(function () {
-              connected = false;
-              events = [];
-              destroyEventsObserver();
-              renderCalArea();
-            });
-        }
-
         /* ── Date nav ─────────────────────────────────────────────────── */
         function updateRangeLabel() {
           var range = rangeForView();
@@ -3515,7 +3476,18 @@
                 }
               });
             } else {
-              renderCalArea();
+              /* Not yet connected — a calRev bump may mean a calendar was just added
+               * (e.g. via the Add-calendar wizard). Re-check: if calendars now exist,
+               * transition to connected and load. */
+              refreshCalVisibility().then(function () {
+                if (_addedCalIds.length > 0) {
+                  connected = true;
+                  loadEvents();
+                  triggerBackgroundSync();
+                } else {
+                  renderCalArea();
+                }
+              });
             }
           } else {
             /* classFilter changed only — re-render in place, no network fetch. */
@@ -3573,8 +3545,8 @@
             renderCalArea();
 
             // Bind CQRS-split caps:
-            //   schedule.calendar.query@1.0  (kind:query)   → getStatus, listEvents
-            //   schedule.calendar@1.0        (kind:command)  → connect, disconnect
+            //   schedule.calendar.query@1.0  (kind:query)   → listAddedCalendars, listWindowEvents, …
+            //   schedule.calendar@1.0        (kind:command)  → syncEvents
             // Optional cross-bundle classify caps (SD-11) — bind failures are swallowed;
             // view-bridge bindQuery is NOT gated by manifest dep list so no cycle risk.
             //   sessions.meeting.query@1.0   (kind:query)   → listLinkedProvider
@@ -3597,7 +3569,7 @@
 
                 /* Seed _calVisibility before first loadEvents so eventsForDay/publishCounts
                  * have correct visibility state on the initial render pass. */
-                var visibilitySeedDone = refreshCalVisibility();
+                refreshCalVisibility();
 
                 /* Read persisted refresh settings from cap (source of truth on cold load;
                  * BundleViewIframe also pushes them via init/context but cap-read is the
@@ -3624,28 +3596,10 @@
                     }, _refreshIntervalMin * 60000);
                   }
 
-                  queryCap
-                    .call('getStatus', [])
-                    .then(function (status) {
-                      var wasConnected = connected;
-                      connected = !!(status && status.connected);
-                      if (connected && !wasConnected) {
-                        /* Wait for visibility seed before first loadEvents so the initial
-                         * render has correct _calVisibility (best-effort; catch is no-op). */
-                        visibilitySeedDone
-                          .then(function () {
-                            loadEvents();
-                            /* Slice 6: trigger background sync AFTER first paint from cache.
-                             * loadEvents now reads from the event table instantly; sync
-                             * refreshes the cache in the background and invalidates on changes. */
-                            triggerBackgroundSync();
-                          })
-                          .catch(function () {
-                            loadEvents();
-                            triggerBackgroundSync();
-                          });
-                      } else if (connected) {
-                        /* Already was connected (re-activate) — paint from cache then re-sync. */
+                  refreshCalVisibility()
+                    .then(function () {
+                      connected = _addedCalIds.length > 0;
+                      if (connected) {
                         loadEvents();
                         triggerBackgroundSync();
                       } else {

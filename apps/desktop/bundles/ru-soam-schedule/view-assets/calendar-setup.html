@@ -702,6 +702,8 @@
           /* result.account has the persisted account; use its local id */
           var acct = result.account;
           _selectedAccountId = acct.id;
+          /* Account row now persisted — bump calRev so the nav sidebar shows it. */
+          bumpCalRev();
           loadStep2(acct);
         }).catch(function (err) {
           _connecting = false;
@@ -946,8 +948,17 @@
           isPrimary:          _selectedProviderCalPrimary,
           readOnly:           _selectedProviderCalReadOnly,
         }).then(function (row) {
-          /* Success: bump calRev → nav reloads; close this tab */
+          /* Success: bump calRev → nav + schedule grid reload. Open (or focus) the
+           * aggregate Schedule tab so the work area shows the newly-added calendar,
+           * then close this wizard tab. */
           bumpCalRev();
+          if (window.soamView && window.soamView.openInEditor) {
+            window.soamView.openInEditor('schedule', {
+              query: 'id=schedule',
+              title: 'Schedule',
+              entityId: 'schedule',
+            });
+          }
           if (window.soamView && window.soamView.requestClose) {
             window.soamView.requestClose();
           }

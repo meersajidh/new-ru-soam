@@ -125,62 +125,6 @@ function mapEvent(item, calendarId, calendarName) {
 export function createGoogleCalendarAdapter(broker, netFetch) {
   const { provider, authUrl, tokenUrl, scopes, revokeUrl } = GOOGLE_DESCRIPTOR;
 
-  // ── P0 legacy methods (unchanged; kept for backward compat) ─────────────────
-
-  async function getStatus() {
-    const result = await broker.call('status', [{ provider }]);
-    return { connected: !!(result && result.connected), providerName: 'Google Calendar' };
-  }
-
-  async function connect() {
-    return broker.call('grant', [{ provider, authUrl, tokenUrl, scopes, revokeUrl }]);
-  }
-
-  async function disconnect() {
-    await broker.call('revoke', [{ provider, revokeUrl }]);
-    return null;
-  }
-
-  /**
-   * P0 primary-calendar list (unchanged signature/behavior).
-   * Refactored internally to use shared mapEvent helper.
-   */
-  async function listEvents(from, to) {
-    if (typeof from !== 'string' || typeof to !== 'string') {
-      throw Object.assign(
-        new Error('schedule.calendar.listEvents: from and to must be ISO date strings'),
-        { code: 'cap.handler_threw' },
-      );
-    }
-
-    const params = new URLSearchParams({
-      timeMin: new Date(from).toISOString(),
-      timeMax: new Date(to).toISOString(),
-      singleEvents: 'true',
-      orderBy: 'startTime',
-      maxResults: '250',
-    });
-
-    const resp = await netFetch.call('fetch', [
-      {
-        provider,
-        url: `${GCAL_API_BASE}/calendars/primary/events?${params}`,
-        method: 'GET',
-      },
-    ]);
-
-    if (!resp.ok) {
-      throw new Error(`Google Calendar API error: ${resp.status}`);
-    }
-
-    const data = resp.body;
-    const calendarName = (data && data.summary) ? data.summary : 'Calendar';
-
-    return (data && data.items ? data.items : []).map((item) =>
-      mapEvent(item, 'primary', calendarName),
-    );
-  }
-
   // ── Slice 2: account-aware port methods ─────────────────────────────────────
 
   /**
@@ -420,11 +364,6 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
 
   return {
     providerType: 'google',
-    // P0 legacy
-    getStatus,
-    connect,
-    disconnect,
-    listEvents,
     // Slice 2: account-aware port
     authenticate,
     getAccountStatus,

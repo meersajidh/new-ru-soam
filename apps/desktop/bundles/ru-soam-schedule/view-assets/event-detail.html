@@ -466,6 +466,15 @@
         gap: 6px;
         align-items: center;
       }
+      /* Primary action takes its own row; secondary actions share the next row
+       * (two per row) — mirrors the prototype's stacked layout. */
+      .det-link-actions > .det-act-btn.primary,
+      .det-link-actions > .det-act-btn.primary-solid {
+        flex: 1 0 100%;
+      }
+      .det-link-actions > .det-act-btn:not(.primary):not(.primary-solid) {
+        flex: 1 1 calc(50% - 3px);
+      }
       .det-link-inline-msg {
         font-size: 12px;
         color: var(--color-fg-muted);
@@ -897,6 +906,7 @@
         var match = ev && ev._match;
         var matchClientId  = match && match.matchClientId ? match.matchClientId : null;
         var candidates     = match && Array.isArray(match.candidates) ? match.candidates : [];
+        var linkedMeetingId = match && match.linkedMeetingId ? match.linkedMeetingId : null;
 
         var block = el('div', 'det-link-block');
         var desc  = el('div', 'det-link-desc');
@@ -1011,22 +1021,66 @@
         }
 
         // ── State: CLIENT (linked) ──
-        if (cls === 'client_session' && matchClientId) {
+        // Covers both a roster-linked client (matchClientId present) and a linked
+        // meeting with no roster client yet (matchClientId null). Both show the
+        // linked card + "Open in Sessions" + a "Not a client" (unlink) action.
+        if (cls === 'client_session') {
           var clientName = null;
-          // Build linked card with placeholder name
+          // Build linked card. With a roster client, name resolves async (placeholder
+          // until then); without one, fall back to the participant name.
           var card = el('div', 'det-linked-card');
           var cardAvatar = el('div', 'det-avatar');
-          cardAvatar.textContent = '?';
+          var fallbackName = repName || 'Linked meeting';
+          cardAvatar.textContent = matchClientId
+            ? '?'
+            : (String(fallbackName).split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0); }).join('') || '?');
           card.appendChild(cardAvatar);
           var cardInfo = el('div', 'det-linked-card-info');
-          var cardNameEl = txt('div', 'det-linked-card-name', '…');
-          var cardSub = txt('div', 'det-linked-card-sub', 'Linked from roster ✓');
+          var cardNameEl = txt('div', 'det-linked-card-name', matchClientId ? '…' : fallbackName);
+          var cardSub = txt('div', 'det-linked-card-sub', matchClientId ? 'Linked from roster ✓' : 'Linked ✓');
           cardInfo.appendChild(cardNameEl);
           cardInfo.appendChild(cardSub);
           card.appendChild(cardInfo);
           block.appendChild(card);
 
           block.appendChild(makeOpenSessionsBtn('Open in Sessions', true));
+
+          // "Not a client" — unlink the meeting (if linked) and suppress the
+          // participant so a future sync doesn't re-link it.
+          if (linkedMeetingId || repEmail) {
+            var notBtnL = el('button', 'det-act-btn');
+            notBtnL.type = 'button';
+            notBtnL.textContent = 'Not a client';
+            notBtnL.addEventListener('click', function () {
+              disableBlock(block);
+              setBlockMsg(msgEl, '', '');
+              var unlinkP = linkedMeetingId && _sessionsCmd
+                ? _sessionsCmd.call('delete', linkedMeetingId)
+                : Promise.resolve();
+              unlinkP
+                .then(function () {
+                  return (repEmail && _recordCmd)
+                    ? _recordCmd.call('suppressParticipant', { email: repEmail })
+                    : Promise.resolve();
+                })
+                .then(function () {
+                  block.innerHTML = '';
+                  block.appendChild(txt('div', 'det-link-desc', 'Marked as not a client.'));
+                  bumpCalRev();
+                })
+                .catch(function (err) {
+                  enableBlock(block);
+                  if (window.__viewBoot.isLockedError(err)) {
+                    setBlockMsg(msgEl, 'Workspace locked.', 'err');
+                  } else {
+                    setBlockMsg(msgEl, 'Failed: ' + (err && err.message ? err.message : String(err)), 'err');
+                  }
+                });
+            });
+            acts.appendChild(notBtnL);
+            block.appendChild(acts);
+            block.appendChild(msgEl);
+          }
 
           // Async name lookup
           if (_recordQuery && matchClientId) {
@@ -1626,7 +1680,11 @@
             var copy3 = {};
             for (var k3 in ev) { if (Object.prototype.hasOwnProperty.call(ev, k3)) copy3[k3] = ev[k3]; }
             copy3.classification = 'client_session';
-            copy3._match = linkedRow.patient_id ? { matchClientId: linkedRow.patient_id, source: 'linked' } : { source: 'linked' };
+            copy3._match = {
+              matchClientId: linkedRow.patient_id || null,
+              source: 'linked',
+              linkedMeetingId: linkedRow.id || null,
+            };
             if (_renderToken !== token) return;
             _currentEv = copy3;
             renderDetail(_currentEv);
