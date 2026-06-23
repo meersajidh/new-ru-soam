@@ -128,6 +128,7 @@
       "ru-soam-schedule/calendar/context": [
         { "command": "ru-soam-schedule.calendar.edit",      "group": "1_edit@1" },
         { "command": "ru-soam-schedule.calendar.reconnect", "group": "1_edit@2", "when": "schedule.calendarAccountErrored" },
+        { "command": "ru-soam-schedule.calendar.migrate",   "group": "2_migrate@1" },
         { "command": "ru-soam-schedule.calendar.delete",    "group": "9_danger@1" }
       ],
       "ru-soam-schedule/account/context": [

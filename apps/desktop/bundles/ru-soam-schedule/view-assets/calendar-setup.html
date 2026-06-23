@@ -402,6 +402,75 @@
         display: none;
       }
       .inline-error.visible { display: block; }
+
+      /* ── Migrate prompt step (Step 4) ──────────────────────── */
+      .migrate-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        text-align: center;
+      }
+      .migrate-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .migrate-heading {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--color-fg-primary);
+        line-height: 1.3;
+      }
+      .migrate-subtext {
+        font-size: 12.5px;
+        color: var(--color-fg-muted);
+        line-height: 1.55;
+        max-width: 300px;
+      }
+      .migrate-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        padding-top: 4px;
+      }
+      .btn-migrate-now {
+        width: 100%;
+        padding: 9px 16px;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        font-weight: 500;
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+        border: none;
+        transition: background 110ms ease;
+        cursor: pointer;
+      }
+      .btn-migrate-now:hover { background: var(--color-accent-hover); }
+      .btn-migrate-now:active { background: var(--color-accent-pressed); }
+      .btn-migrate-skip {
+        width: 100%;
+        padding: 8px 16px;
+        border-radius: var(--radius-sm);
+        font-size: 12.5px;
+        color: var(--color-fg-muted);
+        border: 1px solid var(--color-border);
+        background: transparent;
+        transition: color 110ms ease, background 110ms ease;
+        cursor: pointer;
+      }
+      .btn-migrate-skip:hover {
+        color: var(--color-fg-secondary);
+        background: var(--color-surface-elevated);
+      }
     </style>
   </head>
   <body>
@@ -503,6 +572,27 @@
           </div>
         </div>
 
+        <!-- ── Step 4: Migrate prompt ──────────────────────────────────────── -->
+        <div id="step-4" class="step">
+          <div class="migrate-hero">
+            <div class="migrate-icon-wrap" aria-hidden="true">
+              <!-- Person + arrow inline SVG -->
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="9" cy="7" r="3.5" stroke="currentColor" stroke-width="1.5" style="color:var(--color-fg-secondary,#aeaeb2)"/>
+                <path d="M3 19c0-3.314 2.686-6 6-6h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--color-fg-secondary,#aeaeb2)"/>
+                <path d="M17 13l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-accent,#5ac85a)"/>
+                <line x1="14" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:var(--color-accent,#5ac85a)"/>
+              </svg>
+            </div>
+            <div class="migrate-heading">Migrate existing clients?</div>
+            <div class="migrate-subtext">Scan this calendar for people who are not in your roster yet and add them as clients.</div>
+          </div>
+          <div class="migrate-actions">
+            <button id="btn-migrate-now" class="btn-migrate-now" type="button">Migrate clients</button>
+            <button id="btn-migrate-skip" class="btn-migrate-skip" type="button">Not now</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -547,6 +637,7 @@
       var _selectedProviderCalReadOnly = false;
       var _selectedColor           = PALETTE[0];
       var _connecting              = false;
+      var _newCalId                = null;   /* local id returned by addCalendar, for step 4 */
 
       /* ── DOM refs ─────────────────────────────────────────────────────────── */
       var elBridgeWait   = document.getElementById('bridge-wait');
@@ -554,6 +645,7 @@
       var elStep1        = document.getElementById('step-1');
       var elStep2        = document.getElementById('step-2');
       var elStep3        = document.getElementById('step-3');
+      var elStep4        = document.getElementById('step-4');
       var elS1Hero       = document.getElementById('s1-hero');
       var elS1Accts      = document.getElementById('s1-accts');
       var elS1AcctList   = document.getElementById('s1-acct-list');
@@ -576,6 +668,7 @@
         elStep1.classList.toggle('active', n === 1);
         elStep2.classList.toggle('active', n === 2);
         elStep3.classList.toggle('active', n === 3);
+        elStep4.classList.toggle('active', n === 4);
       }
 
       function clearError(el) {
@@ -948,20 +1041,13 @@
           isPrimary:          _selectedProviderCalPrimary,
           readOnly:           _selectedProviderCalReadOnly,
         }).then(function (row) {
-          /* Success: bump calRev → nav + schedule grid reload. Open (or focus) the
-           * aggregate Schedule tab so the work area shows the newly-added calendar,
-           * then close this wizard tab. */
+          /* Capture the new calendar's local id for the migrate-prompt step. */
+          _newCalId = (row && row.id) ? row.id : null;
+          /* Bump calRev so nav + schedule grid pick up the new calendar. */
           bumpCalRev();
-          if (window.soamView && window.soamView.openInEditor) {
-            window.soamView.openInEditor('schedule', {
-              query: 'id=schedule',
-              title: 'Schedule',
-              entityId: 'schedule',
-            });
-          }
-          if (window.soamView && window.soamView.requestClose) {
-            window.soamView.requestClose();
-          }
+          /* Show the migrate-clients prompt (step 4) instead of closing immediately.
+           * Edit mode never reaches here, so no _editMode guard needed. */
+          showStep(4);
         }).catch(function (err) {
           elBtnAdd.disabled    = false;
           elBtnAdd.textContent = 'Add calendar';
@@ -1066,6 +1152,39 @@
       elCalNameInput.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
           if (_editMode) { doSaveEdit(); } else { doAddCalendar(); }
+        }
+      });
+
+      /* ── Step 4: Migrate prompt buttons ──────────────────────────────────── */
+      document.getElementById('btn-migrate-now').addEventListener('click', function () {
+        /* Open the client-migration roster-builder for the newly-added calendar,
+         * then close this wizard tab. Mirrors the re-run command in bootstrap.ts. */
+        if (_newCalId && window.soamView && window.soamView.openInEditor) {
+          window.soamView.openInEditor('client-migration', {
+            query:    'calendarId=' + encodeURIComponent(_newCalId),
+            title:    'Migrate clients',
+            entityId: 'migration-' + _newCalId,
+            bundleId: 'ru-soam-practice',
+          });
+        }
+        /* Leave the migration view in focus — do NOT also open the schedule grid
+         * (that would steal focus). Closing this wizard lands on the migration tab. */
+        if (window.soamView && window.soamView.requestClose) {
+          window.soamView.requestClose();
+        }
+      });
+
+      document.getElementById('btn-migrate-skip').addEventListener('click', function () {
+        /* "Not now" — proceed exactly as before: open schedule grid and close wizard. */
+        if (window.soamView && window.soamView.openInEditor) {
+          window.soamView.openInEditor('schedule', {
+            query:    'id=schedule',
+            title:    'Schedule',
+            entityId: 'schedule',
+          });
+        }
+        if (window.soamView && window.soamView.requestClose) {
+          window.soamView.requestClose();
         }
       });
 

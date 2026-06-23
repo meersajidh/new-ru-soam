@@ -220,6 +220,39 @@ export function domainBootstrap(registry: ServiceRegistry): void {
   );
 
   commands.register(
+    'ru-soam-schedule.calendar.migrate',
+    'Re-run migration',
+    async (ctx: unknown) => {
+      const c = ctx as Record<string, unknown>;
+      const calendarId = c?.calendarId;
+      if (typeof calendarId !== 'string' || calendarId.length === 0) {
+        console.warn('[schedule] migrate: missing or invalid calendarId in ctx', ctx);
+        return;
+      }
+      const views = await window.soam.bindCapability('platform.views', '1.0');
+      try {
+        const res = (await views.call('resolve', 'ru-soam-practice', 'client-migration')) as {
+          found?: boolean;
+          url?: string;
+        };
+        if (res?.found && res.url) {
+          registry.get(EditorServiceId).open(res.url + '?calendarId=' + calendarId, {
+            title: 'Migrate clients',
+            entityId: 'migration-' + calendarId,
+          });
+        } else {
+          console.error('[schedule] migrate: client-migration view not found');
+        }
+      } catch (err) {
+        console.error('[schedule] migrate failed:', err);
+      } finally {
+        views.dispose();
+      }
+    },
+    { category: 'Schedule' },
+  );
+
+  commands.register(
     'ru-soam-schedule.calendar.delete',
     'Delete Calendar',
     async (ctx: unknown) => {

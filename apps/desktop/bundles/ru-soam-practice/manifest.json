@@ -17,7 +17,8 @@
     { "id": "aspects", "path": "aspects.html" },
     { "id": "projections", "path": "projections.html" },
     { "id": "safety-plan", "path": "safety-plan.html" },
-    { "id": "intake", "path": "intake.html" }
+    { "id": "intake", "path": "intake.html" },
+    { "id": "client-migration", "path": "client-migration.html" }
   ],
   "ownedTables": ["patients", "patient_profile", "patient_lifecycle", "patient_circle_member", "patient_consent_state", "patient_risk_event", "patient_safety_plan", "patient_document", "patient_identity_alias", "participant_suppression"],
   "migrations": [

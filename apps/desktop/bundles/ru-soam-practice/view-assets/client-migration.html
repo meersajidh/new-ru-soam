@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src view: 'unsafe-inline'; style-src view: 'unsafe-inline'; img-src view: data:; connect-src 'none'; font-src data:"
+    />
+    <title>Migrate clients</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
+
+      /* ── Design tokens (injected via postMessage; fallbacks for cold load) ── */
+      :root {
+        color-scheme: light dark;
+        --font-sans:              'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --color-surface-base:     #161618;
+        --color-surface-panel:    #1c1c1f;
+        --color-surface-elevated: #232326;
+        --color-surface-active:   #2a2d26;
+        --color-fg-primary:       #f2f2f7;
+        --color-fg-secondary:     #aeaeb2;
+        --color-fg-muted:         #636366;
+        --color-border:           #3a3a3c;
+        --color-border-focus:     #5ac85a;
+        --color-accent:           #5ac85a;
+        --color-accent-fg:        #1c1c1e;
+        --color-accent-hover:     #6bd46b;
+        --color-accent-pressed:   #4ab44a;
+        --color-error:            #e05252;
+        --color-warning:          #e0b34e;
+        --color-info:             #4ea6e0;
+        --radius-sm:  4px;
+        --radius-md:  7px;
+        --radius-card: 10px;
+      }
+
+      /* ── Base ─────────────────────────────────────────────────────────────── */
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.5;
+        background: var(--color-surface-base);
+        color: var(--color-fg-primary);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* ── Bridge wait overlay ──────────────────────────────────────────────── */
+      #bridge-wait {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-surface-base);
+        z-index: 100;
+        font-size: 12px;
+        color: var(--color-fg-muted);
+      }
+      #bridge-wait.hidden { display: none; }
+
+      /* ── Root ─────────────────────────────────────────────────────────────── */
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+      #root.hidden { display: none; }
+
+      /* ── Work-area header ─────────────────────────────────────────────────── */
+      .work-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 20px 12px;
+        border-bottom: 1px solid var(--color-border);
+        flex-shrink: 0;
+      }
+
+      .work-header-titles { flex: 1; min-width: 0; }
+
+      .work-header-title {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--color-fg-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .work-header-sub {
+        font-size: 11.5px;
+        color: var(--color-fg-muted);
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* ── Toolbar ──────────────────────────────────────────────────────────── */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 20px;
+        border-bottom: 1px solid var(--color-border);
+        flex-shrink: 0;
+      }
+
+      .toolbar-status {
+        flex: 1;
+        font-size: 12px;
+        color: var(--color-fg-muted);
+      }
+      .toolbar-status.scanning { color: var(--color-fg-secondary); }
+      .toolbar-status.done     { color: var(--color-fg-muted); }
+      .toolbar-status.error    { color: var(--color-error); }
+
+      .btn-refresh {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--color-fg-secondary);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface-elevated);
+        transition: background 110ms ease, border-color 110ms ease;
+        flex-shrink: 0;
+      }
+      .btn-refresh:hover:not(:disabled) {
+        background: var(--color-surface-active);
+        border-color: color-mix(in srgb, var(--color-fg-muted) 50%, transparent);
+      }
+      .btn-refresh:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      /* ── Candidate list ───────────────────────────────────────────────────── */
+      #list-area {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 25%, transparent) transparent;
+      }
+
+      .list-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 8px 0;
+        max-width: 720px;
+        margin: 0 auto;
+      }
+
+      /* ── Candidate card ───────────────────────────────────────────────────── */
+      .candidate-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 11px 20px;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+        transition: background 100ms ease;
+      }
+      .candidate-card:first-child { border-top: none; }
+      .candidate-card:last-child  { border-bottom: none; }
+      .candidate-card:hover {
+        background: color-mix(in srgb, var(--color-fg-muted) 4%, transparent);
+      }
+
+      /* Avatar initial */
+      .candidate-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-fg-secondary);
+        margin-top: 1px;
+        /* subtle per-card color variety based on first char modulo, set inline */
+        user-select: none;
+      }
+
+      .candidate-body { flex: 1; min-width: 0; }
+
+      .candidate-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-fg-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .candidate-email {
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-top: 1px;
+      }
+
+      .candidate-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        padding: 1px 6px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+      .badge--none {
+        color: var(--color-fg-muted);
+        background: color-mix(in srgb, var(--color-fg-muted) 12%, transparent);
+      }
+      .badge--candidates {
+        color: var(--color-warning);
+        background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+      }
+
+      .candidate-event-count {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+      }
+
+      /* ── Action buttons ───────────────────────────────────────────────────── */
+      .candidate-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+        padding-top: 2px;
+      }
+
+      .btn-promote {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 11px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 500;
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+        border: none;
+        transition: background 100ms ease, opacity 100ms ease;
+        white-space: nowrap;
+      }
+      .btn-promote:hover:not(:disabled) { background: var(--color-accent-hover); }
+      .btn-promote:active:not(:disabled) { background: var(--color-accent-pressed); }
+      .btn-promote:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      .btn-exclude {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 11px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        border: 1px solid var(--color-border);
+        background: transparent;
+        transition: color 100ms ease, background 100ms ease, border-color 100ms ease;
+        white-space: nowrap;
+      }
+      .btn-exclude:hover:not(:disabled) {
+        color: var(--color-error);
+        border-color: color-mix(in srgb, var(--color-error) 40%, transparent);
+        background: color-mix(in srgb, var(--color-error) 7%, transparent);
+      }
+      .btn-exclude:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      /* Inline confirmation / error strip */
+      .card-feedback {
+        font-size: 11.5px;
+        margin-top: 5px;
+        padding: 3px 0;
+        display: none;
+      }
+      .card-feedback.visible { display: block; }
+      .card-feedback--ok    { color: var(--color-accent); }
+      .card-feedback--error { color: var(--color-error); }
+
+      /* ── Empty / done state ───────────────────────────────────────────────── */
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        height: 100%;
+        min-height: 200px;
+        text-align: center;
+        padding: 32px 24px;
+        color: var(--color-fg-muted);
+      }
+      .empty-state-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        color: var(--color-fg-muted);
+        font-size: 18px;
+      }
+      .empty-state-heading {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-fg-secondary);
+      }
+      .empty-state-body {
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        max-width: 280px;
+        line-height: 1.55;
+      }
+
+      /* ── Show-more pager ──────────────────────────────────────────────────── */
+      .pager-row {
+        display: flex;
+        justify-content: center;
+        padding: 16px 20px;
+      }
+      .btn-show-more {
+        padding: 6px 16px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        border: 1px solid var(--color-border);
+        background: transparent;
+        transition: color 110ms ease, background 110ms ease;
+      }
+      .btn-show-more:hover { color: var(--color-fg-secondary); background: var(--color-surface-elevated); }
+
+      /* ── Spinner (inline pulse) ───────────────────────────────────────────── */
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .spinner {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 1.5px solid color-mix(in srgb, var(--color-fg-muted) 30%, transparent);
+        border-top-color: var(--color-fg-muted);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        flex-shrink: 0;
+        vertical-align: middle;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bridge-wait">Connecting...</div>
+    <div id="root" class="hidden">
+
+      <!-- ── Work-area header ──────────────────────────────────────────────── -->
+      <div class="work-header">
+        <div class="work-header-titles">
+          <div class="work-header-title" id="hdr-title">Migrate clients</div>
+          <div class="work-header-sub" id="hdr-sub">Loading calendar...</div>
+        </div>
+      </div>
+
+      <!-- ── Toolbar ───────────────────────────────────────────────────────── -->
+      <div class="toolbar">
+        <span class="toolbar-status" id="toolbar-status"></span>
+        <button id="btn-refresh" class="btn-refresh" type="button" title="Re-scan this calendar">
+          <span data-codicon="refresh" data-size="13"></span>
+          Refresh
+        </button>
+      </div>
+
+      <!-- ── Candidate list ────────────────────────────────────────────────── -->
+      <div id="list-area">
+        <div id="list-inner" class="list-inner"></div>
+      </div>
+
+    </div>
+
+    <script>
+    (function () {
+      'use strict';
+
+      /* ── Avatar accent palette (5 colours, cycled by first-char code) ──────── */
+      var AVATAR_COLORS = [
+        { bg: '#2a3a2e', fg: '#5ac85a' },
+        { bg: '#2a3040', fg: '#4ea6e0' },
+        { bg: '#352a40', fg: '#9b78e0' },
+        { bg: '#3a2e2a', fg: '#e07857' },
+        { bg: '#2a3a3a', fg: '#4eccc4' },
+      ];
+
+      var PAGE_SIZE = 50;
+
+      /* ── Module state ────────────────────────────────────────────────────── */
+      var boot        = window.__viewBoot;
+      var queryCap    = null;  /* record.migration.query */
+      var cmdCap      = null;  /* record.migration */
+      var patientCmd  = null;  /* record.patient */
+      var schQueryCap = null;  /* schedule.calendar.query (cross-bundle view-bind) */
+      var _calendarId = null;
+      var _scanning   = false;
+      var _candidates = [];   /* transient; re-populated on each run() */
+      var _shownCount = PAGE_SIZE;
+
+      /* ── DOM refs ────────────────────────────────────────────────────────── */
+      var elBridgeWait   = document.getElementById('bridge-wait');
+      var elRoot         = document.getElementById('root');
+      var elHdrTitle     = document.getElementById('hdr-title');
+      var elHdrSub       = document.getElementById('hdr-sub');
+      var elToolbarStatus = document.getElementById('toolbar-status');
+      var elBtnRefresh   = document.getElementById('btn-refresh');
+      var elListInner    = document.getElementById('list-inner');
+
+      /* ── Query params ────────────────────────────────────────────────────── */
+      var _params = boot.parseQuery ? boot.parseQuery(window.location.search) : (function () {
+        var p = {};
+        var s = window.location.search.slice(1);
+        if (s) s.split('&').forEach(function (part) {
+          var kv = part.split('=');
+          p[decodeURIComponent(kv[0])] = decodeURIComponent(kv.slice(1).join('='));
+        });
+        return p;
+      })();
+      _calendarId = _params['calendarId'] || null;
+
+      /* ── Avatar helpers ──────────────────────────────────────────────────── */
+      function avatarInitial(name, email) {
+        var src = name || email || '?';
+        return (src[0] || '?').toUpperCase();
+      }
+
+      function avatarColor(initial) {
+        var code = initial.charCodeAt(0) || 0;
+        return AVATAR_COLORS[code % AVATAR_COLORS.length];
+      }
+
+      /* ── Status helpers ──────────────────────────────────────────────────── */
+      function setStatus(text, cls) {
+        elToolbarStatus.textContent = text;
+        elToolbarStatus.className = 'toolbar-status' + (cls ? ' ' + cls : '');
+      }
+
+      /* Re-derive the toolbar count after optimistic row removals. */
+      function updateCount() {
+        var n = _candidates.length;
+        if (n === 0) {
+          setStatus('No unrecognised people found.', 'done');
+        } else {
+          setStatus(n + ' unrecognised ' + (n === 1 ? 'person' : 'people') + ' found.', 'done');
+        }
+      }
+
+      /* ── Load calendar name for header ───────────────────────────────────── */
+      function loadCalendarName() {
+        if (!schQueryCap || !_calendarId) return;
+        schQueryCap.call('listAddedCalendars').then(function (cals) {
+          cals = cals || [];
+          var cal = null;
+          for (var i = 0; i < cals.length; i++) {
+            if (cals[i].id === _calendarId) { cal = cals[i]; break; }
+          }
+          if (cal && cal.displayName) {
+            elHdrSub.textContent = cal.displayName;
+          } else {
+            elHdrSub.textContent = _calendarId || '';
+          }
+        }).catch(function () {
+          elHdrSub.textContent = _calendarId || '';
+        });
+      }
+
+      /* ── Run migration scan ──────────────────────────────────────────────── */
+      function runScan() {
+        if (_scanning) return;
+        if (!cmdCap) { setStatus('Not ready — try again.', 'error'); return; }
+        if (!_calendarId) { setStatus('No calendar selected.', 'error'); return; }
+
+        _scanning = true;
+        _candidates = [];
+        _shownCount = PAGE_SIZE;
+        elBtnRefresh.disabled = true;
+        setStatus('Scanning calendar...', 'scanning');
+        renderList();
+
+        cmdCap.call('run', _calendarId).then(function (result) {
+          _scanning = false;
+          elBtnRefresh.disabled = false;
+
+          /* result = { candidates: [...] } */
+          var list = (result && Array.isArray(result.candidates)) ? result.candidates : [];
+          _candidates = list;
+          if (list.length === 0) {
+            setStatus('No unrecognised people found.', 'done');
+          } else {
+            setStatus(list.length + ' unrecognised ' + (list.length === 1 ? 'person' : 'people') + ' found.', 'done');
+          }
+          renderList();
+        }).catch(function (err) {
+          _scanning = false;
+          elBtnRefresh.disabled = false;
+          var msg = (err && err.message) ? err.message : 'Scan failed. Try again.';
+          setStatus(msg, 'error');
+          renderList();
+        });
+      }
+
+      /* ── Render candidate list ───────────────────────────────────────────── */
+      function renderList() {
+        elListInner.innerHTML = '';
+
+        if (_scanning) {
+          var scanEl = document.createElement('div');
+          scanEl.className = 'empty-state';
+          var sp = document.createElement('span');
+          sp.className = 'spinner';
+          var msg = document.createElement('div');
+          msg.className = 'empty-state-body';
+          msg.textContent = 'Scanning calendar events for unrecognised participants...';
+          scanEl.appendChild(sp);
+          scanEl.appendChild(msg);
+          elListInner.appendChild(scanEl);
+          return;
+        }
+
+        var visible = _candidates.slice(0, _shownCount);
+
+        if (_candidates.length === 0) {
+          var emptyEl = document.createElement('div');
+          emptyEl.className = 'empty-state';
+
+          var iconEl = document.createElement('div');
+          iconEl.className = 'empty-state-icon';
+          var sp2 = document.createElement('span');
+          sp2.setAttribute('data-codicon', 'check');
+          sp2.setAttribute('data-size', '18');
+          iconEl.appendChild(sp2);
+
+          var headEl = document.createElement('div');
+          headEl.className = 'empty-state-heading';
+          headEl.textContent = 'No unrecognised people';
+
+          var bodyEl = document.createElement('div');
+          bodyEl.className = 'empty-state-body';
+          bodyEl.textContent = 'No unrecognised people — this calendar is migrated.';
+
+          emptyEl.appendChild(iconEl);
+          emptyEl.appendChild(headEl);
+          emptyEl.appendChild(bodyEl);
+          elListInner.appendChild(emptyEl);
+          return;
+        }
+
+        visible.forEach(function (candidate, idx) {
+          elListInner.appendChild(buildCard(candidate, idx));
+        });
+
+        /* Show-more pager */
+        if (_candidates.length > _shownCount) {
+          var remaining = _candidates.length - _shownCount;
+          var pagerEl = document.createElement('div');
+          pagerEl.className = 'pager-row';
+          var moreBtn = document.createElement('button');
+          moreBtn.type = 'button';
+          moreBtn.className = 'btn-show-more';
+          moreBtn.textContent = 'Show ' + remaining + ' more';
+          moreBtn.addEventListener('click', function () {
+            _shownCount += PAGE_SIZE;
+            renderList();
+          });
+          pagerEl.appendChild(moreBtn);
+          elListInner.appendChild(pagerEl);
+        }
+
+        /* Re-apply codicons for dynamically created elements */
+        if (boot.applyCodicons) boot.applyCodicons();
+      }
+
+      /* ── Build single candidate card ─────────────────────────────────────── */
+      function buildCard(candidate, idx) {
+        /* candidate: { seedName, seedEmail, eventRefs, outcome } */
+        var seedName  = candidate.seedName  || '';
+        var seedEmail = candidate.seedEmail || '';
+        var outcome   = candidate.outcome   || 'none';
+        var eventRefs = candidate.eventRefs || 0;
+
+        var initial = avatarInitial(seedName, seedEmail);
+        var ac      = avatarColor(initial);
+
+        var card = document.createElement('div');
+        card.className = 'candidate-card';
+        card.setAttribute('data-idx', String(idx));
+
+        /* Avatar */
+        var avatar = document.createElement('div');
+        avatar.className = 'candidate-avatar';
+        avatar.style.background = ac.bg;
+        avatar.style.color = ac.fg;
+        avatar.style.borderColor = 'transparent';
+        /* textContent safe: initial letter only, not the name */
+        avatar.textContent = initial;
+        card.appendChild(avatar);
+
+        /* Body */
+        var body = document.createElement('div');
+        body.className = 'candidate-body';
+
+        var nameEl = document.createElement('div');
+        nameEl.className = 'candidate-name';
+        /* PHI-safe textContent */
+        nameEl.textContent = seedName || seedEmail || 'Unknown';
+        body.appendChild(nameEl);
+
+        if (seedEmail && seedEmail !== seedName) {
+          var emailEl = document.createElement('div');
+          emailEl.className = 'candidate-email';
+          /* PHI-safe textContent */
+          emailEl.textContent = seedEmail;
+          body.appendChild(emailEl);
+        }
+
+        var meta = document.createElement('div');
+        meta.className = 'candidate-meta';
+
+        /* Outcome badge */
+        var badge = document.createElement('span');
+        if (outcome === 'candidates') {
+          badge.className = 'badge badge--candidates';
+          badge.textContent = 'Possible match';
+        } else {
+          badge.className = 'badge badge--none';
+          badge.textContent = 'Unknown';
+        }
+        meta.appendChild(badge);
+
+        /* Event count */
+        if (eventRefs > 0) {
+          var evEl = document.createElement('span');
+          evEl.className = 'candidate-event-count';
+          evEl.textContent = eventRefs + ' ' + (eventRefs === 1 ? 'meeting' : 'meetings');
+          meta.appendChild(evEl);
+        }
+
+        body.appendChild(meta);
+
+        /* Feedback strip (hidden until action completes) */
+        var feedbackEl = document.createElement('div');
+        feedbackEl.className = 'card-feedback';
+        body.appendChild(feedbackEl);
+
+        card.appendChild(body);
+
+        /* Actions */
+        var actions = document.createElement('div');
+        actions.className = 'candidate-actions';
+
+        var promoteBtn = document.createElement('button');
+        promoteBtn.type = 'button';
+        promoteBtn.className = 'btn-promote';
+        var promIcon = document.createElement('span');
+        promIcon.setAttribute('data-codicon', 'person');
+        promIcon.setAttribute('data-size', '12');
+        promoteBtn.appendChild(promIcon);
+        promoteBtn.appendChild(document.createTextNode('Add as client'));
+        actions.appendChild(promoteBtn);
+
+        var excludeBtn = document.createElement('button');
+        excludeBtn.type = 'button';
+        excludeBtn.className = 'btn-exclude';
+        excludeBtn.appendChild(document.createTextNode('Exclude'));
+        actions.appendChild(excludeBtn);
+
+        card.appendChild(actions);
+
+        /* ── Promote handler ─────────────────────────────────────────────── */
+        promoteBtn.addEventListener('click', function () {
+          if (promoteBtn.disabled || excludeBtn.disabled) return;
+          promoteBtn.disabled = true;
+          excludeBtn.disabled = true;
+          feedbackEl.className = 'card-feedback';
+          feedbackEl.textContent = '';
+
+          if (!patientCmd) {
+            feedbackEl.className = 'card-feedback visible card-feedback--error';
+            feedbackEl.textContent = 'Not ready — try again.';
+            promoteBtn.disabled = false;
+            excludeBtn.disabled = false;
+            return;
+          }
+
+          /* Build create payload — name split heuristic: first word = given name */
+          var displaySrc = seedName || seedEmail || '';
+          var parts = displaySrc.trim().split(/\s+/);
+          var givenName  = parts[0] || seedEmail || 'Unknown';
+          var familyName = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
+
+          var createPayload = { givenName: givenName };
+          if (familyName) createPayload.familyName = familyName;
+          if (seedEmail)  createPayload.contactEmail = seedEmail;
+
+          patientCmd.call('create', createPayload)
+            .then(function (newClient) {
+              var newId = newClient && (newClient.id || newClient.patient_id || newClient.patientId);
+              if (!newId) throw new Error('create returned no id');
+              return patientCmd.call('setStage', newId, 'migrated', 'migration');
+            })
+            .then(function () {
+              /* Optimistically remove from local list */
+              _candidates = _candidates.filter(function (c) { return c !== candidate; });
+              /* Brief inline confirmation before card disappears */
+              feedbackEl.className = 'card-feedback visible card-feedback--ok';
+              feedbackEl.textContent = 'Added as migrated client.';
+              setTimeout(function () { renderList(); updateCount(); }, 900);
+            })
+            .catch(function (err) {
+              promoteBtn.disabled = false;
+              excludeBtn.disabled = false;
+              var msg = (err && err.message) ? err.message : 'Could not add client. Try again.';
+              feedbackEl.className = 'card-feedback visible card-feedback--error';
+              feedbackEl.textContent = msg;
+            });
+        });
+
+        /* ── Exclude handler ─────────────────────────────────────────────── */
+        excludeBtn.addEventListener('click', function () {
+          if (promoteBtn.disabled || excludeBtn.disabled) return;
+          if (!seedEmail) {
+            /* No email — cannot hash-suppress; just remove from transient list */
+            _candidates = _candidates.filter(function (c) { return c !== candidate; });
+            renderList();
+            updateCount();
+            return;
+          }
+          promoteBtn.disabled = true;
+          excludeBtn.disabled = true;
+          feedbackEl.className = 'card-feedback';
+          feedbackEl.textContent = '';
+
+          if (!patientCmd) {
+            feedbackEl.className = 'card-feedback visible card-feedback--error';
+            feedbackEl.textContent = 'Not ready — try again.';
+            promoteBtn.disabled = false;
+            excludeBtn.disabled = false;
+            return;
+          }
+
+          patientCmd.call('suppressParticipant', { email: seedEmail })
+            .then(function () {
+              _candidates = _candidates.filter(function (c) { return c !== candidate; });
+              renderList();
+              updateCount();
+            })
+            .catch(function (err) {
+              promoteBtn.disabled = false;
+              excludeBtn.disabled = false;
+              var msg = (err && err.message) ? err.message : 'Could not exclude. Try again.';
+              feedbackEl.className = 'card-feedback visible card-feedback--error';
+              feedbackEl.textContent = msg;
+            });
+        });
+
+        return card;
+      }
+
+      /* ── Message handler ─────────────────────────────────────────────────── */
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (!d || d.__soamView !== true) return;
+        boot.applyTheme(d);
+      });
+
+      /* ── Refresh button ──────────────────────────────────────────────────── */
+      elBtnRefresh.addEventListener('click', function () {
+        runScan();
+      });
+
+      /* ── Bridge bootstrap ────────────────────────────────────────────────── */
+      boot.awaitBridge().then(function (soamView) {
+        window.soamView = soamView;
+
+        /* DOMContentLoaded guard before touching body classes */
+        if (document.body) {
+          elBridgeWait.classList.add('hidden');
+          elRoot.classList.remove('hidden');
+        } else {
+          document.addEventListener('DOMContentLoaded', function () {
+            elBridgeWait.classList.add('hidden');
+            elRoot.classList.remove('hidden');
+          });
+        }
+
+        boot.applyCodicons();
+
+        if (!_calendarId) {
+          elHdrSub.textContent = 'No calendar selected';
+          setStatus('Open this view from a calendar row.', 'error');
+          return;
+        }
+
+        /* Bind caps in parallel; view-binds are not manifest-gated */
+        Promise.all([
+          soamView.bindQuery('record.migration.query', '1.0'),
+          soamView.bindCommand('record.migration', '1.0'),
+          soamView.bindCommand('record.patient', '1.0'),
+          soamView.bindQuery('schedule.calendar.query', '1.0'),
+        ]).then(function (caps) {
+          queryCap    = caps[0];
+          cmdCap      = caps[1];
+          patientCmd  = caps[2];
+          schQueryCap = caps[3];
+
+          loadCalendarName();
+          runScan();
+        }).catch(function (err) {
+          var msg = (err && err.message) ? err.message : 'Could not bind capabilities.';
+          setStatus(msg, 'error');
+        });
+
+      }).catch(function (err) {
+        elBridgeWait.textContent = 'Bridge error: ' + (err && err.message ? err.message : String(err));
+      });
+
+    })();
+    </script>
+  </body>
+</html>
