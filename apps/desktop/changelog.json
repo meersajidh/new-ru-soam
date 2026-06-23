@@ -1,6 +1,20 @@
 {
   "versions": [
     {
+      "version": "0.1.8",
+      "date": "2026-06-23",
+      "entries": [
+        {
+          "kind": "Fixed",
+          "text": "Schedule now works from a fresh start: the empty state guides you to connect a calendar, and the grid appears as soon as you add one (previously it could stay blank after signing in)."
+        },
+        {
+          "kind": "Fixed",
+          "text": "Schedule event details: a client linked from the calendar who isn't in your roster yet now displays correctly, with clearer client-link actions."
+        }
+      ]
+    },
+    {
       "version": "0.1.7",
       "date": "2026-06-22",
       "entries": [

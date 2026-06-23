@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-06-23
+
+### Fixed
+
+- Schedule now works from a fresh start: the empty state guides you to connect a calendar, and the grid appears as soon as you add one (previously it could stay blank after signing in).
+- Schedule event details: a client linked from the calendar who isn't in your roster yet now displays correctly, with clearer client-link actions.
+
 ## [0.1.7] - 2026-06-22
 
 ### Added
