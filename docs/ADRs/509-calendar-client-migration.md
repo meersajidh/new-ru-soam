@@ -291,6 +291,17 @@ These are unresolved by design (design doc §7); the ADR is built incrementally 
 - **OI-8 — identity-absent migration.** Title-only events (no attendee email) → create works (name only)
   but no alias → no backfill, no future auto-link. Prompt for email or accept? Ties to the deferred series
   case (ADR-508). *(§7.9)*
+- **OI-10 — calendar-scoped exclusions. ✅ CLOSED 2026-06-24.** `participant_suppression` (ADR-508 §4b)
+  was a global hashed set with no calendar mapping, so deleting a calendar/account left its exclusions
+  behind. **Resolution:** the table gains `calendar_id` (composite PK `(id_hash, calendar_id)`; Practice
+  migration v11 recreates it, legacy rows → `calendar_id=''` = un-scoped/surviving). `suppressParticipant`
+  threads `calendarId` from all exclude sites (aux event-detail, migration roster-builder, Sessions
+  needs-linking); rows are the ref-count — the same exclusion on N calendars = N rows. `suppressionCheck`
+  stays GLOBAL (any row with the hash ⇒ suppressed; identity resolution is calendar-agnostic). New
+  `record.patient.deleteSuppressionsForCalendar(calendarId)` (`deleteWhere {calendar_id}`); the renderer
+  `calendar.delete` / `account.delete` commands call it (best-effort) so a shared exclusion survives while
+  any referencing calendar remains. `unsuppressParticipant` deletes all rows by hash (global un-suppress).
+  **ADR-508 §4b amendment owed** (suppression schema = calendar-scoped composite-PK).
 - **OI-9 — scan perf at the tail.** Bounded-memory chunked scan + paginated output + scan-on-action caching
   (§2d) cover normal + busy solo practices. A pathological distinct-participant explosion (large clinic
   calendar) may want a server-side cursor instead of an in-memory cached set. Perf optimization, not a

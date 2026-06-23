@@ -271,6 +271,17 @@ export function domainBootstrap(registry: ServiceRegistry): void {
       } finally {
         proxy.dispose();
       }
+      // Best-effort: purge suppression rows scoped to this calendar.
+      try {
+        const practiceProxy = await window.soam.bindCommand('record.patient', '1.0');
+        try {
+          await practiceProxy.call('deleteSuppressionsForCalendar', calendarId);
+        } finally {
+          practiceProxy.dispose();
+        }
+      } catch (err) {
+        console.error('[schedule] deleteSuppressionsForCalendar failed for calendar', calendarId, err);
+      }
     },
     { category: 'Schedule' },
   );
@@ -354,6 +365,24 @@ export function domainBootstrap(registry: ServiceRegistry): void {
         console.warn('[schedule] account.delete: missing or invalid accountId in ctx', ctx);
         return;
       }
+
+      // Collect calendar ids BEFORE deleteAccount cascades them away.
+      let calendarIds: string[] = [];
+      try {
+        const scheduleQuery = await window.soam.bindQuery('schedule.calendar.query', '1.0');
+        try {
+          const cals = (await scheduleQuery.call('listAddedCalendars')) as Array<{
+            id: string;
+            accountId: string;
+          }>;
+          calendarIds = cals.filter((cal) => cal.accountId === accountId).map((cal) => cal.id);
+        } finally {
+          scheduleQuery.dispose();
+        }
+      } catch (err) {
+        console.warn('[schedule] account.delete: could not list calendars for suppression cleanup', err);
+      }
+
       const proxy = await window.soam.bindCommand('schedule.calendar', '1.0');
       try {
         await proxy.call('deleteAccount', accountId);
@@ -362,6 +391,22 @@ export function domainBootstrap(registry: ServiceRegistry): void {
         console.error('[schedule] account.delete failed:', err);
       } finally {
         proxy.dispose();
+      }
+
+      // Best-effort: purge suppression rows scoped to each deleted calendar.
+      if (calendarIds.length > 0) {
+        try {
+          const practiceProxy = await window.soam.bindCommand('record.patient', '1.0');
+          try {
+            for (const calId of calendarIds) {
+              await practiceProxy.call('deleteSuppressionsForCalendar', calId);
+            }
+          } finally {
+            practiceProxy.dispose();
+          }
+        } catch (err) {
+          console.error('[schedule] deleteSuppressionsForCalendar failed for account', accountId, err);
+        }
       }
     },
     { category: 'Schedule' },
@@ -406,8 +451,11 @@ export function domainBootstrap(registry: ServiceRegistry): void {
     const inst = group?.activeTabId ? group.tabs.find((t) => t.id === group.activeTabId) : undefined;
     const res = inst?.resource ?? '';
 
-    // Only adopt entityId as patient id for Practice record tabs.
-    const isPatientTab = res.includes('ru-soam-practice/');
+    // Only adopt entityId as patient id for Practice *record* tabs. The
+    // client-migration roster-builder is a Practice view but NOT patient-scoped
+    // (its entityId is 'migration-<calId>'), so exclude it — otherwise the
+    // Practice client aux renders for a non-existent patient ("Client not found").
+    const isPatientTab = res.includes('ru-soam-practice/') && !res.includes('client-migration');
     const patientId = isPatientTab ? (inst?.entityId ?? '') : '';
     contextKeys.set('patient.activeId', patientId);
     contextKeys.set('record.activeId', patientId);

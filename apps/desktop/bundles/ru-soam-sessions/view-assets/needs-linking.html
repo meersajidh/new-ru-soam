@@ -867,6 +867,7 @@
               var suppressInput = {};
               if (rep.email) suppressInput.email = rep.email;
               if (rep.phone) suppressInput.phone = rep.phone;
+              suppressInput.calendarId = entry.calendarId || '';
               _recordPatient.call('suppressParticipant', suppressInput)
                 .then(function () {
                   removeCard(entry);

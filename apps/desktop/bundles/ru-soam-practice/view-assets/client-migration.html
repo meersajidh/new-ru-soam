@@ -768,7 +768,7 @@
             return;
           }
 
-          patientCmd.call('suppressParticipant', { email: seedEmail })
+          patientCmd.call('suppressParticipant', { email: seedEmail, calendarId: _calendarId || '' })
             .then(function () {
               _candidates = _candidates.filter(function (c) { return c !== candidate; });
               renderList();

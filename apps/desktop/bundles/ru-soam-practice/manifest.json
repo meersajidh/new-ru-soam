@@ -71,6 +71,11 @@
       "version": 10,
       "description": "Practice: participant_suppression hashed set (ADR-508 §4)",
       "sql": "CREATE TABLE IF NOT EXISTS participant_suppression (\n  id_hash      TEXT PRIMARY KEY,\n  kind         TEXT NOT NULL,\n  created_at   INTEGER NOT NULL\n);"
+    },
+    {
+      "version": 11,
+      "description": "Practice: calendar-scope participant_suppression (ADR-509 OI-10)",
+      "sql": "CREATE TABLE participant_suppression_new (\n  id_hash     TEXT NOT NULL,\n  calendar_id TEXT NOT NULL DEFAULT '',\n  kind        TEXT NOT NULL,\n  created_at  INTEGER NOT NULL,\n  PRIMARY KEY (id_hash, calendar_id)\n);\nINSERT INTO participant_suppression_new (id_hash, calendar_id, kind, created_at)\n  SELECT id_hash, '', kind, created_at FROM participant_suppression;\nDROP TABLE participant_suppression;\nALTER TABLE participant_suppression_new RENAME TO participant_suppression;"
     }
   ],
   "queryTemplates": [
@@ -137,6 +142,10 @@
     {
       "id": "patient.suppressionCheck",
       "sql": "SELECT id_hash FROM participant_suppression WHERE id_hash = @hash"
+    },
+    {
+      "id": "patient.suppressionCheckScoped",
+      "sql": "SELECT id_hash FROM participant_suppression WHERE id_hash = @hash AND calendar_id = @calendarId"
     },
     {
       "id": "patient.aliasExists",

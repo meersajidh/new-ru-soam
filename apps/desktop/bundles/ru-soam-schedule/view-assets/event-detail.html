@@ -1245,7 +1245,7 @@
                 unlinkP
                   .then(function () {
                     return repEmail && _recordCmd
-                      ? _recordCmd.call('suppressParticipant', { email: repEmail })
+                      ? _recordCmd.call('suppressParticipant', { email: repEmail, calendarId: ev.calendarId || '' })
                       : Promise.resolve();
                   })
                   .then(function () {
@@ -1338,7 +1338,7 @@
                 }
                 disableBlock(block);
                 _recordCmd
-                  .call('suppressParticipant', { email: repEmail })
+                  .call('suppressParticipant', { email: repEmail, calendarId: ev.calendarId || '' })
                   .then(function () {
                     block.innerHTML = '';
                     block.appendChild(txt('div', 'det-link-desc', 'Marked as not a client.'));
@@ -1369,22 +1369,84 @@
             desc.textContent = 'Marked as not a client.';
             block.appendChild(desc);
 
-            var picker2 = buildPickerWrap(function (cid, cname) {
-              picker2._close();
-              doLink(cid, cname);
-            });
+            var addAsClientBtn = el('button', 'det-act-btn primary');
+            addAsClientBtn.type = 'button';
+            addAsClientBtn.textContent = 'Add as a client';
+            addAsClientBtn.addEventListener('click', function () {
+              if (!_recordCmd) {
+                setBlockMsg(msgEl, 'record.patient cap unavailable', 'err');
+                return;
+              }
+              disableBlock(block);
+              var unsuppressStep = repEmail
+                ? _recordCmd.call('unsuppressParticipant', { email: repEmail })
+                : Promise.resolve();
+              unsuppressStep
+                .then(function () {
+                  var createInput = { givenName: repName || repEmail };
+                  if (repEmail) createInput.contactEmail = repEmail;
+                  return _recordCmd.call('create', createInput);
+                })
+                .then(function (created) {
+                  var newId = created && created.id ? created.id : null;
+                  if (!newId) return Promise.reject(new Error('create returned no id'));
+                  var evObj = buildEventObj(ev);
+                  return (
+                    _sessionsCmd
+                      ? _sessionsCmd.call('linkProviderEvent', evObj, newId, { kind: 'intake' })
+                      : Promise.reject(new Error('sessions cap unavailable'))
+                  )
+                    .then(function () {
+                      return _recordCmd.call(
+                        'setStage',
+                        newId,
+                        'intake',
+                        'Intake scheduled from calendar',
+                      );
+                    })
+                    .then(function () {
+                      return { id: newId, name: repName || repEmail || '?' };
+                    });
+                })
+                .then(function (result) {
+                  block.innerHTML = '';
 
-            var linkExcBtn = el('button', 'det-act-btn');
-            linkExcBtn.type = 'button';
-            linkExcBtn.textContent = 'Link to a client';
-            linkExcBtn.addEventListener('click', function () {
-              loadRoster().then(function () {
-                picker2._open();
-              });
+                  var cardExc = el('div', 'det-linked-card');
+                  var avExc = el('div', 'det-avatar');
+                  avExc.textContent =
+                    String(result.name)
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map(function (w) {
+                        return w.charAt(0);
+                      })
+                      .join('') || '?';
+                  cardExc.appendChild(avExc);
+                  var infoExc = el('div', 'det-linked-card-info');
+                  infoExc.appendChild(txt('div', 'det-linked-card-name', result.name));
+                  infoExc.appendChild(txt('div', 'det-linked-card-sub', 'Intake scheduled ✓'));
+                  cardExc.appendChild(infoExc);
+                  block.appendChild(cardExc);
+
+                  block.appendChild(makeOpenSessionsBtn('Open in Sessions', true));
+                  if (titleEl) titleEl.textContent = result.name;
+                  bumpCalRev();
+                })
+                .catch(function (err) {
+                  enableBlock(block);
+                  if (window.__viewBoot.isLockedError(err)) {
+                    setBlockMsg(msgEl, 'Workspace locked.', 'err');
+                  } else {
+                    setBlockMsg(
+                      msgEl,
+                      'Failed: ' + (err && err.message ? err.message : String(err)),
+                      'err',
+                    );
+                  }
+                });
             });
-            acts.appendChild(linkExcBtn);
+            acts.appendChild(addAsClientBtn);
             block.appendChild(acts);
-            block.appendChild(picker2);
             block.appendChild(msgEl);
 
             // ── State: PERSONAL ──
@@ -1541,7 +1603,7 @@
                 }
                 disableBlock(block);
                 _recordCmd
-                  .call('suppressParticipant', { email: repEmail })
+                  .call('suppressParticipant', { email: repEmail, calendarId: ev.calendarId || '' })
                   .then(function () {
                     block.innerHTML = '';
                     block.appendChild(txt('div', 'det-link-desc', 'Marked as not a client.'));

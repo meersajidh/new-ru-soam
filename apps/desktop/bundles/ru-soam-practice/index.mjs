@@ -1561,19 +1561,22 @@ export function activate(ctx) {
           throw new Error('record.patient.suppressParticipant: email or phone required');
         }
 
+        const calId = typeof input.calendarId === 'string' ? input.calendarId : '';
+
         for (const [kind, val] of [
           ['email', input.email != null ? normalizeEmail(input.email) : null],
           ['phone', input.phone != null ? normalizePhone(input.phone) : null],
         ]) {
           if (val == null) continue;
           const h = await sha256hex(kind + ':' + val);
-          // Dedup check — no audit tag.
-          const dedupRows = await storeQuery.call('run', ['patient.suppressionCheck', { hash: h }]);
+          // Dedup check on composite PK (id_hash, calendar_id) — no audit tag.
+          const dedupRows = await storeQuery.call('run', ['patient.suppressionCheckScoped', { hash: h, calendarId: calId }]);
           if (dedupRows.length > 0) continue;
           await storeWrite.call('insert', [
             'participant_suppression',
             {
               id_hash: h,
+              calendar_id: calId,
               kind,
               created_at: Date.now(),
             },
@@ -1587,6 +1590,53 @@ export function activate(ctx) {
         }
 
         return { suppressed: true };
+      }
+
+      case 'deleteSuppressionsForCalendar': {
+        const calendarId = args[0];
+        if (typeof calendarId !== 'string' || calendarId.length === 0) {
+          throw new Error('record.patient.deleteSuppressionsForCalendar: calendarId must be a non-empty string');
+        }
+        await storeWrite.call('deleteWhere', [
+          'participant_suppression',
+          { calendar_id: calendarId },
+          {
+            event: 'record.patient.suppression.calendar_cleared',
+            recordType: 'participant_suppression',
+            recordId: calendarId,
+            detail: { calendarId },
+          },
+        ]);
+        return { cleared: true };
+      }
+
+      case 'unsuppressParticipant': {
+        const input = args[0] || {};
+        if (input.email == null && input.phone == null) {
+          throw new Error('record.patient.unsuppressParticipant: email or phone required');
+        }
+
+        let removed = 0;
+        for (const [kind, val] of [
+          ['email', input.email != null ? normalizeEmail(input.email) : null],
+          ['phone', input.phone != null ? normalizePhone(input.phone) : null],
+        ]) {
+          if (val == null) continue;
+          const h = await sha256hex(kind + ':' + val);
+          await storeWrite.call('deleteWhere', [
+            'participant_suppression',
+            { id_hash: h },
+            {
+              event: 'record.patient.participant.unsuppressed',
+              recordType: 'participant_suppression',
+              recordId: h,
+              detail: { kind },
+            },
+          ]);
+          removed++;
+        }
+
+        return { unsuppressed: removed > 0 };
       }
 
       default:
@@ -1661,6 +1711,17 @@ export function activate(ctx) {
         const windowFromISO = new Date(windowFrom).toISOString();
         const windowToISO   = new Date(windowTo).toISOString();
         const startedAt   = now;
+
+        // Ensure the event cache is fresh before scanning. A freshly-added calendar
+        // (migration launched straight from the add-calendar flow) has not synced its
+        // events yet, so the cache would be empty and the scan would find nothing.
+        // Offline-tolerant: on failure fall back to whatever is cached (mirrors the
+        // Sessions sync pattern). syncEvents takes no args (syncs all added calendars).
+        try {
+          await scheduleCalendar.call('syncEvents', []);
+        } catch (_e) {
+          /* offline / sync failed — proceed with whatever is in the cache */
+        }
 
         // Fetch events for the window via cross-bundle query cap (ALL added calendars
         // query; Practice scopes to this calendar by filtering on calendarId).
