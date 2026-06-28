@@ -552,6 +552,148 @@
         vertical-align: middle;
       }
 
+      /* ── Possible-duplicates section ─────────────────────────────────────── */
+      #dedup-section {
+        flex-shrink: 0;
+        border-bottom: 2px solid var(--color-border);
+      }
+      #dedup-section.hidden { display: none; }
+
+      .dedup-section-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 20px 5px;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-fg-muted);
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+      }
+
+      .dedup-clusters {
+        display: flex;
+        flex-direction: column;
+        max-height: 300px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 25%, transparent) transparent;
+      }
+
+      .dedup-cluster-card {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 20px 11px;
+        border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+        max-width: 720px;
+        margin: 0 auto;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .dedup-cluster-card:last-child { border-bottom: none; }
+
+      .badge--dedup-contact {
+        color: var(--color-info);
+        background: color-mix(in srgb, var(--color-info) 12%, transparent);
+      }
+      .badge--dedup-heuristic {
+        color: var(--color-warning);
+        background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+      }
+
+      .dedup-members {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-top: 2px;
+      }
+
+      .dedup-member-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .dedup-member-radio {
+        width: 14px;
+        height: 14px;
+        accent-color: var(--color-accent);
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .dedup-member-radio:disabled { cursor: not-allowed; }
+
+      .dedup-member-name {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--color-fg-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .dedup-member-email {
+        font-size: 11.5px;
+        color: var(--color-fg-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+        flex-shrink: 0;
+      }
+
+      .dedup-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 2px;
+      }
+
+      .btn-dedup-merge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 11px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 500;
+        background: var(--color-accent);
+        color: var(--color-accent-fg);
+        border: none;
+        transition: background 100ms ease, opacity 100ms ease;
+        white-space: nowrap;
+      }
+      .btn-dedup-merge:hover:not(:disabled) { background: var(--color-accent-hover); }
+      .btn-dedup-merge:active:not(:disabled) { background: var(--color-accent-pressed); }
+      .btn-dedup-merge:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      .btn-dedup-keep {
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        border: 1px solid var(--color-border);
+        background: transparent;
+        transition: color 100ms ease, background 100ms ease;
+        white-space: nowrap;
+      }
+      .btn-dedup-keep:hover:not(:disabled) { color: var(--color-fg-secondary); background: var(--color-surface-elevated); }
+      .btn-dedup-keep:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      .dedup-feedback {
+        font-size: 11.5px;
+        margin-top: 2px;
+        display: none;
+      }
+      .dedup-feedback.visible { display: block; }
+      .dedup-feedback--ok    { color: var(--color-accent); }
+      .dedup-feedback--error { color: var(--color-error); }
+
       /* ── Roster picker modal ─────────────────────────────────────────────── */
       #picker-overlay {
         position: fixed;
@@ -736,6 +878,15 @@
         <button id="btn-batch-clear" class="btn-batch-clear" type="button">Clear</button>
       </div>
 
+      <!-- ── Possible duplicates ──────────────────────────────────────────── -->
+      <div id="dedup-section" class="hidden">
+        <div class="dedup-section-header">
+          <span data-codicon="group-by-ref-type" data-size="11"></span>
+          Possible duplicates
+        </div>
+        <div id="dedup-clusters" class="dedup-clusters"></div>
+      </div>
+
       <!-- ── Candidate list ────────────────────────────────────────────────── -->
       <div id="list-area">
         <div id="list-inner" class="list-inner"></div>
@@ -797,6 +948,10 @@
       var _candidates    = [];    /* transient; re-populated on each run() */
       var _shownCount    = PAGE_SIZE;
 
+      /* ── Dedup state ─────────────────────────────────────────────────────── */
+      var _clusters          = [];           /* listDuplicates result */
+      var _dismissedClusters = new Set();   /* clusterId; persists within session */
+
       /* ── Selection state ─────────────────────────────────────────────────── */
       var _selected      = new Set();  /* Set<participantKey> */
       var _batchRunning  = false;
@@ -822,6 +977,8 @@
       var elBtnBatchExclude    = document.getElementById('btn-batch-exclude');
       var elBtnBatchClear      = document.getElementById('btn-batch-clear');
       var elListInner          = document.getElementById('list-inner');
+      var elDedupSection       = document.getElementById('dedup-section');
+      var elDedupClusters      = document.getElementById('dedup-clusters');
 
       /* Picker */
       var elPickerOverlay  = document.getElementById('picker-overlay');
@@ -957,6 +1114,210 @@
         _rosterCache = null;
       }
 
+      /* ── Dedup: load + render cluster cards ──────────────────────────────── */
+
+      function loadDuplicates() {
+        if (!queryCap || !_calendarId) return;
+        queryCap.call('listDuplicates', _calendarId).then(function (result) {
+          _clusters = (result && Array.isArray(result.clusters)) ? result.clusters : [];
+          renderDedupSection();
+        }).catch(function () {
+          _clusters = [];
+          renderDedupSection();
+        });
+      }
+
+      function renderDedupSection() {
+        var visible = _clusters.filter(function (c) {
+          return !_dismissedClusters.has(c.clusterId);
+        });
+        if (visible.length === 0) {
+          elDedupSection.classList.add('hidden');
+          elDedupClusters.innerHTML = '';
+          return;
+        }
+        elDedupSection.classList.remove('hidden');
+        elDedupClusters.innerHTML = '';
+        visible.forEach(function (cluster) {
+          elDedupClusters.appendChild(buildClusterCard(cluster));
+        });
+        if (boot.applyCodicons) boot.applyCodicons();
+      }
+
+      function buildClusterCard(cluster) {
+        var card = document.createElement('div');
+        card.className = 'dedup-cluster-card';
+
+        /* Reason badge */
+        var reasonEl = document.createElement('div');
+        var reasonBadge = document.createElement('span');
+        reasonBadge.className = 'badge ' + (cluster.reason === 'contact' ? 'badge--dedup-contact' : 'badge--dedup-heuristic');
+        reasonBadge.textContent = cluster.reason === 'contact'
+          ? 'Grouped in your Google Contacts'
+          : 'Similar name or shared phone';
+        reasonEl.appendChild(reasonBadge);
+        card.appendChild(reasonEl);
+
+        /* Members with primary radio picker */
+        var radioName = 'dedup-primary-' + cluster.clusterId;
+        var membersEl = document.createElement('div');
+        membersEl.className = 'dedup-members';
+
+        cluster.members.forEach(function (member, idx) {
+          var row = document.createElement('div');
+          row.className = 'dedup-member-row';
+
+          var radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = radioName;
+          radio.className = 'dedup-member-radio';
+          radio.value = member.participantKey;
+          radio.checked = (idx === 0);
+
+          var nameEl = document.createElement('div');
+          nameEl.className = 'dedup-member-name';
+          /* PHI-safe textContent */
+          nameEl.textContent = member.seedName || member.seedEmail || member.participantKey;
+
+          row.appendChild(radio);
+          row.appendChild(nameEl);
+
+          if (member.seedEmail && member.seedEmail !== (member.seedName || '')) {
+            var emailEl = document.createElement('div');
+            emailEl.className = 'dedup-member-email';
+            /* PHI-safe textContent */
+            emailEl.textContent = member.seedEmail;
+            row.appendChild(emailEl);
+          }
+
+          membersEl.appendChild(row);
+        });
+
+        card.appendChild(membersEl);
+
+        /* Feedback strip */
+        var feedbackEl = document.createElement('div');
+        feedbackEl.className = 'dedup-feedback';
+        card.appendChild(feedbackEl);
+
+        /* Action buttons */
+        var actionsEl = document.createElement('div');
+        actionsEl.className = 'dedup-actions';
+
+        var mergeBtn = document.createElement('button');
+        mergeBtn.type = 'button';
+        mergeBtn.className = 'btn-dedup-merge';
+        mergeBtn.textContent = 'Confirm merge';
+
+        var keepBtn = document.createElement('button');
+        keepBtn.type = 'button';
+        keepBtn.className = 'btn-dedup-keep';
+        keepBtn.textContent = 'Keep separate';
+
+        actionsEl.appendChild(mergeBtn);
+        actionsEl.appendChild(keepBtn);
+        card.appendChild(actionsEl);
+
+        function setClusterBusy(busy) {
+          mergeBtn.disabled = busy;
+          keepBtn.disabled = busy;
+          var radios = card.querySelectorAll('input[type="radio"]');
+          for (var i = 0; i < radios.length; i++) { radios[i].disabled = busy; }
+        }
+
+        mergeBtn.addEventListener('click', function () {
+          if (mergeBtn.disabled) return;
+
+          /* Resolve chosen primary */
+          var selectedKey = null;
+          var radios = card.querySelectorAll('input[name="' + radioName + '"]');
+          for (var i = 0; i < radios.length; i++) {
+            if (radios[i].checked) { selectedKey = radios[i].value; break; }
+          }
+
+          var primary = null;
+          var others = [];
+          cluster.members.forEach(function (m) {
+            if (m.participantKey === selectedKey) { primary = m; }
+            else { others.push(m); }
+          });
+          if (!primary) { primary = cluster.members[0]; others = cluster.members.slice(1); }
+
+          setClusterBusy(true);
+          feedbackEl.className = 'dedup-feedback';
+          feedbackEl.textContent = '';
+
+          doMergeCluster(primary, others).then(function () {
+            feedbackEl.className = 'dedup-feedback visible dedup-feedback--ok';
+            feedbackEl.textContent = 'Merged into one client.';
+            /* Re-scan drops the now-promoted candidates from the cache */
+            setTimeout(function () { runScan(); }, 700);
+          }).catch(function (err) {
+            setClusterBusy(false);
+            var msg = (err && err.message) ? err.message : 'Merge failed. Try again.';
+            feedbackEl.className = 'dedup-feedback visible dedup-feedback--error';
+            feedbackEl.textContent = msg;
+          });
+        });
+
+        keepBtn.addEventListener('click', function () {
+          if (keepBtn.disabled) return;
+          _dismissedClusters.add(cluster.clusterId);
+          renderDedupSection();
+        });
+
+        return card;
+      }
+
+      /**
+       * Merge cluster: promote primary as migrated client, alias the rest.
+       * Returns a Promise.
+       */
+      function doMergeCluster(primary, others) {
+        if (!patientCmd) return Promise.reject(new Error('Not ready — try again.'));
+
+        var seedName  = primary.seedName  || '';
+        var seedEmail = primary.seedEmail || '';
+        var seedPhone = primary.seedPhone || '';
+
+        var displaySrc = seedName || seedEmail || '';
+        var parts = displaySrc.trim().split(/\s+/);
+        var givenName  = parts[0] || seedEmail || 'Unknown';
+        var familyName = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
+
+        var createPayload = { givenName: givenName };
+        if (familyName)  createPayload.familyName    = familyName;
+        if (seedEmail)   createPayload.contactEmail  = seedEmail;
+        if (seedPhone)   createPayload.contactPhone  = seedPhone;
+
+        var newId = null;
+
+        return patientCmd.call('create', createPayload)
+          .then(function (newClient) {
+            newId = newClient && (newClient.id || newClient.patient_id || newClient.patientId);
+            if (!newId) throw new Error('create returned no id');
+            return patientCmd.call('setStage', newId, 'migrated', 'migration');
+          })
+          .then(function () {
+            /* Alias each non-primary member (chain Promises sequentially) */
+            var p = Promise.resolve();
+            others.forEach(function (m) {
+              p = p.then(function () {
+                var aliasInput = {};
+                if (m.seedEmail) aliasInput.email = m.seedEmail;
+                if (m.seedPhone) aliasInput.phone = m.seedPhone;
+                if (m.seedName)  aliasInput.name  = m.seedName;
+                if (!aliasInput.email && !aliasInput.phone && !aliasInput.name) return;
+                return patientCmd.call('addAlias', newId, aliasInput);
+              });
+            });
+            return p;
+          })
+          .then(function () {
+            invalidateRoster();
+          });
+      }
+
       /* ── Core single-card actions (reused by batch) ──────────────────────── */
 
       /**
@@ -1032,12 +1393,14 @@
 
         _scanning = true;
         _candidates = [];
+        _clusters = [];
         _shownCount = PAGE_SIZE;
         _selected.clear();
         elBatchBar.classList.add('hidden');
         elSelectAllWrap.classList.add('hidden');
         elBtnRefresh.disabled = true;
         setStatus('Scanning calendar...', 'scanning');
+        renderDedupSection(); /* hide dedup section while scanning */
         renderList();
 
         cmdCap.call('run', _calendarId).then(function (result) {
@@ -1054,6 +1417,7 @@
           }
           renderList();
           updateCount();
+          loadDuplicates(); /* derive + render cluster cards above the candidate list */
         }).catch(function (err) {
           _scanning = false;
           elBtnRefresh.disabled = false;

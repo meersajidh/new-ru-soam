@@ -227,6 +227,87 @@ referral ─▶ intake ─▶ active ─▶ ...
   have history, not a first appointment); "next meeting" still applies.
 - *(Exact vocab position, migration-checklist item set, reversibility = OI-1/OI-2/OI-6.)*
 
+### 7. Deduplication & alias merge (A5) — addendum 2026-06-28
+
+Messy calendars name one human many ways (`John` / `John S.` / `john@gmail.com` /
+`john@work.com`) — the migration-path doc Step 5. Each spelling is a distinct
+participant key (`email:`/`phone:`/`name:`), so the scan emits **N candidates for
+one person**. Dedup collapses them; merge records the collapse as **identity
+aliases** under one chart. **Scoped to migration only** (the bulk add/edit moment)
+— there is no always-on dedup surface.
+
+**7.1 Two scenarios (decided 2026-06-28):**
+
+| | situation | mechanism |
+|---|---|---|
+| **(a)** same human = two **calendar** candidates (neither a client yet) | cluster + merge-on-promote (this section) |
+| **(b)** same human = one existing **client record** + one calendar candidate | **flag → existing link-to-existing path** (`addAlias` onto the client) or add-as-new; **no new merge engine** |
+
+**7.2 Detection — confirmed vs possible (the reason must be legible):**
+
+- **Confirmed duplicate** — both emails are grouped under one Google contact
+  (People API `resourceName`). The **user already deduped in their address book;
+  the app replicates that decision**. Auto-clustered, pre-checked. Reason copy:
+  *"Grouped in your Google Contacts."*
+  - **Limit (accepted):** People API grouping covers only contacts the user has
+    **saved**. Two arbitrary attendee emails not in the address book yield no
+    `resourceName` → fall to *possible*, never auto-confirmed.
+- **Possible duplicate** — heuristic only: normalized name-token overlap
+  (`john` ⊂ `john s.` ⊂ `john smith`) and/or shared phone. Surfaced **unchecked**,
+  user confirms. Reason copy: *"Similar name"* / *"Shared phone number."*
+- **Anti-signal** — two identities that **co-attend the same event** are different
+  people; never clustered.
+
+**7.3 Alias scope = identity/contact-identifier layer (decided 2026-06-28).** A
+merge does **not** fork a second clinical record. Each non-primary identifier
+becomes a `patient_identity_alias` row (`kind ∈ {email,phone,name}`, the existing
+ADR-508 §4 table). The cluster's chosen **primary** identifier populates
+`patients.contact_email` / display name; the rest are aliases. Aliases already
+participate in resolution (`patient.resolveByEmail/Phone/Name` UNION the alias
+table) — so a merged client is found by *any* of their identifiers.
+
+**7.4 Merge / swap / unmerge:**
+
+- **Merge (pre-promotion)** = promote the cluster as **one** patient — existing
+  `record.create` for the primary + `record.patient.addAlias` per other
+  identifier. **No new merge cap**; the roster-builder composes it.
+- **Swap primary** = promote an alias to canonical and demote the old canonical to
+  an alias (`record.patient.setPrimaryIdentity`).
+- **Unmerge** = `record.patient.removeAlias`. The identifier then no longer
+  resolves to that chart, so the **next scan re-derives it as a fresh incoming
+  candidate** (reuses §2d's derive-by-rescan; no separate split engine). Safe in
+  v1 because meeting-linking is the deferred §5 step — an un-merged identifier has
+  no linked `client_meeting` rows to dangle. *(Post-linking unmerge = OI-11.)*
+
+**7.5 New caps:**
+
+| cap | bundle | kind | does | writes |
+|---|---|---|---|---|
+| `schedule.contacts.query.getEmailGroups(externalAccountId)` | Schedule | query (phi) | `{ emailLower → resourceName }` from People API (extends the existing `fetchContactNameMap` pass) | none — **live, never persisted** (contact PHI is recomputable; no new at-rest surface) |
+| `record.migration.query.listDuplicates(calendarId)` | Practice | query (phi) | derive clusters over the cached candidate set ⋈ the email-group map → `[{ clusterId, reason, members[] }]` | none — pure derive |
+| `record.patient.removeAlias(clientId, aliasId)` | Practice | command (phi) | unmerge + profile alias edit | `patient_identity_alias` delete |
+| `record.patient.setPrimaryIdentity(clientId, aliasId)` | Practice | command (phi) | swap canonical ↔ alias | `patients` + `patient_identity_alias` |
+
+**7.6 Two UI surfaces:**
+
+1. **"Review duplicates" step** in the roster-builder (`client-migration.html`) —
+   cluster cards, legible reason label, pick-primary, **confirm-merge** (confirmed
+   clusters pre-checked) / **keep-separate**. Distinct step, after scan.
+2. **Aliases section in the Practice client profile** — list / add / edit / remove
+   alias + set-primary. Satisfies "see and edit the alias when viewing a client";
+   lands in Practice, **independent of migration** (usable for any chart).
+
+**7.7 Build slices:**
+
+- **A5.1 — alias management in the client profile.** Caps `removeAlias` +
+  `setPrimaryIdentity`; profile aliases section. Smallest, migration-independent,
+  immediately useful. **First.**
+- **A5.2 — People-API contact grouping.** `getEmailGroups` cap + the map-build
+  extension to `fetchContactNameMap`.
+- **A5.3 — dedup derive + Review-duplicates step.** `listDuplicates` + the
+  roster-builder review step; merge = create + addAlias, unmerge = removeAlias →
+  rescan; scenario (b) folds in via the existing link-to-existing path.
+
 ## Consequences
 
 ### Positive
@@ -306,6 +387,10 @@ These are unresolved by design (design doc §7); the ADR is built incrementally 
   (§2d) cover normal + busy solo practices. A pathological distinct-participant explosion (large clinic
   calendar) may want a server-side cursor instead of an in-memory cached set. Perf optimization, not a
   correctness blocker; revisit if dogfood shows it. *(§2d)*
+- **OI-11 — post-linking unmerge.** §7.4 v1 unmerge (`removeAlias` → rescan) is clean only **before**
+  meeting-linking, because no `client_meeting` rows reference the un-merged identifier yet. Once the §5 link
+  step has run, removing an alias would leave its linked meetings pointing at the wrong chart. Define the
+  re-point / orphan / re-derive behaviour for unmerge after linking. *(§7.4)*
 
 ## Build status
 
@@ -321,3 +406,7 @@ These are unresolved by design (design doc §7); the ADR is built incrementally 
   roster.
 - **Slice 2 (planned) — bulk roster-builder UI** (OI-4): the review surface, batch promote/exclude,
   auto-offer on `pending` calendars.
+- **A5 dedup/merge (§7 addendum, 2026-06-28).** Three slices: **A5.1** alias management in the client
+  profile (`removeAlias` + `setPrimaryIdentity` caps + profile aliases section) — *building*; **A5.2**
+  People-API contact grouping (`schedule.contacts.query.getEmailGroups`); **A5.3** dedup derive +
+  Review-duplicates step (`record.migration.query.listDuplicates` + roster-builder review UI).

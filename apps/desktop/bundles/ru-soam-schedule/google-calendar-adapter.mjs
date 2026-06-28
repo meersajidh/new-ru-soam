@@ -134,6 +134,118 @@ async function fetchContactNameMap(netFetch, provider, externalAccountId) {
 }
 
 /**
+ * Fetch a map of { lowercasedEmail → resourceName } from the People API for a single account.
+ *
+ * PHI-minimization: only contacts with ≥2 distinct emails are emitted. A single-email contact
+ * can never form a duplicate cluster, so it is omitted entirely.
+ *
+ * Each qualifying email maps to that person's resourceName (opaque Google id, e.g.
+ * `people/c123` or `otherContacts/c456`). Two emails sharing a resourceName belong to the
+ * same saved contact — the grouping signal the dedup layer clusters on.
+ *
+ * Best-effort: any non-2xx response or thrown error is swallowed and logged once.
+ * Connections win over otherContacts on email-key conflict.
+ * Returns {} if both endpoints fail.
+ *
+ * @param {object} netFetch          - Bound net.brokeredFetch@1.0 capability handle
+ * @param {string} provider          - Provider string for the broker ('google-calendar')
+ * @param {string} externalAccountId - Google account id (broker key)
+ * @returns {Promise<Record<string, string>>}
+ */
+async function fetchContactEmailGroups(netFetch, provider, externalAccountId) {
+  const emailMap = {};
+
+  /**
+   * Fetch all pages of a People API endpoint, merge qualifying contacts into emailMap.
+   * @param {string}  endpoint      - Full URL base (without pageToken)
+   * @param {string}  fieldParam    - 'personFields' or 'readMask' query param name
+   * @param {string}  fieldValue    - Value for that param ('names,emailAddresses')
+   * @param {boolean} winOnConflict - If true, this source overwrites existing map entries
+   */
+  async function fetchPeopleEndpoint(endpoint, fieldParam, fieldValue, winOnConflict) {
+    let pageToken = null;
+    do {
+      const params = new URLSearchParams({ [fieldParam]: fieldValue, pageSize: '1000' });
+      if (pageToken) params.set('pageToken', pageToken);
+
+      let resp;
+      try {
+        resp = await netFetch.call('fetch', [
+          {
+            provider,
+            accountId: externalAccountId,
+            url: `${endpoint}?${params}`,
+            method: 'GET',
+          },
+        ]);
+      } catch (err) {
+        console.warn('[schedule] People API fetch error (emailGroups):', endpoint, err && err.message);
+        return; // best-effort: abort this endpoint, keep whatever map we have
+      }
+
+      if (!resp.ok) {
+        // 403 = new scope not yet granted (account predates new scopes); tolerate silently.
+        console.warn('[schedule] People API non-2xx (emailGroups):', endpoint, resp.status);
+        return;
+      }
+
+      const data = resp.body;
+      const connections = (data && data.connections) || (data && data.otherContacts) || [];
+      for (const person of connections) {
+        const resourceName = person.resourceName;
+        const emails = person.emailAddresses;
+        if (!resourceName || !emails || emails.length === 0) continue;
+
+        // Collect distinct lowercased emails for this person.
+        const distinctEmails = [];
+        const seen = new Set();
+        for (const emailEntry of emails) {
+          if (!emailEntry.value) continue;
+          const key = emailEntry.value.toLowerCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+            distinctEmails.push(key);
+          }
+        }
+
+        // PHI-minimization: skip contacts with fewer than 2 distinct emails.
+        // A single-email contact can never form a duplicate cluster.
+        if (distinctEmails.length < 2) continue;
+
+        for (const key of distinctEmails) {
+          if (winOnConflict || !(key in emailMap)) {
+            emailMap[key] = resourceName;
+          }
+        }
+      }
+
+      pageToken = (data && data.nextPageToken) || null;
+    } while (pageToken);
+  }
+
+  // otherContacts first (lower priority), then connections (win on conflict).
+  try {
+    await fetchPeopleEndpoint(
+      `${PEOPLE_API_BASE}/otherContacts`,
+      'readMask',
+      'names,emailAddresses',
+      false,
+    );
+    await fetchPeopleEndpoint(
+      `${PEOPLE_API_BASE}/people/me/connections`,
+      'personFields',
+      'names,emailAddresses',
+      true,
+    );
+  } catch (_err) {
+    // Outer safety net — People API must never break calendar sync.
+    console.warn('[schedule] fetchContactEmailGroups unexpected error:', _err && _err.message);
+  }
+
+  return emailMap;
+}
+
+/**
  * Returns true if the organizer email is a Google Calendar resource address
  * (secondary/shared/holiday calendars) rather than a real person's email.
  * Resource emails: <hash>@group.calendar.google.com or contain '#' (e.g. holiday feeds).
@@ -418,6 +530,16 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
     return fetchContactNameMap(netFetch, provider, externalAccountId);
   }
 
+  /**
+   * Fetch a map of { lowercasedEmail → resourceName } for confirmed-duplicate detection.
+   * Only contacts with ≥2 distinct emails are included (PHI-minimization).
+   * Live — never persisted. Used by the migration dedup derive step (ADR-509 §7.5 A5.2).
+   * Best-effort — never throws.
+   */
+  async function getContactEmailGroups(externalAccountId) {
+    return fetchContactEmailGroups(netFetch, provider, externalAccountId);
+  }
+
   async function syncEvents(externalAccountId, providerCalendarId, opts) {
     opts = opts || {};
     const syncToken = opts.syncToken || null;
@@ -597,6 +719,8 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
     syncEvents,
     // People API name enrichment
     getContactNameMap,
+    // People API contact email-group map (A5.2 dedup signal — ADR-509 §7.5)
+    getContactEmailGroups,
     // On-demand single-event fetch (O509 meeting-link re-scan)
     getEvent,
   };

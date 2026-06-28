@@ -424,6 +424,58 @@
         color: var(--color-error);
       }
 
+      /* ── Identifiers section ──────────────────────────────────────────────────── */
+      .alias-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .alias-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        min-width: 0;
+      }
+      .alias-kind {
+        font-size: 9.5px;
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--color-fg-muted);
+        flex: 0 0 42px;
+      }
+      .alias-value {
+        color: var(--color-fg-secondary);
+        flex: 1 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+      }
+      .alias-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      #alias-add-form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-top: 10px;
+        border-top: 1px solid var(--color-border);
+        margin-top: 4px;
+      }
+      #alias-add-form .pe-field {
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+      }
+      #alias-add-form .pe-label {
+        flex: 0 0 36px;
+      }
+
       /* ── Circle member list ───────────────────────────────────────────────────── */
       .circle-list {
         display: flex;
@@ -903,6 +955,54 @@
             </div>
           </div>
         </section>
+        <!-- Other identifiers (A5.1 — alias management) -->
+        <section class="section" id="section-identifiers">
+          <header
+            class="section-header"
+            id="sh-identifiers"
+            tabindex="0"
+            role="button"
+            aria-expanded="false"
+          >
+            <span class="section-caret" data-codicon="chevron-right" data-size="12"></span>
+            <span data-codicon="account" data-size="13"></span>
+            <span class="section-title">Other identifiers</span>
+            <span class="section-source">PRACTICE</span>
+          </header>
+          <div class="section-body" id="sb-identifiers">
+            <!-- Primary contact values (read-only, labelled) -->
+            <div id="id-primary-kv" class="kv" style="margin-bottom:10px;"></div>
+            <!-- Alias list -->
+            <div id="alias-list" class="alias-list">
+              <!-- populated by JS -->
+            </div>
+            <!-- Add identifier form (always visible) -->
+            <div id="alias-add-form">
+              <div class="pe-field">
+                <label class="pe-label" for="aa-kind">Type</label>
+                <select class="pe-input" id="aa-kind" style="height:26px;padding:3px 6px;flex:0 0 80px;">
+                  <option value="email">Email</option>
+                  <option value="phone">Phone</option>
+                </select>
+              </div>
+              <div class="pe-field">
+                <label class="pe-label" for="aa-value">Value</label>
+                <input
+                  class="pe-input"
+                  id="aa-value"
+                  type="text"
+                  placeholder="e.g. alt@example.com"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+              <div class="pe-actions">
+                <button class="pe-btn primary" id="btn-aa-save" type="button">Add</button>
+                <span class="pe-save-msg" id="aa-save-msg" role="status" aria-live="polite"></span>
+              </div>
+            </div>
+          </div>
+        </section>
         <!-- People / Circle -->
         <section class="section" id="section-circle">
           <header
@@ -1201,6 +1301,9 @@
         var _docUploadFile = null; // File object chosen by user
         var _docUploading = false;
         var _docUploadMsgTimer = null;
+        // Identifiers (aliases) state
+        var _aliases = null;
+        var _aliasSaving = false;
 
         /* ── Elements ───────────────────────────────────────────────── */
         var elBridgeWait = document.getElementById('bridge-wait');
@@ -1251,6 +1354,15 @@
         var elCeMsg = document.getElementById('ce-save-msg');
 
         // Documents elements
+        // Identifiers elements
+        var elIdPrimaryKv = document.getElementById('id-primary-kv');
+        var elAliasList = document.getElementById('alias-list');
+        var elAaKind = document.getElementById('aa-kind');
+        var elAaValue = document.getElementById('aa-value');
+        var elAaSave = document.getElementById('btn-aa-save');
+        var elAaMsg = document.getElementById('aa-save-msg');
+        var _aaMsgTimer = null;
+
         var elDocList = document.getElementById('doc-list');
         var elDocFileInput = document.getElementById('doc-file-input');
         var elDocFileName = document.getElementById('doc-file-name');
@@ -1441,6 +1553,152 @@
 
           elProfileKv.innerHTML = '';
           elProfileKv.appendChild(frag);
+        }
+
+        /* ── Identifiers / aliases section render ───────────────────── */
+        function renderAliases() {
+          var rec = _record;
+          var aliases = _aliases || [];
+
+          // Primary identifiers KV (from patients canonical fields).
+          var pFrag = document.createDocumentFragment();
+          var emailPrimary = rec && rec.contactEmail ? rec.contactEmail : null;
+          var phonePrimary = rec && rec.contactPhone ? rec.contactPhone : null;
+
+          var eRow = el('div', 'kv-row');
+          eRow.appendChild(txt('span', 'kv-label', 'Primary email'));
+          eRow.appendChild(txt('span', emailPrimary ? 'kv-value' : 'kv-value is-empty', emailPrimary || 'Not recorded'));
+          pFrag.appendChild(eRow);
+
+          var pRow = el('div', 'kv-row');
+          pRow.appendChild(txt('span', 'kv-label', 'Primary phone'));
+          pRow.appendChild(txt('span', phonePrimary ? 'kv-value' : 'kv-value is-empty', phonePrimary || 'Not recorded'));
+          pFrag.appendChild(pRow);
+
+          elIdPrimaryKv.innerHTML = '';
+          elIdPrimaryKv.appendChild(pFrag);
+
+          // Alias list.
+          var aFrag = document.createDocumentFragment();
+          if (aliases.length === 0) {
+            aFrag.appendChild(txt('p', 'note-subtle', 'No other identifiers.'));
+          } else {
+            aliases.forEach(function (alias) {
+              var row = el('div', 'alias-row');
+              row.appendChild(txt('span', 'alias-kind', alias.kind));
+              row.appendChild(txt('span', 'alias-value', alias.valueNorm));
+
+              var actions = el('div', 'alias-actions');
+
+              var removeBtn = el('button', 'pe-btn');
+              removeBtn.type = 'button';
+              removeBtn.textContent = 'Remove';
+              // Closure captures alias.id and alias.kind via the loop argument.
+              (function (aid, akind) {
+                removeBtn.addEventListener('click', function () {
+                  onAliasRemove(aid, akind);
+                });
+              })(alias.id, alias.kind);
+              actions.appendChild(removeBtn);
+
+              if (alias.kind === 'email' || alias.kind === 'phone') {
+                var primaryBtn = el('button', 'pe-btn');
+                primaryBtn.type = 'button';
+                primaryBtn.textContent = 'Set as primary';
+                (function (aid, akind) {
+                  primaryBtn.addEventListener('click', function () {
+                    onAliasPrimary(aid, akind);
+                  });
+                })(alias.id, alias.kind);
+                actions.appendChild(primaryBtn);
+              }
+
+              row.appendChild(actions);
+              aFrag.appendChild(row);
+            });
+          }
+          elAliasList.innerHTML = '';
+          elAliasList.appendChild(aFrag);
+        }
+
+        function showAaMsg(msg, kind) {
+          clearTimeout(_aaMsgTimer);
+          elAaMsg.textContent = msg;
+          elAaMsg.className = 'pe-save-msg visible ' + (kind || '');
+          if (kind === 'ok') {
+            _aaMsgTimer = setTimeout(function () {
+              elAaMsg.className = 'pe-save-msg';
+              elAaMsg.textContent = '';
+            }, 1400);
+          }
+        }
+
+        function onAliasAdd() {
+          if (_aliasSaving || !_cmdProxy || !_clientId) return;
+          var kind = elAaKind.value;
+          var val = elAaValue.value.trim();
+          if (!val) { showAaMsg('Enter a value.', 'err'); return; }
+          var input = kind === 'email' ? { email: val } : { phone: val };
+          _aliasSaving = true;
+          elAaSave.disabled = true;
+          _cmdProxy.call('addAlias', _clientId, input)
+            .then(function (updated) {
+              _aliasSaving = false;
+              elAaSave.disabled = false;
+              _aliases = updated;
+              elAaValue.value = '';
+              renderAliases();
+              showAaMsg('Added.', 'ok');
+            })
+            .catch(function (err) {
+              _aliasSaving = false;
+              elAaSave.disabled = false;
+              if (isLockedError(err)) {
+                showAaMsg('Workspace locked.', 'err');
+              } else {
+                showAaMsg('Error: ' + (err && err.message), 'err');
+              }
+            });
+        }
+
+        function onAliasRemove(aliasId, _kind) {
+          if (_aliasSaving || !_cmdProxy || !_clientId) return;
+          _aliasSaving = true;
+          _cmdProxy.call('removeAlias', _clientId, aliasId)
+            .then(function (remaining) {
+              _aliasSaving = false;
+              _aliases = remaining;
+              renderAliases();
+            })
+            .catch(function (err) {
+              _aliasSaving = false;
+              if (isLockedError(err)) {
+                showAaMsg('Workspace locked.', 'err');
+              } else {
+                showAaMsg('Remove failed: ' + (err && err.message), 'err');
+              }
+            });
+        }
+
+        function onAliasPrimary(aliasId, _kind) {
+          if (_aliasSaving || !_cmdProxy || !_clientId) return;
+          _aliasSaving = true;
+          _cmdProxy.call('setPrimaryIdentity', _clientId, aliasId)
+            .then(function (result) {
+              _aliasSaving = false;
+              _record = result.record;
+              _aliases = result.aliases;
+              renderIdentity();
+              renderAliases();
+            })
+            .catch(function (err) {
+              _aliasSaving = false;
+              if (isLockedError(err)) {
+                showAaMsg('Workspace locked.', 'err');
+              } else {
+                showAaMsg('Error: ' + (err && err.message), 'err');
+              }
+            });
         }
 
         /* ── Relative date helper ───────────────────────────────────── */
@@ -2115,6 +2373,7 @@
             if (capSel) capSel.value = '';
           }
           renderProfile();
+          renderAliases();
           renderCircle();
           renderConsent();
           renderDocuments();
@@ -2182,6 +2441,7 @@
             _queryProxy.call('listRiskEvents', _clientId),
             _queryProxy.call('getSafetyPlan', _clientId),
             _queryProxy.call('listDocuments', _clientId),
+            _queryProxy.call('getAliases', _clientId),
           ])
             .then(function (results) {
               if (_clientId !== reqId) return;
@@ -2192,6 +2452,7 @@
               var riskEvents = results[4];
               var safetyPlan = results[5];
               var documents = results[6];
+              var aliases = results[7];
               if (!rec) {
                 showError('Client not found: ' + _clientId);
                 return;
@@ -2203,6 +2464,7 @@
               _riskEvents = riskEvents;
               _safetyPlan = safetyPlan;
               _documents = documents;
+              _aliases = aliases;
               renderAll();
             })
             .catch(function (err) {
@@ -2288,6 +2550,11 @@
               if (ovConsent.isOpen()) closeConsentEdit();
               if (ovS23.isOpen()) closeS23Form();
               if (ovRiskEvent.isOpen()) closeRiskAddForm();
+              // Reset identifier add form for new client.
+              elAaValue.value = '';
+              clearTimeout(_aaMsgTimer);
+              elAaMsg.className = 'pe-save-msg';
+              elAaMsg.textContent = '';
               // Reset document upload state for new client.
               _docUploadFile = null;
               elDocFileName.textContent = '';
@@ -2312,9 +2579,13 @@
 
           bindToggle('sh-risk', 'sb-risk');
           bindToggle('sh-profile', 'sb-profile', 'btn-profile-edit');
+          bindToggle('sh-identifiers', 'sb-identifiers');
           bindToggle('sh-circle', 'sb-circle', 'btn-circle-edit');
           bindToggle('sh-consent', 'sb-consent', 'btn-consent-edit');
           bindToggle('sh-documents', 'sb-documents');
+
+          // Identifiers: Add button.
+          elAaSave.addEventListener('click', onAliasAdd);
 
           // Risk: Open safety plan.
           document.getElementById('btn-safety-plan').addEventListener('click', function () {
@@ -2440,7 +2711,8 @@
                 payload.table === 'patient_consent_state' ||
                 payload.table === 'patient_risk_event' ||
                 payload.table === 'patient_safety_plan' ||
-                payload.table === 'patient_document')
+                payload.table === 'patient_document' ||
+                payload.table === 'patient_identity_alias')
             ) {
               loadAndRender();
             }

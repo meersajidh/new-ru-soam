@@ -346,8 +346,10 @@ export function activate(ctx) {
   // Bind store.eraseSubject@1.0 — cross-bundle DPDP cascade (O490).
   const storeEraseSubject = ctx.bindCapability('store.eraseSubject', '1.0');
   // Bind cross-bundle Schedule caps for migration (ADR-509 §3; host→host sanctioned).
-  const scheduleCalendarQuery = ctx.bindCapability('schedule.calendar.query', '1.0');
-  const scheduleCalendar      = ctx.bindCapability('schedule.calendar', '1.0');
+  const scheduleCalendarQuery  = ctx.bindCapability('schedule.calendar.query', '1.0');
+  const scheduleCalendar       = ctx.bindCapability('schedule.calendar', '1.0');
+  // Bind schedule.contacts.query@1.0 for dedup email-group lookup (ADR-509 §7.5; A5.3).
+  const scheduleContactsQuery  = ctx.bindCapability('schedule.contacts.query', '1.0');
 
   // ── record.patient.query (read cap, rung D1) ───────────────────────────────
 
@@ -1515,8 +1517,8 @@ export function activate(ctx) {
         if (typeof clientId !== 'string') {
           throw new Error('record.patient.addAlias: clientId must be a string');
         }
-        if (input.email == null && input.phone == null) {
-          throw new Error('record.patient.addAlias: email or phone required');
+        if (input.email == null && input.phone == null && input.name == null) {
+          throw new Error('record.patient.addAlias: email, phone, or name required');
         }
 
         // Patient existence check — no audit tag.
@@ -1528,8 +1530,9 @@ export function activate(ctx) {
         for (const [kind, val] of [
           ['email', input.email != null ? normalizeEmail(input.email) : null],
           ['phone', input.phone != null ? normalizePhone(input.phone) : null],
+          ['name',  input.name  != null ? String(input.name).trim().toLowerCase() : null],
         ]) {
-          if (val == null) continue;
+          if (val == null || val.length === 0) continue;
           // Dedup check — no audit tag.
           const dedupRows = await storeQuery.call('run', ['patient.aliasExists', { id: clientId, kind, value: val }]);
           if (dedupRows.length > 0) continue;
@@ -1553,6 +1556,141 @@ export function activate(ctx) {
 
         const aliasRows = await storeQuery.call('run', ['patient.getAliases', { id: clientId }]);
         return aliasRows.map(mapAlias);
+      }
+
+      case 'removeAlias': {
+        const clientId = args[0];
+        const aliasId = args[1];
+        if (typeof clientId !== 'string' || clientId.length === 0) {
+          throw new Error('record.patient.removeAlias: clientId must be a non-empty string');
+        }
+        if (typeof aliasId !== 'string' || aliasId.length === 0) {
+          throw new Error('record.patient.removeAlias: aliasId must be a non-empty string');
+        }
+
+        // Fetch aliases to find the row (need kind for PHI-free audit detail).
+        const removeAliasRows = await storeQuery.call('run', ['patient.getAliases', { id: clientId }]);
+        const targetAlias = removeAliasRows.find((r) => r.id === aliasId);
+        if (!targetAlias) {
+          throw notFound('record.patient.removeAlias: alias not found: ' + aliasId);
+        }
+        const removeKind = targetAlias.kind;
+
+        await storeWrite.call('deleteWhere', [
+          'patient_identity_alias',
+          { id: aliasId, patient_id: clientId },
+          {
+            event: 'record.patient.alias.removed',
+            recordType: 'patient_identity_alias',
+            recordId: clientId,
+            detail: { kind: removeKind },
+          },
+        ]);
+
+        // Return remaining aliases.
+        const remainingAliasRows = await storeQuery.call('run', ['patient.getAliases', { id: clientId }]);
+        return remainingAliasRows.map(mapAlias);
+      }
+
+      case 'setPrimaryIdentity': {
+        const clientId = args[0];
+        const aliasId = args[1];
+        if (typeof clientId !== 'string' || clientId.length === 0) {
+          throw new Error('record.patient.setPrimaryIdentity: clientId must be a non-empty string');
+        }
+        if (typeof aliasId !== 'string' || aliasId.length === 0) {
+          throw new Error('record.patient.setPrimaryIdentity: aliasId must be a non-empty string');
+        }
+
+        // Find alias row.
+        const spiAliasRows = await storeQuery.call('run', ['patient.getAliases', { id: clientId }]);
+        const spiAlias = spiAliasRows.find((r) => r.id === aliasId);
+        if (!spiAlias) {
+          throw notFound('record.patient.setPrimaryIdentity: alias not found: ' + aliasId);
+        }
+        const spiKind = spiAlias.kind;
+        const spiValueNorm = spiAlias.value_norm;
+
+        if (spiKind === 'name') {
+          throw new Error(
+            'record.patient.setPrimaryIdentity: name aliases cannot be promoted to primary via this method; edit the profile name field instead',
+          );
+        }
+
+        // Read patient row.
+        const spiPatientRows = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        if (!spiPatientRows.length) {
+          throw notFound('record.patient.setPrimaryIdentity: patient not found: ' + clientId);
+        }
+        const spiPatientRow = spiPatientRows[0];
+
+        const spiColumn = spiKind === 'email' ? 'contact_email' : 'contact_phone';
+        const spiOldVal = spiPatientRow[spiColumn];
+        const spiNow = Date.now();
+
+        // Update patient canonical — emit the ONE audit event (primary_changed).
+        await storeWrite.call('update', [
+          'patients',
+          clientId,
+          { [spiColumn]: spiValueNorm, updated_at: spiNow },
+          {
+            event: 'record.patient.identity.primary_changed',
+            recordType: 'patient',
+            recordId: clientId,
+            detail: { kind: spiKind },
+          },
+        ]);
+
+        // Delete the promoted alias row.
+        await storeWrite.call('deleteWhere', [
+          'patient_identity_alias',
+          { id: aliasId, patient_id: clientId },
+          {
+            event: 'record.patient.alias.removed',
+            recordType: 'patient_identity_alias',
+            recordId: clientId,
+            detail: { kind: spiKind },
+          },
+        ]);
+
+        // Demote old canonical to alias if non-null/non-empty and distinct from new value.
+        if (spiOldVal != null && String(spiOldVal).trim().length > 0) {
+          const spiNormalizedOld =
+            spiKind === 'email' ? normalizeEmail(spiOldVal) : normalizePhone(spiOldVal);
+          if (spiNormalizedOld !== spiValueNorm) {
+            // Only insert if it does not already exist as an alias.
+            const spiDedupRows = await storeQuery.call('run', [
+              'patient.aliasExists',
+              { id: clientId, kind: spiKind, value: spiNormalizedOld },
+            ]);
+            if (spiDedupRows.length === 0) {
+              await storeWrite.call('insert', [
+                'patient_identity_alias',
+                {
+                  id: globalThis.crypto.randomUUID(),
+                  patient_id: clientId,
+                  kind: spiKind,
+                  value_norm: spiNormalizedOld,
+                  created_at: spiNow,
+                },
+                {
+                  event: 'record.patient.alias.added',
+                  recordType: 'patient_identity_alias',
+                  recordId: clientId,
+                  detail: { kind: spiKind },
+                },
+              ]);
+            }
+          }
+        }
+
+        // Re-read both for the return value.
+        const spiUpdatedRows = await storeQuery.call('run', ['patient.get', { id: clientId }]);
+        const spiFinalAliasRows = await storeQuery.call('run', ['patient.getAliases', { id: clientId }]);
+        return {
+          record: mapRecord(spiUpdatedRows[0]),
+          aliases: spiFinalAliasRows.map(mapAlias),
+        };
       }
 
       case 'suppressParticipant': {
@@ -1677,6 +1815,197 @@ export function activate(ctx) {
           windowFrom: cached.windowFrom,
           windowTo:   cached.windowTo,
         };
+      }
+
+      case 'listDuplicates': {
+        // listDuplicates(calendarId) → { clusters, cached }
+        // Derives duplicate clusters from the cached candidate set (A5.3, ADR-509 §7).
+        // Pure derive — no writes. Requires a prior run() to populate the cache.
+        const calendarId = args[0];
+        if (typeof calendarId !== 'string' || calendarId.length === 0) {
+          throw new Error('record.migration.query.listDuplicates: calendarId must be a non-empty string');
+        }
+
+        const cached = _migrationCache.get(calendarId);
+        if (!cached) {
+          return { clusters: [], cached: false };
+        }
+
+        // Fetch email-group map best-effort (People API via Schedule cap — ARRAY-wrapped internal call).
+        let emailGroupMap = {};
+        if (cached.externalAccountId) {
+          try {
+            emailGroupMap = await scheduleContactsQuery.call('getEmailGroups', [cached.externalAccountId]);
+          } catch (_e) {
+            emailGroupMap = {};
+          }
+        }
+        if (!emailGroupMap || typeof emailGroupMap !== 'object') {
+          emailGroupMap = {};
+        }
+
+        const candidates = cached.candidates;
+        const n = candidates.length;
+
+        if (n < 2) {
+          return { clusters: [], cached: true };
+        }
+
+        // ── Union-find with contact-edge tracking ─────────────────────────────
+        const parent = Array.from({ length: n }, (_, i) => i);
+        const ufRank = new Array(n).fill(0);
+        const hasContactEdge = new Array(n).fill(false);
+
+        function ufFind(x) {
+          while (parent[x] !== x) {
+            parent[x] = parent[parent[x]]; // path halving
+            x = parent[x];
+          }
+          return x;
+        }
+
+        function ufUnion(i, j, isContact) {
+          const ri = ufFind(i);
+          const rj = ufFind(j);
+          if (ri === rj) {
+            if (isContact) hasContactEdge[ri] = true;
+            return;
+          }
+          let newRoot;
+          if (ufRank[ri] < ufRank[rj]) {
+            parent[ri] = rj;
+            newRoot = rj;
+          } else if (ufRank[ri] > ufRank[rj]) {
+            parent[rj] = ri;
+            newRoot = ri;
+          } else {
+            parent[rj] = ri;
+            ufRank[ri]++;
+            newRoot = ri;
+          }
+          // Propagate contact-edge flag to the new root.
+          hasContactEdge[newRoot] = isContact || hasContactEdge[ri] || hasContactEdge[rj];
+        }
+
+        // ── Anti-signal: build forbidden pairs (shared event ref → different people) ──
+        // Two candidates co-attending the same event are never the same person.
+        const eventToIdx = new Map(); // eventRef → Set<candidateIndex>
+        for (let i = 0; i < n; i++) {
+          for (const ref of (candidates[i].eventRefs || [])) {
+            if (!eventToIdx.has(ref)) eventToIdx.set(ref, new Set());
+            eventToIdx.get(ref).add(i);
+          }
+        }
+        const forbidden = new Set(); // 'lo,hi' strings
+        for (const [, idxSet] of eventToIdx) {
+          const idxArr = [...idxSet];
+          for (let a = 0; a < idxArr.length; a++) {
+            for (let b = a + 1; b < idxArr.length; b++) {
+              const lo = Math.min(idxArr[a], idxArr[b]);
+              const hi = Math.max(idxArr[a], idxArr[b]);
+              forbidden.add(lo + ',' + hi);
+            }
+          }
+        }
+
+        function isForbidden(i, j) {
+          const lo = Math.min(i, j);
+          const hi = Math.max(i, j);
+          return forbidden.has(lo + ',' + hi);
+        }
+
+        // ── Pass 1: Confirmed edges — same Google Contacts resourceName ────────
+        for (let i = 0; i < n; i++) {
+          const ci = candidates[i];
+          if (!ci.seedEmail) continue;
+          const rni = emailGroupMap[ci.seedEmail.toLowerCase()];
+          if (!rni) continue;
+          for (let j = i + 1; j < n; j++) {
+            const cj = candidates[j];
+            if (!cj.seedEmail) continue;
+            if (emailGroupMap[cj.seedEmail.toLowerCase()] !== rni) continue;
+            if (isForbidden(i, j)) continue;
+            ufUnion(i, j, true);
+          }
+        }
+
+        // ── Normalize name for heuristic comparison ────────────────────────────
+        function normName(s) {
+          return String(s).trim().toLowerCase().replace(/\s+/g, ' ').replace(/\.+$/, '');
+        }
+
+        // ── Pass 2: Heuristic edges — phone match / name overlap ──────────────
+        for (let i = 0; i < n; i++) {
+          const ci = candidates[i];
+          for (let j = i + 1; j < n; j++) {
+            if (ufFind(i) === ufFind(j)) continue; // already unioned
+            if (isForbidden(i, j)) continue;
+            const cj = candidates[j];
+            let shouldUnion = false;
+
+            // Heuristic 1: same normalized phone
+            if (!shouldUnion && ci.seedPhone && cj.seedPhone) {
+              if (normalizePhone(ci.seedPhone) === normalizePhone(cj.seedPhone)) {
+                shouldUnion = true;
+              }
+            }
+
+            // Heuristic 2: same normalized name
+            if (!shouldUnion && ci.seedName && cj.seedName) {
+              if (normName(ci.seedName) === normName(cj.seedName)) {
+                shouldUnion = true;
+              }
+            }
+
+            // Heuristic 3: single-token name (no email/phone) matches the other's full name prefix
+            if (!shouldUnion) {
+              for (const [single, other] of [[ci, cj], [cj, ci]]) {
+                if (!single.seedName) continue;
+                if (single.seedEmail || single.seedPhone) continue;
+                const singleNorm = normName(single.seedName);
+                if (singleNorm.includes(' ')) continue; // not a single token
+                if (!other.seedName) continue;
+                const otherNorm = normName(other.seedName);
+                if (otherNorm === singleNorm || otherNorm.startsWith(singleNorm + ' ')) {
+                  shouldUnion = true;
+                  break;
+                }
+              }
+            }
+
+            if (shouldUnion) {
+              ufUnion(i, j, false);
+            }
+          }
+        }
+
+        // ── Collect clusters of ≥2 members ─────────────────────────────────────
+        const clusterMap = new Map(); // root → indices[]
+        for (let i = 0; i < n; i++) {
+          const root = ufFind(i);
+          if (!clusterMap.has(root)) clusterMap.set(root, []);
+          clusterMap.get(root).push(i);
+        }
+
+        const clusters = [];
+        for (const [root, indices] of clusterMap) {
+          if (indices.length < 2) continue;
+          const reason = hasContactEdge[root] ? 'contact' : 'heuristic';
+          // clusterId = deterministic, keyed on smallest participantKey.
+          const minKey = indices.map((i) => candidates[i].participantKey).sort()[0];
+          clusters.push({
+            clusterId: 'cl_' + minKey,
+            reason,
+            members: indices.map((i) => ({
+              participantKey: candidates[i].participantKey,
+              seedName:       candidates[i].seedName,
+              seedEmail:      candidates[i].seedEmail,
+              seedPhone:      candidates[i].seedPhone,
+            })),
+          });
+        }
+
+        return { clusters, cached: true };
       }
 
       default:
@@ -1827,7 +2156,9 @@ export function activate(ctx) {
         }
 
         // ── Cache transient candidate set ──────────────────────────────────────
-        _migrationCache.set(calendarId, { candidates, windowFrom, windowTo });
+        // externalAccountId from first event (all events of a calendar share the account).
+        const externalAccountId = events.length > 0 ? (events[0].externalAccountId || null) : null;
+        _migrationCache.set(calendarId, { candidates, windowFrom, windowTo, externalAccountId });
 
         const completedAt      = Date.now();
         const identitiesFound  = candidates.length;
@@ -1869,6 +2200,7 @@ export function activate(ctx) {
       blobWrite.dispose();
       scheduleCalendarQuery.dispose();
       scheduleCalendar.dispose();
+      scheduleContactsQuery.dispose();
     },
   };
 }

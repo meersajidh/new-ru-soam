@@ -1198,6 +1198,28 @@ export function activate(ctx) {
     }
   });
 
+  // ── schedule.contacts.query (read cap — People API grouping, ADR-509 §7.5 A5.2) ──
+
+  ctx.registerCapability('schedule.contacts.query', '1.0', async (method, args) => {
+    switch (method) {
+      case 'getEmailGroups': {
+        const externalAccountId = args[0];
+        if (typeof externalAccountId !== 'string' || externalAccountId.length === 0) {
+          throw new Error(
+            'schedule.contacts.query.getEmailGroups: externalAccountId must be a non-empty string',
+          );
+        }
+        return adapter.getContactEmailGroups(externalAccountId);
+      }
+
+      default:
+        throw Object.assign(
+          new Error(`schedule.contacts.query: unknown method: ${method}`),
+          { code: 'cap.method_not_found' },
+        );
+    }
+  });
+
   return {
     dispose() {
       broker.dispose();

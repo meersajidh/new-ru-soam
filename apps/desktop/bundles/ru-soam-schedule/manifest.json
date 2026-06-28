@@ -5,8 +5,9 @@
   "activationEvents": ["lazy"],
   "residency": "protected",
   "capabilities": [
-    { "name": "schedule.calendar.query", "version": "1.0", "kind": "query", "phi": true },
-    { "name": "schedule.calendar",       "version": "1.0", "kind": "command", "phi": true }
+    { "name": "schedule.calendar.query",  "version": "1.0", "kind": "query",   "phi": true },
+    { "name": "schedule.calendar",        "version": "1.0", "kind": "command", "phi": true },
+    { "name": "schedule.contacts.query",  "version": "1.0", "kind": "query",   "phi": true }
   ],
   "views": [
     { "id": "nav", "path": "nav.html" },

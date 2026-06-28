@@ -137,7 +137,7 @@
     },
     {
       "id": "patient.resolveByName",
-      "sql": "SELECT id FROM patients WHERE lower(trim(given_name || ' ' || COALESCE(family_name,''))) = @name OR lower(trim(COALESCE(family_name,'') || ' ' || given_name)) = @name OR lower(trim(given_name)) = @name"
+      "sql": "SELECT id FROM patients WHERE lower(trim(given_name || ' ' || COALESCE(family_name,''))) = @name OR lower(trim(COALESCE(family_name,'') || ' ' || given_name)) = @name OR lower(trim(given_name)) = @name\nUNION\nSELECT patient_id AS id FROM patient_identity_alias WHERE kind='name' AND value_norm = @name"
     },
     {
       "id": "patient.suppressionCheck",
@@ -157,7 +157,7 @@
     }
   ],
   "dependencies": {
-    "capabilities": ["store.write@1.0", "store.query@1.0", "store.eraseSubject@1.0", "blob.write@1.0", "schedule.calendar.query@1.0", "schedule.calendar@1.0"]
+    "capabilities": ["store.write@1.0", "store.query@1.0", "store.eraseSubject@1.0", "blob.write@1.0", "schedule.calendar.query@1.0", "schedule.calendar@1.0", "schedule.contacts.query@1.0"]
   },
   "contributes": {
     "activityBar.items": [
