@@ -447,6 +447,15 @@
         margin-bottom: 4px;
         padding-left: 23px; /* align under row text (9px gap + 14px icon) */
       }
+      .popover-participant-class {
+        font-size: 10px;
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--color-fg-muted);
+        margin-left: 5px;
+        opacity: 0.8;
+      }
       .popover-participants {
         display: flex;
         flex-direction: column;
@@ -1998,14 +2007,36 @@
 
         /* Derive modality subline from ev.meetingLink / ev.location */
         function modalitySubline(ev) {
+          var modality = '';
           if (ev.meetingLink) {
-            var u = (ev.meetingLink || '').toLowerCase();
-            if (u.indexOf('meet.google.com') !== -1) return 'Online · Google Meet';
-            if (u.indexOf('zoom.us') !== -1 || u.indexOf('zoom.com') !== -1) return 'Online · Zoom';
-            return 'Online · Video call';
+            var provName = ev.meetingProvider || '';
+            modality = provName ? 'Online · ' + provName : 'Online · Video call';
+          } else if (ev.location) {
+            modality = 'In person · ' + ev.location;
           }
-          if (ev.location) return 'In person · ' + ev.location;
-          return '';
+          var hint = participantClassHint(ev);
+          if (!modality && !hint) return '';
+          if (!hint) return modality;
+          if (!modality) return hint;
+          return modality + ' · ' + hint;
+        }
+
+        /* Count-based participant-class hint — PHI-free count only.
+         * Excludes self (you) and declined attendees from the "others" count.
+         * 0 others → ''; 1 other → 'N participants'; 2+ others → 'Group · N participants'. */
+        function participantClassHint(ev) {
+          if (!ev.attendees || ev.attendees.length === 0) return '';
+          var active = ev.attendees.filter(function (a) {
+            return a.responseStatus !== 'declined';
+          });
+          var others = active.filter(function (a) { return !a.self; });
+          var otherCount = others.length;
+          if (otherCount === 0) return '';
+          var hasSelf = active.some(function (a) { return a.self; });
+          var total = otherCount + (hasSelf ? 1 : 0);
+          var noun = total === 1 ? 'participant' : 'participants';
+          if (otherCount === 1) return total + ' ' + noun;
+          return 'Group · ' + total + ' ' + noun;
         }
 
         /* Format short time range for agenda e.g. "9–9:50" or "All day" */
@@ -2284,6 +2315,8 @@
                 if (nameStr) {
                   var extra = nonSelf.length - 1;
                   var chipLabel = extra > 0 ? nameStr + ' +' + extra : nameStr;
+                  var pcHint = participantClassHint(ev);
+                  if (pcHint) chipLabel = chipLabel + ' · ' + pcHint;
                   block.appendChild(txt('div', 'tg-event-participant', chipLabel));
                 }
               }
@@ -3266,6 +3299,8 @@
 
             var secLabel = el('div', 'popover-section-label');
             secLabel.innerHTML = icon('person', 11) + ' Participants';
+            var popPcHint = participantClassHint(ev);
+            if (popPcHint) secLabel.appendChild(txt('span', 'popover-participant-class', popPcHint));
             elPopBody.appendChild(secLabel);
 
             var participantsList = el('div', 'popover-participants');

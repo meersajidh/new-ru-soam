@@ -30,6 +30,11 @@
       "version": 3,
       "description": "Schedule: calendar migration state cols + calendar_migration_run ledger (ADR-509)",
       "sql": "ALTER TABLE calendar ADD COLUMN migration_status TEXT NOT NULL DEFAULT 'pending';\nALTER TABLE calendar ADD COLUMN last_migrated_at INTEGER;\nALTER TABLE calendar ADD COLUMN last_synced_through INTEGER;\nCREATE TABLE IF NOT EXISTS calendar_migration_run (\n  id                TEXT PRIMARY KEY,\n  calendar_id       TEXT NOT NULL,\n  kind              TEXT NOT NULL,\n  started_at        INTEGER,\n  completed_at      INTEGER,\n  window_from       INTEGER,\n  window_to         INTEGER,\n  events_scanned    INTEGER,\n  identities_found  INTEGER,\n  status            TEXT NOT NULL\n);\nCREATE INDEX IF NOT EXISTS idx_migration_run_calendar ON calendar_migration_run(calendar_id, started_at DESC);"
+    },
+    {
+      "version": 4,
+      "description": "Schedule: meeting_provider col on event table (A2 meeting-link detection)",
+      "sql": "ALTER TABLE event ADD COLUMN meeting_provider TEXT;"
     }
   ],
   "queryTemplates": [
@@ -63,11 +68,11 @@
     },
     {
       "id": "event.listForWindow",
-      "sql": "SELECT e.id, e.account_id, e.calendar_id, e.external_account_id, e.provider_calendar_id, e.provider_event_id, e.title, e.start, e.end, e.all_day, e.location, e.meeting_link, e.organizer_email, e.organizer_name, e.organizer_self, e.attendees, e.status, e.updated_at, e.synced_at, c.color AS calendar_color, c.display_name AS calendar_display_name FROM event e JOIN calendar c ON c.id = e.calendar_id WHERE e.start >= @from AND e.start < @to ORDER BY e.start ASC"
+      "sql": "SELECT e.id, e.account_id, e.calendar_id, e.external_account_id, e.provider_calendar_id, e.provider_event_id, e.title, e.start, e.end, e.all_day, e.location, e.meeting_link, e.meeting_provider, e.organizer_email, e.organizer_name, e.organizer_self, e.attendees, e.status, e.updated_at, e.synced_at, c.color AS calendar_color, c.display_name AS calendar_display_name FROM event e JOIN calendar c ON c.id = e.calendar_id WHERE e.start >= @from AND e.start < @to ORDER BY e.start ASC"
     },
     {
       "id": "event.listForWindowFiltered",
-      "sql": "SELECT e.id, e.account_id, e.calendar_id, e.external_account_id, e.provider_calendar_id, e.provider_event_id, e.title, e.start, e.end, e.all_day, e.location, e.meeting_link, e.organizer_email, e.organizer_name, e.organizer_self, e.attendees, e.status, e.updated_at, e.synced_at, c.color AS calendar_color, c.display_name AS calendar_display_name FROM event e JOIN calendar c ON c.id = e.calendar_id WHERE e.start >= @from AND e.start < @to AND c.selected = 1 ORDER BY e.start ASC"
+      "sql": "SELECT e.id, e.account_id, e.calendar_id, e.external_account_id, e.provider_calendar_id, e.provider_event_id, e.title, e.start, e.end, e.all_day, e.location, e.meeting_link, e.meeting_provider, e.organizer_email, e.organizer_name, e.organizer_self, e.attendees, e.status, e.updated_at, e.synced_at, c.color AS calendar_color, c.display_name AS calendar_display_name FROM event e JOIN calendar c ON c.id = e.calendar_id WHERE e.start >= @from AND e.start < @to AND c.selected = 1 ORDER BY e.start ASC"
     },
     {
       "id": "event.getSyncToken",

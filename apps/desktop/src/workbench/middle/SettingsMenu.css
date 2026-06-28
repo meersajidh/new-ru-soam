@@ -522,3 +522,119 @@
   justify-content: center;
   flex: 0 0 auto;
 }
+
+/* ── Meeting provider list editor ─────────────────────────────────────────── */
+
+.settings-provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 0.125rem 0.25rem;
+}
+
+.settings-provider-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: var(--color-surface-active);
+  min-height: 24px;
+}
+
+.settings-provider-name {
+  flex: 0 0 auto;
+  min-width: 48px;
+  font-weight: 500;
+  font-size: 0.6875rem;
+  @apply text-fg-primary;
+}
+
+.settings-provider-domain {
+  flex: 1 1 auto;
+  font-size: 0.6875rem;
+  @apply text-fg-muted;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-provider-remove-btn {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 3px;
+  font-size: 13px;
+  line-height: 1;
+  @apply text-fg-muted;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.1s,
+    color 0.1s;
+}
+
+.settings-provider-remove-btn:hover {
+  background: color-mix(in srgb, var(--color-error) 18%, transparent);
+  @apply text-error;
+}
+
+.settings-provider-add-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 0 0.125rem 0.125rem;
+}
+
+.settings-provider-input {
+  flex: 1 1 0;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
+  background: var(--color-surface-base);
+  @apply text-fg-primary;
+  font-size: 0.6875rem;
+  padding: 0 6px;
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.12s;
+}
+
+.settings-provider-input:focus {
+  border-color: var(--color-accent);
+}
+
+.settings-provider-input::placeholder {
+  @apply text-fg-muted;
+}
+
+.settings-provider-add-btn {
+  flex: 0 0 auto;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: transparent;
+  @apply text-fg-secondary;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.settings-provider-add-btn:hover:not(:disabled) {
+  background: var(--color-surface-active);
+  @apply text-fg-primary;
+}
+
+.settings-provider-add-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}

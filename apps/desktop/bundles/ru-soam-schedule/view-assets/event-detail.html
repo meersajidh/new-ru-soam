@@ -460,12 +460,61 @@
         opacity: 1;
       }
 
+      /* ── Re-scan meeting link ────────────────────────────────────── */
+      .det-rescan-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 2px;
+      }
+      .det-rescan-btn {
+        font: inherit;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--color-fg-muted);
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        text-decoration-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent);
+        transition: color var(--transition);
+        white-space: nowrap;
+      }
+      .det-rescan-btn:hover:not(:disabled) {
+        color: var(--color-fg-secondary);
+      }
+      .det-rescan-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .det-rescan-status {
+        font-size: 11px;
+        color: var(--color-fg-muted);
+        line-height: 1.4;
+      }
+      .det-rescan-status.err {
+        color: var(--color-error);
+      }
+      .det-no-meet-msg {
+        font-size: 12px;
+        color: var(--color-fg-muted);
+        margin-bottom: 6px;
+      }
+
       /* ── Participants ─────────────────────────────────────────────── */
       .det-participants {
         display: flex;
         flex-direction: column;
         gap: 10px;
         padding-bottom: 8px;
+      }
+      .det-participant-class {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--color-fg-muted);
+        margin-top: -8px; /* pull close to section header despite flex gap */
       }
       .det-participant {
         display: flex;
@@ -897,6 +946,24 @@
           return CLS_HUMAN[c] || 'Unrecognised';
         }
 
+        /* Count-based participant-class hint — PHI-free count only.
+         * Excludes self (you) and declined attendees from the "others" count.
+         * 0 others → ''; 1 other → 'N participants'; 2+ others → 'Group · N participants'. */
+        function participantClassHint(ev) {
+          if (!ev.attendees || ev.attendees.length === 0) return '';
+          var active = ev.attendees.filter(function (a) {
+            return a.responseStatus !== 'declined';
+          });
+          var others = active.filter(function (a) { return !a.self; });
+          var otherCount = others.length;
+          if (otherCount === 0) return '';
+          var hasSelf = active.some(function (a) { return a.self; });
+          var total = otherCount + (hasSelf ? 1 : 0);
+          var noun = total === 1 ? 'participant' : 'participants';
+          if (otherCount === 1) return total + ' ' + noun;
+          return 'Group · ' + total + ' ' + noun;
+        }
+
         /* ── State ───────────────────────────────────────────────────── */
         var _currentEv = null;
         var _renderToken = 0; // increments each applyActiveEvent; guards stale async lookups
@@ -927,6 +994,7 @@
         var _sessionsMeetingQuery = null;
         var _recordCmd = null;
         var _recordQuery = null;
+        var _scheduleCmd = null;
 
         /* ── DOM refs ─────────────────────────────────────────────────── */
         var elBridgeWait = document.getElementById('bridge-wait');
@@ -1634,8 +1702,11 @@
           return block;
         }
 
-        /* ── Join label from meeting URL ─────────────────────────────── */
-        function joinLabel(url) {
+        /* ── Join label from meeting URL + optional provider name ───── */
+        /* providerName (from ev.meetingProvider) takes precedence over URL heuristics.
+         * Fallback heuristics handle legacy cached rows that predate meeting_provider. */
+        function joinLabel(url, providerName) {
+          if (providerName) return 'Join ' + providerName;
           if (!url) return 'Join meeting';
           if (url.indexOf('zoom.us') !== -1) return 'Join Zoom';
           if (url.indexOf('meet.google.com') !== -1) return 'Join Google Meet';
@@ -1665,6 +1736,64 @@
         }
 
         /* ── Render ───────────────────────────────────────────────────── */
+        /* ── O509: on-demand meeting-link re-scan ───────────────────── */
+        /* Re-fetches the single event from Google, runs detectMeetingLink with the
+         * current provider list, patches the cache row, and re-renders this view.
+         * If a link is found: re-renders (join button appears) + bumps calRev so
+         * schedule.html re-fetches the window-events cache and refreshes chips.
+         * If no link found: shows inline status message, no re-render. */
+        function doRescanEvent(ev, btn, statusEl, origBtnText) {
+          if (!_scheduleCmd) {
+            statusEl.textContent = 'Schedule command cap unavailable.';
+            statusEl.className = 'det-rescan-status err';
+            statusEl.style.display = '';
+            return;
+          }
+          var extAcctId = ev.externalAccountId || null;
+          var provCalId = ev.providerCalendarId || null;
+          var provEvId  = ev.id                || null;
+          if (!extAcctId || !provCalId || !provEvId) {
+            statusEl.textContent = 'Event identity missing. Try a full re-sync first.';
+            statusEl.className = 'det-rescan-status err';
+            statusEl.style.display = '';
+            return;
+          }
+          btn.disabled = true;
+          btn.textContent = 'Scanning…';
+          statusEl.textContent = '';
+          statusEl.style.display = 'none';
+          _scheduleCmd
+            .call('rescanEvent', { externalAccountId: extAcctId, providerCalendarId: provCalId, providerEventId: provEvId })
+            .then(function (result) {
+              if (result && result.updated && result.meetingLink) {
+                /* Link found: update in-memory event + re-render + bump grid calRev. */
+                var updated = {};
+                for (var k in _currentEv) {
+                  if (Object.prototype.hasOwnProperty.call(_currentEv, k)) updated[k] = _currentEv[k];
+                }
+                updated.meetingLink     = result.meetingLink;
+                updated.meetingProvider = result.meetingProvider || null;
+                if (result.location) updated.location = result.location;
+                _currentEv = updated;
+                renderDetail(_currentEv);
+                if (_soamView && _soamView.bumpScheduleData) _soamView.bumpScheduleData();
+              } else {
+                btn.disabled = false;
+                btn.textContent = origBtnText;
+                statusEl.textContent = 'No meeting link found.';
+                statusEl.className = 'det-rescan-status';
+                statusEl.style.display = '';
+              }
+            })
+            .catch(function (err) {
+              btn.disabled = false;
+              btn.textContent = origBtnText;
+              statusEl.textContent = 'Error: ' + (err && err.message ? err.message : String(err));
+              statusEl.className = 'det-rescan-status err';
+              statusEl.style.display = '';
+            });
+        }
+
         function renderDetail(ev) {
           elScroll.innerHTML = '';
 
@@ -1735,13 +1864,13 @@
           timeSec.appendChild(kvTime);
           elScroll.appendChild(timeSec);
 
-          /* ── 4. ONLINE MEETING section (only when meetingLink present) ── */
+          /* ── 4. ONLINE MEETING section ── */
           if (ev.meetingLink && typeof ev.meetingLink === 'string') {
             var meetSec = makeSection('globe', 'Online meeting');
 
             var joinBtn = el('button', 'det-join-btn');
             joinBtn.type = 'button';
-            joinBtn.textContent = joinLabel(ev.meetingLink);
+            joinBtn.textContent = joinLabel(ev.meetingLink, ev.meetingProvider);
             (function (url) {
               joinBtn.addEventListener('click', function () {
                 if (_soamView) _soamView.openExternal(url);
@@ -1791,7 +1920,41 @@
             urlRow.appendChild(copyConfirm);
             meetSec.appendChild(urlRow);
 
+            /* Re-scan row (link present — subtle underline button to refresh) */
+            var rsRowPresent = el('div', 'det-rescan-row');
+            var rsBtnPresent = el('button', 'det-rescan-btn');
+            rsBtnPresent.type = 'button';
+            rsBtnPresent.textContent = 'Re-scan';
+            rsBtnPresent.title = 'Re-fetch from Google to refresh the meeting link';
+            var rsStatusPresent = txt('span', 'det-rescan-status', '');
+            rsStatusPresent.style.display = 'none';
+            (function (btn, statusEl) {
+              btn.addEventListener('click', function () {
+                doRescanEvent(ev, btn, statusEl, 'Re-scan');
+              });
+            })(rsBtnPresent, rsStatusPresent);
+            rsRowPresent.appendChild(rsBtnPresent);
+            rsRowPresent.appendChild(rsStatusPresent);
+            meetSec.appendChild(rsRowPresent);
+
             elScroll.appendChild(meetSec);
+          } else {
+            /* No meeting link detected — show section with re-scan action. */
+            var noMeetSec = makeSection('globe', 'Online meeting');
+            noMeetSec.appendChild(txt('div', 'det-no-meet-msg', 'No meeting link detected.'));
+            var rsBtnAbsent = el('button', 'det-act-btn');
+            rsBtnAbsent.type = 'button';
+            rsBtnAbsent.textContent = 'Re-scan for meeting link';
+            var rsStatusAbsent = txt('div', 'det-rescan-status', '');
+            rsStatusAbsent.style.display = 'none';
+            (function (btn, statusEl) {
+              btn.addEventListener('click', function () {
+                doRescanEvent(ev, btn, statusEl, 'Re-scan for meeting link');
+              });
+            })(rsBtnAbsent, rsStatusAbsent);
+            noMeetSec.appendChild(rsBtnAbsent);
+            noMeetSec.appendChild(rsStatusAbsent);
+            elScroll.appendChild(noMeetSec);
           }
 
           /* ── 5. PARTICIPANTS section ── */
@@ -1918,6 +2081,8 @@
               pList.appendChild(built2.row);
             }
 
+            var detPcHint = participantClassHint(ev);
+            if (detPcHint) partSec.appendChild(txt('div', 'det-participant-class', detPcHint));
             partSec.appendChild(pList);
             elScroll.appendChild(partSec);
           }
@@ -2264,6 +2429,16 @@
               })
               .catch(function () {
                 /* unavailable */
+              });
+
+            /* schedule.calendar command — for O509 meeting-link re-scan */
+            soamView
+              .bindCommand('schedule.calendar', '1.0')
+              .then(function (p) {
+                _scheduleCmd = p;
+              })
+              .catch(function () {
+                /* unavailable (e.g. locked) */
               });
 
             /* Initial render — may have been set by init/context message before this runs. */

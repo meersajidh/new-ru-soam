@@ -43,6 +43,7 @@ import { ensureLocalStoreDbKey } from './credentials/db-key';
 import { LockService } from './lock/service';
 import { workspaceRegistry } from './workspace/registry';
 import { installLockChannel, createAutoLockHandleRef, rebindAutoLock } from './ipc/lock-channel';
+import { parseIdleLockPref } from './lock/auto-lock';
 import { installAppChannel } from './ipc/app-channel';
 import { registerUpdateCapability } from './ipc/update-channel';
 import { registerCommandsCapability } from './capability/commands';
@@ -212,8 +213,11 @@ app.whenReady().then(() => {
     }
   }
 
-  // 4. Start auto-lock if we have an active service
-  rebindAutoLock(autoLockHandleRef, getActiveLockService());
+  // 4. Start auto-lock if we have an active service — seed idle timeout from pref (O502).
+  {
+    const rawIdleMin = localStoreManager.current()?.getPref('security.idleLockMin');
+    rebindAutoLock(autoLockHandleRef, getActiveLockService(), parseIdleLockPref(rawIdleMin));
+  }
 
   // 5. Install IPC channels (before window creation so handlers are ready)
   installLockChannel(

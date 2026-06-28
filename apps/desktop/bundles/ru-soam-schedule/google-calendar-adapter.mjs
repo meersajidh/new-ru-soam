@@ -16,6 +16,8 @@
  * disconnectAccount, listCalendars, listEventsForCalendars). Legacy methods unchanged.
  */
 
+import { detectMeetingLink } from './meeting-link-detector.mjs';
+
 // ── Google provider descriptor (data, not code) ──────────────────────────────
 
 export const GOOGLE_DESCRIPTOR = {
@@ -153,22 +155,46 @@ function isResourceOrganizer(email) {
  * @param {Record<string, string>} [nameMap] - Optional email→displayName map from People API.
  *                                      Used to fill missing displayName fields. Never overrides
  *                                      a real displayName returned by the Calendar API.
+ * @param {Array<{ name: string, domain: string }>} [providers] - Optional meeting-provider list
+ *                                      for detecting Zoom/Teams/etc. links in location+body.
+ *                                      Passed from syncEvents at sync time. PHI note: item.description
+ *                                      is scanned here and never stored or returned.
  */
-function mapEvent(item, calendarId, calendarName, nameMap) {
+function mapEvent(item, calendarId, calendarName, nameMap, providers) {
   const _nameMap = nameMap || {};
   const startRaw = (item.start && (item.start.dateTime || item.start.date)) || '';
   const endRaw   = (item.end   && (item.end.dateTime   || item.end.date))   || '';
   const allDay   = !(item.start && item.start.dateTime);
 
-  // Resolve meeting link: hangoutLink preferred; fall back to first 'video' conferenceData entry.
+  // Resolve meeting link + provider.
+  // Precedence: Google-structured (hangoutLink/conferenceData) > location > description.
+  // description is scanned ONLY here, never stored or returned on the event object.
   let meetingLink;
+  let meetingProvider = null;
+
   if (item.hangoutLink) {
-    meetingLink = item.hangoutLink;
+    meetingLink    = item.hangoutLink;
+    meetingProvider = 'Google Meet';
   } else if (item.conferenceData && item.conferenceData.entryPoints) {
     const videoEntry = item.conferenceData.entryPoints.find(
       (ep) => ep.entryPointType === 'video',
     );
-    if (videoEntry && videoEntry.uri) meetingLink = videoEntry.uri;
+    if (videoEntry && videoEntry.uri) {
+      meetingLink    = videoEntry.uri;
+      meetingProvider = 'Google Meet';
+    }
+  }
+
+  // If no Google-structured link, detect from location / description (PHI-minimized).
+  if (!meetingLink && providers && providers.length > 0) {
+    const detected = detectMeetingLink(
+      { location: item.location, description: item.description },
+      providers,
+    );
+    if (detected) {
+      meetingLink    = detected.url;
+      meetingProvider = detected.provider;
+    }
   }
 
   // Organizer — omit if both name and email absent.
@@ -221,10 +247,11 @@ function mapEvent(item, calendarId, calendarName, nameMap) {
     calendarName,
   };
 
-  if (item.location) event.location   = item.location;
-  if (meetingLink)   event.meetingLink = meetingLink;
-  if (organizer)     event.organizer   = organizer;
-  if (attendees)     event.attendees   = attendees;
+  if (item.location)  event.location       = item.location;
+  if (meetingLink)    event.meetingLink    = meetingLink;
+  if (meetingProvider) event.meetingProvider = meetingProvider;
+  if (organizer)      event.organizer      = organizer;
+  if (attendees)      event.attendees      = attendees;
 
   return event;
 }
@@ -399,7 +426,10 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
     // Use caller-supplied nameMap if provided (callers iterating multiple calendars
     // for the same account should pre-fetch once via getContactNameMap and pass it in).
     // Fallback: fetch here (single-calendar usage or when nameMap not supplied).
-    const nameMap = opts.nameMap || await fetchContactNameMap(netFetch, provider, externalAccountId);
+    const nameMap   = opts.nameMap   || await fetchContactNameMap(netFetch, provider, externalAccountId);
+    // Provider list for meeting-link detection — passed from index.mjs syncEvents command.
+    // Empty array when not supplied (disables detection).
+    const providers = opts.providers || [];
 
     const upserts   = [];
     const deletions = [];
@@ -482,7 +512,7 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
           if (item.id) deletions.push(item.id);
         } else {
           // Active event — map and collect.
-          upserts.push(mapEvent(item, providerCalendarId, calendarName, nameMap));
+          upserts.push(mapEvent(item, providerCalendarId, calendarName, nameMap, providers));
         }
       }
 
@@ -493,6 +523,66 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
     } while (pageToken);
 
     return { upserts, deletions, nextSyncToken: nextSyncToken || '' };
+  }
+
+  /**
+   * Fetch a single event by its provider id. Used for on-demand re-scan of meeting links.
+   *
+   * Returns a CalendarEvent (with meetingLink/meetingProvider set if detected) or null
+   * if the event does not exist or is cancelled.
+   *
+   * PHI note: item.description is scanned via mapEvent and never stored or returned.
+   *
+   * @param {string} externalAccountId   - Google account id (broker key)
+   * @param {string} providerCalendarId  - Provider-level calendar id
+   * @param {string} providerEventId     - Provider-level event id
+   * @param {{ providers?: Array<{ name: string, domain: string }>, nameMap?: Record<string, string> }} [opts]
+   * @returns {Promise<object|null>}
+   */
+  async function getEvent(externalAccountId, providerCalendarId, providerEventId, opts) {
+    opts = opts || {};
+    const providers = opts.providers || [];
+    const nameMap   = opts.nameMap   || {};
+
+    const url =
+      `${GCAL_API_BASE}/calendars/${encodeURIComponent(providerCalendarId)}/events/${encodeURIComponent(providerEventId)}`;
+
+    let resp;
+    try {
+      resp = await netFetch.call('fetch', [
+        {
+          provider,
+          accountId: externalAccountId,
+          url,
+          method: 'GET',
+        },
+      ]);
+    } catch (err) {
+      throw Object.assign(
+        new Error(`getEvent: network error: ${err && err.message}`),
+        { code: 'sync.network_error' },
+      );
+    }
+
+    if (!resp.ok) {
+      if (resp.status === 401 || resp.status === 403) {
+        throw Object.assign(
+          new Error(`getEvent: auth failed (${resp.status}) for ${providerCalendarId}`),
+          { code: 'auth.invalid' },
+        );
+      }
+      if (resp.status === 404) return null;
+      throw Object.assign(
+        new Error(`getEvent: Google Calendar API error ${resp.status} for ${providerCalendarId}`),
+        { code: 'sync.api_error' },
+      );
+    }
+
+    const item = resp.body;
+    if (!item || item.status === 'cancelled') return null;
+
+    // Use providerCalendarId as calendarName placeholder — callers only need meetingLink fields.
+    return mapEvent(item, providerCalendarId, providerCalendarId, nameMap, providers);
   }
 
   return {
@@ -507,5 +597,7 @@ export function createGoogleCalendarAdapter(broker, netFetch) {
     syncEvents,
     // People API name enrichment
     getContactNameMap,
+    // On-demand single-event fetch (O509 meeting-link re-scan)
+    getEvent,
   };
 }

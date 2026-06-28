@@ -54,6 +54,10 @@ import { ActiveEventService } from '../platform/view-mode/active-event';
 import { ActiveEventServiceId } from '../platform/services/ids';
 import { ScheduleRefreshSettingsService } from '../platform/view-mode/schedule-refresh-settings';
 import { ScheduleRefreshSettingsServiceId } from '../platform/services/ids';
+import { MeetingProvidersSettingsService } from '../platform/view-mode/meeting-providers-settings';
+import { MeetingProvidersSettingsServiceId } from '../platform/services/ids';
+import { IdleLockSettingsService } from '../platform/security/idle-lock-settings';
+import { IdleLockSettingsServiceId } from '../platform/services/ids';
 import { TelemetryModeService } from '../platform/telemetry/telemetry-mode-service';
 import type { TelemetryMode } from '../platform/telemetry/telemetry-mode-service';
 import { TelemetryModeServiceId } from '../platform/services/ids';
@@ -178,6 +182,14 @@ export function boot(): ServiceRegistry {
   // Schedule refresh settings — non-persisted; relay from nav.html to schedule.html.
   const scheduleRefreshSettings = new ScheduleRefreshSettingsService();
   registry.register(ScheduleRefreshSettingsServiceId, scheduleRefreshSettings);
+
+  // Meeting providers settings — prefs-cap-backed; seeds defaults on first load; sole renderer writer (A2).
+  const meetingProvidersSettings = new MeetingProvidersSettingsService();
+  registry.register(MeetingProvidersSettingsServiceId, meetingProvidersSettings);
+
+  // Idle auto-lock settings — prefs-cap-backed (security.idleLockMin); default enabled/5 min (O502).
+  const idleLockSettings = new IdleLockSettingsService();
+  registry.register(IdleLockSettingsServiceId, idleLockSettings);
 
   // Telemetry mode — prefs-cap-backed; default 'off'. Reloads on workspace change.
   const telemetryMode = new TelemetryModeService();

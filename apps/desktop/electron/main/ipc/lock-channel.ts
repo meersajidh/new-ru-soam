@@ -22,7 +22,7 @@
 import { ipcMain } from 'electron';
 import { isPlatformSender } from './sender-validate.js';
 import { LockService } from '../lock/service.js';
-import { startAutoLock } from '../lock/auto-lock.js';
+import { startAutoLock, parseIdleLockPref } from '../lock/auto-lock.js';
 import type { AutoLockHandle } from '../lock/auto-lock.js';
 import { workspaceRegistry } from '../workspace/registry.js';
 import { ensureLocalStoreDbKey } from '../credentials/db-key.js';
@@ -261,6 +261,16 @@ export function installLockChannel(
     return null;
   });
 
+  // ── soam:lock:set-idle-timeout (O502) ─────────────────────────────────────
+  // Renderer → Main: apply a new idle timeout live without restart.
+  // ms = null → disable idle auto-lock. Suspend/lock-screen still trigger.
+  ipcMain.handle('soam:lock:set-idle-timeout', (event, ms: unknown) => {
+    if (!isPlatformSender(event)) return null;
+    if (ms !== null && typeof ms !== 'number') return null;
+    autoLockHandleRef.current?.setIdleTimeout(ms as number | null);
+    return null;
+  });
+
   // ── soam:setup:generate ────────────────────────────────────────────────────
   ipcMain.handle('soam:setup:generate', async (event, args: unknown) => {
     if (!isPlatformSender(event)) return null;
@@ -368,8 +378,9 @@ export function installLockChannel(
     // openFor() consumes + zeros the key buffer in its finally block.
     localStoreManager.openFor(workspaceId, dbKey);
 
-    // Restart auto-lock
-    rebindAutoLock(autoLockHandleRef, newSvc);
+    // Restart auto-lock — seed idle timeout from the new workspace's pref.
+    const rawIdleMin = localStoreManager.current()?.getPref('security.idleLockMin');
+    rebindAutoLock(autoLockHandleRef, newSvc, parseIdleLockPref(rawIdleMin));
 
     workspaceRegistry.setActive(workspaceId);
     emitWorkspaceChanged(getWindow);
@@ -534,16 +545,20 @@ export function createAutoLockHandleRef(): AutoLockHandleRef {
 /**
  * Start or restart auto-lock for a given LockService.
  * Disposes the previous handle if any, starts a new one, stores it in ref.
+ *
+ * idleTimeoutMs: undefined = use default (5 min). null = disable idle auto-lock.
+ * Suspend/lock-screen triggers are never affected.
  */
 export function rebindAutoLock(
   ref: AutoLockHandleRef,
   svc: LockService | null,
+  idleTimeoutMs?: number | null,
 ): void {
   if (ref.current) {
     ref.current.dispose();
     ref.current = null;
   }
   if (svc) {
-    ref.current = startAutoLock({ service: svc });
+    ref.current = startAutoLock({ service: svc, idleTimeoutMs });
   }
 }

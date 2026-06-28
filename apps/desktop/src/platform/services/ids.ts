@@ -22,6 +22,8 @@ import type { IScheduleViewStateService } from '../view-mode/schedule-view-state
 import type { IScheduleCountsService } from '../view-mode/schedule-counts';
 import type { IActiveEventService } from '../view-mode/active-event';
 import type { IScheduleRefreshSettingsService } from '../view-mode/schedule-refresh-settings';
+import type { IMeetingProvidersSettingsService } from '../view-mode/meeting-providers-settings';
+import type { IIdleLockSettingsService } from '../security/idle-lock-settings';
 import type { ITelemetryModeService } from '../telemetry/telemetry-mode-service';
 import type { ICloudSessionService } from '../cloud/cloud-session-service';
 import { createContext } from 'react';
@@ -89,6 +91,12 @@ export const ActiveEventServiceId = serviceId<IActiveEventService>('workbench.ac
 
 // Schedule refresh settings — non-persisted relay for auto/manual mode + interval
 export const ScheduleRefreshSettingsServiceId = serviceId<IScheduleRefreshSettingsService>('workbench.scheduleRefreshSettings');
+
+// Meeting providers settings — prefs-backed (schedule.meetingProviders); sole renderer writer (A2)
+export const MeetingProvidersSettingsServiceId = serviceId<IMeetingProvidersSettingsService>('workbench.meetingProvidersSettings');
+
+// Idle auto-lock settings — prefs-backed (security.idleLockMin); sole renderer writer (O502)
+export const IdleLockSettingsServiceId = serviceId<IIdleLockSettingsService>('workbench.idleLockSettings');
 
 // Telemetry mode (off/online-only/on, prefs-backed, shared source of truth)
 export const TelemetryModeServiceId = serviceId<ITelemetryModeService>('workbench.telemetryMode');

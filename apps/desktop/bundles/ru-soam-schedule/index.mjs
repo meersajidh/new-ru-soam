@@ -27,6 +27,7 @@
 //       syncEvents (slice 6)
 
 import { createGoogleCalendarAdapter } from './google-calendar-adapter.mjs';
+import { DEFAULT_MEETING_PROVIDERS } from './meeting-link-detector.mjs';
 
 // ── Row → camelCase mappers ────────────────────────────────────────────────────
 
@@ -96,8 +97,9 @@ function mapEventRow(row) {
     providerCalendarId: row.provider_calendar_id,
     externalAccountId:  row.external_account_id,
   };
-  if (row.location)    ev.location    = row.location;
-  if (row.meeting_link) ev.meetingLink = row.meeting_link;
+  if (row.location)         ev.location       = row.location;
+  if (row.meeting_link)     ev.meetingLink    = row.meeting_link;
+  if (row.meeting_provider) ev.meetingProvider = row.meeting_provider;
 
   // Reconstruct organizer object.
   if (row.organizer_email || row.organizer_name) {
@@ -127,8 +129,10 @@ function notFound(message) {
 // ── Capability handler ─────────────────────────────────────────────────────────
 
 // Pref keys for refresh settings.
-const REFRESH_MODE_KEY     = 'schedule.refreshMode';
-const REFRESH_INTERVAL_KEY = 'schedule.refreshIntervalMin';
+const REFRESH_MODE_KEY       = 'schedule.refreshMode';
+const REFRESH_INTERVAL_KEY   = 'schedule.refreshIntervalMin';
+// Pref key for user-editable meeting-provider list (JSON [{ name, domain }]).
+const MEETING_PROVIDERS_KEY  = 'schedule.meetingProviders';
 
 export function activate(ctx) {
   // Bind Main base caps.
@@ -651,6 +655,18 @@ export function activate(ctx) {
         // Returns: { calendarCount, upserts, deletions, pruned, errors }
         // PHI-free audit (no titles, no emails).
 
+        // Read meeting-provider list from prefs (user-editable + defaults).
+        // Fallback to built-in defaults if pref is unset/empty/invalid.
+        let meetingProviders = DEFAULT_MEETING_PROVIDERS;
+        try {
+          const provResult = await prefs.call('get', [MEETING_PROVIDERS_KEY]);
+          const raw = provResult && provResult.value;
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) meetingProviders = parsed;
+          }
+        } catch (_) { /* use defaults */ }
+
         const calRows = await storeQuery.call('run', ['calendar.list', {}]);
         if (calRows.length === 0) return { calendarCount: 0, upserts: 0, deletions: 0, pruned: 0, errors: 0, disconnectedAccounts: [] };
 
@@ -716,7 +732,8 @@ export function activate(ctx) {
                 timeMin:   !cal.sync_token
                   ? new Date(now - syncWindowMin).toISOString()
                   : undefined,
-                nameMap: accountNameMap,
+                nameMap:   accountNameMap,
+                providers: meetingProviders,
               },
             );
             upserts       = result.upserts;
@@ -743,7 +760,7 @@ export function activate(ctx) {
                 const result2 = await a.syncEvents(
                   acct.external_account_id,
                   cal.provider_calendar_id,
-                  { timeMin: new Date(now - syncWindowMin).toISOString(), nameMap: accountNameMap },
+                  { timeMin: new Date(now - syncWindowMin).toISOString(), nameMap: accountNameMap, providers: meetingProviders },
                 );
                 upserts       = result2.upserts;
                 deletions     = result2.deletions;
@@ -860,6 +877,7 @@ export function activate(ctx) {
               all_day:              ev.allDay ? 1 : 0,
               location:             ev.location || null,
               meeting_link:         ev.meetingLink || null,
+              meeting_provider:     ev.meetingProvider || null,
               organizer_email:      orgEmail,
               organizer_name:       orgName,
               organizer_self:       orgSelf,
@@ -886,18 +904,19 @@ export function activate(ctx) {
                   provider_event_id:    ev.id,
                 },
                 {
-                  title:           row.title,
-                  start:           row.start,
-                  end:             row.end,
-                  all_day:         row.all_day,
-                  location:        row.location,
-                  meeting_link:    row.meeting_link,
-                  organizer_email: row.organizer_email,
-                  organizer_name:  row.organizer_name,
-                  organizer_self:  row.organizer_self,
-                  attendees:       row.attendees,
-                  updated_at:      row.updated_at,
-                  synced_at:       row.synced_at,
+                  title:            row.title,
+                  start:            row.start,
+                  end:              row.end,
+                  all_day:          row.all_day,
+                  location:         row.location,
+                  meeting_link:     row.meeting_link,
+                  meeting_provider: row.meeting_provider,
+                  organizer_email:  row.organizer_email,
+                  organizer_name:   row.organizer_name,
+                  organizer_self:   row.organizer_self,
+                  attendees:        row.attendees,
+                  updated_at:       row.updated_at,
+                  synced_at:        row.synced_at,
                 },
                 {
                   event:      'schedule.event.reconciled',
@@ -1077,6 +1096,98 @@ export function activate(ctx) {
         ]);
 
         return { runId, calendarId };
+      }
+
+      case 'rescanEvent': {
+        // O509: on-demand re-fetch a single event from Google to re-detect its meeting link.
+        // Only patches location/meeting_link/meeting_provider — does not touch title/attendees/etc.
+        // PHI: item.description scanned inside mapEvent (adapter), never stored or returned.
+        // Audit: schedule.event.rescanned (PHI-free — providerType only, no title/email).
+        const { externalAccountId, providerCalendarId, providerEventId } = args[0] || {};
+        if (!externalAccountId || !providerCalendarId || !providerEventId) {
+          throw new Error(
+            'schedule.calendar.rescanEvent: externalAccountId, providerCalendarId, providerEventId required',
+          );
+        }
+
+        // Read meeting-provider list from prefs — same pattern as syncEvents.
+        let rsMeetingProviders = DEFAULT_MEETING_PROVIDERS;
+        try {
+          const rsProvResult = await prefs.call('get', [MEETING_PROVIDERS_KEY]);
+          const rsRaw = rsProvResult && rsProvResult.value;
+          if (rsRaw) {
+            const rsParsed = JSON.parse(rsRaw);
+            if (Array.isArray(rsParsed) && rsParsed.length > 0) rsMeetingProviders = rsParsed;
+          }
+        } catch (_) { /* use defaults */ }
+
+        // Look up the provider account so we know the providerType + can get the adapter.
+        const rsAcctRows = await storeQuery.call('run', [
+          'account.getByExternal',
+          { providerType: 'google', externalId: externalAccountId },
+        ]);
+        if (rsAcctRows.length === 0) return { updated: false };
+        const rsAcct = rsAcctRows[0];
+
+        let rsAdapter;
+        try {
+          rsAdapter = getAdapter(rsAcct.provider_type);
+        } catch {
+          return { updated: false };
+        }
+
+        // Verify the event row exists in cache before fetching.
+        const rsExisting = await storeQuery.call('run', ['event.getByProviderTriple', {
+          externalAccountId,
+          providerCalendarId,
+          providerEventId,
+        }]);
+        if (rsExisting.length === 0) return { updated: false };
+
+        // Fetch the event live from Google with meeting-link detection.
+        let rsFetchedEv;
+        try {
+          rsFetchedEv = await rsAdapter.getEvent(
+            externalAccountId,
+            providerCalendarId,
+            providerEventId,
+            { providers: rsMeetingProviders },
+          );
+        } catch (err) {
+          if (err && err.code === 'auth.invalid') throw err; // propagate auth failures
+          return { updated: false };
+        }
+
+        if (!rsFetchedEv) return { updated: false };
+
+        // Patch only the link-relevant fields (PHI-min — no title/attendees update).
+        await storeWrite.call('updateWhere', [
+          'event',
+          {
+            external_account_id:  externalAccountId,
+            provider_calendar_id: providerCalendarId,
+            provider_event_id:    providerEventId,
+          },
+          {
+            location:         rsFetchedEv.location        || null,
+            meeting_link:     rsFetchedEv.meetingLink     || null,
+            meeting_provider: rsFetchedEv.meetingProvider || null,
+            synced_at:        Date.now(),
+          },
+          {
+            event:      'schedule.event.rescanned',
+            recordType: 'event',
+            recordId:   providerEventId,
+            detail:     { providerType: rsAcct.provider_type },
+          },
+        ]);
+
+        return {
+          updated:         true,
+          meetingLink:     rsFetchedEv.meetingLink     || null,
+          meetingProvider: rsFetchedEv.meetingProvider || null,
+          location:        rsFetchedEv.location        || null,
+        };
       }
 
       default:

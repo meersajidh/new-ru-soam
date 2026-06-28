@@ -54,6 +54,11 @@ export interface SoamLock {
   readonly relock: () => Promise<void>;
   readonly heartbeat: () => Promise<void>;
   readonly onChange: (listener: (state: LockState) => void) => () => void;
+  /**
+   * Update idle auto-lock timeout live (O502). null = disable idle auto-lock;
+   * suspend/lock-screen triggers are unaffected.
+   */
+  readonly setIdleTimeout: (ms: number | null) => Promise<void>;
 }
 
 // ── Setup namespace ────────────────────────────────────────────────────────────
@@ -204,6 +209,9 @@ const lock: SoamLock = {
   },
   async heartbeat() {
     await ipcRenderer.invoke('soam:lock:heartbeat');
+  },
+  async setIdleTimeout(ms) {
+    await ipcRenderer.invoke('soam:lock:set-idle-timeout', ms);
   },
   onChange(listener) {
     return subscribePlatformEvent((payload) => {

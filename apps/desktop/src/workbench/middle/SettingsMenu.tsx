@@ -17,6 +17,8 @@ import {
   CloudSessionServiceId,
   FontScaleServiceId,
   FontServiceId,
+  IdleLockSettingsServiceId,
+  MeetingProvidersSettingsServiceId,
   ScheduleRefreshSettingsServiceId,
   ThemeServiceId,
   TelemetryModeServiceId,
@@ -26,13 +28,15 @@ import type { ThemeDescriptor } from '../../platform/theme/tokens';
 import type { Density } from '../../platform/activity-bar/density-service';
 import type { TelemetryMode } from '../../platform/telemetry/telemetry-mode-service';
 import type { RefreshSettings } from '../../platform/view-mode/schedule-refresh-settings';
+import type { MeetingProvider } from '../../platform/view-mode/meeting-providers-settings';
+import type { IdleLockSettings } from '../../platform/security/idle-lock-settings';
 import type { FontScale } from '../../platform/font/font-scale-service';
 import { usePopover } from '../../platform/popover/use-popover';
 import Popover from '../../platform/popover/Popover';
 import DeleteWorkspaceDialog from './DeleteWorkspaceDialog';
 import './SettingsMenu.css';
 
-type PanelView = 'root' | 'appearance' | 'system' | 'schedule';
+type PanelView = 'root' | 'appearance' | 'system' | 'schedule' | 'security';
 
 export default function SettingsMenu() {
   const kekLocked = useContextKey('workspace.kekLocked') as boolean;
@@ -45,6 +49,8 @@ export default function SettingsMenu() {
   const telemetrySvc = useService(TelemetryModeServiceId);
   const cloudSessionSvc = useService(CloudSessionServiceId);
   const refreshSettingsSvc = useService(ScheduleRefreshSettingsServiceId);
+  const meetingProvidersSvc = useService(MeetingProvidersSettingsServiceId);
+  const idleLockSvc = useService(IdleLockSettingsServiceId);
   const fontScaleSvc = useService(FontScaleServiceId);
 
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
@@ -63,6 +69,18 @@ export default function SettingsMenu() {
   // Schedule refresh settings — driven by ScheduleRefreshSettingsService.
   const [refreshSettings, setRefreshSettingsState] = useState<RefreshSettings>(() =>
     refreshSettingsSvc.getSettings(),
+  );
+
+  // Meeting providers — driven by MeetingProvidersSettingsService.
+  const [providers, setProvidersState] = useState<ReadonlyArray<MeetingProvider>>(() =>
+    meetingProvidersSvc.getProviders(),
+  );
+  const [newProvName, setNewProvName] = useState('');
+  const [newProvDomain, setNewProvDomain] = useState('');
+
+  // Idle lock settings — driven by IdleLockSettingsService.
+  const [idleLockSettings, setIdleLockSettingsState] = useState<IdleLockSettings>(() =>
+    idleLockSvc.getSettings(),
   );
 
   // Appearance state — live-subscribed so active highlight stays in sync.
@@ -98,6 +116,8 @@ export default function SettingsMenu() {
     const offTelemetry = telemetrySvc.onChange(setTelemetryModeState);
     const offCloud = cloudSessionSvc.onChange(setCloudStatus);
     const offRefresh = refreshSettingsSvc.onDidChange(setRefreshSettingsState);
+    const offProviders = meetingProvidersSvc.onDidChange(setProvidersState);
+    const offIdleLock = idleLockSvc.onDidChange(setIdleLockSettingsState);
     const offFontScale = fontScaleSvc.onDidChange(setActiveScale);
     return () => {
       offTheme();
@@ -107,9 +127,11 @@ export default function SettingsMenu() {
       offTelemetry();
       offCloud();
       offRefresh();
+      offProviders();
+      offIdleLock();
       offFontScale();
     };
-  }, [themeSvc, fontSvc, densitySvc, telemetrySvc, cloudSessionSvc, refreshSettingsSvc, fontScaleSvc]);
+  }, [themeSvc, fontSvc, densitySvc, telemetrySvc, cloudSessionSvc, refreshSettingsSvc, meetingProvidersSvc, idleLockSvc, fontScaleSvc]);
 
   // Reset to root view each time popover opens.
   const prevOpen = useRef(false);
@@ -195,6 +217,16 @@ export default function SettingsMenu() {
                   onClick={() => setPanelView('schedule')}
                 >
                   <span className="settings-nav-label">Schedule</span>
+                  <span className="settings-nav-chevron" aria-hidden="true">
+                    <Icon name="chevron-right" size={13} />
+                  </span>
+                </button>
+                <button
+                  className="settings-nav-row"
+                  role="menuitem"
+                  onClick={() => setPanelView('security')}
+                >
+                  <span className="settings-nav-label">Security</span>
                   <span className="settings-nav-chevron" aria-hidden="true">
                     <Icon name="chevron-right" size={13} />
                   </span>
@@ -403,6 +435,162 @@ export default function SettingsMenu() {
                 </div>
                 <p className="settings-analytics-notice">
                   Refresh manually from the calendar toolbar.
+                </p>
+              </div>
+
+              <div className="settings-popover-divider" aria-hidden="true" />
+
+              {/* ── Meeting providers ──────────────────────────────────────────── */}
+              <div className="settings-section">
+                <div className="settings-section-label">Meeting providers</div>
+
+                <div className="settings-provider-list">
+                  {providers.map((p) => (
+                    <div key={p.domain} className="settings-provider-row">
+                      <span className="settings-provider-name">{p.name}</span>
+                      <span className="settings-provider-domain">{p.domain}</span>
+                      <button
+                        className="settings-provider-remove-btn"
+                        aria-label={`Remove ${p.name}`}
+                        title={`Remove ${p.name}`}
+                        onClick={() => {
+                          meetingProvidersSvc.setProviders(
+                            providers.filter((x) => x.domain !== p.domain),
+                          );
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="settings-provider-add-row">
+                  <input
+                    className="settings-provider-input"
+                    placeholder="Name"
+                    value={newProvName}
+                    onChange={(e) => setNewProvName(e.target.value)}
+                    aria-label="New provider name"
+                  />
+                  <input
+                    className="settings-provider-input"
+                    placeholder="Domain"
+                    value={newProvDomain}
+                    onChange={(e) => setNewProvDomain(e.target.value)}
+                    aria-label="New provider domain"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const name = newProvName.trim();
+                        const domain = newProvDomain.trim().toLowerCase().replace(/^https?:\/\//, '');
+                        if (!name || !domain) return;
+                        if (providers.some((p) => p.domain.toLowerCase() === domain)) return;
+                        meetingProvidersSvc.setProviders([...providers, { name, domain }]);
+                        setNewProvName('');
+                        setNewProvDomain('');
+                      }
+                    }}
+                  />
+                  <button
+                    className="settings-provider-add-btn"
+                    disabled={!newProvName.trim() || !newProvDomain.trim()}
+                    onClick={() => {
+                      const name = newProvName.trim();
+                      const domain = newProvDomain
+                        .trim()
+                        .toLowerCase()
+                        .replace(/^https?:\/\//, '');
+                      if (!name || !domain) return;
+                      if (providers.some((p) => p.domain.toLowerCase() === domain)) return;
+                      meetingProvidersSvc.setProviders([...providers, { name, domain }]);
+                      setNewProvName('');
+                      setNewProvDomain('');
+                    }}
+                  >
+                    Add
+                  </button>
+                </div>
+
+                <p className="settings-analytics-notice">
+                  Links detected from event location and body. Takes effect on next sync.
+                </p>
+              </div>
+            </>
+          )}
+
+          {panelView === 'security' && (
+            <>
+              {backButton('Security', () => setPanelView('root'))}
+
+              {/* ── Idle auto-lock ────────────────────────────────────────────── */}
+              <div className="settings-section">
+                <div className="settings-section-label">Auto-lock</div>
+
+                {/* Enable toggle row */}
+                <div className="settings-toggle-row">
+                  <div className="settings-toggle-label-group">
+                    <span className="settings-toggle-label">Lock on idle</span>
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={idleLockSettings.enabled}
+                    className="settings-switch"
+                    data-on={idleLockSettings.enabled || undefined}
+                    onClick={() => {
+                      idleLockSvc.setSettings({
+                        enabled: !idleLockSettings.enabled,
+                        intervalMin: idleLockSettings.intervalMin,
+                      });
+                    }}
+                    aria-label="Lock workspace on idle"
+                  >
+                    <span className="settings-switch-knob" aria-hidden="true" />
+                  </button>
+                </div>
+
+                {/* Interval stepper row */}
+                <div
+                  className="settings-toggle-row settings-interval-row"
+                  aria-disabled={!idleLockSettings.enabled}
+                  data-disabled={!idleLockSettings.enabled || undefined}
+                >
+                  <span className="settings-toggle-label">Idle timeout</span>
+                  <div className="settings-stepper">
+                    <button
+                      className="settings-stepper-btn"
+                      aria-label="Decrease idle timeout"
+                      disabled={!idleLockSettings.enabled || idleLockSettings.intervalMin <= 1}
+                      onClick={() => {
+                        const next = Math.max(1, idleLockSettings.intervalMin - 1);
+                        idleLockSvc.setSettings({
+                          enabled: idleLockSettings.enabled,
+                          intervalMin: next,
+                        });
+                      }}
+                    >
+                      −
+                    </button>
+                    <span className="settings-stepper-value" aria-live="polite">
+                      {idleLockSettings.intervalMin}m
+                    </span>
+                    <button
+                      className="settings-stepper-btn"
+                      aria-label="Increase idle timeout"
+                      disabled={!idleLockSettings.enabled}
+                      onClick={() => {
+                        const next = idleLockSettings.intervalMin + 1;
+                        idleLockSvc.setSettings({
+                          enabled: idleLockSettings.enabled,
+                          intervalMin: next,
+                        });
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <p className="settings-analytics-notice">
+                  Suspend and OS screen lock always re-lock, regardless of this setting.
                 </p>
               </div>
             </>
