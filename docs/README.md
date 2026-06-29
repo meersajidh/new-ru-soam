@@ -120,6 +120,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-416](ADRs/416-snippet-engine.md) — Snippet engine. _(Accepted)_
 - [ADR-417](ADRs/417-menu-and-keybinding-contributions.md) — Menu + keybinding contributions, context-menu primitive, renderer↔view action channel. _(Accepted)_
 - [ADR-418](ADRs/418-bundle-trust-tiers.md) — Bundle trust tiers: First-Party-Host vs Bundle-Host (structural PHI hard-deny for untrusted code). _(Accepted)_
+- [ADR-419](ADRs/419-bundle-view-tech-stack.md) — Bundle-view tech stack: React + TanStack Query + TanStack Router + Tailwind (same stack as the shell), self-bundled per bundle into the ADR-411 iframe; replaces hand-authored vanilla views + the `__viewQuery` wrapper. _(Accepted)_
 
 #### Domain (500–599)
 

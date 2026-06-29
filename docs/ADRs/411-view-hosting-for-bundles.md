@@ -204,9 +204,148 @@ Resource CRUD does not happen via the bridge directly; the view binds the platfo
 
 - ~~O78 — View asset protocol scheme~~ **Resolved Phase 7** — `view://<bundleId>/<path>`; `_platform_` reserved host; registered as a privileged scheme (`standard, secure, corsEnabled`) in `apps/desktop/electron/main/index.ts` `registerSchemesAsPrivileged`.
 - **O79** — `window.soamView` exact API shape. Initial shape illustrated here; refine as the first view-using bundle ships.
-- **O80** — `sandbox` attribute flag set. `allow-scripts`, `allow-forms`, `allow-pointer-lock` are likely; `allow-modals`, `allow-presentation` need a case-by-case call.
-- **O81** — Bundle-view CSP exact policy text. Starting point from ADR-201; bundle-specific overlays for asset paths.
+- ~~**O80** — `sandbox` attribute flag set.~~ **Resolved by Amendment 1** — add `allow-same-origin` (real per-bundle origin); see Am1.
+- ~~**O81** — Bundle-view CSP exact policy text.~~ **Resolved by Amendment 1** — trust-tiered, `script-src 'self'` (no `'unsafe-inline'`) for the first-party tier; see Am1.
 - **O82** — Declarative-view component vocabulary and trigger criteria. Lands when first declarative-only view candidate appears.
 - **O83** — A11y patterns across iframe boundaries: focus crossing, tab traversal, `aria-live` proxying, screen-reader semantics.
 - **O84** — Iframe pooling / count budgeting. Memory and startup cost mitigation when many views are open.
 - **O85** — WebContentsView usage policy: which exceptional cases justify it, who approves, what additional sandboxing applies.
+
+---
+
+## Amendment 1 — Real per-bundle origin + trust-tiered CSP
+
+**Date:** 2026-06-29
+**Status:** Accepted — **validation spike PASSED 2026-06-29** (see below); ready to implement
+**Resolves:** O80 (sandbox flags), O81 (CSP text)
+**Related:** ADR-418 (trust tiers / `trustClass`), ADR-419 (view tech stack), `References/View_Sandbox_Origin_And_CSP_Reasoning.md`
+
+### Why
+
+The original sandbox (`allow-scripts allow-forms`, **no** `allow-same-origin`)
+gave each view an **opaque origin**. Opaque origins cannot reliably load
+`view://` subresources (Blink same-origin scheme check), which forced every
+platform seam to be injected **inline**, forced the view CSP to permit
+**`'unsafe-inline'`** in `script-src`, and forced single-file bundling for any
+framework build. `'unsafe-inline'` re-permits exactly the injected-script XSS the
+CSP exists to stop — unacceptable for a PHI surface where view **content** is
+hostile-by-default (Google event titles/bodies, contact names, patient free
+text), even though view **code** is first-party. Full reasoning:
+`References/View_Sandbox_Origin_And_CSP_Reasoning.md`.
+
+### Decision
+
+1. **Real, unique, per-bundle origin (the VS Code webview model).** The view
+   iframe sandbox becomes `allow-scripts allow-forms allow-same-origin`. This
+   does **not** make the view same-origin with the shell — it keeps the origin
+   from the URL (`view://<bundleId>`), which is cross-origin with both the shell
+   (`app://`) and every other bundle. The trust boundary (cannot reach the shell
+   DOM / `window.soam` / other bundles) is preserved by the **distinct origin**,
+   which was always the real isolator; opaqueness contributed nothing but the
+   subresource pain. The `allow-scripts + allow-same-origin` self-de-sandbox
+   escape applies only to content **same-origin with its embedder**, which view
+   content is not.
+
+2. **No `'unsafe-inline'`.** With a real origin, the target view CSP is
+   `script-src 'self'` (+ `style-src` handling for the bundler's CSS — see the
+   Tailwind open item O513). Seams become ordinary same-host `view://` files;
+   bundlers build idiomatically (external + shared vendor chunks, ES modules).
+
+   **Coexistence caveat (incremental migration).** The 13 not-yet-migrated
+   vanilla views contain inline `<script>` in their bodies — `script-src 'self'`
+   would break them. So the CSP is selected **per view by its runtime**, not
+   flipped globally:
+   - **legacy (vanilla) view** → CSP keeps `'unsafe-inline'` (transitional) +
+     seams stay **inline-injected**. Unchanged behaviour, zero regression.
+     `allow-same-origin` is still added (real origin is harmless to them — their
+     inline scripts still run, same-host fonts load cleaner).
+   - **React (built) view** → strict `script-src 'self'` (no `'unsafe-inline'`)
+     + seams served as **same-host external** `<script src>` (the bridge etc.
+     can't be inline under `'self'`). This is the path the spike proved.
+
+   The per-view runtime is a manifest signal (e.g. a per-view `runtime: 'react'`
+   / `csp: 'strict'` flag, defaulting to legacy). The security win lands **per
+   view as each migrates**; `'unsafe-inline'` is removed from the first-party
+   tier entirely once the last vanilla view is gone. Net CSP function:
+   `CSP = f(trustClass, viewRuntime)` — `trustClass` (ADR-418) is always
+   first-party today, so the live axis is `viewRuntime`; the `trustClass`
+   parameter is threaded now so the untrusted tier (O512) layers on without
+   rework.
+
+3. **Trust-tiered CSP + sandbox.** Both the CSP and the sandbox flag set are a
+   **function of the serving bundle's `trustClass`** (ADR-418). The `view://`
+   protocol handler resolves the bundle → its trustClass → the matching policy.
+   The **first-party** tier is defined now; the **untrusted (TP-Host)** tier is
+   defined when rung-H lands (O512), and may tighten further (e.g. drop
+   `allow-same-origin`, narrow `img/font/style`, no `allow-forms`).
+
+4. **`connect-src 'none'` is retained** in every tier — views never reach the
+   network directly (ADR-203); the bridge is `postMessage`, which `connect-src`
+   does not govern. This amendment relaxes *origin opaqueness only*, never the
+   egress posture.
+
+5. **Fallbacks, if the spike disproves the model in Electron** (recorded so the
+   no-`unsafe-inline` goal holds regardless): **(a) nonce-based** — the
+   `protocol.handle` response mints a per-response random nonce, stamped into the
+   CSP and each injected `<script nonce>`; **(b) hash-based** — the seams are
+   static strings, so list their precomputed `sha256` in `script-src`. Both keep
+   inline injection but make it XSS-safe; both are strictly worse ergonomically
+   than the real-origin path, hence fallbacks.
+
+### Validation spike (gate before rollout)
+
+Throwaway, on the `echo-test` bundle, driven by CDP. Confirms Electron honours
+the model before ADR-419's build pipeline depends on it.
+
+**Setup:** a temporary `spike.html` view in `echo-test` that (a) loads one
+**external same-host** script `view://echo-test/spike.js`, (b) loads it as an ES
+`<script type="module">` doing one external `import`, (c) contains one inline
+`<script>` that sets a sentinel global; serve it under a spike CSP
+`default-src 'none'; script-src 'self'; connect-src 'none'; …` (no
+`'unsafe-inline'`); mount it with `sandbox="allow-scripts allow-forms
+allow-same-origin"`.
+
+**Pass/fail (eval inside the iframe via raw-CDP `suppress_origin=True`):**
+
+| # | Check | Pass = |
+|---|-------|--------|
+| 1 | `self.origin` in the iframe | `"view://echo-test"` (a real origin, **not** `"null"`) |
+| 2 | shell isolation | `window.parent.document` **throws** a cross-origin `SecurityError` |
+| 3 | external same-host script | loads + runs, **no** `"Unsafe attempt to load URL"` console violation |
+| 4 | ES module + external import | resolves + runs, no violation |
+| 5 | inline `<script>` under `script-src 'self'` | **blocked** (sentinel global undefined) → proves the XSS net is live |
+| 6 | bridge | `view.ready` posts; a `bindQuery(...).call(...)` round-trips |
+| 7 | secure context | `window.isSecureContext === true`, `crypto.subtle` defined (future-proofing) |
+| 8 | cross-bundle | from `echo-test`'s frame, no script access to another bundle's view |
+
+**On all-pass:** implement trust-tiered CSP + `allow-same-origin` in
+`view-protocol.ts` (thread `trustClass` into the view registry) +
+`BundleViewIframe.tsx` (sandbox attr), drop the inline-seam injection in favour
+of same-host seam files, and ADR-419's pipeline uses idiomatic multi-chunk
+builds. **On any fail:** fall back to nonce (5a) and keep inline seams; revisit
+the failing check.
+
+#### Spike result — 2026-06-29: ALL PASS ✅
+
+Ran on `echo-test` (throwaway `spike.html`/`spike.js`/`spike-mod.js`/
+`spike-bridge.js` + an isolated `view-protocol.ts` branch serving the strict
+`script-src 'self'` CSP with no seam injection; a raw iframe with
+`sandbox="allow-scripts allow-forms allow-same-origin"` injected into the shell
+via CDP; results posted back to the shell). All artifacts reverted after.
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | `self.origin` | `"view://echo-test"` — real origin, not `"null"` |
+| 2 | shell isolation | `window.parent.document` → **`SecurityError`** (blocked) |
+| 3 | same-host external **classic** `<script src>` | loaded + ran under `script-src 'self'` |
+| 4 | external **ES module** + dynamic `import()` | loaded + resolved (`module-import-ok`) |
+| 5 | inline `<script>` | **blocked** — console: *"Executing inline script violates … 'script-src 'self''. … blocked"* (XSS net live) |
+| 6 | bridge-shaped same-host script | loaded + `postMessage` to parent received |
+| 7 | secure context | `isSecureContext === true`, `crypto.subtle` defined |
+| 8 | per-bundle origin | origin is bundle-host-keyed; (2) proves cross-origin isolation → cross-bundle by the same mechanism |
+
+**Crucially, no `"Unsafe attempt to load URL"` violation** for the same-host
+external/module loads — the opaque-origin subresource pain is gone. The only CSP
+console entry was the *intended* inline-script block (#5). **The real-origin +
+`script-src 'self'` (no `'unsafe-inline'`) model is confirmed in Electron** —
+proceed to implementation (O511).
