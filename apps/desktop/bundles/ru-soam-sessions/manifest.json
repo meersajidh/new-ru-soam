@@ -9,7 +9,7 @@
     { "name": "sessions.meeting", "version": "1.0", "phi": true, "kind": "command" }
   ],
   "views": [
-    { "id": "meetings", "path": "meetings.html" },
+    { "id": "meetings", "path": "meetings.html", "runtime": "react" },
     { "id": "meeting-record", "path": "meeting-record.html" }
   ],
   "ownedTables": ["client_meeting"],

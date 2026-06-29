@@ -12,7 +12,8 @@
   "type": "module",
   "main": "dist/main/index.mjs",
   "scripts": {
-    "build": "tsr generate && tsc -b && vite build && vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts && vite build --config vite.fp-host.config.ts",
+    "build": "tsr generate && tsc -b && vite build && vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts && vite build --config vite.fp-host.config.ts && node scripts/build-views.mjs",
+    "build:views": "node scripts/build-views.mjs",
     "dev": "tsr generate && node scripts/dev.mjs",
     "dist": "pnpm run build && node scripts/build-changelog.mjs && electron-builder --config electron-builder.yml",
     "dist:install": "node scripts/install-launcher.mjs",

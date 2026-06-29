@@ -17,9 +17,18 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      // '@': path.resolve(__dirname, './src'), 
+      // '@': path.resolve(__dirname, './src'),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+  },
+  // Scope the dep scanner to the shell's own entry. Otherwise Vite's optimizeDeps
+  // scanner discovers the React bundle views under `bundles/*/view-src/*.html`
+  // (which import `@ru-soam/view-kit` via their own per-bundle config alias the
+  // shell doesn't know) and logs "Failed to run dependency scan". Those views are
+  // built separately (scripts/build-views.mjs) and served pre-built by the
+  // fp-host view protocol — never by this dev server. ADR-419.
+  optimizeDeps: {
+    entries: ['index.html'],
   },
   build: {
     outDir: 'dist/renderer',

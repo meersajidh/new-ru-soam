@@ -5,6 +5,7 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { buildAllViews } from './build-views.mjs';
 
 const require = createRequire(import.meta.url);
 const electronBin = require('electron');
@@ -104,6 +105,11 @@ async function main() {
       },
     ],
   });
+
+  // Watch React views — initial build before electron starts so first load has
+  // built view-assets. Watchers continue in background after initial build.
+  await buildAllViews({ watch: true });
+  console.log('[views] initial build done; watching for changes');
 
   await build({
     configFile: path.join(root, 'vite.main.config.ts'),
