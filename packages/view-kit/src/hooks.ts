@@ -61,16 +61,22 @@ interface ProxyCacheEntry {
  * @param capId   - capability namespace (e.g. `'sessions.meeting.query'`)
  * @param version - semver string (e.g. `'1.0'`)
  * @param method  - method name on the cap proxy
- * @param args    - positional args forwarded to proxy.call(method, ...args)
+ * @param args    - positional args forwarded to proxy.call(method, ...args).
+ *                  Defaults to []. queryKey = [capId, method, ...args].
+ * @param options - optional query options:
+ *   - `enabled`   (default `true`)  — when false the query does not fetch;
+ *                  react-query keeps `isPending` with `fetchStatus:'idle'`.
+ *                  Use to gate context-following views until entityId arrives.
+ *   - `staleTime` (default 30 000)  — milliseconds before data is considered stale.
  *
- * queryKey = [capId, method, ...args]; staleTime = 30s.
  * The bound proxy is memoised per (capId, version) inside the hook instance.
  */
 export function useCapQuery(
   capId: string,
   version: string,
   method: string,
-  ...args: unknown[]
+  args: unknown[] = [],
+  options?: { enabled?: boolean; staleTime?: number },
 ) {
   const proxyRef = useRef<ProxyCacheEntry | null>(null);
   const proxyKey = `${capId}@${version}`;
@@ -87,7 +93,8 @@ export function useCapQuery(
       const proxy = await proxyRef.current.promise;
       return proxy.call(method, ...args);
     },
-    staleTime: 30_000,
+    enabled: options?.enabled ?? true,
+    staleTime: options?.staleTime ?? 30_000,
   });
 }
 

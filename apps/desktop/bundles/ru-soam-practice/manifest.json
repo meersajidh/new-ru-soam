@@ -15,7 +15,7 @@
     { "id": "form", "path": "form.html" },
     { "id": "overview", "path": "overview.html" },
     { "id": "aspects", "path": "aspects.html" },
-    { "id": "projections", "path": "projections.html" },
+    { "id": "projections", "path": "projections.html", "runtime": "react" },
     { "id": "safety-plan", "path": "safety-plan.html" },
     { "id": "intake", "path": "intake.html" },
     { "id": "client-migration", "path": "client-migration.html" }

@@ -76,6 +76,14 @@ export interface SoamView {
     context: Record<string, unknown>,
     contextOverrides?: Record<string, unknown>,
   ): void;
+
+  /**
+   * The buffered last 'context' message (or null). Read on mount to seed the
+   * entity id when the initial context arrived before a late-attaching listener
+   * (e.g. ViewRoot's post-mount effect). Optional — guard with `?.` for bridges
+   * predating it. Live updates still come through the 'context' window message.
+   */
+  currentContext?(): ViewContextMessage | null;
 }
 
 /** The window.__viewBoot bootstrap helpers (view-bootstrap.ts). */

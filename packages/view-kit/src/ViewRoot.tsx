@@ -53,6 +53,16 @@ export function ViewRoot({ children, queryClient }: ViewRootProps) {
       if (cancelled) return;
       setBridgeReady(true);
 
+      // Seed entityId from the bridge's buffered context. The initial 'context'
+      // message can be delivered (and its DOMContentLoaded replay fired) BEFORE
+      // this effect attaches the window listener below — so for a view that
+      // mounts with an entity already active (e.g. a panel/aux contextual view),
+      // the live listener alone would miss it. Reading the buffer covers that.
+      const buffered = view.currentContext?.();
+      if (buffered) {
+        setEntityId(typeof buffered.entityId === 'string' ? buffered.entityId : undefined);
+      }
+
       // Invalidate all queries whenever the protected store changes.
       const sub = view.events.onStoreChange(() => {
         void qc.invalidateQueries();

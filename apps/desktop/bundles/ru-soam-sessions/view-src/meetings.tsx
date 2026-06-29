@@ -122,10 +122,10 @@ function Meetings() {
 
   // ── Queries ───────────────────────────────────────────────────────────────
 
-  const meetingsQuery = useCapQuery('sessions.meeting.query', '1.0', 'listUpcoming', fromTs);
+  const meetingsQuery = useCapQuery('sessions.meeting.query', '1.0', 'listUpcoming', [fromTs]);
 
   // Patient name map — best-effort. If locked/failed, fall back to patientId in rows.
-  const patientQuery = useCapQuery('record.patient.query', '1.0', 'list');
+  const patientQuery = useCapQuery('record.patient.query', '1.0', 'list', []);
 
   // ── Sync mutation ─────────────────────────────────────────────────────────
 

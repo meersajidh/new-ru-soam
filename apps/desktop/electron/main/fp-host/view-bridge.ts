@@ -228,6 +228,12 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     requestContextMenu: function (menuId, x, y, context, contextOverrides) {
       send({ __soamView: true, kind: 'request.contextMenu', menuId: menuId, x: x, y: y, context: context, contextOverrides: contextOverrides || undefined });
     },
+    // Buffered last 'context' message (or null). A view whose listener attaches
+    // AFTER the initial context was delivered+replayed (e.g. a React view whose
+    // listener lives in a post-mount effect) reads this on startup to seed its
+    // entity id instead of missing it. Live updates still arrive via the
+    // 'context' window message. See @ru-soam/view-kit ViewRoot.
+    currentContext: function () { return lastContextMsg; },
     ready: ready
   });
 

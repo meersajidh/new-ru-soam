@@ -100,6 +100,24 @@ React views do NOT receive the `_seam` codicons / query-vendor / `__viewQuery`
   applies, **strict CSP** (origin real, external chunks load, any stray inline
   blocked).
 
+**2nd view DONE + dogfood-verified 2026-06-30:** `projections.html` (Practice
+"Notes" panel view, context-following). Validated `useViewContext`, `enabled`-gated
+`useCapQuery`, the multi-bundle build glob, and local React toggle state. Surfaced
++ fixed a real bridge/view-kit gap (below).
+
+**CONTEXT-DELIVERY FIX (applies to EVERY context-following React view):** a React
+view's 'context' listener lives in ViewRoot's post-`awaitBridge` effect, which
+attaches AFTER the bridge already delivered the initial 'context' (and its
+readyState-gated DOMContentLoaded replay already fired) — so the entity id is
+MISSED on initial mount (name/data never loads until the user switches entity,
+which pushes a fresh live message). The standalone meetings pilot couldn't surface
+this (no context). FIX = the bridge (`view-bridge.ts`) now exposes
+`soamView.currentContext()` returning the buffered last 'context' message;
+`ViewRoot` reads it on mount to seed `entityId`, then keeps the live listener for
+updates. `useCapQuery` gained `(args[], { enabled, staleTime })` so the gated
+fetch waits for entityId. Any future context-following view gets this for free via
+view-kit.
+
 Then migrate the rest smallest/highest-churn first; large views
 (`schedule.html`, `event-detail.html`) last. When the last vanilla view is gone:
 drop `'unsafe-inline'` from the first-party tier + remove the legacy inline-seam
