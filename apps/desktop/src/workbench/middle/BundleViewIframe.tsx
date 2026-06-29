@@ -24,10 +24,15 @@ import type { ActiveEvent } from '../../platform/view-mode/active-event';
  * The renderer does not interpret payloads — it forwards them. Policy
  * (capability auth, audit) lives in Main.
  *
- * Sandbox flags: `allow-scripts allow-forms`. Notably no `allow-same-origin`,
- * `allow-top-navigation`, or `allow-popups`. That, combined with the iframe's
- * `view://<bundleId>` origin, structurally blocks DOM reach into `app://` and
- * cross-bundle access.
+ * Sandbox flags: `allow-scripts allow-forms allow-same-origin`. `allow-same-origin`
+ * preserves the real `view://<bundleId>` origin (without it Blink forces an opaque
+ * origin, breaking same-host subresource loads). The view is still cross-origin with
+ * the shell (`app://` / localhost) and with every other bundle — the distinct origin
+ * is what enforces the trust boundary, not opaqueness. `allow-top-navigation` and
+ * `allow-popups` are absent; the `allow-scripts + allow-same-origin` self-de-sandbox
+ * escape applies only when the framed content is same-origin with its *embedder*, which
+ * it is not (`view://` vs `app://`). See ADR-411 Am1 +
+ * `docs/References/View_Sandbox_Origin_And_CSP_Reasoning.md`.
  */
 interface Props {
   readonly resource: string;
@@ -413,7 +418,7 @@ export default function BundleViewIframe({ resource, instanceId, entityId, focus
     <iframe
       ref={iframeRef}
       src={resource}
-      sandbox="allow-scripts allow-forms"
+      sandbox="allow-scripts allow-forms allow-same-origin"
       className="bundle-view-iframe"
       title={`bundle view: ${resource}`}
     />

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>React Smoke</title>
+  <!--
+    Inline script below MUST be blocked by script-src 'self' (STRICT_VIEW_CSP).
+    If window.__inlineRan is defined when smoke.js runs, the CSP is not working.
+  -->
+  <script>window.__inlineRan = true;</script>
+</head>
+<body>
+  <p id="status">Smoke test running…</p>
+  <!--
+    smoke.js is a same-host external script (view://echo-test/smoke.js).
+    Under script-src 'self' this is allowed; under 'unsafe-inline' it also runs,
+    but the inline script above proves the policy is in effect when blocked.
+    Injected seams (bridge.js / bootstrap.js from _seam/) load before this.
+  -->
+  <script src="view://echo-test/smoke.js"></script>
+</body>
+</html>

@@ -44,10 +44,17 @@ export type ActivationEvent = 'eager' | 'lazy' | 'onCommand' | 'onEvent';
  * stable identifier the platform uses to address this view. `path` is the
  * relative file under `view-assets/`. Both are validated to deny `..`
  * traversal and absolute paths.
+ *
+ * `runtime` selects the per-view CSP tier (ADR-411 Am1):
+ *   - `'vanilla'` (default) — legacy CSP with `'unsafe-inline'`; seams
+ *     injected inline. All existing views use this path unchanged.
+ *   - `'react'` — strict CSP with `script-src 'self'` (no `'unsafe-inline'`);
+ *     seams served as same-host external scripts. ADR-419 builds target this.
  */
 export interface ViewManifestEntry {
   readonly id: string;
   readonly path: string;
+  readonly runtime: 'vanilla' | 'react';
 }
 
 /**
@@ -316,7 +323,14 @@ function validate(raw: unknown, manifestPath: string): BundleManifest {
       if (view.path.includes('..') || view.path.startsWith('/') || view.path.startsWith('\\')) {
         throw new ManifestError(manifestPath, `view path "${view.path}" must be relative without ".." segments`);
       }
-      views.push({ id: view.id, path: view.path });
+      if (view.runtime !== undefined && view.runtime !== 'vanilla' && view.runtime !== 'react') {
+        throw new ManifestError(
+          manifestPath,
+          `view runtime "${String(view.runtime)}" must be "vanilla" or "react" if present`,
+        );
+      }
+      const runtime: 'vanilla' | 'react' = view.runtime === 'react' ? 'react' : 'vanilla';
+      views.push({ id: view.id, path: view.path, runtime });
     }
   }
 
