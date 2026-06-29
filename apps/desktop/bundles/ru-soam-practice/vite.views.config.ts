@@ -31,6 +31,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         projections: resolve(__dirname, 'view-src/projections.html'),
+        intake: resolve(__dirname, 'view-src/intake.html'),
       },
     },
     target: 'es2020',

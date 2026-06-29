@@ -105,6 +105,19 @@ React views do NOT receive the `_seam` codicons / query-vendor / `__viewQuery`
 `useCapQuery`, the multi-bundle build glob, and local React toggle state. Surfaced
 + fixed a real bridge/view-kit gap (below).
 
+**3rd view DONE + dogfood-verified 2026-06-30:** `intake.html` (Practice "Intake
+Checklist", URL-`?id=` pinned editor tab). Validated the 3rd entity-delivery path
+(URL query, not the 'context' channel) via a new view-kit **`useViewQuery()`** hook
+(`useMemo(() => __viewBoot.parseQuery(location.search), [])`); a SECOND React view in
+the same bundle (multi-view `rollupOptions.input` → Vite emits a shared vendor chunk +
+per-view entry); and a best-effort CROSS-BUNDLE view-bind (`sessions.meeting.query`
+from a Practice view → the derived "First appointment scheduled" 11th item). Added
+the `circle-large-outline` codicon. Dogfood (CDP, MS Hussain via `openInEditor('intake',
+{query:'id=…'})`): tab URL carries `?id=`, renders "Intake — 1/11 complete", 11 rows,
+cross-bundle 11th item resolved, console clean. **Entity-delivery paths now all
+covered: standalone (meetings) · 'context' channel (projections, useViewContext) ·
+URL `?id=` (intake, useViewQuery).**
+
 **CONTEXT-DELIVERY FIX (applies to EVERY context-following React view):** a React
 view's 'context' listener lives in ViewRoot's post-`awaitBridge` effect, which
 attaches AFTER the bridge already delivered the initial 'context' (and its

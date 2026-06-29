@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef } from 'react';
+import { createContext, useContext, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { BoundProxy, SoamView } from './bridge-types.js';
 
@@ -34,6 +34,19 @@ export function useSoamView(): SoamView {
     );
   }
   return view;
+}
+
+/**
+ * Returns the parsed URL query params of the view as a key→value map.
+ *
+ * Entity id for pinned editor tabs arrives as `?id=` (+ optional `?title=`),
+ * read here; context-following views use useViewContext() instead.
+ *
+ * Implemented via `window.__viewBoot.parseQuery(window.location.search)`.
+ * Memoised once — a pinned editor tab's URL is static for the tab's lifetime.
+ */
+export function useViewQuery(): Record<string, string> {
+  return useMemo(() => window.__viewBoot.parseQuery(window.location.search), []);
 }
 
 /**

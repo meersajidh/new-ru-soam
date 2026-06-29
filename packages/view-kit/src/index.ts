@@ -5,6 +5,7 @@
  *   <ViewRoot>       — mandatory root; awaits bridge, provides QueryClient + entityId context
  *   useSoamView()    — returns typed window.soamView
  *   useViewContext() — returns { entityId } from parent renderer 'context' push
+ *   useViewQuery()   — returns parsed URL query params (for pinned editor tabs with ?id=)
  *   useCapQuery()    — TanStack useQuery over a bound query capability
  *   useCapMutation() — TanStack useMutation over a bound command capability
  *   <Icon>           — inline-SVG codicon
@@ -21,6 +22,7 @@ export {
   ViewContext,
   useSoamView,
   useViewContext,
+  useViewQuery,
   useCapQuery,
   useCapMutation,
   type ViewContextValue,

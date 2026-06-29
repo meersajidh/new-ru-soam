@@ -1,0 +1,249 @@
+/* ── Reset ────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* ── Design tokens (overridden via postMessage) ──────────────────── */
+:root {
+  color-scheme: light dark;
+  --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+  --color-surface-base: #161618;
+  --color-surface-panel: #1c1c1f;
+  --color-surface-elevated: #232326;
+  --color-surface-active: #2a2d26;
+  --color-fg-primary: #f2f2f7;
+  --color-fg-secondary: #aeaeb2;
+  --color-fg-muted: #636366;
+  --color-border: #3a3a3c;
+  --color-border-focus: #5ac85a;
+  --color-accent: #5ac85a;
+  --color-accent-fg: #1c1c1e;
+  --color-success: #5ac85a;
+  --color-warning: #f4a623;
+  --color-error: #e05252;
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --transition: 130ms ease;
+}
+
+/* ── Base ────────────────────────────────────────────────────────── */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Root layout ─────────────────────────────────────────────────── */
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Status bar ──────────────────────────────────────────────────── */
+#status-bar {
+  font-size: 11px;
+  padding: 5px 16px;
+  background: color-mix(in srgb, var(--color-error) 9%, transparent);
+  color: var(--color-error);
+  font-weight: 500;
+  display: none;
+  flex-shrink: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+}
+#status-bar.visible {
+  display: block;
+}
+#status-bar.is-locked {
+  background: color-mix(in srgb, var(--color-warning) 9%, transparent);
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 25%, transparent);
+}
+
+/* ── Header strip ────────────────────────────────────────────────── */
+#header-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px 11px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-panel);
+  flex-shrink: 0;
+}
+.hs-icon {
+  color: var(--color-accent);
+  flex: 0 0 auto;
+}
+.hs-title {
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1 1 auto;
+}
+.hs-client {
+  font-size: 11px;
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Scroll area ─────────────────────────────────────────────────── */
+#ic-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 28px 48px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+}
+
+/* ── Card ────────────────────────────────────────────────────────── */
+#ic-card {
+  max-width: 560px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Progress header ─────────────────────────────────────────────── */
+#ic-progress-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 6px;
+}
+.ic-count {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-fg-primary);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+.ic-count-label {
+  font-size: 12px;
+  color: var(--color-fg-muted);
+}
+.ic-progress-bar-wrap {
+  flex: 1 1 auto;
+  height: 6px;
+  background: color-mix(in srgb, var(--color-fg-muted) 20%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.ic-progress-bar-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 3px;
+  transition: width 0.25s ease;
+}
+
+/* ── Item row ────────────────────────────────────────────────────── */
+.ic-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.ic-item:hover {
+  background: var(--color-surface-active);
+}
+
+.ic-item-icon {
+  flex-shrink: 0;
+  width: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ic-item-icon.done {
+  color: var(--color-success);
+}
+.ic-item-icon.missing {
+  color: var(--color-fg-muted);
+}
+
+.ic-item-label {
+  flex: 1 1 auto;
+  font-size: 12.5px;
+  color: var(--color-fg-secondary);
+}
+.ic-item.done-row .ic-item-label {
+  color: var(--color-fg-muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--color-fg-muted) 50%, transparent);
+}
+
+.ic-open-btn {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    border-color var(--transition);
+  font-family: var(--font-sans);
+}
+.ic-open-btn:hover {
+  background: var(--color-surface-active);
+  color: var(--color-fg-secondary);
+  border-color: color-mix(in srgb, var(--color-border-focus) 60%, transparent);
+}
+
+/* ── Complete banner ─────────────────────────────────────────────── */
+#ic-complete-banner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-success) 30%, transparent);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--color-success);
+  font-weight: 500;
+}
+#ic-complete-banner.visible {
+  display: flex;
+}
+
+/* ── Empty / no-data ─────────────────────────────────────────────── */
+#ic-empty {
+  display: none;
+  padding: 32px 0 0;
+  text-align: center;
+  color: var(--color-fg-muted);
+  font-size: 12px;
+}
+#ic-empty.visible {
+  display: block;
+}
