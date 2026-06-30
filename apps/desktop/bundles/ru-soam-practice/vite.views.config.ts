@@ -30,6 +30,7 @@ export default defineConfig({
     emptyOutDir: false,
     rollupOptions: {
       input: {
+        roster: resolve(__dirname, 'view-src/roster.html'),
         projections: resolve(__dirname, 'view-src/projections.html'),
         intake: resolve(__dirname, 'view-src/intake.html'),
         'safety-plan': resolve(__dirname, 'view-src/safety-plan.html'),

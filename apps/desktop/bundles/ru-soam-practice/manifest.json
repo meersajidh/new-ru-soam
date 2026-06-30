@@ -11,7 +11,7 @@
     { "name": "record.migration", "version": "1.0", "phi": true, "kind": "command" }
   ],
   "views": [
-    { "id": "roster", "path": "roster.html" },
+    { "id": "roster", "path": "roster.html", "runtime": "react" },
     { "id": "form", "path": "form.html", "runtime": "react" },
     { "id": "overview", "path": "overview.html" },
     { "id": "aspects", "path": "aspects.html" },
