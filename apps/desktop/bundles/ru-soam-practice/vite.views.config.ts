@@ -32,6 +32,8 @@ export default defineConfig({
       input: {
         projections: resolve(__dirname, 'view-src/projections.html'),
         intake: resolve(__dirname, 'view-src/intake.html'),
+        'safety-plan': resolve(__dirname, 'view-src/safety-plan.html'),
+        form: resolve(__dirname, 'view-src/form.html'),
       },
     },
     target: 'es2020',
