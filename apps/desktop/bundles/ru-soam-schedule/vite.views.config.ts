@@ -39,6 +39,7 @@ export default defineConfig({
       input: {
         nav: resolve(__dirname, 'view-src/nav.html'),
         'calendar-setup': resolve(__dirname, 'view-src/calendar-setup.html'),
+        'event-detail': resolve(__dirname, 'view-src/event-detail.html'),
       },
     },
     target: 'es2020',

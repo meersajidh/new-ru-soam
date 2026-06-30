@@ -13,7 +13,7 @@
     { "id": "nav", "path": "nav.html", "runtime": "react" },
     { "id": "schedule", "path": "schedule.html" },
     { "id": "calendar-setup", "path": "calendar-setup.html", "runtime": "react" },
-    { "id": "event-detail", "path": "event-detail.html" }
+    { "id": "event-detail", "path": "event-detail.html", "runtime": "react" }
   ],
   "ownedTables": ["provider_account", "calendar", "event", "calendar_migration_run"],
   "migrations": [
