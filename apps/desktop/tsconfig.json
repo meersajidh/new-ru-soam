@@ -5,6 +5,9 @@
     { "path": "./tsconfig.node.json" },
     { "path": "./tsconfig.main.json" },
     { "path": "./tsconfig.preload.json" },
-    { "path": "./tsconfig.fp-host.json" }
+    { "path": "./tsconfig.fp-host.json" },
+    { "path": "./bundles/ru-soam-practice/view-src" },
+    { "path": "./bundles/ru-soam-schedule/view-src" },
+    { "path": "./bundles/ru-soam-sessions/view-src" }
   ]
 }

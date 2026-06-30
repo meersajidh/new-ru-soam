@@ -11,7 +11,7 @@
   ],
   "views": [
     { "id": "nav", "path": "nav.html", "runtime": "react" },
-    { "id": "schedule", "path": "schedule.html" },
+    { "id": "schedule", "path": "schedule.html", "runtime": "react" },
     { "id": "calendar-setup", "path": "calendar-setup.html", "runtime": "react" },
     { "id": "event-detail", "path": "event-detail.html", "runtime": "react" }
   ],

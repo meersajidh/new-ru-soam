@@ -1,0 +1,1497 @@
+/* ── Reset ─────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* ── Design tokens (defaults — injected via postMessage from host) ─ */
+:root {
+  color-scheme: light dark;
+
+  --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+  --font-display: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Surface */
+  --color-surface-base: #161618;
+  --color-surface-panel: #1c1c1f;
+  --color-surface-elevated: #232326;
+  --color-surface-active: #2a2d26;
+  /* Foreground */
+  --color-fg-primary: #f2f2f7;
+  --color-fg-secondary: #aeaeb2;
+  --color-fg-muted: #636366;
+  /* Borders */
+  --color-border: #3a3a3c;
+  --color-border-focus: #5ac85a;
+  /* Accent */
+  --color-accent: #5ac85a;
+  --color-accent-fg: #1c1c1e;
+  --color-accent-hover: #6bd46b;
+  --color-accent-pressed: #4ab44a;
+  /* Semantic */
+  --color-success: #5ac85a;
+  --color-warning: #f4a623;
+  --color-error: #e05252;
+  --color-info: #5ac0de;
+
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-card: 10px;
+
+  --transition: 130ms ease;
+
+  /* Time-grid constants */
+  --tg-hour-h: 56px; /* height of one hour row — MUST match JS HOUR_H */
+  --tg-gutter-w: 64px; /* width of the left time-label gutter */
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Root layout ───────────────────────────────────────────── */
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Bridge wait overlay ───────────────────────────────────── */
+#bridge-wait {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-base);
+  z-index: 100;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--color-fg-muted);
+}
+#bridge-wait.hidden {
+  display: none;
+}
+.spinner {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Work header ───────────────────────────────────────────── */
+.work-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  height: 52px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  background: var(--color-surface-panel);
+}
+
+/* Date nav cluster */
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-secondary);
+  transition:
+    background var(--transition),
+    color var(--transition);
+  font-size: 14px;
+}
+.nav-btn:hover {
+  background: var(--color-surface-active);
+  color: var(--color-fg-primary);
+}
+.nav-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+.btn-today {
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-fg-secondary);
+  border: 1px solid var(--color-border);
+  transition:
+    background var(--transition),
+    color var(--transition),
+    border-color var(--transition);
+}
+.btn-today:hover {
+  background: var(--color-surface-active);
+  color: var(--color-fg-primary);
+  border-color: color-mix(in srgb, var(--color-border) 70%, var(--color-fg-muted));
+}
+.btn-today:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+/* Range label */
+.range-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-fg-primary);
+  letter-spacing: -0.01em;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* View switcher */
+.view-switcher {
+  display: flex;
+  gap: 1px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  flex-shrink: 0;
+}
+.view-tab {
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-fg-muted);
+  transition:
+    background var(--transition),
+    color var(--transition);
+  letter-spacing: 0.01em;
+}
+.view-tab:hover {
+  color: var(--color-fg-secondary);
+  background: color-mix(in srgb, var(--color-surface-active) 60%, transparent);
+}
+.view-tab.is-active {
+  background: var(--color-surface-panel);
+  color: var(--color-fg-primary);
+  box-shadow: 0 1px 3px color-mix(in srgb, #000 25%, transparent);
+}
+.view-tab:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+/* Refresh button */
+.btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  /* color: var(--color-fg-secondary); */
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  color: var(--color-success);
+  font-size: 16px;
+  flex-shrink: 0;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+.btn-refresh:hover {
+  background: var(--color-surface-active);
+  color: var(--color-fg-primary);
+}
+.btn-refresh:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+.btn-refresh.spinning > svg {
+  animation: btn-refresh-spin 0.7s linear infinite;
+}
+@keyframes btn-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-refresh.spinning > svg {
+    animation: none;
+  }
+}
+.header-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* ── Inline event-detail popover ───────────────────────────── */
+#detail-popover {
+  position: fixed;
+  z-index: 200;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 4px 6px -1px color-mix(in srgb, #000 30%, transparent),
+    0 10px 20px -4px color-mix(in srgb, #000 25%, transparent);
+  padding: 0;
+  min-width: 300px;
+  max-width: 380px;
+  overflow: hidden;
+  outline: none;
+}
+#detail-popover.hidden {
+  display: none;
+}
+
+.popover-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+}
+.popover-kind-strip {
+  width: 3px;
+  border-radius: 2px;
+  align-self: stretch;
+  min-height: 20px;
+  flex-shrink: 0;
+  background: var(--color-fg-muted);
+  opacity: 0.5;
+  margin-top: 1px;
+}
+.popover-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-fg-primary);
+  line-height: 1.35;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+.popover-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-muted);
+  flex-shrink: 0;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+.popover-close:hover {
+  background: var(--color-surface-active);
+  color: var(--color-fg-primary);
+}
+.popover-close:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+.popover-body {
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.popover-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 12px;
+}
+.popover-row-icon {
+  color: var(--color-fg-muted);
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  min-width: 14px;
+}
+.popover-row-text {
+  color: var(--color-fg-secondary);
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+.popover-row-text strong {
+  color: var(--color-fg-primary);
+  font-weight: 500;
+}
+.popover-duration-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-fg-secondary);
+  background: var(--color-surface-base);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: 6px;
+}
+.popover-cal-badge {
+  font-size: 11px;
+  color: var(--color-fg-muted);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.popover-join-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-fg-secondary);
+  margin-bottom: 2px;
+}
+.popover-join-url {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-accent);
+  user-select: text;
+  cursor: text;
+  word-break: break-all;
+}
+/* Inline action buttons in the meeting-link row (Join / Copy) */
+.popover-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 2px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-accent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition);
+}
+.popover-link-btn:hover {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+.popover-link-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+/* Participants section */
+.popover-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-fg-muted);
+  margin-bottom: 4px;
+  padding-left: 23px; /* align under row text (9px gap + 14px icon) */
+}
+.popover-participant-class {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-fg-muted);
+  margin-left: 5px;
+  opacity: 0.8;
+}
+.popover-participants {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.popover-participant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+.popover-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface-base) 80%);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+  color: var(--color-accent);
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+.popover-participant-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-fg-secondary);
+}
+.popover-participant-role {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-fg-muted);
+  background: color-mix(in srgb, var(--color-surface-base) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  border-radius: 3px;
+  padding: 0 4px;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+.popover-divider {
+  height: 1px;
+  background: color-mix(in srgb, var(--color-border) 50%, transparent);
+  margin: 2px 0;
+}
+/* Footer — "Open in side panel" escape to the aux detail view */
+.popover-footer {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+.popover-side-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-fg-secondary);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-base);
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+.popover-side-btn:hover {
+  background: var(--color-surface-active);
+  color: var(--color-fg-primary);
+}
+.popover-side-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+/* ── Popover backdrop ───────────────────────────────────────── */
+#popover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+  background: transparent;
+}
+#popover-backdrop.hidden {
+  display: none;
+}
+
+/* PHI chip — static visual placeholder (P-D wires the real value) */
+.phi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid color-mix(in srgb, var(--color-success) 40%, transparent);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  color: var(--color-success);
+  flex-shrink: 0;
+  user-select: none;
+  cursor: default;
+}
+.phi-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+  flex-shrink: 0;
+}
+
+/* ── Full-area state panels ────────────────────────────────── */
+.state-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  overflow: hidden;
+}
+.state-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-surface-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-fg-muted);
+}
+.state-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-fg-primary);
+  letter-spacing: -0.01em;
+}
+.state-desc {
+  font-size: 12px;
+  color: var(--color-fg-muted);
+  max-width: 300px;
+  line-height: 1.6;
+}
+.state-error-msg {
+  font-size: 12px;
+  color: var(--color-error);
+  max-width: 340px;
+  line-height: 1.55;
+  background: color-mix(in srgb, var(--color-error) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+}
+
+/* ── Shared button styles ──────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    opacity var(--transition);
+  border: none;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-accent {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+}
+.btn-accent:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+.btn-accent:active:not(:disabled) {
+  background: var(--color-accent-pressed);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--color-fg-secondary);
+  border: 1px solid var(--color-border);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-surface-active);
+}
+.btn-danger {
+  background: transparent;
+  color: var(--color-error);
+  border: 1px solid color-mix(in srgb, var(--color-error) 35%, transparent);
+}
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 8%, transparent);
+}
+
+/* ── Calendar content area ─────────────────────────────────── */
+#cal-area {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Agenda view ───────────────────────────────────────────── */
+.agenda-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 35%, transparent) transparent;
+  padding: 8px 0 24px;
+}
+
+.day-group {
+  padding: 0;
+}
+
+.day-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 14px 20px 6px;
+  position: sticky;
+  top: 0;
+  background: var(--color-surface-base);
+  z-index: 1;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+.day-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-fg-primary);
+  line-height: 1;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  min-width: 28px;
+  text-align: right;
+}
+.day-num.is-today {
+  color: var(--color-accent);
+}
+.day-weekday {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-fg-muted);
+}
+.day-month {
+  font-size: 11px;
+  color: var(--color-fg-muted);
+  margin-left: auto;
+}
+
+.day-events {
+  padding: 8px 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.day-empty {
+  padding: 8px 20px 10px;
+  font-size: 11.5px;
+  color: var(--color-fg-muted);
+  font-style: italic;
+}
+
+/* ── Event card (agenda only) — 3-col layout ───────────────── */
+.event-card {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition);
+  border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  background: var(--color-surface-panel);
+  position: relative;
+}
+.event-card:hover {
+  background: var(--color-surface-elevated);
+  border-color: var(--color-border);
+}
+.event-card.is-selected {
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface-panel));
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+/* Left: time column */
+.event-time-col {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-fg-secondary);
+  white-space: nowrap;
+  line-height: 1.3;
+  text-align: right;
+  flex-shrink: 0;
+}
+.event-time-col.allday-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-fg-muted);
+}
+
+/* Middle: title + modality subline */
+.event-body {
+  min-width: 0;
+}
+.event-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-fg-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+}
+.event-modality {
+  font-size: 11px;
+  color: var(--color-fg-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right: classification badge */
+.event-kind-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 100px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  color: var(--color-fg-muted);
+  background: color-mix(in srgb, var(--color-surface-base) 60%, transparent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.event-kind-badge.kind-session {
+  color: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+.event-kind-badge.kind-personal {
+  color: var(--color-info);
+  border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
+  background: color-mix(in srgb, var(--color-info) 8%, transparent);
+}
+.event-kind-badge.kind-admin {
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+}
+
+/* ── Classification modifier classes (SD-11) ────────────────── */
+/* cls-client → green (--color-success): confirmed client session  */
+.event-kind-badge.cls-client {
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
+  background: color-mix(in srgb, var(--color-success) 8%, transparent);
+}
+/* cls-probable → amber (--color-warning): probable / needs confirm */
+.event-kind-badge.cls-probable {
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+}
+/* cls-not → muted grey: explicitly excluded / not a client session */
+.event-kind-badge.cls-not {
+  color: var(--color-fg-muted);
+  border-color: color-mix(in srgb, var(--color-border) 60%, transparent);
+  background: color-mix(in srgb, var(--color-surface-base) 40%, transparent);
+  opacity: 0.6;
+}
+/* cls-personal → info blue: organizer-only / solo event */
+.event-kind-badge.cls-personal {
+  color: var(--color-info);
+  border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
+  background: color-mix(in srgb, var(--color-info) 8%, transparent);
+}
+/* cls-unclassified → default look (no override needed for badge; defined here for explicitness) */
+.event-kind-badge.cls-unclassified {
+  /* inherits base .event-kind-badge styles — no override */
+}
+
+/* ── Time-grid classification badge (compact, top-right of block) ─ */
+.tg-event-cls-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 2px 5px;
+  border-radius: 100px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  color: var(--color-fg-muted);
+  background: color-mix(in srgb, var(--color-surface-base) 70%, transparent);
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1.3;
+}
+.tg-event-cls-badge.cls-client {
+  color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+}
+.tg-event-cls-badge.cls-probable {
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+}
+.tg-event-cls-badge.cls-not {
+  color: var(--color-fg-muted);
+  border-color: color-mix(in srgb, var(--color-border) 50%, transparent);
+  background: color-mix(in srgb, var(--color-surface-base) 50%, transparent);
+  opacity: 0.6;
+}
+.tg-event-cls-badge.cls-personal {
+  color: var(--color-info);
+  border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
+  background: color-mix(in srgb, var(--color-info) 10%, transparent);
+}
+/* hide badge on tiny blocks and on unclassified (default state, not worth cluttering) */
+.tg-event.tiny .tg-event-cls-badge {
+  display: none;
+}
+.tg-event-cls-badge.cls-unclassified {
+  display: none;
+}
+/* title needs breathing room so badge doesn't overlap */
+.tg-event-title {
+  padding-right: 38px;
+}
+.tg-event.tiny .tg-event-title {
+  padding-right: 0;
+}
+
+/* Time-grid event block — thick left bar = calendar color (set inline).
+ * Classification no longer drives border color; only the badge carries that signal.
+ * cls-not / cls-probable still reduce opacity to indicate non-session events. */
+.tg-event.cls-not {
+  opacity: 0.7;
+}
+.tg-event.is-selected.cls-not {
+  opacity: 1;
+}
+
+/* All-day pill — thick left bar = calendar color (set inline). */
+.tg-allday-pill.cls-not {
+  opacity: 0.7;
+}
+.tg-allday-pill.is-selected.cls-not {
+  opacity: 1;
+}
+
+/* Month pill — calendar-color dot (::before set inline) + keep existing pill border. */
+.month-event-pill.cls-not {
+  opacity: 0.7;
+}
+.month-event-pill.is-selected.cls-not {
+  opacity: 1;
+}
+
+/* legacy — kept for safety, not used in new agenda layout */
+.event-strip {
+  display: none;
+}
+.event-meta {
+  display: none;
+}
+.event-cal-badge {
+  display: none;
+}
+
+/* ── Time-grid (shared: week + day) ───────────────────────── */
+.tg-root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* All-day strip — sticky above the scrollable grid */
+.tg-allday-row {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-panel);
+}
+.tg-allday-gutter {
+  width: var(--tg-gutter-w);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 8px 4px 0;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-fg-muted);
+  border-right: 1px solid var(--color-border);
+}
+.tg-allday-cols {
+  flex: 1;
+  display: flex;
+  min-height: 30px;
+  padding: 4px 0;
+}
+/* Each day column inside the all-day strip */
+.tg-allday-col {
+  flex: 1;
+  padding: 1px 3px;
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tg-allday-col:last-child {
+  border-right: none;
+}
+.tg-allday-pill {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--color-fg-primary);
+  background: color-mix(in srgb, var(--color-surface-active) 80%, transparent);
+  /* --ev-border-color set inline per-pill from event.calendarColor */
+  border-left: 2px solid
+    var(
+      --ev-border-color,
+      color-mix(in srgb, var(--color-accent) 55%, var(--color-fg-muted) 45%)
+    );
+  border-radius: 3px;
+  padding: 2px 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.tg-allday-pill:hover {
+  background: var(--color-surface-active);
+}
+.tg-allday-pill.is-selected {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  border-left-color: var(--ev-border-color, var(--color-accent));
+}
+
+/* Column header row — sticky, above all-day strip */
+.tg-col-headers {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-panel);
+}
+.tg-col-header-gutter {
+  width: var(--tg-gutter-w);
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+}
+.tg-col-header {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px 7px;
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+  cursor: default;
+  position: relative;
+}
+.tg-col-header:last-child {
+  border-right: none;
+}
+.tg-col-header.is-today {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+.tg-col-header-wd {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-fg-muted);
+  line-height: 1;
+}
+.tg-col-header-date {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-fg-primary);
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin-top: 2px;
+}
+.tg-col-header-date.is-today {
+  color: var(--color-accent);
+}
+/* Day view: larger header treatment */
+.tg-col-header.day-solo {
+  text-align: left;
+  padding: 10px 14px 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.tg-col-header.day-solo .tg-col-header-date {
+  font-size: 30px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.tg-col-header.day-solo .tg-col-header-wd {
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-fg-secondary);
+}
+
+/* Scrollable grid body */
+.tg-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 30%, transparent) transparent;
+  position: relative;
+}
+.tg-grid {
+  display: flex;
+  position: relative;
+  /* height = 24 hours × hour-height */
+  min-height: calc(24 * var(--tg-hour-h));
+}
+
+/* Left gutter: hour labels */
+.tg-gutter {
+  width: var(--tg-gutter-w);
+  flex-shrink: 0;
+  position: relative;
+  border-right: 1px solid var(--color-border);
+}
+.tg-hour-label {
+  position: absolute;
+  right: 8px;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--color-fg-muted);
+  line-height: 1;
+  /* vertically centred on the border line */
+  transform: translateY(-50%);
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Day columns area */
+.tg-cols {
+  flex: 1;
+  display: flex;
+  position: relative;
+}
+
+/* Hour grid lines (drawn as a repeating bg on tg-cols) */
+.tg-cols::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-border) 55%, transparent) 0px,
+    color-mix(in srgb, var(--color-border) 55%, transparent) 1px,
+    transparent 1px,
+    transparent var(--tg-hour-h)
+  );
+  background-size: 100% var(--tg-hour-h);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Individual day column inside the scrollable grid */
+.tg-day-col {
+  flex: 1;
+  position: relative;
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 35%, transparent);
+  min-height: calc(24 * var(--tg-hour-h));
+}
+.tg-day-col:last-child {
+  border-right: none;
+}
+.tg-day-col.is-today {
+  background: color-mix(in srgb, var(--color-accent) 3%, transparent);
+}
+
+/* Timed event block — absolutely positioned */
+.tg-event {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  text-align: left; /* <button> UA default is center — override */
+  border-radius: var(--radius-sm);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-active) 70%,
+    var(--color-surface-panel) 30%
+  );
+  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  /* --ev-border-color set inline per-event from event.calendarColor */
+  border-left: 3px solid
+    var(
+      --ev-border-color,
+      color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%)
+    );
+  padding: 4px 6px;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    background var(--transition),
+    border-color var(--transition);
+  z-index: 1;
+  box-shadow: 0 1px 2px color-mix(in srgb, #000 15%, transparent);
+}
+.tg-event:hover {
+  background: color-mix(in srgb, var(--color-surface-active) 90%, transparent);
+  border-color: color-mix(in srgb, var(--color-border) 90%, transparent);
+}
+.tg-event.is-selected {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  /* keep calendar color on left border; only overall border shifts to accent */
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  border-left-color: var(--ev-border-color, var(--color-accent));
+}
+.tg-event-time {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--color-fg-muted);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tg-event-title {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-fg-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.tg-event-participant {
+  font-size: 10px;
+  color: var(--color-fg-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+/* Hide time label when event block is too short */
+.tg-event.tiny .tg-event-time {
+  display: none;
+}
+.tg-event.tiny .tg-event-title {
+  font-size: 10.5px;
+}
+.tg-event.tiny .tg-event-participant {
+  display: none;
+}
+
+/* Now-line */
+.tg-now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.tg-now-line::before {
+  /* horizontal rule */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1.5px;
+  background: var(--color-error);
+  opacity: 0.75;
+}
+.tg-now-line::after {
+  /* dot on left edge */
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-error);
+  opacity: 0.8;
+}
+/* Now-line inside gutter: the dot appears here */
+.tg-now-gutter-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.tg-now-gutter-line::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-error);
+  opacity: 0.8;
+}
+
+/* ── Month view ────────────────────────────────────────────── */
+.month-view-wrap {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.month-weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  background: var(--color-surface-panel);
+}
+.month-weekday-label {
+  padding: 6px 0;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-fg-muted);
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
+.month-weekday-label:last-child {
+  border-right: none;
+}
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  flex: 1;
+  overflow: hidden;
+  align-content: start;
+}
+.month-cell {
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  padding: 6px 6px 8px;
+  min-height: 130px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.month-cell:nth-child(7n) {
+  border-right: none;
+}
+.month-cell.is-outside {
+  background: color-mix(in srgb, var(--color-surface-panel) 40%, transparent);
+  opacity: 0.55;
+}
+.month-cell-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-fg-secondary);
+  line-height: 1;
+  padding: 1px 2px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.month-cell-date.is-today {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+}
+.month-event-pill {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-fg-primary);
+  background: color-mix(in srgb, var(--color-surface-active) 80%, transparent);
+  border-radius: 4px;
+  padding: 3px 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background var(--transition);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.4;
+}
+.month-event-pill::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  /* --cal-color set inline per-pill from event.calendarColor */
+  background: var(
+    --cal-color,
+    color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%)
+  );
+  flex-shrink: 0;
+}
+.month-event-pill:hover {
+  background: var(--color-surface-active);
+}
+.month-event-pill.is-selected {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+.month-event-pill.is-selected::before {
+  background: var(--cal-color, var(--color-accent));
+  filter: brightness(1.15);
+}
+.month-overflow {
+  font-size: 10px;
+  color: var(--color-fg-muted);
+  padding: 1px 2px;
+}
+
+/* ── Day view — centered column ─────────────────────────────── */
+/* Wrap everything in day view with max-width + centering via inner wrapper */
+.tg-root.day-view {
+  align-items: center;
+}
+.tg-root.day-view .tg-col-headers,
+.tg-root.day-view .tg-allday-row {
+  width: 100%;
+  max-width: 780px;
+  align-self: center;
+}
+.tg-root.day-view .tg-col-headers {
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+.tg-root.day-view .tg-scroll {
+  width: 100%;
+  max-width: 780px;
+  align-self: center;
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+}
+
+/* Card shell that wraps the 780px day + agenda columns */
+.day-card-shell,
+.agenda-card-shell {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 24px 24px;
+}
+/* Card surface: max-width container with border + elevation */
+.day-card-shell > .tg-root {
+  width: 100%;
+  max-width: 780px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 1px 3px color-mix(in srgb, #000 18%, transparent),
+    0 4px 12px color-mix(in srgb, #000 14%, transparent);
+  background: var(--color-surface-panel);
+  overflow: hidden;
+  /* Override inner day-view centering — card shell handles max-width already */
+  align-items: stretch;
+}
+.day-card-shell > .tg-root.day-view .tg-col-headers,
+.day-card-shell > .tg-root.day-view .tg-allday-row,
+.day-card-shell > .tg-root.day-view .tg-scroll {
+  max-width: none;
+  width: 100%;
+}
+/* Agenda card */
+.agenda-card-shell > .agenda-scroll {
+  width: 100%;
+  max-width: 780px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 1px 3px color-mix(in srgb, #000 18%, transparent),
+    0 4px 12px color-mix(in srgb, #000 14%, transparent);
+  background: var(--color-surface-panel);
+  overflow-y: auto;
+  max-height: 100%;
+  padding: 8px 0 24px;
+}
+
+/* ── No-events empty ───────────────────────────────────────── */
+.no-events {
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-fg-muted);
+  font-style: italic;
+}
+
+/* ── Loading row ───────────────────────────────────────────── */
+.loading-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 16px;
+  font-size: 12px;
+  color: var(--color-fg-muted);
+}
