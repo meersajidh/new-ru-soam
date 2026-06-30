@@ -38,6 +38,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         nav: resolve(__dirname, 'view-src/nav.html'),
+        'calendar-setup': resolve(__dirname, 'view-src/calendar-setup.html'),
       },
     },
     target: 'es2020',
