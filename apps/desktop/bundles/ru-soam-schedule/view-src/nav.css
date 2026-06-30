@@ -1,0 +1,358 @@
+/* ── Reset ─────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* ── Design tokens (defaults — host overrides via postMessage) ─────── */
+:root {
+  color-scheme: light dark;
+
+  --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Surface */
+  --color-surface-panel: #1c1c1f;
+  --color-surface-active: #2a2d26;
+  /* Foreground */
+  --color-fg-primary: #f2f2f7;
+  --color-fg-secondary: #aeaeb2;
+  --color-fg-muted: #636366;
+  /* Borders */
+  --color-border: #3a3a3c;
+  /* Semantic */
+  --color-success: #5ac85a;
+}
+
+/* ── Base ────────────────────────────────────────── */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--color-surface-panel);
+  color: var(--color-fg-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Root layout ─────────────────────────────────── */
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Activity title ────────────────────────────────── */
+#activity-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.activity-title-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-fg-secondary);
+}
+
+.activity-title-period {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--color-fg-muted);
+}
+
+/* ── Scrollable body ───────────────────────────────── */
+#scroll-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 30%, transparent) transparent;
+}
+
+/* ── Accounts section — pinned to bottom ──────────── */
+#accounts-section {
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+/* ── Section header ────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+}
+
+.section-header-label {
+  flex: 1;
+}
+
+/* Small icon button in section header */
+.btn-section-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-fg-muted);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 130ms ease,
+    color 130ms ease;
+}
+
+.btn-section-add:hover {
+  background: var(--color-surface-active);
+  color: var(--color-fg-secondary);
+}
+
+/* ── Section header icon-button group ─────────────── */
+.section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Flat calendar list ────────────────────────────── */
+#cals-block {
+  padding: 4px 0;
+}
+
+.cal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 110ms ease;
+}
+
+.cal-row:hover {
+  background: color-mix(in srgb, var(--color-fg-muted) 7%, transparent);
+}
+
+.cal-row.active {
+  background: color-mix(in srgb, var(--color-fg-muted) 9%, transparent);
+}
+
+.cal-row.active:hover {
+  background: color-mix(in srgb, var(--color-fg-muted) 13%, transparent);
+}
+
+/* Disabled calendar row (account disconnected) */
+.cal-row--disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.cal-row--disabled:hover {
+  background: transparent;
+}
+
+/* Merged colored-tick checkbox */
+.cal-checkbox {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 130ms ease,
+    border-color 130ms ease;
+  /* off-state: thin outline in calendar color, transparent fill */
+  border-width: 1.5px;
+  border-style: solid;
+}
+
+/* Tick mark — only shown when .on via the SVG path */
+.cal-checkbox svg {
+  display: none;
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+}
+
+.cal-checkbox.on svg {
+  display: block;
+}
+
+.cal-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--color-fg-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Empty state */
+.cals-empty {
+  padding: 10px 12px;
+  font-size: 11.5px;
+  color: var(--color-fg-muted);
+  font-style: italic;
+}
+
+/* ── Classification filter section ─────────────────── */
+#classif-block {
+  padding: 4px 0;
+}
+
+.classif-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 0;
+  transition: background 110ms ease;
+}
+
+.classif-row:hover {
+  background: color-mix(in srgb, var(--color-fg-muted) 7%, transparent);
+}
+
+/* Active = all visible (no focus set) OR this row is the focused class. */
+.classif-row.active {
+  background: color-mix(in srgb, var(--color-fg-muted) 9%, transparent);
+}
+
+.classif-row.active:hover {
+  background: color-mix(in srgb, var(--color-fg-muted) 13%, transparent);
+}
+
+.classif-label {
+  flex: 1;
+  font-size: 12px;
+  color: var(--color-fg-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Muted when another class is focused (row is not active) */
+.classif-row:not(.active) .classif-label {
+  color: var(--color-fg-muted);
+}
+
+.classif-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-fg-muted);
+  min-width: 18px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.classif-row.active .classif-count {
+  color: var(--color-fg-secondary);
+}
+
+/* ── Accounts section ──────────────────────────────── */
+#accounts-block {
+  padding: 4px 0;
+}
+
+.acct-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  cursor: default;
+  user-select: none;
+  transition: background 110ms ease;
+}
+
+.acct-row:hover {
+  background: color-mix(in srgb, var(--color-fg-muted) 7%, transparent);
+}
+
+.acct-row.active {
+  background: color-mix(in srgb, var(--color-fg-muted) 9%, transparent);
+}
+
+.acct-row.active:hover {
+  background: color-mix(in srgb, var(--color-fg-muted) 13%, transparent);
+}
+
+.acct-row-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-fg-muted);
+  font-size: 11px;
+  font-weight: 700;
+  border: 1.5px solid var(--color-fg-muted);
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.acct-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.acct-row-email {
+  font-size: 12px;
+  color: var(--color-fg-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acct-row-status {
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acct-row-status--connected {
+  color: var(--color-success);
+}
+
+.acct-row-status--disconnected {
+  color: var(--color-fg-muted);
+}

@@ -10,7 +10,7 @@
     { "name": "schedule.contacts.query",  "version": "1.0", "kind": "query",   "phi": true }
   ],
   "views": [
-    { "id": "nav", "path": "nav.html" },
+    { "id": "nav", "path": "nav.html", "runtime": "react" },
     { "id": "schedule", "path": "schedule.html" },
     { "id": "calendar-setup", "path": "calendar-setup.html" },
     { "id": "event-detail", "path": "event-detail.html" }

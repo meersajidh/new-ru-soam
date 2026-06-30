@@ -111,6 +111,78 @@ export function useCapQuery(
   });
 }
 
+// ---------------------------------------------------------------------------
+// View channel context + hook (schedule channels and other parent-renderer
+// push channels delivered on init/context messages or as dedicated messages)
+// ---------------------------------------------------------------------------
+
+/**
+ * Named parent-renderer channels that can be subscribed to via useViewChannel.
+ *
+ * Channel values arrive in two ways:
+ *   1. As named fields on 'init' and 'context' messages
+ *      (e.g. `msg.scheduleViewState`).
+ *   2. As dedicated messages `{ __soamView:true, kind:<name>, <payloadKey>: value }`.
+ *      The payloadKey for each kind is defined in CHANNEL_KIND_PAYLOAD below.
+ */
+export type ViewChannelName =
+  | 'scheduleViewState'
+  | 'scheduleCounts'
+  | 'activeEvent'
+  | 'overviewViewMode'
+  | 'scheduleRefreshSettings'
+  | 'auxVisible';
+
+export type ChannelStore = Partial<Record<ViewChannelName, unknown>>;
+
+/**
+ * Map from dedicated message kind (= ViewChannelName) to its payload key on
+ * the message object.
+ *
+ * e.g. `{ __soamView:true, kind:'scheduleViewState', state:{...} }` → store['scheduleViewState'] = state
+ */
+export const CHANNEL_KIND_PAYLOAD: Record<ViewChannelName, string> = {
+  scheduleViewState: 'state',
+  scheduleCounts: 'counts',
+  activeEvent: 'event',
+  overviewViewMode: 'mode',
+  scheduleRefreshSettings: 'settings',
+  auxVisible: 'visible',
+};
+
+/** All channel names for iteration. */
+export const CHANNEL_NAMES: ViewChannelName[] = Object.keys(
+  CHANNEL_KIND_PAYLOAD,
+) as ViewChannelName[];
+
+/**
+ * React context carrying the channel store. Provided by <ViewRoot>; do NOT
+ * use this context directly — use useViewChannel().
+ */
+export const ChannelContext = createContext<ChannelStore>({});
+
+/**
+ * Returns the latest value pushed by the parent renderer on the named channel.
+ * Returns `undefined` before the first push.
+ *
+ * Seeded on mount from:
+ *   - The bridge's buffered 'init' payload (view.initPayload()) — for channel
+ *     values injected at bridge init time (e.g. initial scheduleViewState).
+ *   - The bridge's buffered 'context' payload (view.currentContext()) — for
+ *     channel values co-delivered with the entity-id push.
+ *
+ * Updated reactively by subsequent dedicated channel messages:
+ *   `{ __soamView:true, kind:<name>, <payloadKey>:<value> }`
+ * and by 'context' updates that carry channel fields.
+ *
+ * @example
+ *   const state = useViewChannel<ScheduleViewState>('scheduleViewState');
+ */
+export function useViewChannel<T = unknown>(name: ViewChannelName): T | undefined {
+  const store = useContext(ChannelContext);
+  return store[name] as T | undefined;
+}
+
 /**
  * Bind a command capability and return a TanStack useMutation.
  *

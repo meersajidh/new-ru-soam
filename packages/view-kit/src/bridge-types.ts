@@ -84,6 +84,15 @@ export interface SoamView {
    * predating it. Live updates still come through the 'context' window message.
    */
   currentContext?(): ViewContextMessage | null;
+
+  /**
+   * The buffered 'init' message (or null). Read on mount (inside awaitBridge()
+   * .then) to seed channel values (scheduleViewState, scheduleCounts, etc.)
+   * that the parent injects as init message fields. 'init' fires once and is
+   * NOT replayed — reading it here is the only way to catch those seeds for a
+   * late-attaching React view. Optional — guard with `?.`.
+   */
+  initPayload?(): ViewInitMessage | null;
 }
 
 /** The window.__viewBoot bootstrap helpers (view-bootstrap.ts). */
@@ -101,6 +110,17 @@ export interface ViewBoot {
   applyTheme(d: unknown): boolean;
   /** Hydrate [data-codicon] elements under root (default: document). */
   applyCodicons(root?: Document | Element): void;
+}
+
+/**
+ * The 'init' postMessage payload delivered once when the bridge is initialised.
+ * May carry channel seed values (scheduleViewState, scheduleCounts, etc.) as
+ * extra fields. See @ru-soam/view-kit useViewChannel + ViewRoot.initPayload.
+ */
+export interface ViewInitMessage {
+  __soamView: true;
+  kind: 'init';
+  [key: string]: unknown;
 }
 
 /**

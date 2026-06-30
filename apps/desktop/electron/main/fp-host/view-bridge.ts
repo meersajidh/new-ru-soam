@@ -41,6 +41,11 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
   // never receive their entity id because no second 'context' push ever follows.
   var lastContextMsg = null;
   var contextReplayScheduled = false;
+  // Buffer the 'init' message so React views can read channel values (e.g.
+  // scheduleViewState, scheduleCounts) that the parent injects on init. Unlike
+  // 'context', 'init' fires exactly once and is NOT replayed on DOMContentLoaded
+  // — ViewRoot reads it via initPayload() on mount, after awaitBridge() resolves.
+  var lastInitMsg = null;
   function replayContext() {
     if (lastContextMsg) window.dispatchEvent(new MessageEvent('message', { data: lastContextMsg }));
   }
@@ -88,6 +93,7 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     if (!m || typeof m !== 'object' || m.__soamView !== true) return;
     switch (m.kind) {
       case 'init':
+        lastInitMsg = m;
         themeSnapshot = m.theme || {};
         applyTheme(themeSnapshot);
         if (typeof m.maturityHighlight === 'boolean') {
@@ -234,6 +240,13 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
     // entity id instead of missing it. Live updates still arrive via the
     // 'context' window message. See @ru-soam/view-kit ViewRoot.
     currentContext: function () { return lastContextMsg; },
+    // Buffered 'init' message (or null). React views read this via
+    // initPayload() on mount (inside awaitBridge().then) to seed channel values
+    // (scheduleViewState, scheduleCounts, etc.) delivered as init message fields.
+    // Unlike 'context', 'init' fires once and is never replayed — so channel
+    // seeds that arrive on init would otherwise be missed by late-attaching
+    // listeners. See @ru-soam/view-kit ViewRoot + useViewChannel.
+    initPayload: function () { return lastInitMsg; },
     ready: ready
   });
 

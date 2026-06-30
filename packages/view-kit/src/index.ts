@@ -20,12 +20,18 @@ export { ViewRoot } from './ViewRoot.js';
 
 export {
   ViewContext,
+  ChannelContext,
   useSoamView,
   useViewContext,
   useViewQuery,
   useCapQuery,
   useCapMutation,
+  useViewChannel,
+  CHANNEL_KIND_PAYLOAD,
+  CHANNEL_NAMES,
   type ViewContextValue,
+  type ViewChannelName,
+  type ChannelStore,
 } from './hooks.js';
 
 export { Icon } from './Icon.js';
@@ -42,4 +48,5 @@ export type {
   SoamView,
   ViewBoot,
   ViewContextMessage,
+  ViewInitMessage,
 } from './bridge-types.js';
