@@ -35,6 +35,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         meetings: resolve(__dirname, 'view-src/meetings.html'),
+        'meeting-record': resolve(__dirname, 'view-src/meeting-record.html'),
       },
     },
     target: 'es2020',

@@ -10,7 +10,7 @@
   ],
   "views": [
     { "id": "meetings", "path": "meetings.html", "runtime": "react" },
-    { "id": "meeting-record", "path": "meeting-record.html" }
+    { "id": "meeting-record", "path": "meeting-record.html", "runtime": "react" }
   ],
   "ownedTables": ["client_meeting"],
   "migrations": [

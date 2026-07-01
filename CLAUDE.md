@@ -125,10 +125,14 @@
 No automated test suite yet. Verify changes with type-check + lint:
 
 ```bash
-# Type-check the whole workspace (project references via tsc -b)
+# Type-check the whole workspace (project references via tsc -b).
+# As of O497 this ALSO type-checks every bundle's view-src/*.tsx: each
+# bundles/*/view-src/tsconfig.json is a reference in apps/desktop/tsconfig.json
+# (the solution file tsc -b builds). Vite/esbuild view builds DO NOT type-check
+# — never trust a green `build:views` as a type-check; always run compile.
 pnpm --filter ru-soam compile && pnpm --filter @ru-soam/editor compile
 
-# Lint the desktop app
+# Lint the desktop app (covers bundles/*/view-src too)
 pnpm --filter ru-soam lint
 
 # Smoke-run the app (dogfood verification — Implementation_Plan.md uses
