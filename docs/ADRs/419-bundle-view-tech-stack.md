@@ -17,10 +17,14 @@
 
 ## Context
 
-ADR-411 fixed the **container** for bundle UI: a sandboxed, opaque-origin
+ADR-411 fixed the **container** for bundle UI: a sandboxed
 `view://<bundleId>/<viewPath>` iframe, seams injected by Main's protocol handler,
 all platform access through the `window.soamView` bridge. That decision is
-structural and stays. ADR-411 deliberately left the **runtime inside** the
+structural and stays. (ADR-411 **Amendment 1** later moved the iframe off the
+opaque origin to a **real per-bundle `view://<bundleId>` origin** — `allow-same-origin`,
+cross-origin to the shell — enabling `script-src 'self'` with no `'unsafe-inline'`;
+shipped O511. This ADR's original text below says "opaque origin" in a few places —
+read those as the real per-bundle origin per Am1.) ADR-411 deliberately left the **runtime inside** the
 container open — §Neutral: *"The bundle-view JS framework choice is
 bundle-internal. A bundle may use React, Vue, Svelte, vanilla DOM."* (Note: that
 is distinct from 411's §Considered-Options rejection of *"Native React mount in
@@ -94,6 +98,14 @@ variables pushed via the bridge) and applied at the document root by the view
 root provider. Tailwind utilities resolve against those CSS-variable tokens, so a
 view stays theme-consistent for free. Hand-written component CSS is still allowed
 where Tailwind is awkward; the styling-system guide governs both.
+
+> **Shipped (O513).** The per-bundle Tailwind build is live and exercised: views
+> `@import "@ru-soam/view-kit/theme.css"` (Tailwind + a base-layer mirror of the
+> shell `@theme` tokens); utilities resolve to the runtime `applyTheme` `--color-*`
+> vars. Reference view = `ru-soam-sessions/meetings`. With `style-src` also tightened
+> to `'self'` (no `'unsafe-inline'`), the strict single-tier CSP + per-bundle Tailwind
+> model is fully in place. Authoring pattern → `styling-system.md` → "Tailwind in
+> bundle views".
 
 ### 3. Build & serve pipeline (the core change)
 

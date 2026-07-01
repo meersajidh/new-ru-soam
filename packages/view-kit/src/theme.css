@@ -1,0 +1,15 @@
+/* Shared Tailwind entry for bundle views (base layer, ADR-106).
+
+   A view's component CSS imports this file:
+       @import "@ru-soam/view-kit/theme.css";
+   which pulls in Tailwind v4 + the view @theme tokens, so utilities
+   (bg-*, text-*, p-*, gap-*, rounded-*, …) and @apply resolve against the
+   token set. Colors resolve to runtime `applyTheme` vars; text/spacing/radii
+   are baked from tokens.css.
+
+   Mirrors the shell's reference-only entry (apps/desktop/src/styles/theme.css).
+   Do NOT transitively @import component CSS here — @reference recursion OOMs the
+   Tailwind plugin (observed in the shell 2026-05-19). */
+
+@import "tailwindcss";
+@import "./tokens.css";

@@ -28,7 +28,13 @@ const __dirname = dirname(__filename);
  * nav is the first React view in this bundle. Add further views to
  * rollupOptions.input as they migrate (e.g. schedule, event-detail).
  */
-export default defineConfig({
+// mode is 'development' (dev watch) or 'production' (packaged build:views).
+// sourcemaps ONLY in dev: shipping .map files packages full view source into the
+// app (extraResources copies view-assets/) — reverse-engineerable leak. Dev keeps
+// maps on disk for debugging (build is minified even in dev); 'hidden' drops the
+// //# sourceMappingURL comment so DevTools does NOT auto-fetch (no connect-src 'none'
+// violation). prod emits no maps at all — no source leak in the packaged app.
+export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss(), babel({ presets: [reactCompilerPreset()] })],
   root: resolve(__dirname, 'view-src'),
   base: './',
@@ -44,16 +50,21 @@ export default defineConfig({
       },
     },
     target: 'es2020',
-    sourcemap: true,
+    sourcemap: mode === 'development' ? 'hidden' : false,
   },
   resolve: {
     alias: {
       // view-kit is a workspace package but not yet linked via pnpm install
       // in this bundle's dependency scope; resolve directly to source.
+      // Subpath alias must precede the bare specifier (exact-match aliases only
+      // hit the exact string; the bare alias would not match the /theme.css subpath).
+      '@ru-soam/view-kit/theme.css': fileURLToPath(
+        new URL('../../../../packages/view-kit/src/theme.css', import.meta.url),
+      ),
       '@ru-soam/view-kit': fileURLToPath(
         new URL('../../../../packages/view-kit/src/index.ts', import.meta.url),
       ),
     },
     dedupe: ['react', 'react-dom'],
   },
-});
+}));

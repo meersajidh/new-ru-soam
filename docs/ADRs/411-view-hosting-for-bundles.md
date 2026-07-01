@@ -349,3 +349,27 @@ external/module loads — the opaque-origin subresource pain is gone. The only C
 console entry was the *intended* inline-script block (#5). **The real-origin +
 `script-src 'self'` (no `'unsafe-inline'`) model is confirmed in Electron** —
 proceed to implementation (O511).
+
+## Amendment 2 — Migration complete: single strict tier, `style-src` tightened (status coda)
+
+*2026-07-01. Status coda to Amendment 1. No new decision — records that Am1
+shipped and reached its end state.*
+
+- **All 14 bundle views are React apps on the single strict tier.** The
+  transitional `'vanilla'` tier (opaque origin + `'unsafe-inline'` + inline seam
+  injection) was removed once the last vanilla view migrated (O497). No inline-script
+  code path remains in `view-protocol.ts`.
+- **`style-src` tightened to `'self'` (O513).** Am1 shipped `script-src 'self'` but
+  left `style-src 'self' 'unsafe-inline'` transitional. O513 dropped `'unsafe-inline'`
+  from `style-src` too: views author styles as **external same-host CSS** (per-bundle
+  Tailwind v4 build emits external stylesheets; the maturity/fonts seams are external
+  `_seam/*.css`), and React `style={{}}` sets styles via the CSSOM, which CSP `style-src`
+  does not govern. The single hold-out was one inline `<style>` in the `echo-test` dev
+  fixture, externalised to `echo-view.css`. Both `script-src` and `style-src` are now the
+  live XSS backstop.
+- **Views are Tailwind-capable.** Each bundle runs its own per-bundle Tailwind v4 build
+  (ADR-419); authoring pattern + shared token entry (`@ru-soam/view-kit/theme.css`) are in
+  `docs/Guides/styling-system.md` → "Tailwind in bundle views". Reference view =
+  `ru-soam-sessions/meetings`.
+- `trustClass` is still `'first-party'`-only; the CSP selector is `f(trustClass)` so the
+  untrusted TP-Host tier (O512) layers in without rework.

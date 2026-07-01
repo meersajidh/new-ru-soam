@@ -450,7 +450,7 @@ Practice bundle views (and any future bundle) can carry build-state markers inje
 
 ### How it works
 
-1. `view-protocol.ts` injects `VIEW_MATURITY_CSS` (as `<style>`) and `VIEW_MATURITY_SOURCE` (as `<script>`) into every HTML view at serve time, alongside the bridge and codicons.
+1. `view-protocol.ts` serves `VIEW_MATURITY_CSS` and `VIEW_MATURITY_SOURCE` as external same-host seam files (`view://<bundleId>/_seam/maturity.css` + `.../maturity.js`), injected into every HTML view at serve time as `<link>` / `<script src>` alongside the bridge (ADR-411 Am1 strict CSP — no inline `<style>`/`<script>`).
 2. The `MATURITY` registry in `view-maturity.ts` is the **single source of truth**: `elementId → 'concrete'|'wip'|'mock'`. Flip one entry there — no HTML change needed.
 3. Any card/section root in a view HTML file carries `data-maturity-id="<id>"`. The injected `window.hydrateMaturity(root?)` walks these, sets `data-maturity`, appends pills, and sets tooltips. Re-call after dynamic renders.
 4. `body.maturity-highlight` (toggled via StatusBar entry `workbench.maturityHighlight`) intensifies all marks.
@@ -463,13 +463,57 @@ Practice bundle views (and any future bundle) can carry build-state markers inje
 | `wip` | dotted amber | WIP | Wired but incomplete — structure built, real data pending |
 | `mock` | dashed muted | Mock | Projection from an unbuilt Activity (pure placeholder) |
 
-### Color constraints
+### Color constraints (maturity CSS only)
 
-Bundle views are opaque-origin sandboxed iframes — `@theme {}` tokens are absent. Use only:
-- Palette custom props pushed via the theme snapshot (`--color-warning`, `--color-fg-muted`, `--color-border`, `--color-accent`) — these arrive via the `theme`/`init` bridge message.
+`VIEW_MATURITY_CSS` is **platform-injected**, served outside any view's own
+Tailwind build — so it cannot use `@theme {}`-generated utilities or vars. It uses only:
+- Palette custom props pushed via the theme snapshot (`--color-warning`, `--color-fg-muted`, `--color-border`, `--color-accent`) — these arrive on the view's `documentElement` via the `theme`/`init` bridge message (`applyTheme`).
 - Self-contained fallback literals that match the dark theme defaults (for the brief flash before the first theme message).
 
-Never reference `@theme {}`-generated vars or renderer Tailwind utilities inside `VIEW_MATURITY_CSS`.
+Never reference `@theme {}`-generated vars or Tailwind utilities inside `VIEW_MATURITY_CSS`.
+(This is a constraint on the maturity CSS specifically, **not** on view-authored CSS — see
+"Tailwind in bundle views" below.)
+
+---
+
+## Tailwind in bundle views
+
+Bundle views (ADR-411/419) are React apps hosted in per-bundle-origin iframes
+(**real `view://<bundleId>` origin**, not opaque — ADR-411 Am1). Each bundle runs
+its **own** per-bundle Tailwind v4 build (`bundles/*/vite.views.config.ts`,
+`@tailwindcss/vite`), independent of the shell's build. So a view authors styles
+the **same way the shell does** — utilities in JSX, `@apply` recipes for composite
+shapes — just against a view-local token set.
+
+**How tokens resolve.** A view's component CSS imports the shared entry:
+
+```css
+@import "@ru-soam/view-kit/theme.css";
+```
+
+`@ru-soam/view-kit/theme.css` = `@import "tailwindcss"` + the view `@theme` tokens
+(`packages/view-kit/src/tokens.css`, a base-layer mirror of the shell's `tokens.css`).
+Utilities like `bg-surface-panel` compile to `background-color: var(--color-surface-panel)`.
+The **color** values arrive at runtime — the bridge `applyTheme` sets the live `--color-*`
+custom props on the view's `documentElement` (palette × luminance × font-set), exactly as
+before. The **non-color** tokens (type scale, spacing, radii, shadows) are baked from
+`tokens.css` at build time. Token duplication shell↔view is deliberate for now; O194 unifies
+them into one base source.
+
+**Authoring rules** (same layer order as the rest of this guide):
+- Import `@ru-soam/view-kit/theme.css` at the top of the view's CSS entry — use `@import`,
+  **not** `@reference`. A view has exactly one emitted stylesheet, so it must emit Tailwind
+  itself; `@reference` (which emits nothing) is correct only in the shell, where a parent
+  `index.css` already emits Tailwind once.
+- Compose composite shapes as `@apply` recipes; put structure/state utilities in the JSX.
+- Off-scale type sizes (< `text-xs` / 12px), one-off `color-mix(...)` tints, and keyframes
+  are the pragmatic exceptions — raw CSS or arbitrary values (`text-[10.5px]`) where the
+  closed scale can't reach. Prefer a token/utility when one fits.
+
+**Reference view:** `bundles/ru-soam-sessions/view-src/meetings.{tsx,css}` (O513) is the
+canonical Tailwind-in-view example. New views should follow it; ported vanilla views may
+still carry a `:root` fallback token block until migrated (they render fine under the
+strict CSP either way).
 
 ---
 

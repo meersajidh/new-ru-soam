@@ -79,7 +79,7 @@ VS Code's extension host (`extHost`) is also a separate Node process — but it 
 |---|---|---|
 | Process split | ✓ resilience + perf (keep extensions off the UI thread; crash isolation) | ✓ same resilience motive (ADR-410: "host crash must not take down the renderer") |
 | Extension privilege | **full Node + filesystem + network** | **brokered only** — data via capabilities; no raw store/fs access |
-| UI | brokered API (no DOM), full Node *beneath* — for portability/stability, **not** security | **sandboxed `view://` iframe** (ADR-411) — no Node, no fs, opaque origin |
+| UI | brokered API (no DOM), full Node *beneath* — for portability/stability, **not** security | **sandboxed `view://` iframe** (ADR-411) — no Node, no fs, real per-bundle origin (ADR-411 Am1; cross-origin to shell) |
 | PHI | extension can read any file | **never decrypts in host**; reaches plaintext only as authorized cap returns |
 | Trust stance | **trust installed extensions** | **treat bundles as untrusted** |
 

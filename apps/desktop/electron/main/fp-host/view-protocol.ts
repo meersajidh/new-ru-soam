@@ -28,11 +28,14 @@ import { VIEW_MATURITY_CSS, VIEW_MATURITY_SOURCE } from './view-maturity';
  *     SOP enforces the trust boundary. See `References/View_Sandbox_Origin_And_CSP_Reasoning.md`.
  *   - CSP is selected by `f(trustClass)` (ADR-418 trust tiers). Today `trustClass` is
  *     always `'first-party'`; the param is threaded for O512 (untrusted tier) without rework.
- *   - All views are React apps on the strict tier: STRICT_VIEW_CSP (`script-src 'self'`,
- *     no `'unsafe-inline'` — the XSS backstop is always live); seams injected as same-host
- *     `<script src>` / `<link>` references. The transitional `'vanilla'` legacy tier
- *     (`'unsafe-inline'` + inline seam injection) was removed once the last vanilla view
- *     migrated (O497); no inline-script code path remains.
+ *   - All views are React apps on the strict tier: STRICT_VIEW_CSP (`script-src 'self'`
+ *     AND `style-src 'self'`, no `'unsafe-inline'` on either — the XSS backstop is always
+ *     live for both scripts and styles); seams injected as same-host `<script src>` /
+ *     `<link>` references. The transitional `'vanilla'` legacy tier (`'unsafe-inline'` +
+ *     inline seam injection) was removed once the last vanilla view migrated (O497); no
+ *     inline-script code path remains. `style-src` was tightened to `'self'` in O513
+ *     (views author styles as external same-host CSS; per-bundle Tailwind build emits
+ *     external stylesheets; React `style={{}}` uses the CSSOM, which CSP does not govern).
  *   - `connect-src 'none'` retained — views never reach the network; the bridge is
  *     postMessage, which `connect-src` does not govern.
  *
@@ -70,18 +73,20 @@ const RESERVED_PLATFORM_HOST = '_platform_';
 // with app:// and every other bundle) + the tier-appropriate CSP. ADR-411 Am1.
 
 /**
- * Strict (react) view CSP. `script-src 'self'` (no `'unsafe-inline'`): the XSS
- * backstop is live — injected inline scripts are blocked even if external data
- * is carelessly interpolated. Seams load as same-host `view://<bundleId>/_seam/*`.
- * `style-src 'self' 'unsafe-inline'` is transitional pending O513 (bundler CSS
- * strategy); `script-src` is the security-critical directive.
+ * Strict (react) view CSP. Both `script-src 'self'` and `style-src 'self'`
+ * (no `'unsafe-inline'` on either): the XSS backstop is live — injected inline
+ * scripts AND inline `<style>`/`style=""` markup are blocked even if external
+ * data is carelessly interpolated. Seams load as same-host
+ * `view://<bundleId>/_seam/*`. Views author styles as external same-host CSS
+ * (per-bundle Tailwind v4 build emits external stylesheets); React `style={{}}`
+ * sets styles via the CSSOM, which CSP `style-src` does not govern (O513).
  * `font-src 'self' data:` — 'self' for same-origin font files, data: for the
  * inline base64 @font-face URIs in fonts.css.
  */
 const STRICT_VIEW_CSP = [
   "default-src 'none'",
   "script-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self'",
   "img-src view: data:",
   "font-src 'self' data:",
   "connect-src 'none'",

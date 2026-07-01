@@ -77,32 +77,54 @@ function MeetingRow({ meeting: m, clientName, onOpen }: MeetingRowProps) {
   return (
     <li className="meeting-row" role="listitem" aria-label={ariaLabel} onClick={onOpen}>
       {/* Time column */}
-      <div className="meeting-time" aria-hidden="true">
-        <div className="meeting-date">{fmtDate(m.startsAt)}</div>
-        <div className="meeting-clock">{fmtTime(m.startsAt)}</div>
-        {dur != null && <div className="meeting-duration">{dur}</div>}
+      <div className="shrink-0 flex flex-col items-end min-w-[44px] pt-px" aria-hidden="true">
+        <div className="text-[10.5px] font-semibold text-fg-secondary font-mono whitespace-nowrap leading-[1.3]">
+          {fmtDate(m.startsAt)}
+        </div>
+        <div className="text-[10px] text-fg-muted font-mono whitespace-nowrap leading-[1.3]">
+          {fmtTime(m.startsAt)}
+        </div>
+        {dur != null && (
+          <div className="text-[9.5px] text-fg-muted font-mono whitespace-nowrap leading-[1.3]">
+            {dur}
+          </div>
+        )}
       </div>
 
       {/* Main body */}
-      <div className="meeting-main">
-        <div className="meeting-client">{displayName}</div>
-        <div className="meeting-meta">
-          <span className="meeting-kind">{m.kind || 'session'}</span>
+      <div className="flex-auto min-w-0 flex flex-col gap-[2px]">
+        <div className="text-sm font-medium text-fg-secondary truncate leading-[1.3]">
+          {displayName}
+        </div>
+        <div className="flex items-center gap-[5px] flex-wrap">
+          <span className="text-[10.5px] text-fg-muted capitalize leading-[1.3]">
+            {m.kind || 'session'}
+          </span>
           <span className={`status-badge ${m.status || 'scheduled'}`}>
             {(m.status || 'scheduled').replace('_', ' ')}
           </span>
           {m.modality === 'online' && (
-            <span className="modality-icon" title="Online" aria-label="Online">
+            <span
+              className="inline-flex items-center text-fg-muted shrink-0"
+              title="Online"
+              aria-label="Online"
+            >
               <Icon name="device-camera-video" size={12} />
             </span>
           )}
           {m.modality === 'in_person' && (
-            <span className="modality-icon" title="In person" aria-label="In person">
+            <span
+              className="inline-flex items-center text-fg-muted shrink-0"
+              title="In person"
+              aria-label="In person"
+            >
               <Icon name="location" size={12} />
             </span>
           )}
         </div>
-        {m.syncState === 'orphaned' && <div className="meeting-orphaned">event removed</div>}
+        {m.syncState === 'orphaned' && (
+          <div className="text-[10px] text-fg-muted italic mt-px">event removed</div>
+        )}
       </div>
     </li>
   );
@@ -164,8 +186,7 @@ function Meetings() {
     }
   }
 
-  const isLocked =
-    meetingsQuery.isError && window.__viewBoot.isLockedError(meetingsQuery.error);
+  const isLocked = meetingsQuery.isError && window.__viewBoot.isLockedError(meetingsQuery.error);
 
   const meetings: Meeting[] = Array.isArray(meetingsQuery.data)
     ? (meetingsQuery.data as Meeting[])
@@ -185,7 +206,7 @@ function Meetings() {
   return (
     <>
       {/* Header */}
-      <div id="panel-header">
+      <div className="flex items-center h-[35px] px-3 shrink-0 border-b border-border">
         <span id="panel-title">Upcoming Meetings</span>
         <button
           id="sync-btn"
@@ -201,14 +222,17 @@ function Meetings() {
 
       {/* Sync summary */}
       {syncSummary != null && (
-        <div id="sync-summary" className="visible">
+        <div className="shrink-0 px-3 py-1 text-fg-muted border-b border-border text-[10.5px] leading-[1.4]">
           {syncSummary}
         </div>
       )}
 
       {/* Error banner (non-locked failures) */}
       {meetingsQuery.isError && !isLocked && (
-        <div id="status-msg" className="visible" role="alert">
+        <div
+          className="shrink-0 px-[10px] py-[5px] text-[11px] font-medium text-error border-b bg-[color-mix(in_srgb,var(--color-error)_9%,transparent)] border-[color-mix(in_srgb,var(--color-error)_25%,transparent)]"
+          role="alert"
+        >
           {`Failed to load: ${(meetingsQuery.error as Error)?.message ?? 'Unknown error'}`}
         </div>
       )}
@@ -217,14 +241,16 @@ function Meetings() {
       <div id="meetings-body">
         {/* Locked */}
         {isLocked && (
-          <div id="meetings-locked" className="visible">
-            <p>Workspace locked — unlock to view meetings.</p>
+          <div className="p-4 text-center">
+            <p className="text-[11.5px] leading-[1.55] text-error opacity-80 font-medium">
+              Workspace locked — unlock to view meetings.
+            </p>
           </div>
         )}
 
         {/* Loading (spinner while first fetch pending and no lock/error) */}
         {meetingsQuery.isPending && !isLocked && (
-          <div id="meetings-empty" className="visible">
+          <div className="pt-7 px-4 pb-5 text-center">
             <div className="empty-graphic">
               <span className="spinner" />
             </div>
@@ -233,20 +259,24 @@ function Meetings() {
 
         {/* Empty */}
         {meetingsQuery.isSuccess && meetings.length === 0 && (
-          <div id="meetings-empty" className="visible">
+          <div className="pt-7 px-4 pb-5 text-center">
             <div className="empty-graphic">
               <Icon name="calendar" size={18} />
             </div>
-            <strong>No meetings yet</strong>
-            <p>Meetings appear here once calendar sync runs.</p>
+            <strong className="block text-[12.5px] font-semibold text-fg-secondary mb-[5px]">
+              No meetings yet
+            </strong>
+            <p className="text-[11.5px] leading-[1.55] text-fg-muted max-w-[200px] mx-auto italic">
+              Meetings appear here once calendar sync runs.
+            </p>
           </div>
         )}
 
         {/* Meetings list */}
         {meetingsQuery.isSuccess && meetings.length > 0 && (
-          <div id="meetings-content" className="visible">
+          <div>
             <div className="group-header">Upcoming · {meetings.length}</div>
-            <ul className="meetings-list" role="list">
+            <ul className="list-none flex flex-col gap-px px-[5px] mb-[2px]" role="list">
               {meetings.map((m) => (
                 <MeetingRow
                   key={m.id}

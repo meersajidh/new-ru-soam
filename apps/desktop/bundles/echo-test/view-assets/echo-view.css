@@ -1,0 +1,46 @@
+:root { color-scheme: light dark; }
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font: 13px/1.4 system-ui, sans-serif;
+  background: var(--color-surface-base, #fff);
+  color: var(--color-fg-primary, #111);
+}
+main {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+h1 { margin: 0; font-size: 14px; font-weight: 600; }
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+button {
+  border: 1px solid var(--color-border, #ccc);
+  background: var(--color-surface-elevated, #f0f0f0);
+  color: inherit;
+  padding: 4px 10px;
+  font: inherit;
+  border-radius: 4px;
+  cursor: pointer;
+}
+button:hover { background: var(--color-surface-active, #e8e8e8); }
+pre {
+  margin: 0;
+  padding: 8px;
+  background: var(--color-surface-panel, #f6f6f6);
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+}
+.ok    { color: var(--color-success, #1a7f1a); }
+.deny  { color: var(--color-success, #1a7f1a); }
+.leak  { color: var(--color-error, #c0392b); font-weight: 600; }
