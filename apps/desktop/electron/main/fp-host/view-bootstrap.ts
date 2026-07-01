@@ -1,8 +1,7 @@
 /**
- * Platform-owned shared bootstrap for bundle views, auto-injected inline into
- * every view by view-protocol.ts (same seam as the bridge/codicons/fonts —
- * sandboxed opaque-origin iframes can't share an `import`, so common helpers
- * are injected as a global instead of re-rolled per file).
+ * Platform-owned shared bootstrap for bundle views, served as a same-host seam
+ * (`_seam/bootstrap.js`) and injected into every view by view-protocol.ts, so
+ * common helpers are shared as a global instead of re-rolled per file.
  *
  * Exposes `window.__viewBoot` with the helpers every view otherwise duplicates:
  *   awaitBridge()          -> Promise<soamView> (polls window.soamView)
@@ -10,11 +9,9 @@
  *   isNotFoundError(err)   -> bool (cap.not_found detection)
  *   parseQuery(search)     -> { key: value } (decoded location.search params)
  *   applyTheme(d)          -> bool (apply an init/theme postMessage's CSS vars; true if handled)
- *   applyCodicons(root?)   -> void (hydrate [data-codicon] via window.codicon)
  *
- * Injected AFTER the codicons script so window.codicon exists; runs in <head>
- * before any view's body script, so window.__viewBoot is ready at view IIFE time.
- * Source is verified free of any script-closing sequence (no escaping needed).
+ * Runs in <head> before any view's body script, so window.__viewBoot is ready
+ * at view IIFE time. Source is verified free of any script-closing sequence.
  */
 export const VIEW_BOOTSTRAP_SOURCE = `(function () {
   'use strict';
@@ -71,25 +68,12 @@ export const VIEW_BOOTSTRAP_SOURCE = `(function () {
     return false;
   }
 
-  function applyCodicons(root) {
-    var els = (root || document).querySelectorAll('[data-codicon]');
-    for (var i = 0; i < els.length; i++) {
-      var e = els[i];
-      var name = e.getAttribute('data-codicon');
-      var size = parseInt(e.getAttribute('data-size') || '13', 10);
-      if (window.codicon) {
-        e.innerHTML = window.codicon(name, size);
-      }
-    }
-  }
-
   window.__viewBoot = {
     awaitBridge: awaitBridge,
     isLockedError: isLockedError,
     isNotFoundError: isNotFoundError,
     parseQuery: parseQuery,
     applyTheme: applyTheme,
-    applyCodicons: applyCodicons,
   };
 })();
 `;

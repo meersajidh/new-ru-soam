@@ -108,8 +108,6 @@ export interface ViewBoot {
    * Returns true when the payload was a theme-bearing message.
    */
   applyTheme(d: unknown): boolean;
-  /** Hydrate [data-codicon] elements under root (default: document). */
-  applyCodicons(root?: Document | Element): void;
 }
 
 /**

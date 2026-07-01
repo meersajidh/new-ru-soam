@@ -5,7 +5,6 @@ import { net, protocol } from 'electron';
 import type { DiscoveredBundle } from './manifest';
 import { VIEW_BRIDGE_SOURCE } from './view-bridge';
 import { VIEW_BOOTSTRAP_SOURCE } from './view-bootstrap';
-import { VIEW_CODICONS_SOURCE } from './view-codicons';
 import { VIEW_FONTS_SOURCE } from './view-fonts';
 import { VIEW_MATURITY_CSS, VIEW_MATURITY_SOURCE } from './view-maturity';
 
@@ -14,9 +13,7 @@ import { VIEW_MATURITY_CSS, VIEW_MATURITY_SOURCE } from './view-maturity';
  *
  * URL shape: `view://<bundleId>/<assetPath>`.
  *
- * Three responder branches:
- *   - `view://_platform_/bridge.js` — fixed bridge script (backward-compat explicit path).
- *   - `view://_platform_/codicons.js` — platform-owned codicon helper.
+ * Two responder branches:
  *   - `view://<bundleId>/_seam/<name>` — virtual seam assets served from platform constants
  *     (bridge.js, bootstrap.js, fonts.css, maturity.css, maturity.js). Reserved path prefix;
  *     never collides with real bundle view assets. Same-host for `script-src 'self'`.
@@ -110,10 +107,9 @@ function viewCsp(trustClass: TrustClass): string {
 /**
  * Virtual seam assets served at `view://<bundleId>/_seam/<name>`.
  * The `_seam/` prefix is reserved — never collides with bundle disk assets.
- * Used by the react/strict runtime: seams are same-host external files rather
- * than inline injections, so `script-src 'self'` permits them.
- * Codicons, query-vendor, __viewQuery are NOT included — those are superseded
- * by view-kit / react-query / inline-SVG for react views.
+ * Seams are same-host external files (not inline injections), so
+ * `script-src 'self'` permits them. Views get their codicons (inline-SVG via
+ * view-kit `<Icon>`) and data layer (react-query) from view-kit itself, not seams.
  */
 const SEAM_ASSETS = new Map<string, { readonly source: string; readonly contentType: string }>([
   ['bridge.js',    { source: VIEW_BRIDGE_SOURCE,    contentType: 'application/javascript; charset=utf-8' }],
@@ -159,9 +155,8 @@ export function viewUrlFor(bundleId: string, viewId: string): string | undefined
 /**
  * Strict (react) seam injection. Injects seams as same-host external
  * `<script src>` / `<link rel=stylesheet>` references so `script-src 'self'`
- * permits them (no `'unsafe-inline'` required). Codicons, query-vendor, and
- * __viewQuery are intentionally omitted — react views use view-kit /
- * react-query / inline-SVG instead (ADR-419).
+ * permits them (no `'unsafe-inline'` required). Codicons + data layer come from
+ * view-kit (inline-SVG `<Icon>` / react-query), not seams (ADR-419).
  */
 function injectReactSeams(html: string, bundleId: string, csp: string): string {
   const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`;
@@ -200,28 +195,9 @@ export function registerViewProtocol(): void {
     const bundleId = url.hostname.toLowerCase();
     const subPath = decodeURIComponent(url.pathname).replace(/^\/+/, '');
 
-    if (bundleId === RESERVED_PLATFORM_HOST) {
-      if (subPath === 'bridge.js') {
-        return new Response(VIEW_BRIDGE_SOURCE, {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/javascript; charset=utf-8',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-          },
-        });
-      }
-      if (subPath === 'codicons.js') {
-        return new Response(VIEW_CODICONS_SOURCE, {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/javascript; charset=utf-8',
-            'Cross-Origin-Resource-Policy': 'cross-origin',
-          },
-        });
-      }
-      return new Response('Not found', { status: 404 });
-    }
-
+    // `_platform_` is a reserved id that is never registered (see
+    // registerBundleViews), so it falls through to the not-found path below.
+    // All seams are per-bundle at `view://<bundleId>/_seam/*`.
     const entry = viewRegistry.get(bundleId);
     if (!entry) return new Response('Bundle not found', { status: 404 });
     if (subPath.length === 0) return new Response('Path required', { status: 400 });

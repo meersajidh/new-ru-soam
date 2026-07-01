@@ -22,7 +22,6 @@
     "lint": "eslint .",
     "postinstall": "node scripts/rebuild-natives.mjs",
     "route-gen": "tsr generate",
-    "gen:view-query": "node scripts/gen-view-query-vendor.mjs",
     "test": "node --experimental-strip-types --experimental-loader=./scripts/test-loader.mjs --test electron/main/store/backup.test.ts electron/main/store/schema-gate.test.ts"
   },
   "devDependencies": {
@@ -59,7 +58,6 @@
     "@ru-soam/domain": "workspace:*",
     "@ru-soam/editor": "workspace:*",
     "@scure/bip39": "^2.2.0",
-    "@tanstack/query-core": "^5.101.0",
     "@vscode/codicons": "^0.0.45",
     "@zxcvbn-ts/core": "^3.0.4",
     "better-sqlite3": "npm:better-sqlite3-multiple-ciphers@^12.9.0",
