@@ -37,6 +37,7 @@ export default defineConfig({
         intake: resolve(__dirname, 'view-src/intake.html'),
         'safety-plan': resolve(__dirname, 'view-src/safety-plan.html'),
         form: resolve(__dirname, 'view-src/form.html'),
+        'client-migration': resolve(__dirname, 'view-src/client-migration.html'),
       },
     },
     target: 'es2020',
