@@ -37,6 +37,19 @@ asarUnpack:
 extraResources:
   - from: bundles
     to: bundles
+    # Ship ONLY the runtime artifacts: index.mjs (FP-Host entry), manifest.json,
+    # and the built view-assets/. Exclude the build-time SOURCE that lives at the
+    # bundle root (outside view-assets, so the view build's emptyOutDir does not
+    # clean it) — otherwise the packaged app leaks reverse-engineerable code:
+    #   - view-src/**            raw React .tsx (+ tsconfig, vite-env.d.ts) source
+    #   - vite.views.config.ts   per-bundle view build config
+    # No *.map filter is needed: the prod view build runs emptyOutDir + sourcemap:false,
+    # so view-assets/ is wiped clean and emits no maps (see vite.views.config.ts).
+    filter:
+      - "**/*"
+      - "!**/view-src/**"
+      - "!**/vite.views.config.ts"
+      - "!**/tsconfig*.json"
 
 generateUpdatesFilesForAllChannels: true
 

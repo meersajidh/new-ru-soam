@@ -12,14 +12,15 @@ const __dirname = dirname(__filename);
  * Per-bundle Vite config for React views (ADR-419 + ADR-411 Am1).
  *
  * Source:  bundles/ru-soam-practice/view-src/<view>.tsx
- * Output:  bundles/ru-soam-practice/view-assets/ (alongside legacy vanilla views)
+ * Output:  bundles/ru-soam-practice/view-assets/
  *
  * mode is supplied by build-views.mjs (development for the dev watch, production
  * for the packaged `build:views`). Vite statically replaces `process.env.NODE_ENV`
  * per mode itself, so no manual `define` is needed.
  *
- * emptyOutDir: false — MUST NOT wipe existing legacy .html views
- * (roster.html, overview.html, aspects.html, etc.) still in view-assets/.
+ * emptyOutDir is mode-gated (see the code comment): prod wipes the output
+ * dir clean, dev stays incremental. view-assets/ is 100% build output now
+ * (all views migrated to React) — nothing hand-authored to preserve.
  */
 // mode is 'development' (dev watch) or 'production' (packaged build:views).
 // sourcemaps ONLY in dev: shipping .map files packages full view source into the
@@ -33,7 +34,11 @@ export default defineConfig(({ mode }) => ({
   base: './',
   build: {
     outDir: resolve(__dirname, 'view-assets'),
-    emptyOutDir: false,
+    // Prod wipes the output dir clean so no stale artifact (old hashed chunks,
+    // dev 'hidden' .map files) can ship; every file in view-assets/ is build
+    // output (gitignored, regenerated) — nothing hand-authored lives here since
+    // the migration completed. Dev stays incremental to avoid watch-rebuild flicker.
+    emptyOutDir: mode !== 'development',
     rollupOptions: {
       input: {
         roster: resolve(__dirname, 'view-src/roster.html'),

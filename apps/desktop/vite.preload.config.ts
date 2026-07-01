@@ -25,7 +25,10 @@ export default defineConfig(({ mode }) => {
       },
       outDir: 'dist/preload',
       emptyOutDir: true,
-      sourcemap: true,
+      // No sourcemaps in the packaged app — .map files ship the main-process
+      // source (IPC handlers, KEK/crypto, security gates) into a readable, leak-able
+      // form. Dev keeps them for debugging; prod emits none.
+      sourcemap: mode === 'development',
       rollupOptions: {
         output: { format: 'cjs' },
         external: ['electron', ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
