@@ -71,6 +71,15 @@ export const VIEW_BRIDGE_SOURCE = `(function () {
         root.style.setProperty(k, vars[k]);
       }
     }
+    // Apply --ui-scale as CSS zoom so bundle views scale with the appearance
+    // text-size pref. This is the always-run theme path (init + live 'theme'
+    // messages) for every view incl. React views whose ViewRoot delegates theme
+    // to this bridge — so the zoom must live here, not only in __viewBoot.applyTheme
+    // (which React views never call). Mirrors that helper's zoom logic.
+    var uiScale = vars['--ui-scale'];
+    if (uiScale && uiScale !== '') {
+      root.style.zoom = uiScale;
+    }
   }
 
   // Apply the maturity-highlight body class safely. The 'init'/'theme' message
