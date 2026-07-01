@@ -41,8 +41,7 @@ body {
 /* Group header + panel title share the uppercase micro-label shape. */
 .group-header,
 #panel-title {
-  @apply font-semibold uppercase text-fg-muted select-none;
-  font-size: 10.5px;
+  @apply font-semibold uppercase text-fg-muted select-none text-3xs;
   letter-spacing: 0.07em;
 }
 #panel-title {
@@ -57,9 +56,8 @@ body {
 #sync-btn {
   @apply inline-flex items-center gap-1 rounded-sm border border-border
     bg-transparent text-fg-secondary font-medium cursor-pointer shrink-0
-    select-none outline-none;
+    select-none outline-none text-3xs;
   padding: 2px 7px;
-  font-size: 10.5px;
   transition:
     background 130ms ease,
     color 130ms ease;
@@ -88,12 +86,10 @@ body {
 
 /* Status badge — pill; color variants below. */
 .status-badge {
-  @apply inline-flex items-center font-semibold uppercase;
-  font-size: 9.5px;
+  @apply inline-flex items-center font-semibold uppercase text-4xs;
   padding: 1px 6px;
   border-radius: 10px;
   letter-spacing: 0.04em;
-  line-height: 1.4;
 }
 .status-badge.scheduled {
   color: var(--color-accent);

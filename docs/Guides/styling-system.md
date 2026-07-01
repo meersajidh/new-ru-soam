@@ -102,7 +102,7 @@ palette.
 When introducing a new step, calibrate visually against the existing
 steps for that color. Do not copy the % from another color's step.
 
-### Type scale (6 steps, closed)
+### Type scale (9 steps, closed)
 
 Defined inside `@theme {}` with Tailwind v4 modifier syntax — each step
 declares `--text-{step}`, optionally `--text-{step}--line-height`, and
@@ -111,6 +111,9 @@ take over when the utility is used.
 
 | Step | Size | LH | LS | Role |
 |---|---|---|---|---|
+| `text-4xs` | 0.5625rem (9) | 1.4 | — | Dense view chrome — smallest meta. Covers 8–9.5px. |
+| `text-3xs` | 0.625rem (10) | 1.4 | — | Dense view chrome — panel labels, badges, meta. |
+| `text-2xs` | 0.6875rem (11) | 1.4 | — | Dense view chrome — secondary meta, captions. |
 | `text-xs` | 0.75rem (12) | 1.4 | — | Captions, labels, badges, mono. |
 | `text-sm` | 0.8125rem (13) | 1.55 | — | Body default. |
 | `text-base` | 1rem (16) | 1.5 | — | Larger body / dense headings. |
@@ -118,9 +121,17 @@ take over when the utility is used.
 | `text-xl` | 1.5rem (24) | 1.3 | −0.012em | `.t-h2`. |
 | `text-2xl` | 2rem (32) | 1.15 | −0.025em | `.t-h1` / display. |
 
+The three **micro-steps** (`2xs`/`3xs`/`4xs`, below `xs`) exist for
+**bundle-view density** (VS Code-style chrome — ADR-419); the shell
+rarely needs them (it tree-shakes any it doesn't reference). They are
+integer-px on purpose — the pre-Tailwind views had accreted a 0.5px
+grid (10 vs 10.5 vs 11) that consolidates onto these steps with ≤0.5px,
+imperceptible drift.
+
 `--text-*: initial;` immediately precedes the steps to disable
-Tailwind's default text scale — `text-3xl` and larger are no-ops. The
-six steps are the only sizes.
+Tailwind's default text scale — `text-3xl` and larger are no-ops. These
+nine steps are the only sizes; **never `text-[Npx]`** (see the rounding
+rule below).
 
 When a design needs a size between two steps, round per:
 **aesthetic fit first, logical proximity second, default down on ties.**
@@ -506,9 +517,11 @@ them into one base source.
   itself; `@reference` (which emits nothing) is correct only in the shell, where a parent
   `index.css` already emits Tailwind once.
 - Compose composite shapes as `@apply` recipes; put structure/state utilities in the JSX.
-- Off-scale type sizes (< `text-xs` / 12px), one-off `color-mix(...)` tints, and keyframes
-  are the pragmatic exceptions — raw CSS or arbitrary values (`text-[10.5px]`) where the
-  closed scale can't reach. Prefer a token/utility when one fits.
+- Sub-12px type uses the **micro-steps** `text-2xs` (11) / `text-3xs` (10) / `text-4xs`
+  (9), **not** arbitrary `text-[Npx]` — dense view chrome is exactly why those steps
+  exist. Round to the nearest step (default down on ties).
+- One-off `color-mix(...)` tints and keyframes remain the pragmatic raw-CSS exceptions
+  where the token scales can't reach. Prefer a token/utility when one fits.
 
 **Reference view:** `bundles/ru-soam-sessions/view-src/meetings.{tsx,css}` (O513) is the
 canonical Tailwind-in-view example. New views should follow it; ported vanilla views may
@@ -551,7 +564,8 @@ Reject in review:
 - `font-family: var(--font-sans); font-size: 13px;` — use `.t-body`.
 - New `*.css` file that is not colocated with a component.
 - `font-size: Npx` or `line-height: <number>` in component CSS —
-  use `@apply text-{xs|sm|base|lg|xl|2xl}`.
+  use `@apply text-{4xs|3xs|2xs|xs|sm|base|lg|xl|2xl}`. Arbitrary
+  `text-[Npx]` (incl. sub-12px in views) is also rejected — round to a step.
 - `padding: Npx` / `margin: Npx` / `gap: Npx` literal in component
   CSS — use `@apply` with Tailwind spacing utilities.
 - `<h1>`–`<h6>` without a recipe class (and not inside a ProseMirror
