@@ -7,7 +7,7 @@
     { "name": "echo.ping", "version": "1.0" }
   ],
   "views": [
-    { "id": "main", "path": "echo-view.html" },
+    { "id": "main", "path": "echo-view.html", "runtime": "react" },
     { "id": "react-smoke", "path": "react-smoke.html", "runtime": "react" }
   ],
   "contributes": {

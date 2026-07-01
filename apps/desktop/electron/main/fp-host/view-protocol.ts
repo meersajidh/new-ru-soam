@@ -8,8 +8,6 @@ import { VIEW_BOOTSTRAP_SOURCE } from './view-bootstrap';
 import { VIEW_CODICONS_SOURCE } from './view-codicons';
 import { VIEW_FONTS_SOURCE } from './view-fonts';
 import { VIEW_MATURITY_CSS, VIEW_MATURITY_SOURCE } from './view-maturity';
-import { VIEW_QUERY_VENDOR_SOURCE } from './view-query-vendor';
-import { VIEW_QUERY_SOURCE } from './view-query';
 
 /**
  * `view://` protocol handler per ADR-411 Am1 (real per-bundle origin + trust-tiered CSP).
@@ -23,23 +21,23 @@ import { VIEW_QUERY_SOURCE } from './view-query';
  *     (bridge.js, bootstrap.js, fonts.css, maturity.css, maturity.js). Reserved path prefix;
  *     never collides with real bundle view assets. Same-host for `script-src 'self'`.
  *   - `view://<bundleId>/...` — files under the bundle's `view-assets/` dir.
- *     HTML responses get seams + CSP injected (legacy inline or react external, by runtime).
+ *     HTML responses get seams + CSP injected as same-host external references.
  *     Other extensions served as-is via `net.fetch`.
  *
- * CSP / sandbox model (ADR-411 Am1):
- *   - Each view iframe now uses `sandbox="allow-scripts allow-forms allow-same-origin"`.
+ * CSP / sandbox model (ADR-411 Am1 — single strict tier as of O497 completion):
+ *   - Each view iframe uses `sandbox="allow-scripts allow-forms allow-same-origin"`.
  *     `allow-same-origin` keeps the real `view://<bundleId>` origin (not opaque), so
  *     same-host subresources load reliably. The shell (`app://`) is still cross-origin —
  *     SOP enforces the trust boundary. See `References/View_Sandbox_Origin_And_CSP_Reasoning.md`.
- *   - CSP is selected per-view by `f(trustClass, viewRuntime)` (ADR-418 trust tiers ×
- *     ADR-411 Am1 runtime signal). Today `trustClass` is always `'first-party'`; the
- *     `trustClass` param is threaded for O512 (untrusted tier) without rework.
- *   - `'vanilla'` runtime → LEGACY_VIEW_CSP (keeps `'unsafe-inline'`, inline seam injection).
- *     All 13 existing views use this path — zero behaviour change.
- *   - `'react'` runtime → STRICT_VIEW_CSP (`script-src 'self'`, no `'unsafe-inline'`);
- *     seams injected as same-host `<script src>` / `<link>` references.
- *   - `connect-src 'none'` retained in both tiers — views never reach the network;
- *     the bridge is postMessage, which `connect-src` does not govern.
+ *   - CSP is selected by `f(trustClass)` (ADR-418 trust tiers). Today `trustClass` is
+ *     always `'first-party'`; the param is threaded for O512 (untrusted tier) without rework.
+ *   - All views are React apps on the strict tier: STRICT_VIEW_CSP (`script-src 'self'`,
+ *     no `'unsafe-inline'` — the XSS backstop is always live); seams injected as same-host
+ *     `<script src>` / `<link>` references. The transitional `'vanilla'` legacy tier
+ *     (`'unsafe-inline'` + inline seam injection) was removed once the last vanilla view
+ *     migrated (O497); no inline-script code path remains.
+ *   - `connect-src 'none'` retained — views never reach the network; the bridge is
+ *     postMessage, which `connect-src` does not govern.
  *
  * Security gates:
  *   - bundleId must be in the registry (populated by the loader at boot).
@@ -48,13 +46,10 @@ import { VIEW_QUERY_SOURCE } from './view-query';
  *   - Sandbox + CSP are independent layers; both must fail open for an exploit to land.
  */
 
-// ── trust / runtime types ────────────────────────────────────────────────────
+// ── trust type ────────────────────────────────────────────────────────────────
 
 /** Per-bundle trust tier (ADR-418). Today only first-party exists; O512 adds untrusted. */
 type TrustClass = 'first-party';
-
-/** Per-view render runtime declared in the bundle manifest. Default: 'vanilla'. */
-type ViewRuntime = 'vanilla' | 'react';
 
 // ── view registry ────────────────────────────────────────────────────────────
 
@@ -62,8 +57,6 @@ interface ViewBundleEntry {
   readonly viewAssetsDir: string;
   /** viewId → relative path within viewAssetsDir */
   readonly views: ReadonlyMap<string, string>;
-  /** relative path → runtime (default 'vanilla'); keyed the same way as views values */
-  readonly runtimeByPath: ReadonlyMap<string, ViewRuntime>;
   /** trust tier of the bundle that owns these views */
   readonly trustClass: TrustClass;
 }
@@ -78,25 +71,6 @@ const RESERVED_PLATFORM_HOST = '_platform_';
 // from `view://<bundleId>`. `frame-ancestors 'self'` would block the embed.
 // The trust model is enforced by the distinct per-bundle origin (cross-origin
 // with app:// and every other bundle) + the tier-appropriate CSP. ADR-411 Am1.
-
-/**
- * Legacy (vanilla) view CSP. Keeps `'unsafe-inline'` so existing inline-script
- * views are unaffected during the incremental migration to the react/strict tier.
- * `view:` in script/style/font-src allows same-host and cross-host view:// URLs,
- * matching the inline-seam injection model. Transitional; removed once the last
- * vanilla view migrates (O513 tracks it).
- */
-const LEGACY_VIEW_CSP = [
-  "default-src 'none'",
-  "script-src view: 'unsafe-inline'",
-  "style-src view: 'unsafe-inline'",
-  "img-src view: data:",
-  "font-src view: data:",
-  "connect-src 'none'",
-  "object-src 'none'",
-  "base-uri 'none'",
-  "form-action 'none'",
-].join('; ');
 
 /**
  * Strict (react) view CSP. `script-src 'self'` (no `'unsafe-inline'`): the XSS
@@ -120,14 +94,14 @@ const STRICT_VIEW_CSP = [
 ].join('; ');
 
 /**
- * Select the view CSP as a function of trust tier and view runtime.
- * `trustClass` is always `'first-party'` today; the parameter is threaded
- * for O512 (untrusted TP-Host tier) so it can layer in without rework.
+ * Select the view CSP as a function of trust tier. All first-party views run on
+ * the strict tier. `trustClass` is always `'first-party'` today; the parameter is
+ * threaded for O512 (untrusted TP-Host tier) so it can layer in without rework.
  */
-function viewCsp(trustClass: TrustClass, runtime: ViewRuntime): string {
+function viewCsp(trustClass: TrustClass): string {
   switch (trustClass) {
     case 'first-party':
-      return runtime === 'react' ? STRICT_VIEW_CSP : LEGACY_VIEW_CSP;
+      return STRICT_VIEW_CSP;
   }
 }
 
@@ -158,15 +132,13 @@ export function registerBundleViews(bundle: DiscoveredBundle): void {
     return;
   }
   const views = new Map<string, string>();
-  const runtimeByPath = new Map<string, ViewRuntime>();
   for (const v of bundle.manifest.views) {
     views.set(v.id, v.path);
-    runtimeByPath.set(v.path, v.runtime);
   }
   // trustClass defaults to 'first-party'. O512 threads per-bundle trustClass
   // when the DiscoveredBundle carries it from the loader.
   const trustClass: TrustClass = 'first-party';
-  viewRegistry.set(bundle.manifest.id, { viewAssetsDir: bundle.viewAssetsDir, views, runtimeByPath, trustClass });
+  viewRegistry.set(bundle.manifest.id, { viewAssetsDir: bundle.viewAssetsDir, views, trustClass });
 }
 
 export function resolveViewPath(bundleId: string, viewId: string): string | undefined {
@@ -182,46 +154,10 @@ export function viewUrlFor(bundleId: string, viewId: string): string | undefined
   return `view://${bundleId}/${relPath}`;
 }
 
-// ── seam injection helpers ───────────────────────────────────────────────────
+// ── seam injection ───────────────────────────────────────────────────────────
 
 /**
- * Legacy (vanilla) seam injection. Inlines bridge, codicons, bootstrap, query-core,
- * and maturity as `<script>` / `<style>` tags directly in `<head>`. The inline
- * approach was required for opaque-origin iframes (pre-Am1); it is kept intact
- * for all vanilla views during the incremental migration so their behaviour is
- * byte-for-byte unchanged. `allow-same-origin` now gives these views a real
- * origin too, but they still use LEGACY_VIEW_CSP with `'unsafe-inline'`, so
- * the inline scripts continue to run.
- */
-function injectBridgeAndCsp(html: string): string {
-  const fontsTag = `<style>${VIEW_FONTS_SOURCE}</style>`;
-  const maturityCssTag = `<style>${VIEW_MATURITY_CSS}</style>`;
-  const bridgeTag = `<script>${VIEW_BRIDGE_SOURCE}</script>`;
-  const codiconsTag = `<script>${VIEW_CODICONS_SOURCE}</script>`;
-  // Shared view bootstrap (awaitBridge/isLockedError/parseQuery/applyTheme/
-  // applyCodicons) — injected after codicons so window.codicon exists.
-  const bootstrapTag = `<script>${VIEW_BOOTSTRAP_SOURCE}</script>`;
-  // TanStack Query Core vendor IIFE (sets window.__tanstackQueryCore).
-  // Injected after bootstrap so __viewBoot is available if needed.
-  const queryVendorTag = `<script>${VIEW_QUERY_VENDOR_SOURCE}</script>`;
-  // Platform query wrapper (sets window.__viewQuery using window.__tanstackQueryCore).
-  // Injected after vendor so __tanstackQueryCore is already set.
-  const queryTag = `<script>${VIEW_QUERY_SOURCE}</script>`;
-  const maturityTag = `<script>${VIEW_MATURITY_SOURCE}</script>`;
-  const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${LEGACY_VIEW_CSP}">`;
-  const headOpen = /<head\b[^>]*>/i;
-  if (headOpen.test(html)) {
-    return html.replace(
-      headOpen,
-      (m) =>
-        `${m}\n${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${bootstrapTag}\n${queryVendorTag}\n${queryTag}\n${maturityTag}`,
-    );
-  }
-  return `${cspMeta}\n${fontsTag}\n${maturityCssTag}\n${bridgeTag}\n${codiconsTag}\n${bootstrapTag}\n${queryVendorTag}\n${queryTag}\n${maturityTag}\n${html}`;
-}
-
-/**
- * React (strict) seam injection. Injects seams as same-host external
+ * Strict (react) seam injection. Injects seams as same-host external
  * `<script src>` / `<link rel=stylesheet>` references so `script-src 'self'`
  * permits them (no `'unsafe-inline'` required). Codicons, query-vendor, and
  * __viewQuery are intentionally omitted — react views use view-kit /
@@ -317,13 +253,8 @@ export function registerViewProtocol(): void {
     if (ext === '.html' || ext === '.htm') {
       try {
         const raw = await fs.readFile(absPath, 'utf8');
-        // Look up runtime by relative path (same key used in runtimeByPath map).
-        const runtime = entry.runtimeByPath.get(subPath) ?? 'vanilla';
-        const csp = viewCsp(entry.trustClass, runtime);
-        const injected =
-          runtime === 'react'
-            ? injectReactSeams(raw, bundleId, csp)
-            : injectBridgeAndCsp(raw);
+        const csp = viewCsp(entry.trustClass);
+        const injected = injectReactSeams(raw, bundleId, csp);
         return new Response(injected, {
           status: 200,
           headers: {
