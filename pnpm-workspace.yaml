@@ -2,6 +2,55 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+# Centralized default catalog (pnpm 9.5+). Single source of version truth for
+# deps shared across workspace packages — a manifest references `"react":
+# "catalog:"` and the version resolves from here, so bumping one line updates
+# every consumer and drift is structurally impossible. Scope kept to the
+# genuinely-shared / soon-to-be-shared set:
+#   - React runtime + types: desktop + view-kit today; each bundle's per-bundle
+#     Vite view-build at A7 (view-stack migration) will consume these too.
+#   - @tanstack/react-query: desktop + view-kit (react-query subsumes __viewQuery).
+#   - View/build toolchain: desktop today; the A7 per-bundle view builds mirror
+#     the shell's Vite plugin set, so pre-staging them here avoids a retrofit.
+#   - typescript: run by every package's `tsc -b` (desktop + editor + domain +
+#     view-kit) yet previously declared only at root — a phantom dependency that
+#     survives only under the hoisted linker. Catalogued + declared per-consumer
+#     so each tsc-runner owns its toolchain honestly (still one on-disk copy).
+# NOT catalogued: eslint / prettier (root-owned, no per-package usage) and
+# TanStack Router/devtools (desktop-only, not shared).
+catalog:
+  typescript: ^6.0.3
+  react: ^19.2.6
+  react-dom: ^19.2.6
+  '@types/react': ^19.2.14
+  '@types/react-dom': ^19.2.3
+  '@tanstack/react-query': ^5.100.9
+  '@tanstack/react-query-devtools': ^5.100.9
+  vite: ^8.0.11
+  '@vitejs/plugin-react': ^6.0.1
+  '@rolldown/plugin-babel': ^0.2.3
+  '@babel/core': ^7.29.7
+  babel-plugin-react-compiler: ^1.0.0
+  tailwindcss: ^4.3.0
+  '@tailwindcss/vite': ^4.3.0
+
+# Named catalog for the TanStack Router family (desktop-only today, so this is
+# not cross-package dedup — it centralizes the family in one visible block so
+# it's bumped as a coordinated unit). NOTE: these do NOT share a version number
+# — TanStack releases core (react-router) on a faster cadence than the tooling
+# (plugin/cli/devtools), which track it by compatible range (latest plugin is
+# 1.168.x while core is already 1.170.x). Floors below are the current
+# known-good resolved versions; the app builds against exactly this combination.
+# Bump the four together and re-run route-gen + compile to re-verify the
+# routeTree.gen.ts codegen pipeline. (Becomes real cross-package dedup if
+# apps/web adopts router.)
+catalogs:
+  router:
+    '@tanstack/react-router': ^1.170.8
+    '@tanstack/router-cli': ^1.167.10
+    '@tanstack/router-plugin': ^1.168.11
+    '@tanstack/router-devtools': ^1.167.0
+
 # Flat real-dir node_modules — NOT pnpm's default isolated/symlinked linker.
 # The isolated linker is what left electron-builder unable to pack native
 # .node files on Windows (junctions not followed) across v0.1.0–0.1.2; the npm

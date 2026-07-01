@@ -13,6 +13,9 @@
   "scripts": {
     "compile": "tsc -b"
   },
+  "devDependencies": {
+    "typescript": "catalog:"
+  },
   "dependencies": {
     "prosemirror-commands": "^1.7.1",
     "prosemirror-history": "^1.4.1",
