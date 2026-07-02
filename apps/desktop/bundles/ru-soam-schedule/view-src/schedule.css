@@ -1,4 +1,21 @@
-/* ── Reset ─────────────────────────────────────────────────── */
+/* schedule — calendar work-area (agenda/day/week/month) (Tailwind, O513).
+   theme.css owns color/type/radius tokens + utilities; this file keeps the
+   time-grid geometry vars (--tg-hour-h MUST match JS HOUR_H) + component recipes
+   as @apply, with raw CSS for the heavy geometry @apply can't reach (absolute
+   positioning, grid templates, color-mix tints, pseudo-element grid lines,
+   inline per-event calendar-color borders, keyframes, scrollbars). */
+
+@import "@ru-soam/view-kit/theme.css";
+
+/* ── Local vars (NOT theme tokens): time-grid geometry + display font ── */
+:root {
+  color-scheme: light dark;
+  --font-display: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --tg-hour-h: 56px; /* height of one hour row — MUST match JS HOUR_H */
+  --tg-gutter-w: 64px; /* width of the left time-label gutter */
+}
+
+/* ── Reset ───────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -13,95 +30,30 @@ button {
   border: none;
   background: none;
 }
-
-/* ── Design tokens (defaults — injected via postMessage from host) ─ */
-:root {
-  color-scheme: light dark;
-
-  --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
-  --font-display: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-
-  /* Surface */
-  --color-surface-base: #161618;
-  --color-surface-panel: #1c1c1f;
-  --color-surface-elevated: #232326;
-  --color-surface-active: #2a2d26;
-  /* Foreground */
-  --color-fg-primary: #f2f2f7;
-  --color-fg-secondary: #aeaeb2;
-  --color-fg-muted: #636366;
-  /* Borders */
-  --color-border: #3a3a3c;
-  --color-border-focus: #5ac85a;
-  /* Accent */
-  --color-accent: #5ac85a;
-  --color-accent-fg: #1c1c1e;
-  --color-accent-hover: #6bd46b;
-  --color-accent-pressed: #4ab44a;
-  /* Semantic */
-  --color-success: #5ac85a;
-  --color-warning: #f4a623;
-  --color-error: #e05252;
-  --color-info: #5ac0de;
-
-  --radius-sm: 4px;
-  --radius-md: 7px;
-  --radius-card: 10px;
-
-  --transition: 130ms ease;
-
-  /* Time-grid constants */
-  --tg-hour-h: 56px; /* height of one hour row — MUST match JS HOUR_H */
-  --tg-gutter-w: 64px; /* width of the left time-label gutter */
-}
-
-/* ── Base ──────────────────────────────────────────────────── */
 html,
 body {
-  height: 100%;
-  overflow: hidden;
-  font-family: var(--font-sans);
-  font-size: 13px;
+  @apply font-sans text-sm h-full overflow-hidden bg-surface-base text-fg-primary;
   line-height: 1.5;
-  background: var(--color-surface-base);
-  color: var(--color-fg-primary);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
-
-/* ── Root layout ───────────────────────────────────────────── */
 #root {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  @apply flex flex-col h-full overflow-hidden;
 }
 
-/* ── Bridge wait overlay ───────────────────────────────────── */
+/* ── Bridge wait overlay ─────────────────────────── */
 #bridge-wait {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface-base);
+  @apply fixed inset-0 flex items-center justify-center gap-2 bg-surface-base text-fg-muted text-2xs;
   z-index: 100;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--color-fg-muted);
 }
 #bridge-wait.hidden {
-  display: none;
+  @apply hidden;
 }
 .spinner {
-  display: inline-block;
+  @apply inline-block rounded-full;
   width: 11px;
   height: 11px;
   border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
   border-top-color: currentColor;
-  border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin {
@@ -110,109 +62,76 @@ body {
   }
 }
 
-/* ── Work header ───────────────────────────────────────────── */
+/* ── Work header ─────────────────────────────────── */
 .work-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @apply flex items-center gap-[10px] shrink-0 border-b border-border bg-surface-panel;
   padding: 0 18px;
   height: 52px;
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-  background: var(--color-surface-panel);
 }
-
-/* Date nav cluster */
 .date-nav {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
+  @apply flex items-center gap-[2px] shrink-0;
 }
 .nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  @apply inline-flex items-center justify-center rounded-sm text-fg-secondary;
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-sm);
-  color: var(--color-fg-secondary);
-  transition:
-    background var(--transition),
-    color var(--transition);
   font-size: 14px;
+  transition:
+    background 130ms ease,
+    color 130ms ease;
 }
 .nav-btn:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply bg-surface-active text-fg-primary;
 }
 .nav-btn:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 1px;
 }
 .btn-today {
+  @apply rounded-sm font-medium text-fg-secondary text-xs;
   padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-fg-secondary);
   border: 1px solid var(--color-border);
   transition:
-    background var(--transition),
-    color var(--transition),
-    border-color var(--transition);
+    background 130ms ease,
+    color 130ms ease,
+    border-color 130ms ease;
 }
 .btn-today:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply bg-surface-active text-fg-primary;
   border-color: color-mix(in srgb, var(--color-border) 70%, var(--color-fg-muted));
 }
 .btn-today:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 1px;
 }
-
-/* Range label */
 .range-label {
+  @apply flex-1 min-w-0 truncate font-semibold text-fg-primary;
   font-size: 14px;
-  font-weight: 600;
-  color: var(--color-fg-primary);
   letter-spacing: -0.01em;
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* View switcher */
 .view-switcher {
-  display: flex;
+  @apply flex shrink-0 rounded-sm bg-surface-elevated;
   gap: 1px;
-  background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
   padding: 2px;
-  flex-shrink: 0;
 }
 .view-tab {
+  @apply font-medium text-fg-muted text-2xs;
   padding: 3px 10px;
   border-radius: 3px;
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--color-fg-muted);
-  transition:
-    background var(--transition),
-    color var(--transition);
   letter-spacing: 0.01em;
+  transition:
+    background 130ms ease,
+    color 130ms ease;
 }
 .view-tab:hover {
-  color: var(--color-fg-secondary);
+  @apply text-fg-secondary;
   background: color-mix(in srgb, var(--color-surface-active) 60%, transparent);
 }
 .view-tab.is-active {
-  background: var(--color-surface-panel);
-  color: var(--color-fg-primary);
+  @apply bg-surface-panel text-fg-primary;
   box-shadow: 0 1px 3px color-mix(in srgb, #000 25%, transparent);
 }
 .view-tab:focus-visible {
@@ -222,24 +141,18 @@ body {
 
 /* Refresh button */
 .btn-refresh {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  @apply inline-flex items-center justify-center shrink-0 rounded-sm;
   width: 24px;
   height: 24px;
-  border-radius: var(--radius-sm);
-  /* color: var(--color-fg-secondary); */
-  background: color-mix(in srgb, var(--color-success) 10%, transparent);
-  color: var(--color-success);
   font-size: 16px;
-  flex-shrink: 0;
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
   transition:
-    background var(--transition),
-    color var(--transition);
+    background 130ms ease,
+    color 130ms ease;
 }
 .btn-refresh:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply bg-surface-active text-fg-primary;
 }
 .btn-refresh:focus-visible {
   outline: 2px solid var(--color-border-focus);
@@ -259,165 +172,117 @@ body {
   }
 }
 .header-divider {
+  @apply shrink-0 opacity-70;
   width: 1px;
   height: 20px;
   background: var(--color-border);
-  flex-shrink: 0;
-  opacity: 0.7;
 }
 
-/* ── Inline event-detail popover ───────────────────────────── */
+/* ── Inline event-detail popover ─────────────────── */
 #detail-popover {
-  position: fixed;
+  @apply fixed overflow-hidden bg-surface-elevated outline-none;
   z-index: 200;
-  background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
+  border-radius: 10px;
   box-shadow:
     0 4px 6px -1px color-mix(in srgb, #000 30%, transparent),
     0 10px 20px -4px color-mix(in srgb, #000 25%, transparent);
   padding: 0;
   min-width: 300px;
   max-width: 380px;
-  overflow: hidden;
-  outline: none;
 }
 #detail-popover.hidden {
-  display: none;
+  @apply hidden;
 }
-
 .popover-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  @apply flex items-start gap-2;
   padding: 14px 16px 12px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
 }
 .popover-kind-strip {
+  @apply flex-shrink-0 self-stretch opacity-50;
   width: 3px;
   border-radius: 2px;
-  align-self: stretch;
   min-height: 20px;
-  flex-shrink: 0;
   background: var(--color-fg-muted);
-  opacity: 0.5;
   margin-top: 1px;
 }
 .popover-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-fg-primary);
+  @apply flex-1 min-w-0 font-semibold text-fg-primary text-sm;
   line-height: 1.35;
-  flex: 1;
-  min-width: 0;
   word-break: break-word;
 }
 .popover-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  @apply inline-flex items-center justify-center shrink-0 rounded-sm text-fg-muted cursor-pointer;
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-sm);
-  color: var(--color-fg-muted);
-  flex-shrink: 0;
-  cursor: pointer;
   border: none;
   background: none;
   padding: 0;
   transition:
-    background var(--transition),
-    color var(--transition);
+    background 130ms ease,
+    color 130ms ease;
 }
 .popover-close:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply bg-surface-active text-fg-primary;
 }
 .popover-close:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 1px;
 }
-
 .popover-body {
+  @apply flex flex-col gap-2;
   padding: 12px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 .popover-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  font-size: 12px;
+  @apply flex items-start gap-[9px] text-xs;
 }
 .popover-row-icon {
-  color: var(--color-fg-muted);
-  flex-shrink: 0;
+  @apply inline-flex items-center shrink-0 text-fg-muted;
   margin-top: 1px;
-  display: inline-flex;
-  align-items: center;
   min-width: 14px;
 }
 .popover-row-text {
-  color: var(--color-fg-secondary);
+  @apply flex-1 min-w-0 text-fg-secondary;
   line-height: 1.4;
-  flex: 1;
-  min-width: 0;
   word-break: break-word;
 }
 .popover-row-text strong {
-  color: var(--color-fg-primary);
-  font-weight: 500;
+  @apply font-medium text-fg-primary;
 }
 .popover-duration-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-fg-secondary);
-  background: var(--color-surface-base);
+  @apply inline-block font-medium text-fg-secondary bg-surface-base text-2xs;
   border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
   border-radius: 3px;
   padding: 1px 5px;
   margin-left: 6px;
 }
 .popover-cal-badge {
-  font-size: 11px;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted text-2xs;
   border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
   border-radius: 3px;
   padding: 1px 5px;
 }
 .popover-join-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-fg-secondary);
+  @apply font-semibold text-fg-secondary text-2xs;
   margin-bottom: 2px;
 }
 .popover-join-url {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  @apply font-mono text-accent text-2xs;
   line-height: 1.45;
-  color: var(--color-accent);
   user-select: text;
   cursor: text;
   word-break: break-all;
 }
-/* Inline action buttons in the meeting-link row (Join / Copy) */
 .popover-link-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  @apply inline-flex items-center gap-1 shrink-0 rounded-sm font-semibold cursor-pointer;
   height: 20px;
   padding: 0 2px;
-  border-radius: var(--radius-sm);
   font-size: 14px;
-  font-weight: 600;
   color: var(--color-accent);
   border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
   background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background var(--transition);
+  transition: background 130ms ease;
 }
 .popover-link-btn:hover {
   background: color-mix(in srgb, var(--color-accent) 18%, transparent);
@@ -426,235 +291,158 @@ body {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 1px;
 }
-
-/* Participants section */
 .popover-section-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
+  @apply font-semibold uppercase text-fg-muted text-3xs;
   letter-spacing: 0.07em;
-  color: var(--color-fg-muted);
   margin-bottom: 4px;
-  padding-left: 23px; /* align under row text (9px gap + 14px icon) */
+  padding-left: 23px;
 }
 .popover-participant-class {
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: none;
+  @apply font-medium normal-case text-fg-muted opacity-80 text-3xs;
   letter-spacing: 0;
-  color: var(--color-fg-muted);
   margin-left: 5px;
-  opacity: 0.8;
 }
 .popover-participants {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  @apply flex flex-col gap-[5px];
 }
 .popover-participant {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11.5px;
+  @apply flex items-center gap-2 text-2xs;
 }
 .popover-avatar {
+  @apply inline-flex items-center justify-center shrink-0 rounded-full font-bold uppercase text-4xs;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  letter-spacing: -0.01em;
+  color: var(--color-accent);
   background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface-base) 80%);
   border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
-  color: var(--color-accent);
-  font-size: 9px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  text-transform: uppercase;
-  letter-spacing: -0.01em;
 }
 .popover-participant-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-fg-secondary);
+  @apply flex-1 min-w-0 truncate text-fg-secondary;
 }
 .popover-participant-role {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--color-fg-muted);
-  background: color-mix(in srgb, var(--color-surface-base) 80%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  @apply shrink-0 font-medium text-fg-muted text-3xs;
   border-radius: 3px;
   padding: 0 4px;
-  flex-shrink: 0;
   line-height: 1.6;
+  background: color-mix(in srgb, var(--color-surface-base) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
 }
 .popover-divider {
   height: 1px;
-  background: color-mix(in srgb, var(--color-border) 50%, transparent);
   margin: 2px 0;
+  background: color-mix(in srgb, var(--color-border) 50%, transparent);
 }
-/* Footer — "Open in side panel" escape to the aux detail view */
 .popover-footer {
   margin-top: 4px;
   padding-top: 10px;
   border-top: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
 }
 .popover-side-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  justify-content: center;
+  @apply inline-flex items-center justify-center gap-[6px] w-full rounded-sm font-medium text-fg-secondary bg-surface-base cursor-pointer text-xs;
   height: 28px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-fg-secondary);
   border: 1px solid var(--color-border);
-  background: var(--color-surface-base);
-  cursor: pointer;
   transition:
-    background var(--transition),
-    color var(--transition);
+    background 130ms ease,
+    color 130ms ease;
 }
 .popover-side-btn:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply bg-surface-active text-fg-primary;
 }
 .popover-side-btn:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 1px;
 }
 
-/* ── Popover backdrop ───────────────────────────────────────── */
+/* ── Popover backdrop ────────────────────────────── */
 #popover-backdrop {
-  position: fixed;
-  inset: 0;
+  @apply fixed inset-0;
   z-index: 199;
   background: transparent;
 }
 #popover-backdrop.hidden {
-  display: none;
+  @apply hidden;
 }
 
-/* PHI chip — static visual placeholder (P-D wires the real value) */
+/* ── PHI chip ────────────────────────────────────── */
 .phi-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  @apply inline-flex items-center gap-[5px] shrink-0 rounded-md font-semibold select-none cursor-default text-2xs;
   padding: 3px 9px;
-  border-radius: var(--radius-md);
-  font-size: 11px;
-  font-weight: 600;
   letter-spacing: 0.02em;
+  color: var(--color-success);
   border: 1px solid color-mix(in srgb, var(--color-success) 40%, transparent);
   background: color-mix(in srgb, var(--color-success) 10%, transparent);
-  color: var(--color-success);
-  flex-shrink: 0;
-  user-select: none;
-  cursor: default;
 }
 .phi-chip-dot {
+  @apply shrink-0 rounded-full bg-success;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
-  background: var(--color-success);
-  flex-shrink: 0;
 }
 
-/* ── Full-area state panels ────────────────────────────────── */
+/* ── Full-area state panels ──────────────────────── */
 .state-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  @apply flex-1 flex flex-col items-center justify-center gap-3 text-center overflow-hidden;
   padding: 40px 24px;
-  text-align: center;
-  overflow: hidden;
 }
 .state-icon {
+  @apply flex items-center justify-center shrink-0 rounded-full bg-surface-elevated text-fg-muted;
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  background: var(--color-surface-elevated);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--color-fg-muted);
 }
 .state-title {
+  @apply font-semibold text-fg-primary;
   font-size: 15px;
-  font-weight: 600;
-  color: var(--color-fg-primary);
   letter-spacing: -0.01em;
 }
 .state-desc {
-  font-size: 12px;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted text-xs;
   max-width: 300px;
   line-height: 1.6;
 }
 .state-error-msg {
-  font-size: 12px;
-  color: var(--color-error);
+  @apply rounded-md text-error text-xs;
   max-width: 340px;
   line-height: 1.55;
+  padding: 8px 14px;
   background: color-mix(in srgb, var(--color-error) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
-  border-radius: var(--radius-md);
-  padding: 8px 14px;
 }
 
-/* ── Shared button styles ──────────────────────────────────── */
+/* ── Shared button styles ────────────────────────── */
 .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  @apply inline-flex items-center gap-[6px] rounded-sm font-medium cursor-pointer text-xs;
   padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background var(--transition),
-    opacity var(--transition);
   border: none;
+  transition:
+    background 130ms ease,
+    opacity 130ms ease;
 }
 .btn:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
 .btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  @apply opacity-50 cursor-not-allowed;
 }
 .btn-accent {
-  background: var(--color-accent);
+  @apply bg-accent;
   color: var(--color-accent-fg);
 }
 .btn-accent:hover:not(:disabled) {
-  background: var(--color-accent-hover);
+  background: var(--color-accent-hover, var(--color-success));
 }
 .btn-accent:active:not(:disabled) {
-  background: var(--color-accent-pressed);
+  background: var(--color-accent-pressed, var(--color-success));
 }
 .btn-ghost {
-  background: transparent;
-  color: var(--color-fg-secondary);
+  @apply bg-transparent text-fg-secondary;
   border: 1px solid var(--color-border);
 }
 .btn-ghost:hover:not(:disabled) {
-  background: var(--color-surface-active);
+  @apply bg-surface-active;
 }
 .btn-danger {
-  background: transparent;
+  @apply bg-transparent;
   color: var(--color-error);
   border: 1px solid color-mix(in srgb, var(--color-error) 35%, transparent);
 }
@@ -662,153 +450,101 @@ body {
   background: color-mix(in srgb, var(--color-error) 8%, transparent);
 }
 
-/* ── Calendar content area ─────────────────────────────────── */
+/* ── Calendar content area ───────────────────────── */
 #cal-area {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  @apply flex-1 flex flex-col overflow-hidden;
 }
 
-/* ── Agenda view ───────────────────────────────────────────── */
+/* ── Agenda view ─────────────────────────────────── */
 .agenda-scroll {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  @apply flex-1 overflow-y-auto overflow-x-hidden;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 35%, transparent) transparent;
   padding: 8px 0 24px;
 }
-
 .day-group {
   padding: 0;
 }
-
 .day-header {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
+  @apply flex items-baseline gap-2 sticky;
   padding: 14px 20px 6px;
-  position: sticky;
   top: 0;
-  background: var(--color-surface-base);
   z-index: 1;
+  background: var(--color-surface-base);
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
 }
 .day-num {
+  @apply font-bold text-fg-primary text-right;
   font-size: 22px;
-  font-weight: 700;
-  color: var(--color-fg-primary);
   line-height: 1;
   font-family: var(--font-display);
   letter-spacing: -0.02em;
   min-width: 28px;
-  text-align: right;
 }
 .day-num.is-today {
-  color: var(--color-accent);
+  @apply text-accent;
 }
 .day-weekday {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
+  @apply font-semibold uppercase text-fg-muted text-2xs;
   letter-spacing: 0.07em;
-  color: var(--color-fg-muted);
 }
 .day-month {
-  font-size: 11px;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted text-2xs;
   margin-left: auto;
 }
-
 .day-events {
+  @apply flex flex-col gap-[6px];
   padding: 8px 20px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 .day-empty {
+  @apply text-fg-muted italic text-2xs;
   padding: 8px 20px 10px;
-  font-size: 11.5px;
-  color: var(--color-fg-muted);
-  font-style: italic;
 }
 
-/* ── Event card (agenda only) — 3-col layout ───────────────── */
+/* ── Event card (agenda) — 3-col ─────────────────── */
 .event-card {
-  display: grid;
+  @apply grid items-center relative rounded-md cursor-pointer bg-surface-panel;
   grid-template-columns: 80px 1fr auto;
-  align-items: center;
   gap: 14px;
   padding: 10px 14px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background var(--transition);
   border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
-  background: var(--color-surface-panel);
-  position: relative;
+  transition: background 130ms ease;
 }
 .event-card:hover {
-  background: var(--color-surface-elevated);
+  @apply bg-surface-elevated;
   border-color: var(--color-border);
 }
 .event-card.is-selected {
   background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface-panel));
   border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
-
-/* Left: time column */
 .event-time-col {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--color-fg-secondary);
-  white-space: nowrap;
+  @apply shrink-0 font-medium text-fg-secondary whitespace-nowrap text-right text-2xs;
   line-height: 1.3;
-  text-align: right;
-  flex-shrink: 0;
 }
 .event-time-col.allday-label {
-  font-size: 10.5px;
-  text-transform: uppercase;
+  @apply uppercase text-fg-muted text-3xs;
   letter-spacing: 0.05em;
-  color: var(--color-fg-muted);
 }
-
-/* Middle: title + modality subline */
 .event-body {
-  min-width: 0;
+  @apply min-w-0;
 }
 .event-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-fg-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @apply font-semibold truncate text-fg-primary text-sm;
   line-height: 1.35;
 }
 .event-modality {
-  font-size: 11px;
-  color: var(--color-fg-muted);
+  @apply truncate text-fg-muted text-2xs;
   margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-
-/* Right: classification badge */
 .event-kind-badge {
-  font-size: 9.5px;
-  font-weight: 700;
+  @apply shrink-0 font-bold uppercase whitespace-nowrap text-4xs;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
   padding: 3px 8px;
   border-radius: 100px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
   color: var(--color-fg-muted);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
   background: color-mix(in srgb, var(--color-surface-base) 60%, transparent);
-  white-space: nowrap;
-  flex-shrink: 0;
 }
 .event-kind-badge.kind-session {
   color: var(--color-accent);
@@ -826,54 +562,45 @@ body {
   background: color-mix(in srgb, var(--color-warning) 8%, transparent);
 }
 
-/* ── Classification modifier classes (SD-11) ────────────────── */
-/* cls-client → green (--color-success): confirmed client session  */
+/* ── Classification modifier classes (SD-11) ─────── */
 .event-kind-badge.cls-client {
   color: var(--color-success);
   border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
   background: color-mix(in srgb, var(--color-success) 8%, transparent);
 }
-/* cls-probable → amber (--color-warning): probable / needs confirm */
 .event-kind-badge.cls-probable {
   color: var(--color-warning);
   border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
   background: color-mix(in srgb, var(--color-warning) 8%, transparent);
 }
-/* cls-not → muted grey: explicitly excluded / not a client session */
 .event-kind-badge.cls-not {
   color: var(--color-fg-muted);
   border-color: color-mix(in srgb, var(--color-border) 60%, transparent);
   background: color-mix(in srgb, var(--color-surface-base) 40%, transparent);
   opacity: 0.6;
 }
-/* cls-personal → info blue: organizer-only / solo event */
 .event-kind-badge.cls-personal {
   color: var(--color-info);
   border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
   background: color-mix(in srgb, var(--color-info) 8%, transparent);
 }
-/* cls-unclassified → default look (no override needed for badge; defined here for explicitness) */
 .event-kind-badge.cls-unclassified {
   /* inherits base .event-kind-badge styles — no override */
 }
 
-/* ── Time-grid classification badge (compact, top-right of block) ─ */
+/* ── Time-grid classification badge ──────────────── */
 .tg-event-cls-badge {
-  position: absolute;
+  @apply absolute font-bold uppercase whitespace-nowrap pointer-events-none;
   top: 4px;
   right: 4px;
   font-size: 8px;
-  font-weight: 700;
   letter-spacing: 0.07em;
-  text-transform: uppercase;
   padding: 2px 5px;
   border-radius: 100px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
-  color: var(--color-fg-muted);
-  background: color-mix(in srgb, var(--color-surface-base) 70%, transparent);
-  white-space: nowrap;
-  pointer-events: none;
   line-height: 1.3;
+  color: var(--color-fg-muted);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: color-mix(in srgb, var(--color-surface-base) 70%, transparent);
 }
 .tg-event-cls-badge.cls-client {
   color: var(--color-success);
@@ -896,14 +623,12 @@ body {
   border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
   background: color-mix(in srgb, var(--color-info) 10%, transparent);
 }
-/* hide badge on tiny blocks and on unclassified (default state, not worth cluttering) */
 .tg-event.tiny .tg-event-cls-badge {
   display: none;
 }
 .tg-event-cls-badge.cls-unclassified {
   display: none;
 }
-/* title needs breathing room so badge doesn't overlap */
 .tg-event-title {
   padding-right: 38px;
 }
@@ -911,25 +636,19 @@ body {
   padding-right: 0;
 }
 
-/* Time-grid event block — thick left bar = calendar color (set inline).
- * Classification no longer drives border color; only the badge carries that signal.
- * cls-not / cls-probable still reduce opacity to indicate non-session events. */
+/* Time-grid event block opacity modifiers */
 .tg-event.cls-not {
   opacity: 0.7;
 }
 .tg-event.is-selected.cls-not {
   opacity: 1;
 }
-
-/* All-day pill — thick left bar = calendar color (set inline). */
 .tg-allday-pill.cls-not {
   opacity: 0.7;
 }
 .tg-allday-pill.is-selected.cls-not {
   opacity: 1;
 }
-
-/* Month pill — calendar-color dot (::before set inline) + keep existing pill border. */
 .month-event-pill.cls-not {
   opacity: 0.7;
 }
@@ -937,7 +656,7 @@ body {
   opacity: 1;
 }
 
-/* legacy — kept for safety, not used in new agenda layout */
+/* legacy — kept for safety */
 .event-strip {
   display: none;
 }
@@ -948,99 +667,67 @@ body {
   display: none;
 }
 
-/* ── Time-grid (shared: week + day) ───────────────────────── */
+/* ── Time-grid (week + day) ──────────────────────── */
 .tg-root {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  @apply flex-1 flex flex-col overflow-hidden;
 }
-
-/* All-day strip — sticky above the scrollable grid */
 .tg-allday-row {
-  display: flex;
-  flex-shrink: 0;
+  @apply flex shrink-0 bg-surface-panel;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-panel);
 }
 .tg-allday-gutter {
+  @apply flex items-center justify-end shrink-0 font-semibold uppercase text-fg-muted text-4xs;
   width: var(--tg-gutter-w);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
   padding: 4px 8px 4px 0;
-  font-size: 9.5px;
-  font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-fg-muted);
   border-right: 1px solid var(--color-border);
 }
 .tg-allday-cols {
-  flex: 1;
-  display: flex;
+  @apply flex-1 flex;
   min-height: 30px;
   padding: 4px 0;
 }
-/* Each day column inside the all-day strip */
 .tg-allday-col {
-  flex: 1;
+  @apply flex-1 flex flex-col;
   padding: 1px 3px;
-  border-right: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
-  display: flex;
-  flex-direction: column;
   gap: 2px;
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
 }
 .tg-allday-col:last-child {
   border-right: none;
 }
 .tg-allday-pill {
-  font-size: 10.5px;
-  font-weight: 500;
-  color: var(--color-fg-primary);
+  @apply font-medium truncate cursor-pointer text-fg-primary text-3xs;
   background: color-mix(in srgb, var(--color-surface-active) 80%, transparent);
-  /* --ev-border-color set inline per-pill from event.calendarColor */
   border-left: 2px solid
-    var(
-      --ev-border-color,
-      color-mix(in srgb, var(--color-accent) 55%, var(--color-fg-muted) 45%)
-    );
+    var(--ev-border-color, color-mix(in srgb, var(--color-accent) 55%, var(--color-fg-muted) 45%));
   border-radius: 3px;
   padding: 2px 5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-  transition: background var(--transition);
+  transition: background 130ms ease;
 }
 .tg-allday-pill:hover {
-  background: var(--color-surface-active);
+  @apply bg-surface-active;
 }
 .tg-allday-pill.is-selected {
   background: color-mix(in srgb, var(--color-accent) 18%, transparent);
   border-left-color: var(--ev-border-color, var(--color-accent));
 }
 
-/* Column header row — sticky, above all-day strip */
+/* Column header row */
 .tg-col-headers {
-  display: flex;
-  flex-shrink: 0;
+  @apply flex shrink-0 bg-surface-panel;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-panel);
 }
 .tg-col-header-gutter {
+  @apply shrink-0;
   width: var(--tg-gutter-w);
-  flex-shrink: 0;
   border-right: 1px solid var(--color-border);
 }
 .tg-col-header {
-  flex: 1;
-  text-align: center;
+  @apply flex-1 text-center relative;
   padding: 8px 4px 7px;
-  border-right: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
   cursor: default;
-  position: relative;
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
 }
 .tg-col-header:last-child {
   border-right: none;
@@ -1049,31 +736,24 @@ body {
   background: color-mix(in srgb, var(--color-accent) 6%, transparent);
 }
 .tg-col-header-wd {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
+  @apply font-semibold uppercase text-fg-muted text-3xs;
   letter-spacing: 0.07em;
-  color: var(--color-fg-muted);
   line-height: 1;
 }
 .tg-col-header-date {
+  @apply font-bold text-fg-primary;
   font-size: 22px;
-  font-weight: 700;
-  color: var(--color-fg-primary);
   font-family: var(--font-display);
   letter-spacing: -0.025em;
   line-height: 1.1;
   margin-top: 2px;
 }
 .tg-col-header-date.is-today {
-  color: var(--color-accent);
+  @apply text-accent;
 }
-/* Day view: larger header treatment */
 .tg-col-header.day-solo {
-  text-align: left;
+  @apply flex items-baseline text-left;
   padding: 10px 14px 8px;
-  display: flex;
-  align-items: baseline;
   gap: 9px;
 }
 .tg-col-header.day-solo .tg-col-header-date {
@@ -1082,57 +762,34 @@ body {
   line-height: 1;
 }
 .tg-col-header.day-solo .tg-col-header-wd {
-  font-size: 13px;
-  font-weight: 500;
-  text-transform: none;
+  @apply font-medium normal-case text-fg-secondary text-sm;
   letter-spacing: 0;
-  color: var(--color-fg-secondary);
 }
 
 /* Scrollable grid body */
 .tg-scroll {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  @apply flex-1 overflow-y-auto overflow-x-hidden relative;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 30%, transparent) transparent;
-  position: relative;
 }
 .tg-grid {
-  display: flex;
-  position: relative;
-  /* height = 24 hours × hour-height */
+  @apply flex relative;
   min-height: calc(24 * var(--tg-hour-h));
 }
-
-/* Left gutter: hour labels */
 .tg-gutter {
+  @apply shrink-0 relative;
   width: var(--tg-gutter-w);
-  flex-shrink: 0;
-  position: relative;
   border-right: 1px solid var(--color-border);
 }
 .tg-hour-label {
-  position: absolute;
+  @apply absolute font-medium text-fg-muted whitespace-nowrap select-none text-4xs;
   right: 8px;
-  font-size: 9.5px;
-  font-weight: 500;
-  color: var(--color-fg-muted);
   line-height: 1;
-  /* vertically centred on the border line */
   transform: translateY(-50%);
-  white-space: nowrap;
-  user-select: none;
 }
-
-/* Day columns area */
 .tg-cols {
-  flex: 1;
-  display: flex;
-  position: relative;
+  @apply flex-1 flex relative;
 }
-
-/* Hour grid lines (drawn as a repeating bg on tg-cols) */
 .tg-cols::before {
   content: '';
   position: absolute;
@@ -1148,11 +805,8 @@ body {
   pointer-events: none;
   z-index: 0;
 }
-
-/* Individual day column inside the scrollable grid */
 .tg-day-col {
-  flex: 1;
-  position: relative;
+  @apply flex-1 relative;
   border-right: 1px solid color-mix(in srgb, var(--color-border) 35%, transparent);
   min-height: calc(24 * var(--tg-hour-h));
 }
@@ -1162,34 +816,20 @@ body {
 .tg-day-col.is-today {
   background: color-mix(in srgb, var(--color-accent) 3%, transparent);
 }
-
-/* Timed event block — absolutely positioned */
 .tg-event {
-  position: absolute;
+  @apply absolute text-left overflow-hidden rounded-sm cursor-pointer;
   left: 4px;
   right: 4px;
-  text-align: left; /* <button> UA default is center — override */
-  border-radius: var(--radius-sm);
-  background: color-mix(
-    in srgb,
-    var(--color-surface-active) 70%,
-    var(--color-surface-panel) 30%
-  );
-  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
-  /* --ev-border-color set inline per-event from event.calendarColor */
-  border-left: 3px solid
-    var(
-      --ev-border-color,
-      color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%)
-    );
-  padding: 4px 6px;
-  cursor: pointer;
-  overflow: hidden;
-  transition:
-    background var(--transition),
-    border-color var(--transition);
   z-index: 1;
+  padding: 4px 6px;
+  background: color-mix(in srgb, var(--color-surface-active) 70%, var(--color-surface-panel) 30%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  border-left: 3px solid
+    var(--ev-border-color, color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%));
   box-shadow: 0 1px 2px color-mix(in srgb, #000 15%, transparent);
+  transition:
+    background 130ms ease,
+    border-color 130ms ease;
 }
 .tg-event:hover {
   background: color-mix(in srgb, var(--color-surface-active) 90%, transparent);
@@ -1197,44 +837,30 @@ body {
 }
 .tg-event.is-selected {
   background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  /* keep calendar color on left border; only overall border shifts to accent */
   border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
   border-left-color: var(--ev-border-color, var(--color-accent));
 }
 .tg-event-time {
-  font-size: 9.5px;
-  font-weight: 600;
-  color: var(--color-fg-muted);
+  @apply font-semibold truncate text-fg-muted text-4xs;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .tg-event-title {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--color-fg-primary);
+  @apply font-medium overflow-hidden text-fg-primary text-2xs;
   line-height: 1.3;
-  overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 .tg-event-participant {
-  font-size: 10px;
-  color: var(--color-fg-muted);
+  @apply truncate text-fg-muted text-3xs;
   margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   line-height: 1.2;
 }
-/* Hide time label when event block is too short */
 .tg-event.tiny .tg-event-time {
   display: none;
 }
 .tg-event.tiny .tg-event-title {
-  font-size: 10.5px;
+  @apply text-3xs;
 }
 .tg-event.tiny .tg-event-participant {
   display: none;
@@ -1242,15 +868,13 @@ body {
 
 /* Now-line */
 .tg-now-line {
-  position: absolute;
+  @apply absolute pointer-events-none;
   left: 0;
   right: 0;
   height: 0;
-  pointer-events: none;
   z-index: 3;
 }
 .tg-now-line::before {
-  /* horizontal rule */
   content: '';
   position: absolute;
   left: 0;
@@ -1261,7 +885,6 @@ body {
   opacity: 0.75;
 }
 .tg-now-line::after {
-  /* dot on left edge */
   content: '';
   position: absolute;
   left: -4px;
@@ -1272,13 +895,11 @@ body {
   background: var(--color-error);
   opacity: 0.8;
 }
-/* Now-line inside gutter: the dot appears here */
 .tg-now-gutter-line {
-  position: absolute;
+  @apply absolute pointer-events-none;
   left: 0;
   right: 0;
   height: 0;
-  pointer-events: none;
   z-index: 3;
 }
 .tg-now-gutter-line::after {
@@ -1293,50 +914,37 @@ body {
   opacity: 0.8;
 }
 
-/* ── Month view ────────────────────────────────────────────── */
+/* ── Month view ──────────────────────────────────── */
 .month-view-wrap {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  @apply flex-1 flex flex-col overflow-hidden;
 }
 .month-weekday-row {
-  display: grid;
+  @apply grid shrink-0 bg-surface-panel;
   grid-template-columns: repeat(7, 1fr);
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-  background: var(--color-surface-panel);
 }
 .month-weekday-label {
+  @apply text-center font-semibold uppercase text-fg-muted text-3xs;
   padding: 6px 0;
-  text-align: center;
-  font-size: 10.5px;
-  font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-fg-muted);
   border-right: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
 }
 .month-weekday-label:last-child {
   border-right: none;
 }
 .month-grid {
-  display: grid;
+  @apply grid flex-1 overflow-hidden;
   grid-template-columns: repeat(7, 1fr);
-  flex: 1;
-  overflow: hidden;
   align-content: start;
 }
 .month-cell {
-  border-right: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  @apply flex flex-col overflow-hidden;
+  gap: 4px;
   padding: 6px 6px 8px;
   min-height: 130px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  border-right: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
 }
 .month-cell:nth-child(7n) {
   border-right: none;
@@ -1346,40 +954,24 @@ body {
   opacity: 0.55;
 }
 .month-cell-date {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-fg-secondary);
+  @apply inline-flex items-center justify-center shrink-0 font-semibold text-fg-secondary text-xs;
   line-height: 1;
   padding: 1px 2px;
   border-radius: 3px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 20px;
   height: 20px;
-  flex-shrink: 0;
 }
 .month-cell-date.is-today {
-  background: var(--color-accent);
+  @apply bg-accent;
   color: var(--color-accent-fg);
 }
 .month-event-pill {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-fg-primary);
+  @apply flex items-center shrink-0 gap-[5px] truncate font-medium cursor-pointer text-fg-primary text-2xs;
   background: color-mix(in srgb, var(--color-surface-active) 80%, transparent);
   border-radius: 4px;
   padding: 3px 7px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-  transition: background var(--transition);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 5px;
   line-height: 1.4;
+  transition: background 130ms ease;
 }
 .month-event-pill::before {
   content: '';
@@ -1387,15 +979,11 @@ body {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  /* --cal-color set inline per-pill from event.calendarColor */
-  background: var(
-    --cal-color,
-    color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%)
-  );
+  background: var(--cal-color, color-mix(in srgb, var(--color-accent) 60%, var(--color-fg-muted) 40%));
   flex-shrink: 0;
 }
 .month-event-pill:hover {
-  background: var(--color-surface-active);
+  @apply bg-surface-active;
 }
 .month-event-pill.is-selected {
   background: color-mix(in srgb, var(--color-accent) 18%, transparent);
@@ -1405,13 +993,11 @@ body {
   filter: brightness(1.15);
 }
 .month-overflow {
-  font-size: 10px;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted text-3xs;
   padding: 1px 2px;
 }
 
-/* ── Day view — centered column ─────────────────────────────── */
-/* Wrap everything in day view with max-width + centering via inner wrapper */
+/* ── Day view — centered column ──────────────────── */
 .tg-root.day-view {
   align-items: center;
 }
@@ -1422,37 +1008,29 @@ body {
   align-self: center;
 }
 .tg-root.day-view .tg-col-headers {
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  border-radius: 10px 10px 0 0;
 }
 .tg-root.day-view .tg-scroll {
   width: 100%;
   max-width: 780px;
   align-self: center;
-  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  border-radius: 0 0 10px 10px;
 }
-
-/* Card shell that wraps the 780px day + agenda columns */
 .day-card-shell,
 .agenda-card-shell {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  @apply flex-1 flex flex-col items-center overflow-hidden;
   padding: 16px 24px 24px;
 }
-/* Card surface: max-width container with border + elevation */
 .day-card-shell > .tg-root {
   width: 100%;
   max-width: 780px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
+  border-radius: 10px;
   box-shadow:
     0 1px 3px color-mix(in srgb, #000 18%, transparent),
     0 4px 12px color-mix(in srgb, #000 14%, transparent);
   background: var(--color-surface-panel);
   overflow: hidden;
-  /* Override inner day-view centering — card shell handles max-width already */
   align-items: stretch;
 }
 .day-card-shell > .tg-root.day-view .tg-col-headers,
@@ -1461,12 +1039,11 @@ body {
   max-width: none;
   width: 100%;
 }
-/* Agenda card */
 .agenda-card-shell > .agenda-scroll {
   width: 100%;
   max-width: 780px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
+  border-radius: 10px;
   box-shadow:
     0 1px 3px color-mix(in srgb, #000 18%, transparent),
     0 4px 12px color-mix(in srgb, #000 14%, transparent);
@@ -1476,22 +1053,14 @@ body {
   padding: 8px 0 24px;
 }
 
-/* ── No-events empty ───────────────────────────────────────── */
+/* ── No-events empty ─────────────────────────────── */
 .no-events {
+  @apply text-center text-fg-muted italic text-xs;
   padding: 32px 16px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--color-fg-muted);
-  font-style: italic;
 }
 
-/* ── Loading row ───────────────────────────────────────────── */
+/* ── Loading row ─────────────────────────────────── */
 .loading-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  @apply flex items-center justify-center gap-2 text-fg-muted text-xs;
   padding: 32px 16px;
-  font-size: 12px;
-  color: var(--color-fg-muted);
 }

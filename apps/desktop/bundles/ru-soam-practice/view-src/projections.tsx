@@ -111,12 +111,12 @@ function Projections() {
       )}
 
       {/* Header bar */}
-      <div id="header-bar">
-        <span className="header-title">
+      <div className="flex items-center justify-between h-8 px-[14px] shrink-0 border-b border-border bg-surface-panel">
+        <span className="flex items-center gap-[6px] font-semibold text-fg-secondary text-2xs">
           <Icon name="file-text" size={12} />
           Notes
           <span className="header-source">Sessions</span>
-          <span id="header-client-name" aria-live="polite">
+          <span className="font-normal text-fg-muted text-2xs" aria-live="polite">
             {clientName ? `· ${clientName}` : ''}
           </span>
         </span>
@@ -133,7 +133,7 @@ function Projections() {
 
       {/* Notes scroll area */}
       <div id="notes-scroll" data-maturity-id="notes-view">
-        <ul className="note-list">
+        <ul className="list-none">
           {notes.length === 0 ? (
             <li className="empty-state">No notes yet.</li>
           ) : (
@@ -161,12 +161,12 @@ interface NoteItemProps {
 function NoteItem({ note, onToggle }: NoteItemProps) {
   return (
     <li className="note-item">
-      <div className="note-meta">
+      <div className="flex items-center gap-2 font-mono text-fg-muted text-3xs">
         <span>{note.when}</span>
         <span className="note-kind">{note.kind}</span>
       </div>
-      <p className="note-summary">{note.summary}</p>
-      <div className="note-overlays">
+      <p className="text-fg-secondary text-xs leading-[1.45]">{note.summary}</p>
+      <div className="flex gap-[5px] mt-[3px]">
         <button
           type="button"
           className={`overlay-btn${note.reviewed ? ' is-on' : ''}`}

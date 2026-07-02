@@ -465,7 +465,7 @@ function EditContent({ id }: { id: string }) {
   if (recQuery.isPending || profileQuery.isPending) {
     return (
       <div id="page">
-        <div style={{ color: 'var(--color-fg-muted)', fontSize: '12px' }}>Loading…</div>
+        <div className="text-fg-muted text-xs">Loading…</div>
       </div>
     );
   }

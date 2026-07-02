@@ -1,4 +1,11 @@
-/* ── Reset ──────────────────────────────────────────────────── */
+/* aspects — Practice client contextual aspects (Tailwind, O513).
+   theme.css owns tokens + utilities; this file owns component recipes as @apply
+   + raw CSS @apply can't reach (color-mix tints, keyframes, off-scale font-size,
+   critical-dot glow, scrollbar). */
+
+@import "@ru-soam/view-kit/theme.css";
+
+/* ── Reset ───────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -11,71 +18,27 @@ button {
   color: inherit;
   cursor: pointer;
 }
-
-/* ── Design tokens (overridden via postMessage) ─────────────── */
-:root {
-  color-scheme: light dark;
-  --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
-  --color-surface-base: #161618;
-  --color-surface-panel: #1c1c1f;
-  --color-surface-elevated: #232326;
-  --color-surface-active: #2a2d26;
-  --color-fg-primary: #f2f2f7;
-  --color-fg-secondary: #aeaeb2;
-  --color-fg-muted: #636366;
-  --color-border: #3a3a3c;
-  --color-border-focus: #5ac85a;
-  --color-accent: #5ac85a;
-  --color-accent-fg: #1c1c1e;
-  --color-success: #5ac85a;
-  --color-warning: #f4a623;
-  --color-error: #e05252;
-  --radius-sm: 4px;
-  --radius-md: 7px;
-  --transition: 130ms ease;
-}
-
-/* ── Base ───────────────────────────────────────────────────── */
 html,
 body {
-  height: 100%;
-  overflow: hidden;
-  font-family: var(--font-sans);
-  font-size: 12px;
+  @apply font-sans text-xs h-full overflow-hidden bg-surface-panel text-fg-primary;
   line-height: 1.5;
-  background: var(--color-surface-panel);
-  color: var(--color-fg-primary);
   -webkit-font-smoothing: antialiased;
 }
-
 #root {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  @apply flex flex-col h-full overflow-hidden;
 }
 
-/* ── Bridge wait overlay ────────────────────────────────────── */
+/* ── Bridge wait ─────────────────────────────────── */
 #bridge-wait {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface-panel);
+  @apply fixed inset-0 flex items-center justify-center gap-2 bg-surface-panel text-fg-muted text-2xs;
   z-index: 100;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--color-fg-muted);
 }
 .spinner {
-  display: inline-block;
+  @apply inline-block rounded-full;
   width: 11px;
   height: 11px;
   border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
   border-top-color: currentColor;
-  border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin {
@@ -84,314 +47,207 @@ body {
   }
 }
 
-/* ── Status bar ─────────────────────────────────────────────── */
+/* ── Status bar ──────────────────────────────────── */
 #status-bar {
-  font-size: 11px;
+  @apply hidden shrink-0 font-medium text-2xs;
   padding: 5px 12px;
-  background: color-mix(in srgb, var(--color-error) 9%, transparent);
   color: var(--color-error);
-  font-weight: 500;
-  display: none;
-  flex-shrink: 0;
+  background: color-mix(in srgb, var(--color-error) 9%, transparent);
 }
 #status-bar.visible {
-  display: block;
+  @apply block;
 }
 #status-bar.is-locked {
-  background: color-mix(in srgb, var(--color-warning) 9%, transparent);
   color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 9%, transparent);
 }
 
-/* ── Client identity strip ──────────────────────────────────── */
+/* ── Client identity strip ───────────────────────── */
 #identity-strip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @apply flex items-center gap-[10px] shrink-0 border-b border-border bg-surface-elevated;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-elevated);
-  flex-shrink: 0;
 }
 .id-avatar {
-  flex: 0 0 auto;
+  @apply flex-none flex items-center justify-center rounded-full font-semibold bg-accent text-sm;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  background: var(--color-accent);
   color: var(--color-accent-fg);
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   letter-spacing: -0.01em;
 }
 .id-text {
-  min-width: 0;
+  @apply min-w-0;
 }
 .id-name {
-  font-size: 13px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply font-semibold truncate text-sm;
 }
 .id-sub {
-  font-size: 10px;
-  color: var(--color-fg-muted);
-  font-family: var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply truncate font-mono text-fg-muted text-3xs;
 }
 
-/* ── Scroll area ────────────────────────────────────────────── */
+/* ── Scroll area ─────────────────────────────────── */
 #aspects-scroll {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  overflow-x: hidden;
+  @apply flex-auto overflow-y-auto overflow-x-hidden;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
 }
 
-/* ── Section / aspect ───────────────────────────────────────── */
+/* ── Section / aspect ────────────────────────────── */
 .section {
   border-bottom: 1px solid var(--color-border);
 }
 .section-header {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+  @apply flex items-center gap-[7px] cursor-pointer select-none;
   padding: 3px 12px;
-  cursor: pointer;
-  user-select: none;
-  /* background-color: var(--color-surface-panel); */
   background: color-mix(in srgb, var(--color-surface-panel) 50%, transparent);
-  transition: background var(--transition);
+  transition: background 130ms ease;
 }
 .section-header:hover {
   background: color-mix(in srgb, var(--color-fg-muted) 25%, transparent);
 }
 .section-caret {
-  flex: 0 0 auto;
+  @apply flex-none text-fg-muted;
   transition: transform 120ms ease;
-  color: var(--color-fg-muted);
 }
 .section-caret.is-open {
   transform: rotate(90deg);
 }
 .section-title {
-  flex: 1 1 auto;
-  font-size: 11.5px;
-  font-weight: 800;
-  color: var(--color-fg-primary);
+  @apply flex-auto font-extrabold text-fg-primary text-2xs;
 }
 .section-source {
-  font-size: 9px;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
+  @apply shrink-0 font-mono uppercase text-fg-muted text-4xs;
   letter-spacing: 0.04em;
-  color: var(--color-fg-muted);
   border: 1px solid var(--color-border);
   border-radius: 3px;
   padding: 1px 5px;
-  flex-shrink: 0;
 }
 .section-body {
+  @apply hidden;
   padding: 10px 12px 14px;
-  display: none;
 }
 .section-body.is-open {
-  display: block;
+  @apply block;
 }
 
-/* ── Risk section ───────────────────────────────────────────── */
+/* ── Risk section ────────────────────────────────── */
 .risk-alert-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  @apply flex items-center gap-2 shrink-0 font-semibold text-2xs;
   padding: 8px 12px;
+  color: var(--color-error);
   background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface-elevated));
   border-bottom: 1px solid color-mix(in srgb, var(--color-error) 30%, var(--color-border));
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--color-error);
-  flex-shrink: 0;
 }
 .risk-facts {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  @apply flex flex-col gap-[5px];
   margin-bottom: 10px;
 }
 .risk-fact {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--color-fg-secondary);
+  @apply flex items-center gap-[6px] text-fg-secondary text-2xs;
 }
 .risk-items {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  @apply list-none flex flex-col gap-[6px];
   margin-bottom: 12px;
 }
 .risk-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  font-size: 11px;
-  color: var(--color-fg-secondary);
+  @apply flex items-start gap-[7px] text-fg-secondary text-2xs;
 }
 .risk-dot {
-  flex: 0 0 auto;
+  @apply flex-none rounded-full;
   width: 5px;
   height: 5px;
-  border-radius: 50%;
-  background: var(--color-error);
   margin-top: 5px;
+  background: var(--color-error);
 }
 .risk-when {
-  font-size: 9.5px;
-  font-family: var(--font-mono);
-  color: var(--color-fg-muted);
+  @apply font-mono text-fg-muted whitespace-nowrap text-4xs;
   margin-left: 3px;
-  white-space: nowrap;
 }
 .risk-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  @apply flex flex-wrap gap-[6px];
 }
 .action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: transparent;
+  @apply inline-flex items-center gap-[5px] bg-transparent text-fg-secondary rounded-sm font-medium font-sans cursor-pointer text-3xs;
   border: 1px solid var(--color-border);
-  color: var(--color-fg-secondary);
-  border-radius: var(--radius-sm);
-  font-size: 10.5px;
-  font-weight: 500;
   padding: 4px 9px;
-  cursor: pointer;
-  font-family: var(--font-sans);
   transition:
-    background var(--transition),
-    color var(--transition);
+    background 130ms ease,
+    color 130ms ease;
 }
 .action-btn:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply bg-surface-active text-fg-primary;
   border-color: var(--color-fg-muted);
 }
 
-/* ── Profile section ────────────────────────────────────────────────────────────────────────────── */
+/* ── Profile KV ──────────────────────────────────── */
 .kv {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  @apply flex flex-col gap-2;
 }
 .kv-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 11px;
+  @apply flex items-baseline gap-2 text-2xs;
 }
 .kv-label {
-  color: var(--color-fg-muted);
+  @apply text-fg-muted text-3xs;
   flex: 0 0 90px;
-  font-size: 10.5px;
 }
 .kv-value {
-  color: var(--color-fg-secondary);
-  flex: 1 1 auto;
+  @apply flex-auto text-fg-secondary;
 }
 .kv-value.is-empty {
-  color: var(--color-fg-muted);
-  font-style: italic;
+  @apply text-fg-muted italic;
 }
 .note-subtle {
-  font-size: 10px;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted text-3xs;
   margin-top: 6px;
 }
 
-/* ── Profile edit form ─────────────────────────────────────────────────────────────────── */
+/* ── Profile edit form ───────────────────────────── */
 #profile-edit-form {
-  display: none;
-  flex-direction: column;
-  gap: 8px;
+  @apply hidden flex-col gap-2;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--color-border);
 }
 #profile-edit-form.is-open {
-  display: flex;
+  @apply flex;
 }
 .pe-field {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  @apply flex flex-col gap-[3px];
 }
 .pe-label {
-  font-size: 10px;
-  font-weight: 600;
+  @apply font-semibold uppercase text-fg-muted text-3xs;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-fg-muted);
 }
 .pe-input {
-  width: 100%;
+  @apply w-full font-sans rounded-sm text-fg-primary bg-surface-base outline-none text-2xs;
   padding: 5px 8px;
-  font-size: 11px;
-  font-family: var(--font-sans);
-  background: var(--color-surface-base, #111);
-  color: var(--color-fg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  outline: none;
-  transition: border-color var(--transition);
+  transition: border-color 130ms ease;
 }
 .pe-input:focus {
   border-color: var(--color-border-focus);
 }
 .pe-actions {
-  display: flex;
-  gap: 6px;
-  align-items: center;
+  @apply flex items-center gap-[6px];
   margin-top: 2px;
 }
 .pe-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  font-weight: 500;
-  font-family: var(--font-sans);
+  @apply inline-flex items-center gap-1 font-medium font-sans rounded-sm bg-transparent text-fg-secondary cursor-pointer text-3xs;
   padding: 4px 10px;
-  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-fg-secondary);
-  cursor: pointer;
   transition:
-    background var(--transition),
-    color var(--transition);
+    background 130ms ease,
+    color 130ms ease;
 }
 .pe-btn:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply bg-surface-active text-fg-primary;
 }
 .pe-btn.primary {
-  background: var(--color-accent);
-  color: var(--color-accent-fg, #1c1c1e);
+  @apply bg-accent;
+  color: var(--color-accent-fg);
   border-color: transparent;
 }
 .pe-btn.primary:hover {
-  background: var(--color-success);
+  @apply bg-success;
 }
 .pe-btn.primary:disabled {
   opacity: 0.45;
@@ -399,193 +255,134 @@ body {
   pointer-events: none;
 }
 .pe-save-msg {
-  font-size: 10px;
-  flex: 1;
-  opacity: 0;
-  transition: opacity var(--transition);
+  @apply flex-1 opacity-0 text-3xs;
+  transition: opacity 130ms ease;
 }
 .pe-save-msg.visible {
-  opacity: 1;
+  @apply opacity-100;
 }
 .pe-save-msg.ok {
-  color: var(--color-success);
+  @apply text-success;
 }
 .pe-save-msg.err {
-  color: var(--color-error);
+  @apply text-error;
 }
 
-/* ── Identifiers section ──────────────────────────────────────────────────── */
+/* ── Identifiers section ─────────────────────────── */
 .alias-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  @apply flex flex-col gap-[6px];
   margin-bottom: 10px;
 }
 .alias-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  min-width: 0;
+  @apply flex items-center gap-[6px] min-w-0 text-2xs;
 }
 .alias-kind {
-  font-size: 9.5px;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
+  @apply font-mono uppercase text-fg-muted text-4xs;
   letter-spacing: 0.04em;
-  color: var(--color-fg-muted);
   flex: 0 0 42px;
 }
 .alias-value {
-  color: var(--color-fg-secondary);
-  flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
+  @apply flex-auto min-w-0 truncate text-fg-secondary;
 }
 .alias-actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
+  @apply flex gap-1 shrink-0;
 }
 #alias-add-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  @apply flex flex-col gap-2;
   padding-top: 10px;
   border-top: 1px solid var(--color-border);
   margin-top: 4px;
 }
 #alias-add-form .pe-field {
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
+  @apply flex-row items-center gap-[6px];
 }
 #alias-add-form .pe-label {
   flex: 0 0 36px;
 }
 
-/* ── Circle member list ───────────────────────────────────────────────────── */
+/* ── Circle member list ──────────────────────────── */
 .circle-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  @apply flex flex-col gap-2;
 }
 .circle-member {
-  background: var(--color-surface-base, #111);
+  @apply rounded-sm bg-surface-base;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
   padding: 7px 10px;
 }
 .circle-member-row {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  flex-wrap: wrap;
+  @apply flex items-baseline gap-[6px] flex-wrap;
 }
 .circle-member-name {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--color-fg-primary);
+  @apply font-semibold text-fg-primary text-2xs;
 }
 .circle-member-kind {
-  font-size: 10px;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
+  @apply font-mono uppercase text-fg-muted text-3xs;
   letter-spacing: 0.04em;
-  color: var(--color-fg-muted);
 }
 .circle-nr-badge {
-  font-size: 9px;
-  font-weight: 700;
+  @apply font-bold uppercase text-accent text-4xs;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-accent);
   border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
   border-radius: 3px;
   padding: 1px 5px;
 }
 .circle-member-meta {
-  font-size: 10.5px;
-  color: var(--color-fg-secondary);
+  @apply text-fg-secondary text-3xs;
   margin-top: 2px;
 }
 .circle-member-actions {
-  display: flex;
-  gap: 5px;
+  @apply flex gap-[5px] flex-wrap;
   margin-top: 5px;
-  flex-wrap: wrap;
 }
 .circle-action-btn {
-  font-size: 10px;
-  font-weight: 500;
-  font-family: var(--font-sans);
+  @apply font-medium font-sans rounded-sm bg-transparent text-fg-secondary cursor-pointer text-3xs;
   padding: 2px 8px;
-  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-fg-secondary);
-  cursor: pointer;
   transition:
-    background var(--transition),
-    color var(--transition);
+    background 130ms ease,
+    color 130ms ease;
 }
 .circle-action-btn:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply bg-surface-active text-fg-primary;
 }
 .circle-empty {
-  font-size: 11px;
-  color: var(--color-fg-muted);
-  font-style: italic;
+  @apply text-fg-muted italic text-2xs;
   padding: 4px 0;
 }
 
-/* ── Circle add form ──────────────────────────────────────────────────── */
+/* ── Circle add form ─────────────────────────────── */
 #circle-add-form {
-  display: none;
-  flex-direction: column;
-  gap: 8px;
+  @apply hidden flex-col gap-2;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--color-border);
 }
 #circle-add-form.is-open {
-  display: flex;
+  @apply flex;
 }
 
-/* ── Consent section ─────────────────────────────────────────────────── */
+/* ── Consent section ─────────────────────────────── */
 .consent-kv {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  @apply flex flex-col gap-[6px];
 }
 .consent-flag-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  @apply flex items-center gap-[6px] rounded-sm font-medium text-2xs;
   padding: 5px 8px;
-  border-radius: var(--radius-sm);
+  color: var(--color-warning);
   background: color-mix(in srgb, var(--color-warning) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-warning) 25%, transparent);
-  color: var(--color-warning);
-  font-weight: 500;
 }
 #consent-edit-form {
-  display: none;
-  flex-direction: column;
-  gap: 8px;
+  @apply hidden flex-col gap-2;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--color-border);
 }
 #consent-edit-form.is-open {
-  display: flex;
+  @apply flex;
 }
 
-/* ── Risk severity dot colors ──────────────────────────────────────── */
+/* ── Risk severity dot colors ────────────────────── */
 .risk-dot.sev-info {
   background: var(--color-fg-muted);
 }
@@ -600,120 +397,81 @@ body {
   box-shadow: 0 0 4px #e0193a88;
 }
 .risk-empty {
-  font-size: 11px;
-  color: var(--color-fg-muted);
-  font-style: italic;
+  @apply text-fg-muted italic text-2xs;
   padding: 4px 0 8px;
 }
 
-/* ── Inline risk forms ──────────────────────────────────────────────── */
+/* ── Inline risk forms ───────────────────────────── */
 .risk-inline-form {
-  display: none;
-  flex-direction: column;
-  gap: 8px;
+  @apply hidden flex-col gap-2;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--color-border);
 }
 .risk-inline-form.is-open {
-  display: flex;
+  @apply flex;
 }
 
-/* ── Edit button on section header ───────────────────────────────────────────────── */
+/* ── Edit button on section header ───────────────── */
 .section-edit-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  @apply inline-flex items-center justify-center shrink-0 rounded-sm bg-transparent text-fg-muted cursor-pointer;
   width: 20px;
   height: 20px;
-  border-radius: var(--radius-sm);
   border: none;
-  background: transparent;
-  color: var(--color-fg-muted);
-  cursor: pointer;
-  flex-shrink: 0;
   transition:
-    background var(--transition),
-    color var(--transition);
+    background 130ms ease,
+    color 130ms ease;
 }
 .section-edit-btn:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-secondary);
+  @apply bg-surface-active text-fg-secondary;
 }
 .section-edit-btn.is-active {
-  color: var(--color-accent);
+  @apply text-accent;
 }
 
-/* ── Documents section ──────────────────────────────────────── */
+/* ── Documents section ───────────────────────────── */
 .doc-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  @apply flex flex-col gap-[6px];
 }
 .doc-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  background: var(--color-surface-base, #111);
+  @apply flex items-start gap-[7px] rounded-sm bg-surface-base;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
   padding: 6px 9px;
 }
 .doc-icon {
-  flex: 0 0 auto;
-  color: var(--color-fg-muted);
+  @apply flex-none text-fg-muted;
   margin-top: 1px;
 }
 .doc-info {
-  flex: 1 1 auto;
-  min-width: 0;
+  @apply flex-auto min-w-0;
 }
 .doc-title {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--color-fg-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply font-semibold truncate text-fg-primary text-2xs;
 }
 .doc-meta {
-  font-size: 10px;
-  font-family: var(--font-mono);
-  color: var(--color-fg-muted);
+  @apply font-mono text-fg-muted text-3xs;
   margin-top: 1px;
 }
 .doc-remove-btn {
-  flex: 0 0 auto;
-  font-size: 10px;
-  font-weight: 500;
-  font-family: var(--font-sans);
+  @apply flex-none font-medium font-sans rounded-sm bg-transparent text-fg-muted cursor-pointer text-3xs;
   padding: 2px 7px;
-  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-fg-muted);
-  cursor: pointer;
-  transition: background var(--transition), color var(--transition);
+  transition:
+    background 130ms ease,
+    color 130ms ease;
 }
 .doc-remove-btn:hover {
-  background: color-mix(in srgb, var(--color-error) 12%, transparent);
   color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-error) 30%, var(--color-border));
 }
 .doc-empty {
-  font-size: 11px;
-  color: var(--color-fg-muted);
-  font-style: italic;
+  @apply text-fg-muted italic text-2xs;
   padding: 4px 0;
 }
 
-/* ── Loading ───────────────────────────────────────────────── */
+/* ── Loading ─────────────────────────────────────── */
 .aspects-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  @apply flex items-center justify-center gap-2 text-fg-muted text-2xs;
   padding: 40px;
-  font-size: 11px;
-  color: var(--color-fg-muted);
 }

@@ -1,4 +1,11 @@
-/* ── Reset ─────────────────────────────────────────────── */
+/* calendar-setup — Add-calendar wizard (Tailwind, O513).
+   theme.css owns tokens + utilities; this file owns component recipes as @apply
+   + raw CSS @apply can't reach (color-mix tints, off-scale font-size + radii,
+   swatch check data-URI, scrollbar). */
+
+@import "@ru-soam/view-kit/theme.css";
+
+/* ── Reset ───────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -6,7 +13,6 @@
   margin: 0;
   padding: 0;
 }
-
 button {
   font: inherit;
   color: inherit;
@@ -14,7 +20,6 @@ button {
   border: none;
   background: none;
 }
-
 input {
   font: inherit;
   color: inherit;
@@ -22,529 +27,310 @@ input {
   background: none;
   outline: none;
 }
-
-/* ── Design tokens (injected via postMessage; fallbacks for cold load) ── */
-:root {
-  color-scheme: light dark;
-  --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --color-surface-base: #161618;
-  --color-surface-panel: #1c1c1f;
-  --color-surface-elevated: #232326;
-  --color-surface-active: #2a2d26;
-  --color-fg-primary: #f2f2f7;
-  --color-fg-secondary: #aeaeb2;
-  --color-fg-muted: #636366;
-  --color-border: #3a3a3c;
-  --color-border-focus: #5ac85a;
-  --color-accent: #5ac85a;
-  --color-accent-fg: #1c1c1e;
-  --color-accent-hover: #6bd46b;
-  --color-accent-pressed: #4ab44a;
-  --color-error: #e05252;
-  --radius-sm: 4px;
-  --radius-md: 7px;
-  --radius-card: 10px;
-}
-
-/* ── Base ──────────────────────────────────────────────── */
 html,
 body {
-  height: 100%;
-  overflow: hidden;
-  font-family: var(--font-sans);
-  font-size: 13px;
+  @apply font-sans text-sm h-full overflow-hidden bg-surface-base text-fg-primary;
   line-height: 1.5;
-  background: var(--color-surface-base);
-  color: var(--color-fg-primary);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Root — centered wizard column ────────────────────── */
+/* ── Root — centered wizard column ───────────────── */
 #root {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  overflow: hidden;
+  @apply flex flex-col items-center justify-center h-full overflow-hidden;
 }
 
-/* ── Wizard card ───────────────────────────────────────── */
+/* ── Wizard card ─────────────────────────────────── */
 .wizard-card {
-  width: 100%;
+  @apply w-full flex flex-col;
   max-width: 400px;
   padding: 0 24px;
-  display: flex;
-  flex-direction: column;
   gap: 0;
 }
 
-/* ── Step container — each step hidden/shown ───────────── */
+/* ── Step container ──────────────────────────────── */
 .step {
-  display: none;
-  flex-direction: column;
-  gap: 20px;
+  @apply hidden flex-col gap-5;
 }
-
 .step.active {
-  display: flex;
+  @apply flex;
 }
 
-/* ── Connect screen (Step 1, zero-account variant) ─────── */
+/* ── Connect screen (Step 1) ─────────────────────── */
 .connect-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  text-align: center;
+  @apply flex flex-col items-center gap-4 text-center;
 }
-
 .connect-icon-wrap {
+  @apply flex items-center justify-center shrink-0 bg-surface-elevated;
   width: 56px;
   height: 56px;
   border-radius: 14px;
-  background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
-
 .connect-heading {
-  font-size: 16px;
-  font-weight: 600;
+  @apply font-semibold text-fg-primary text-base;
   letter-spacing: -0.01em;
-  color: var(--color-fg-primary);
   line-height: 1.3;
 }
-
 .connect-subtext {
-  font-size: 12.5px;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted text-xs;
   line-height: 1.55;
   max-width: 320px;
 }
 
-/* ── Sign-in button ────────────────────────────────────── */
+/* ── Sign-in button ──────────────────────────────── */
 .btn-google {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
+  @apply inline-flex items-center justify-center gap-[10px] w-full rounded-md font-medium bg-surface-elevated text-fg-primary cursor-pointer text-sm;
   padding: 10px 18px;
-  border-radius: var(--radius-md);
-  font-size: 13.5px;
-  font-weight: 500;
-  background: var(--color-surface-elevated);
-  color: var(--color-fg-primary);
   border: 1px solid var(--color-border);
   transition:
     background 120ms ease,
     border-color 120ms ease;
-  cursor: pointer;
 }
-
 .btn-google:hover:not(:disabled) {
-  background: var(--color-surface-active);
+  @apply bg-surface-active;
   border-color: color-mix(in srgb, var(--color-fg-muted) 50%, transparent);
 }
-
 .btn-google:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  @apply opacity-50 cursor-not-allowed;
 }
 
-/* ── Connect footer ────────────────────────────────────── */
+/* ── Connect footer ──────────────────────────────── */
 .connect-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--color-fg-muted);
+  @apply flex items-center justify-center gap-[5px] text-fg-muted text-2xs;
 }
 
-/* ── Account list (Step 1, has-accounts variant) ─────── */
+/* ── Account list (Step 1, has-accounts) ─────────── */
 .acct-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  @apply flex flex-col gap-[6px];
 }
-
 .acct-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  @apply flex items-center gap-3 rounded-md bg-surface-elevated cursor-pointer;
   padding: 10px 12px;
-  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  background: var(--color-surface-elevated);
-  cursor: pointer;
   transition:
     background 110ms ease,
     border-color 110ms ease;
 }
-
 .acct-item:hover {
-  background: var(--color-surface-active);
+  @apply bg-surface-active;
   border-color: color-mix(in srgb, var(--color-fg-muted) 50%, transparent);
 }
-
 .acct-dot {
+  @apply shrink-0 rounded-full bg-accent;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: var(--color-accent);
 }
-
 .acct-dot.disconnected {
-  background: var(--color-error);
+  @apply bg-error;
 }
-
 .acct-info {
-  flex: 1;
-  min-width: 0;
+  @apply flex-1 min-w-0;
 }
-
 .acct-email {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-fg-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply font-medium truncate text-fg-primary text-sm;
 }
-
 .acct-name {
-  font-size: 11.5px;
-  color: var(--color-fg-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply truncate text-fg-muted text-2xs;
 }
-
 .btn-connect-another {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
+  @apply flex items-center justify-center gap-2 w-full rounded-md bg-transparent text-fg-muted text-xs;
   padding: 9px 14px;
-  border-radius: var(--radius-md);
-  font-size: 12.5px;
-  color: var(--color-fg-muted);
   border: 1px dashed var(--color-border);
-  background: transparent;
   transition:
     color 110ms ease,
     border-color 110ms ease,
     background 110ms ease;
 }
-
 .btn-connect-another:hover:not(:disabled) {
-  color: var(--color-fg-secondary);
+  @apply text-fg-secondary;
   border-color: color-mix(in srgb, var(--color-fg-muted) 60%, transparent);
   background: color-mix(in srgb, var(--color-fg-muted) 4%, transparent);
 }
-
 .btn-connect-another:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+  @apply opacity-45 cursor-not-allowed;
 }
 
-/* ── Step heading shared ───────────────────────────────── */
+/* ── Step heading shared ─────────────────────────── */
 .step-heading {
+  @apply font-semibold text-fg-primary;
   font-size: 14px;
-  font-weight: 600;
-  color: var(--color-fg-primary);
   letter-spacing: -0.01em;
 }
-
 .step-subtext {
-  font-size: 12px;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted text-xs;
   margin-top: -12px;
 }
 
-/* ── Calendar picker list (Step 2) ────────────────────── */
+/* ── Calendar picker list (Step 2) ───────────────── */
 .cal-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  @apply flex flex-col gap-1 overflow-y-auto;
   max-height: 280px;
-  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 25%, transparent) transparent;
 }
-
 .cal-pick-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @apply flex items-center gap-[10px] rounded-sm cursor-pointer;
   padding: 9px 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background 100ms ease;
   border: 1px solid transparent;
+  transition: background 100ms ease;
 }
-
 .cal-pick-item:hover {
   background: color-mix(in srgb, var(--color-fg-muted) 7%, transparent);
   border-color: color-mix(in srgb, var(--color-border) 60%, transparent);
 }
-
 .cal-pick-name {
-  flex: 1;
-  font-size: 13px;
-  color: var(--color-fg-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply flex-1 truncate text-fg-primary text-sm;
 }
-
 .cal-badge {
-  font-size: 10.5px;
-  font-weight: 600;
+  @apply shrink-0 font-semibold text-fg-muted whitespace-nowrap text-3xs;
   letter-spacing: 0.04em;
-  color: var(--color-fg-muted);
-  background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
   border-radius: 3px;
   padding: 1px 5px;
-  flex-shrink: 0;
-  white-space: nowrap;
+  background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
 }
-
 .cal-pick-empty {
-  font-size: 12.5px;
-  color: var(--color-fg-muted);
+  @apply text-center text-fg-muted italic text-xs;
   padding: 16px 0;
-  text-align: center;
-  font-style: italic;
 }
 
-/* ── Name + color step (Step 3) ────────────────────────── */
+/* ── Name + color step (Step 3) ──────────────────── */
 .field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  @apply flex flex-col gap-[6px];
 }
-
 .field-label {
-  font-size: 11px;
-  font-weight: 600;
+  @apply font-semibold uppercase text-fg-muted text-2xs;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-fg-muted);
 }
-
 .text-input {
-  width: 100%;
+  @apply w-full rounded-sm bg-surface-elevated text-fg-primary text-sm;
   padding: 9px 11px;
-  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background: var(--color-surface-elevated);
-  color: var(--color-fg-primary);
-  font-size: 13px;
   transition: border-color 120ms ease;
 }
-
 .text-input:focus {
   border-color: var(--color-border-focus);
 }
 
-/* ── Color swatch palette ──────────────────────────────── */
+/* ── Color swatch palette ────────────────────────── */
 .color-palette {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  @apply flex flex-wrap gap-2;
 }
-
 .color-swatch {
+  @apply relative shrink-0 rounded-full cursor-pointer;
   width: 26px;
   height: 26px;
-  border-radius: 50%;
-  cursor: pointer;
   border: 2px solid transparent;
   transition:
     transform 110ms ease,
     border-color 110ms ease;
-  flex-shrink: 0;
-  position: relative;
 }
-
 .color-swatch:hover {
   transform: scale(1.12);
 }
-
 .color-swatch.selected {
   border-color: var(--color-fg-primary);
   transform: scale(1.08);
 }
-
-/* White check inside selected swatch */
 .color-swatch.selected::after {
   content: '';
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @apply absolute inset-0 flex items-center justify-center;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M2 5.2L4.2 7.4L8 3' stroke='rgba(255,255,255,0.9)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
   background-size: 12px 12px;
 }
 
-/* ── Action row ────────────────────────────────────────── */
+/* ── Action row ──────────────────────────────────── */
 .action-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  @apply flex items-center gap-2;
   padding-top: 4px;
 }
-
 .btn-back {
-  flex-shrink: 0;
+  @apply shrink-0 rounded-sm bg-transparent text-fg-muted text-xs;
   padding: 8px 14px;
-  border-radius: var(--radius-sm);
-  font-size: 12.5px;
-  color: var(--color-fg-muted);
   border: 1px solid var(--color-border);
-  background: transparent;
   transition:
     color 110ms ease,
     background 110ms ease;
 }
-
 .btn-back:hover {
-  color: var(--color-fg-secondary);
-  background: var(--color-surface-elevated);
+  @apply text-fg-secondary bg-surface-elevated;
 }
-
 .btn-primary {
-  flex: 1;
+  @apply flex-1 rounded-sm font-medium bg-accent cursor-pointer text-sm;
   padding: 9px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 500;
-  background: var(--color-accent);
   color: var(--color-accent-fg);
   border: none;
   transition:
     background 110ms ease,
     opacity 110ms ease;
-  cursor: pointer;
 }
-
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-accent-hover);
+  background: var(--color-accent-hover, var(--color-success));
 }
-
 .btn-primary:active:not(:disabled) {
-  background: var(--color-accent-pressed);
+  background: var(--color-accent-pressed, var(--color-success));
 }
-
 .btn-primary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+  @apply opacity-45 cursor-not-allowed;
 }
 
-/* ── Inline error ──────────────────────────────────────── */
+/* ── Inline error ────────────────────────────────── */
 .inline-error {
-  font-size: 12px;
-  color: var(--color-error);
+  @apply hidden text-error text-xs;
   min-height: 16px;
-  display: none;
 }
-
 .inline-error.visible {
-  display: block;
+  @apply block;
 }
 
-/* ── Migrate prompt step (Step 4) ──────────────────────── */
+/* ── Migrate prompt step (Step 4) ────────────────── */
 .migrate-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  text-align: center;
+  @apply flex flex-col items-center gap-4 text-center;
 }
-
 .migrate-icon-wrap {
+  @apply flex items-center justify-center shrink-0 bg-surface-elevated;
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
-
 .migrate-heading {
+  @apply font-semibold text-fg-primary;
   font-size: 15px;
-  font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--color-fg-primary);
   line-height: 1.3;
 }
-
 .migrate-subtext {
-  font-size: 12.5px;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted text-xs;
   line-height: 1.55;
   max-width: 300px;
 }
-
 .migrate-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
+  @apply flex flex-col gap-2 w-full;
   padding-top: 4px;
 }
-
 .btn-migrate-now {
-  width: 100%;
+  @apply w-full rounded-sm font-medium bg-accent cursor-pointer text-sm;
   padding: 9px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 500;
-  background: var(--color-accent);
   color: var(--color-accent-fg);
   border: none;
   transition: background 110ms ease;
-  cursor: pointer;
 }
-
 .btn-migrate-now:hover {
-  background: var(--color-accent-hover);
+  background: var(--color-accent-hover, var(--color-success));
 }
-
 .btn-migrate-now:active {
-  background: var(--color-accent-pressed);
+  background: var(--color-accent-pressed, var(--color-success));
 }
-
 .btn-migrate-skip {
-  width: 100%;
+  @apply w-full rounded-sm bg-transparent text-fg-muted cursor-pointer text-xs;
   padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 12.5px;
-  color: var(--color-fg-muted);
   border: 1px solid var(--color-border);
-  background: transparent;
   transition:
     color 110ms ease,
     background 110ms ease;
-  cursor: pointer;
 }
-
 .btn-migrate-skip:hover {
-  color: var(--color-fg-secondary);
-  background: var(--color-surface-elevated);
+  @apply text-fg-secondary bg-surface-elevated;
 }

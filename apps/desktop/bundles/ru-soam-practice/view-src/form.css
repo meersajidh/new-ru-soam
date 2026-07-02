@@ -1,4 +1,9 @@
-/* Ported from view-assets/form.html inline styles (ADR-419 React migration). */
+/* form — Client create/edit form (Tailwind, O513).
+   theme.css owns tokens + utilities; this file owns element/component recipes as
+   @apply + raw CSS @apply can't reach (color-mix tints, focus rings, off-scale
+   font-size + radii, select-arrow, scrollbar). */
+
+@import "@ru-soam/view-kit/theme.css";
 
 *,
 *::before,
@@ -7,174 +12,109 @@
   margin: 0;
   padding: 0;
 }
-
-:root {
-  color-scheme: light dark;
-  --shell-font: 13px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --shell-font-mono: 11px/1.4 ui-monospace, Consolas, 'Courier New', monospace;
-  --shell-transition: 150ms ease;
-  --shell-radius: 6px;
-}
-
 html,
 body {
-  height: 100%;
-  overflow: hidden;
-  font: var(--shell-font);
-  background: var(--color-surface-base, #f2f2f7);
-  color: var(--color-fg-primary, #1c1c1e);
+  @apply font-sans text-sm h-full overflow-hidden bg-surface-base text-fg-primary;
+  line-height: 1.5;
 }
-
 #root {
-  height: 100%;
-  overflow: hidden;
+  @apply h-full overflow-hidden;
 }
 
 /* ── Page scroll wrapper ─────────────────────────── */
 #page {
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
+  @apply h-full overflow-y-auto overflow-x-hidden;
   padding: 24px 28px 40px;
   scrollbar-width: thin;
-  scrollbar-color: var(--color-border, #d1d1d6) transparent;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 /* ── Card ────────────────────────────────────────── */
 #form-card {
-  background: var(--color-surface-elevated, #ffffff);
-  border: 1px solid var(--color-border, #d1d1d6);
-  border-radius: var(--shell-radius);
-  overflow: hidden;
+  @apply overflow-hidden bg-surface-elevated;
   max-width: 560px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
 }
 
 /* ── Card header ─────────────────────────────────── */
 #card-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  @apply flex items-center gap-3 border-b border-border bg-surface-panel;
   padding: 15px 18px 13px;
-  border-bottom: 1px solid var(--color-border, #d1d1d6);
-  background: var(--color-surface-panel, #f6f6f6);
 }
-
 #card-avatar {
-  flex-shrink: 0;
+  @apply flex items-center justify-center shrink-0 rounded-full font-bold text-accent text-base;
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--color-accent, #34c759) 18%, var(--color-surface-elevated, #fff));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-accent, #34c759);
+  background: color-mix(in srgb, var(--color-accent) 18%, var(--color-surface-elevated));
 }
-
 #card-meta {
-  flex: 1;
-  min-width: 0;
+  @apply flex-1 min-w-0;
 }
-
 #card-title {
+  @apply font-semibold text-fg-primary truncate;
   font-size: 15px;
-  font-weight: 600;
-  color: var(--color-fg-primary, #1c1c1e);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-
 #card-subtitle {
-  font: var(--shell-font-mono);
-  color: var(--color-fg-muted, #8e8e93);
+  @apply font-mono text-fg-muted truncate text-2xs;
   margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ── Form body ───────────────────────────────────── */
 #patient-form {
+  @apply flex flex-col gap-[14px];
   padding: 18px 18px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
 }
-
 .field-row {
-  display: grid;
+  @apply grid gap-3;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
 }
-
 .field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  @apply flex flex-col gap-1;
 }
-
 .field-group.full {
   grid-column: 1 / -1;
 }
-
 label {
-  font-size: 10.5px;
-  font-weight: 600;
+  @apply font-semibold uppercase text-fg-secondary select-none text-3xs;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-fg-secondary, #636366);
-  user-select: none;
 }
-
 label .req {
-  color: var(--color-error, #c0392b);
+  color: var(--color-error);
   margin-left: 2px;
 }
-
 input[type='text'],
 input[type='email'],
 input[type='tel'],
 input[type='date'],
 select {
-  width: 100%;
+  @apply w-full font-sans text-fg-primary bg-surface-base outline-none text-sm;
   padding: 7px 10px;
-  font: var(--shell-font);
-  border: 1px solid var(--color-border, #d1d1d6);
+  border: 1px solid var(--color-border);
   border-radius: 5px;
-  background: var(--color-surface-base, #f2f2f7);
-  color: var(--color-fg-primary, #1c1c1e);
   appearance: none;
   -webkit-appearance: none;
   transition:
-    border-color var(--shell-transition),
-    box-shadow var(--shell-transition);
-  outline: none;
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
-
 input:focus,
 select:focus {
-  border-color: var(--color-border-focus, #34c759);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-border-focus, #34c759) 18%, transparent);
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-border-focus) 18%, transparent);
 }
-
 input::placeholder {
-  color: color-mix(in srgb, var(--color-fg-primary, #1c1c1e) 26%, transparent);
+  color: color-mix(in srgb, var(--color-fg-primary) 26%, transparent);
 }
-
 input[aria-invalid='true'] {
-  border-color: color-mix(in srgb, var(--color-error, #c0392b) 65%, transparent);
+  border-color: color-mix(in srgb, var(--color-error) 65%, transparent);
 }
-
 .select-wrap {
-  position: relative;
+  @apply relative;
 }
-
 .select-wrap::after {
   content: '';
-  position: absolute;
+  @apply absolute pointer-events-none;
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
@@ -182,130 +122,87 @@ input[aria-invalid='true'] {
   height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-top: 5px solid var(--color-fg-muted, #8e8e93);
-  pointer-events: none;
+  border-top: 5px solid var(--color-fg-muted);
 }
-
 .select-wrap select {
   padding-right: 28px;
 }
 
 /* ── Section divider ─────────────────────────────── */
 .divider {
+  @apply opacity-55;
   height: 1px;
-  background: var(--color-border, #d1d1d6);
-  opacity: 0.55;
   margin: 2px 0;
+  background: var(--color-border);
 }
 
 /* ── Form actions ────────────────────────────────── */
 #form-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @apply flex items-center justify-between gap-2 border-t border-border bg-surface-panel;
   padding: 13px 18px 14px;
-  border-top: 1px solid var(--color-border, #d1d1d6);
-  background: var(--color-surface-panel, #f6f6f6);
   margin-top: 18px;
-  gap: 8px;
 }
-
 #save-status {
-  font-size: 11.5px;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  opacity: 0;
-  transition: opacity var(--shell-transition);
+  @apply flex-1 truncate opacity-0 text-2xs;
+  transition: opacity 150ms ease;
 }
-
 #save-status.visible {
-  opacity: 1;
+  @apply opacity-100;
 }
-
 #save-status.ok {
-  color: var(--color-success, #1a7f1a);
+  @apply text-success;
 }
-
 #save-status.err {
-  color: var(--color-error, #c0392b);
-  font-weight: 500;
+  @apply font-medium text-error;
 }
-
 #save-status.locked {
-  color: var(--color-error, #c0392b);
-  font-weight: 600;
+  @apply font-semibold text-error;
 }
-
 .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  @apply inline-flex items-center gap-[5px] font-sans font-medium cursor-pointer outline-none whitespace-nowrap text-sm;
   padding: 6px 15px;
-  font: var(--shell-font);
-  font-weight: 500;
   border-radius: 5px;
-  border: 1px solid var(--color-border, #d1d1d6);
-  cursor: pointer;
+  border: 1px solid var(--color-border);
   transition:
-    background var(--shell-transition),
-    border-color var(--shell-transition),
-    opacity var(--shell-transition);
-  outline: none;
-  white-space: nowrap;
+    background 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
 }
-
 .btn:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-border-focus, #34c759) 28%, transparent);
   outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-border-focus) 28%, transparent);
 }
-
 .btn-primary {
-  background: var(--color-accent, #34c759);
-  color: var(--color-accent-fg, #fff);
+  @apply font-semibold bg-accent;
+  color: var(--color-accent-fg);
   border-color: transparent;
-  font-weight: 600;
 }
-
 .btn-primary:hover {
-  background: var(--color-accent-hover, #30b350);
+  background: var(--color-accent-hover, var(--color-success));
 }
-
 .btn-primary:active {
-  background: var(--color-accent-pressed, #289f45);
+  background: var(--color-accent-pressed, var(--color-success));
 }
-
 .btn-primary:disabled {
   opacity: 0.45;
   cursor: default;
   pointer-events: none;
 }
 
-/* ── Error / not-found state panels ─────────────── */
-/* React renders these conditionally; no display:none needed. */
+/* ── Error / not-found state panels ──────────────── */
 #state-not-found,
 #state-locked {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  @apply flex flex-col items-center justify-center gap-[10px] text-center;
   min-height: 200px;
-  gap: 10px;
-  text-align: center;
   padding: 32px 24px;
 }
-
 #state-not-found p,
 #state-locked p {
-  font-size: 13px;
-  color: var(--color-fg-secondary, #636366);
+  @apply text-fg-secondary text-sm;
   max-width: 280px;
   line-height: 1.6;
 }
-
 #state-locked p {
-  color: var(--color-error, #c0392b);
-  opacity: 0.8;
-  font-weight: 500;
+  @apply font-medium opacity-80;
+  color: var(--color-error);
 }

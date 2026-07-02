@@ -141,7 +141,7 @@ function SafetyPlan() {
       <div id="sp-scroll">
         <div id="sp-card" data-maturity-id="safety-plan-editor">
           {planQuery.isPending && (
-            <div style={{ color: 'var(--color-fg-muted)', fontSize: '12px' }}>Loading…</div>
+            <div className="text-fg-muted text-xs">Loading…</div>
           )}
           {/*
            * Key on updatedAt so the form re-mounts (re-seeds state) after a

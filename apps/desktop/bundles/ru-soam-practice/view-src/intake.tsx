@@ -134,7 +134,7 @@ function Intake() {
         <div id="ic-card" data-maturity-id="intake-checklist">
           {/* Loading state — only while first fetch is in flight */}
           {completenessQuery.isPending && (
-            <div style={{ color: 'var(--color-fg-muted)', fontSize: '12px' }}>Loading…</div>
+            <div className="text-fg-muted text-xs">Loading…</div>
           )}
           {/* Data card — only when completeness query succeeded with data */}
           {data != null && (
@@ -198,7 +198,7 @@ function IntakeCard({
     <>
       {/* Progress header */}
       <div id="ic-progress-header">
-        <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div className="flex flex-col shrink-0">
           <div className="ic-count">
             {derivedDone}/{derivedTotal}
           </div>
@@ -216,7 +216,7 @@ function IntakeCard({
       </div>
 
       {/* Item list — base items from cap + 11th derived item */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <div className="flex flex-col gap-[2px]">
         {data.items.map((item) => (
           <div key={item.key} className={`ic-item${item.done ? ' done-row' : ''}`}>
             <span className={`ic-item-icon ${item.done ? 'done' : 'missing'}`}>

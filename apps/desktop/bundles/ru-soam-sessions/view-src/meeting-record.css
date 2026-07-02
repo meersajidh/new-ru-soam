@@ -1,4 +1,10 @@
-/* ── Reset ───────────────────────────────────────────────── */
+/* meeting-record — Client Meeting record editor (Tailwind, O513).
+   theme.css owns tokens + utilities; this file owns component recipes as @apply
+   + raw CSS @apply can't reach (color-mix tints, keyframes, off-scale font-size). */
+
+@import "@ru-soam/view-kit/theme.css";
+
+/* ── Reset ───────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -13,88 +19,30 @@ button {
   border: none;
   background: none;
 }
-
-/* ── Design tokens (defaults — host overrides via postMessage) ── */
-:root {
-  color-scheme: light dark;
-
-  --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
-
-  /* Surface */
-  --color-surface-base: #161618;
-  --color-surface-panel: #1c1c1f;
-  --color-surface-elevated: #232326;
-  --color-surface-active: #2a2d26;
-  /* Foreground */
-  --color-fg-primary: #f2f2f7;
-  --color-fg-secondary: #aeaeb2;
-  --color-fg-muted: #636366;
-  /* Borders */
-  --color-border: #3a3a3c;
-  --color-border-focus: #5ac85a;
-  /* Accent */
-  --color-accent: #5ac85a;
-  --color-accent-fg: #1c1c1e;
-  --color-accent-hover: #6bd46b;
-  --color-accent-pressed: #4ab44a;
-  /* Semantic */
-  --color-success: #5ac85a;
-  --color-warning: #f4a623;
-  --color-error: #e05252;
-  --color-info: #5ac0de;
-
-  --radius-sm: 4px;
-  --radius-md: 7px;
-  --transition: 130ms ease;
-}
-
-/* ── Base ───────────────────────────────────────────────── */
 html,
 body {
-  height: 100%;
-  overflow: hidden;
-  font-family: var(--font-sans);
-  font-size: 13px;
+  @apply font-sans text-sm h-full overflow-hidden bg-surface-base text-fg-primary;
   line-height: 1.5;
-  background: var(--color-surface-base);
-  color: var(--color-fg-primary);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
-
-/* ── Root layout ─────────────────────────────────────────── */
 #root {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  @apply flex flex-col h-full overflow-hidden;
 }
 
-/* ── Bridge wait ─────────────────────────────────────────── */
+/* ── Bridge wait ─────────────────────────────────── */
 .bridge-wait {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface-base);
+  @apply fixed inset-0 flex items-center justify-center gap-2 bg-surface-base text-fg-muted text-xs;
   z-index: 100;
-  gap: 8px;
-  color: var(--color-fg-muted);
-  font-size: 12px;
 }
 
-/* ── Spinner ─────────────────────────────────────────────── */
+/* ── Spinner ─────────────────────────────────────── */
 .spinner {
+  @apply shrink-0 rounded-full;
   width: 14px;
   height: 14px;
   border: 2px solid var(--color-border);
   border-top-color: var(--color-accent);
-  border-radius: 50%;
   animation: spin 0.6s linear infinite;
-  flex-shrink: 0;
 }
 @keyframes spin {
   to {
@@ -102,95 +50,73 @@ body {
   }
 }
 
-/* ── Error / locked banners ──────────────────────────────── */
+/* ── Error / locked banners ──────────────────────── */
 .rec-banner {
+  @apply text-center text-fg-muted text-xs;
   padding: 20px 16px;
-  color: var(--color-fg-muted);
-  font-size: 12px;
-  text-align: center;
 }
 .rec-banner.err {
-  color: var(--color-error);
+  @apply text-error;
 }
 
-/* ── Scrollable body ─────────────────────────────────────── */
+/* ── Scrollable body ─────────────────────────────── */
 .content-body {
-  flex: 1;
-  overflow-y: auto;
+  @apply flex-1 overflow-y-auto;
   padding: 0 0 32px;
 }
 
-/* ── Header ──────────────────────────────────────────────── */
+/* ── Header ──────────────────────────────────────── */
 .rec-header {
   padding: 20px 20px 14px;
   border-bottom: 1px solid var(--color-border);
 }
 .rec-client-name {
+  @apply font-semibold text-fg-primary;
   font-size: 18px;
-  font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--color-fg-primary);
   margin-bottom: 6px;
   line-height: 1.2;
 }
 .rec-header-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  @apply flex items-center gap-2 flex-wrap;
 }
 .rec-kind {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: capitalize;
-  color: var(--color-fg-secondary);
-  background: var(--color-surface-elevated);
+  @apply font-medium capitalize text-fg-secondary bg-surface-elevated rounded-sm text-2xs;
   padding: 2px 7px;
-  border-radius: var(--radius-sm);
 }
 .status-badge {
-  font-size: 11px;
-  font-weight: 500;
+  @apply font-medium capitalize rounded-sm text-2xs;
   padding: 2px 7px;
-  border-radius: var(--radius-sm);
-  text-transform: capitalize;
 }
 .status-badge.scheduled {
-  background: rgba(90, 200, 90, 0.15);
   color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 15%, transparent);
 }
 .status-badge.completed {
-  background: rgba(90, 200, 90, 0.1);
   color: var(--color-fg-secondary);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
 }
 .status-badge.cancelled {
-  background: rgba(224, 82, 82, 0.12);
   color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
 }
 .status-badge.no_show {
-  background: rgba(244, 166, 35, 0.15);
   color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
 }
 
-/* ── Open client record btn ──────────────────────────────── */
+/* ── Open client record btn ──────────────────────── */
 .open-client-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  @apply flex items-center gap-[5px] text-accent cursor-pointer text-xs;
   margin-top: 10px;
-  font-size: 12px;
-  color: var(--color-accent);
-  background: none;
-  border: none;
   padding: 0;
-  cursor: pointer;
-  transition: color var(--transition);
+  transition: color 130ms ease;
 }
 .open-client-btn:hover {
-  color: var(--color-accent-hover);
+  color: var(--color-accent-hover, var(--color-success));
 }
 
-/* ── Sections ─────────────────────────────────────────────── */
+/* ── Sections ────────────────────────────────────── */
 .rec-section {
   padding: 16px 20px;
   border-bottom: 1px solid var(--color-border);
@@ -199,96 +125,63 @@ body {
   border-bottom: none;
 }
 .rec-section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
+  @apply flex items-center gap-[6px] font-semibold uppercase text-fg-muted text-2xs;
   letter-spacing: 0.06em;
-  color: var(--color-fg-muted);
   margin-bottom: 10px;
 }
 .rec-section-title svg {
-  flex-shrink: 0;
-  opacity: 0.7;
+  @apply shrink-0 opacity-70;
 }
 
-/* ── Time section ────────────────────────────────────────── */
+/* ── Time section ────────────────────────────────── */
 .rec-time-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-fg-primary);
-  font-size: 13px;
+  @apply flex items-center gap-[6px] text-fg-primary text-sm;
   margin-bottom: 4px;
 }
 .rec-time-row:last-child {
   margin-bottom: 0;
 }
 .rec-time-label {
-  color: var(--color-fg-muted);
-  font-size: 11.5px;
+  @apply text-fg-muted text-2xs;
   min-width: 70px;
 }
 .rec-modality-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-fg-secondary);
-  font-size: 12px;
+  @apply flex items-center gap-[6px] text-fg-secondary text-xs;
   margin-top: 8px;
 }
 
-/* ── Source section ──────────────────────────────────────── */
+/* ── Source section ──────────────────────────────── */
 .rec-source-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  color: var(--color-fg-secondary);
-  font-size: 12px;
+  @apply flex items-start gap-[6px] text-fg-secondary text-xs;
   margin-bottom: 4px;
 }
 .rec-source-row:last-child {
   margin-bottom: 0;
 }
 .rec-source-label {
-  color: var(--color-fg-muted);
-  font-size: 11.5px;
+  @apply shrink-0 text-fg-muted text-2xs;
   min-width: 70px;
-  flex-shrink: 0;
 }
 .rec-source-value {
+  @apply flex-1 flex items-center gap-1;
   word-break: break-all;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
-/* ── Status management ───────────────────────────────────── */
+/* ── Status management ───────────────────────────── */
 .rec-status-btns {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  @apply flex flex-wrap gap-[6px];
 }
 .rec-status-btn {
-  font-size: 12px;
-  font-weight: 500;
+  @apply font-medium rounded-sm text-fg-secondary bg-surface-elevated cursor-pointer text-xs;
   padding: 5px 12px;
-  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background: var(--color-surface-elevated);
-  color: var(--color-fg-secondary);
-  cursor: pointer;
   transition:
-    background var(--transition),
-    color var(--transition),
-    border-color var(--transition);
+    background 130ms ease,
+    color 130ms ease,
+    border-color 130ms ease;
 }
 .rec-status-btn:hover:not(:disabled) {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply bg-surface-active text-fg-primary;
   border-color: var(--color-border-focus);
 }
 .rec-status-btn:disabled {
@@ -296,34 +189,25 @@ body {
   cursor: default;
 }
 .rec-status-btn.active {
-  border-color: var(--color-accent);
   color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 .rec-status-msg {
-  font-size: 11.5px;
-  color: var(--color-fg-muted);
+  @apply text-fg-muted text-2xs;
   margin-top: 6px;
   min-height: 16px;
 }
 .rec-status-msg.err {
-  color: var(--color-error);
+  @apply text-error;
 }
 
-/* ── Notes placeholder ───────────────────────────────────── */
+/* ── Notes placeholder ───────────────────────────── */
 .notes-placeholder {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: var(--color-surface-elevated);
-  border-radius: var(--radius-md);
+  @apply flex items-start gap-[10px] rounded-md bg-surface-elevated text-fg-muted italic text-xs;
   padding: 12px 14px;
-  color: var(--color-fg-muted);
-  font-size: 12px;
   line-height: 1.55;
-  font-style: italic;
 }
 .notes-placeholder svg {
-  flex-shrink: 0;
+  @apply shrink-0 opacity-60;
   margin-top: 1px;
-  opacity: 0.6;
 }

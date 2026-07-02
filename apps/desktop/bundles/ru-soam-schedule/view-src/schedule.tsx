@@ -767,16 +767,26 @@ function EventPopover({ ev, anchorRect, onClose, onOpenSidePanel }: PopoverProps
   useLayoutEffect(() => {
     const pop = popRef.current;
     if (!pop) return;
+    // The view <html> carries a CSS `zoom` (--ui-scale, appearance text-size).
+    // getBoundingClientRect() returns zoom-scaled (visual) coords, but a
+    // position:fixed child of the zoomed root is re-scaled by the same factor,
+    // so all placement math must run in the view's LOCAL (unzoomed) px space:
+    // divide the anchor rect + viewport by the zoom. Z=1 → unchanged.
+    const z = parseFloat(document.documentElement.style.zoom) || 1;
     const popW = pop.offsetWidth || 380;
     const popH = pop.offsetHeight || 320;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const vw = window.innerWidth / z;
+    const vh = window.innerHeight / z;
+    const aLeft = anchorRect.left / z;
+    const aRight = anchorRect.right / z;
+    const aTop = anchorRect.top / z;
+    const aBottom = anchorRect.bottom / z;
     const margin = 8;
-    let left = anchorRect.right + margin;
-    if (left + popW > vw - margin) left = anchorRect.left - popW - margin;
+    let left = aRight + margin;
+    if (left + popW > vw - margin) left = aLeft - popW - margin;
     left = Math.max(margin, Math.min(left, vw - popW - margin));
-    let top = anchorRect.top;
-    if (top + popH > vh - margin) top = anchorRect.bottom - popH;
+    let top = aTop;
+    if (top + popH > vh - margin) top = aBottom - popH;
     top = Math.max(margin, Math.min(top, vh - popH - margin));
     setPos({ top, left });
     pop.focus({ preventScroll: true });

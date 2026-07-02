@@ -1,4 +1,11 @@
-/* ── Reset ────────────────────────────────────────────────────────── */
+/* safety-plan — Stanley-Brown safety plan editor (Tailwind, O513).
+   theme.css owns tokens + utilities; this file owns component recipes as @apply
+   + raw CSS @apply can't reach (color-mix tints, off-scale font-size, scrollbar,
+   form-control resets). */
+
+@import "@ru-soam/view-kit/theme.css";
+
+/* ── Reset ───────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -11,153 +18,90 @@ button {
   color: inherit;
   cursor: pointer;
 }
-
-/* ── Design tokens (overridden via postMessage) ──────────────────── */
-:root {
-  color-scheme: light dark;
-  --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
-  --color-surface-base: #161618;
-  --color-surface-panel: #1c1c1f;
-  --color-surface-elevated: #232326;
-  --color-surface-active: #2a2d26;
-  --color-fg-primary: #f2f2f7;
-  --color-fg-secondary: #aeaeb2;
-  --color-fg-muted: #636366;
-  --color-border: #3a3a3c;
-  --color-border-focus: #5ac85a;
-  --color-accent: #5ac85a;
-  --color-accent-fg: #1c1c1e;
-  --color-success: #5ac85a;
-  --color-warning: #f4a623;
-  --color-error: #e05252;
-  --radius-sm: 4px;
-  --radius-md: 7px;
-  --transition: 130ms ease;
-}
-
-/* ── Base ────────────────────────────────────────────────────────── */
 html,
 body {
   height: 100%;
   overflow: hidden;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.5;
-  background: var(--color-surface-base);
-  color: var(--color-fg-primary);
   -webkit-font-smoothing: antialiased;
 }
-
-/* ── Root layout ─────────────────────────────────────────────────── */
+body {
+  @apply font-sans text-sm bg-surface-base text-fg-primary;
+  line-height: 1.5;
+}
 #root {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  @apply flex flex-col h-full overflow-hidden;
 }
 
-/* ── Status bar ──────────────────────────────────────────────────── */
+/* ── Status bar ──────────────────────────────────── */
 #status-bar {
-  font-size: 11px;
+  @apply hidden shrink-0 font-medium text-2xs;
   padding: 5px 16px;
-  background: color-mix(in srgb, var(--color-error) 9%, transparent);
   color: var(--color-error);
-  font-weight: 500;
-  display: none;
-  flex-shrink: 0;
+  background: color-mix(in srgb, var(--color-error) 9%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
 }
 #status-bar.visible {
-  display: block;
+  @apply block;
 }
 #status-bar.is-locked {
-  background: color-mix(in srgb, var(--color-warning) 9%, transparent);
   color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 9%, transparent);
   border-color: color-mix(in srgb, var(--color-warning) 25%, transparent);
 }
 
-/* ── Header strip ────────────────────────────────────────────────── */
+/* ── Header strip ────────────────────────────────── */
 #header-strip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @apply flex items-center gap-[10px] shrink-0 border-b border-border bg-surface-panel;
   padding: 12px 20px 11px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-panel);
-  flex-shrink: 0;
 }
 .hs-icon {
-  color: var(--color-warning);
-  flex: 0 0 auto;
+  @apply flex-none text-warning;
 }
 .hs-title {
+  @apply flex-auto font-semibold;
   font-size: 14px;
-  font-weight: 600;
-  flex: 1 1 auto;
 }
 .hs-client {
-  font-size: 11px;
-  color: var(--color-fg-muted);
-  font-family: var(--font-mono);
+  @apply font-mono text-fg-muted text-2xs;
 }
 
-/* ── Scroll area ─────────────────────────────────────────────────── */
+/* ── Scroll area ─────────────────────────────────── */
 #sp-scroll {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  overflow-x: hidden;
+  @apply flex-auto overflow-y-auto overflow-x-hidden;
   padding: 24px 28px 48px;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
 }
 
-/* ── Form card ───────────────────────────────────────────────────── */
+/* ── Form card ───────────────────────────────────── */
 #sp-card {
+  @apply flex flex-col gap-5 rounded-md bg-surface-elevated;
   max-width: 640px;
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
   padding: 24px 28px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  border: 1px solid var(--color-border);
 }
 
-/* ── Section heading ─────────────────────────────────────────────── */
+/* ── Section heading ─────────────────────────────── */
 .sp-section-head {
-  font-size: 10px;
-  font-weight: 700;
+  @apply font-bold uppercase text-fg-muted text-3xs;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-fg-muted);
   margin-bottom: 12px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--color-border);
 }
 
-/* ── Field ───────────────────────────────────────────────────────── */
+/* ── Field ───────────────────────────────────────── */
 .sp-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  @apply flex flex-col gap-[5px];
 }
 .sp-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-fg-secondary);
+  @apply font-semibold text-fg-secondary text-2xs;
 }
 .sp-input {
-  width: 100%;
+  @apply w-full font-sans rounded-sm text-fg-primary bg-surface-base outline-none text-xs;
   padding: 7px 10px;
-  font-size: 12px;
-  font-family: var(--font-sans);
-  background: var(--color-surface-base);
-  color: var(--color-fg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  outline: none;
-  transition: border-color var(--transition);
+  transition: border-color 130ms ease;
 }
 .sp-input:focus {
   border-color: var(--color-border-focus);
@@ -172,13 +116,9 @@ textarea.sp-input {
   line-height: 1.5;
 }
 
-/* ── Checkbox row ────────────────────────────────────────────────── */
+/* ── Checkbox row ────────────────────────────────── */
 .sp-check-row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 12px;
-  color: var(--color-fg-secondary);
+  @apply flex items-center gap-[9px] text-fg-secondary text-xs;
   margin-top: 10px;
 }
 .sp-check-row input[type='checkbox'] {
@@ -189,42 +129,30 @@ textarea.sp-input {
   flex: 0 0 auto;
 }
 
-/* ── Actions row ─────────────────────────────────────────────────── */
+/* ── Actions row ─────────────────────────────────── */
 #sp-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  @apply flex items-center gap-[10px];
   padding-top: 4px;
   border-top: 1px solid var(--color-border);
 }
 .sp-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  font-weight: 500;
-  font-family: var(--font-sans);
+  @apply inline-flex items-center gap-[5px] font-sans font-medium rounded-sm bg-transparent text-fg-secondary cursor-pointer text-2xs;
   padding: 6px 14px;
-  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-fg-secondary);
-  cursor: pointer;
   transition:
-    background var(--transition),
-    color var(--transition);
+    background 130ms ease,
+    color 130ms ease;
 }
 .sp-btn:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  @apply bg-surface-active text-fg-primary;
 }
 .sp-btn.primary {
-  background: var(--color-accent);
+  @apply bg-accent;
   color: var(--color-accent-fg);
   border-color: transparent;
 }
 .sp-btn.primary:hover {
-  background: var(--color-success);
+  @apply bg-success;
 }
 .sp-btn.primary:disabled {
   opacity: 0.45;
@@ -232,19 +160,17 @@ textarea.sp-input {
   pointer-events: none;
 }
 
-/* ── Save message ────────────────────────────────────────────────── */
+/* ── Save message ────────────────────────────────── */
 .sp-save-msg {
-  flex: 1;
-  font-size: 11px;
-  opacity: 0;
-  transition: opacity var(--transition);
+  @apply flex-1 opacity-0 text-2xs;
+  transition: opacity 130ms ease;
 }
 .sp-save-msg.visible {
-  opacity: 1;
+  @apply opacity-100;
 }
 .sp-save-msg.ok {
-  color: var(--color-success);
+  @apply text-success;
 }
 .sp-save-msg.err {
-  color: var(--color-error);
+  @apply text-error;
 }

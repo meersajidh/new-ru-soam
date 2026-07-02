@@ -1,4 +1,13 @@
-/* ── Reset ────────────────────────────────────────────────────────── */
+/* projections — Notes overview (Tailwind, O513).
+
+   Pattern (styling-system.md, meetings reference): theme.css owns tokens +
+   utilities; this file owns component recipes as @apply + the few raw-CSS bits
+   @apply can't reach (color-mix tints, keyframes, scrollbar). JSX owns layout
+   containers via utilities. */
+
+@import "@ru-soam/view-kit/theme.css";
+
+/* ── Base ────────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -11,59 +20,27 @@ button {
   color: inherit;
   cursor: pointer;
 }
-
-/* ── Design tokens ───────────────────────────────────────────────── */
-:root {
-  color-scheme: light dark;
-  --font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
-  --color-surface-base: #161618;
-  --color-surface-panel: #1c1c1f;
-  --color-surface-elevated: #232326;
-  --color-surface-active: #2a2d26;
-  --color-fg-primary: #f2f2f7;
-  --color-fg-secondary: #aeaeb2;
-  --color-fg-muted: #636366;
-  --color-border: #3a3a3c;
-  --color-border-focus: #5ac85a;
-  --color-accent: #5ac85a;
-  --color-accent-fg: #1c1c1e;
-  --color-success: #5ac85a;
-  --color-warning: #f4a623;
-  --color-error: #e05252;
-  --radius-sm: 4px;
-  --radius-md: 7px;
-  --transition: 130ms ease;
-}
-
-/* ── Base ────────────────────────────────────────────────────────── */
 html,
 body {
   height: 100%;
   overflow: hidden;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  line-height: 1.5;
-  background: var(--color-surface-base);
-  color: var(--color-fg-primary);
   -webkit-font-smoothing: antialiased;
 }
-
+body {
+  @apply font-sans text-xs bg-surface-base text-fg-primary;
+  line-height: 1.5;
+}
 #root {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  @apply flex flex-col h-full overflow-hidden;
 }
 
-/* ── Spinner ─────────────────────────────────────────────────────── */
+/* ── Spinner ─────────────────────────────────────── */
 .spinner {
-  display: inline-block;
+  @apply inline-block rounded-full;
   width: 11px;
   height: 11px;
   border: 1.5px solid color-mix(in srgb, currentColor 30%, transparent);
   border-top-color: currentColor;
-  border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin {
@@ -72,158 +49,82 @@ body {
   }
 }
 
-/* ── Status bar ──────────────────────────────────────────────────── */
+/* ── Status bar ──────────────────────────────────── */
 #status-bar {
-  font-size: 11px;
+  @apply hidden shrink-0 font-medium text-fg-primary text-2xs;
   padding: 5px 14px;
-  background: color-mix(in srgb, var(--color-error) 9%, transparent);
   color: var(--color-error);
-  font-weight: 500;
-  display: none;
-  flex-shrink: 0;
+  background: color-mix(in srgb, var(--color-error) 9%, transparent);
 }
 #status-bar.visible {
-  display: block;
+  @apply block;
 }
 #status-bar.is-locked {
-  background: color-mix(in srgb, var(--color-warning) 9%, transparent);
   color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 9%, transparent);
 }
 
-/* ── Header bar ──────────────────────────────────────────────────── */
-#header-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 14px;
-  height: 32px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-panel);
-  flex-shrink: 0;
-}
-.header-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-fg-secondary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-#header-client-name {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--color-fg-muted);
-}
+/* ── Header ──────────────────────────────────────── */
 .header-source {
-  font-size: 9px;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
+  @apply font-mono uppercase text-fg-muted text-4xs;
   letter-spacing: 0.04em;
-  color: var(--color-fg-muted);
   border: 1px solid var(--color-border);
   border-radius: 3px;
   padding: 1px 5px;
 }
 .header-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  color: var(--color-accent);
-  background: transparent;
+  @apply inline-flex items-center gap-1 bg-transparent text-accent cursor-pointer text-2xs;
   border: none;
-  cursor: pointer;
-  font-family: var(--font-sans);
   padding: 0;
 }
 .header-link:hover {
-  text-decoration: underline;
+  @apply underline;
 }
 
-/* ── Notes list ──────────────────────────────────────────────────── */
+/* ── Notes list ──────────────────────────────────── */
 #notes-scroll {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  overflow-x: hidden;
+  @apply flex-auto overflow-y-auto overflow-x-hidden;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
 }
-
-.note-list {
-  list-style: none;
-}
 .note-item {
-  border-bottom: 1px solid var(--color-border);
+  @apply flex flex-col gap-1;
   padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  transition: background var(--transition);
+  border-bottom: 1px solid var(--color-border);
+  transition: background 130ms ease;
 }
 .note-item:hover {
   background: color-mix(in srgb, var(--color-fg-muted) 5%, transparent);
 }
-.note-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 10px;
-  color: var(--color-fg-muted);
-  font-family: var(--font-mono);
-}
 .note-kind {
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--color-fg-muted);
+  @apply font-sans font-medium text-fg-muted text-3xs;
   border: 1px solid var(--color-border);
   border-radius: 3px;
   padding: 1px 5px;
 }
-.note-summary {
-  font-size: 12px;
-  color: var(--color-fg-secondary);
-  line-height: 1.45;
-}
-.note-overlays {
-  display: flex;
-  gap: 5px;
-  margin-top: 3px;
-}
 .overlay-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  color: var(--color-fg-muted);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  @apply inline-flex items-center gap-1 bg-transparent text-fg-muted rounded-sm cursor-pointer text-3xs;
   padding: 2px 7px;
-  cursor: pointer;
-  font-family: var(--font-sans);
+  border: 1px solid var(--color-border);
   transition:
-    background var(--transition),
-    color var(--transition);
+    background 130ms ease,
+    color 130ms ease;
 }
 .overlay-btn:hover {
+  @apply text-fg-primary;
   background: var(--color-surface-active);
-  color: var(--color-fg-primary);
 }
 .overlay-btn.is-on {
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
   color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
   border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
 .overlay-btn.is-flag.is-on {
-  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
   color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
   border-color: color-mix(in srgb, var(--color-warning) 35%, transparent);
 }
-
 .empty-state {
+  @apply text-center text-fg-muted text-2xs;
   padding: 20px 14px;
-  font-size: 11px;
-  color: var(--color-fg-muted);
-  text-align: center;
 }
