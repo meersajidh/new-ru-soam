@@ -46,7 +46,7 @@ catalog:
 # apps/web adopts router.)
 catalogs:
   router:
-    '@tanstack/react-router': ^1.170.8
+    '@tanstack/react-router': ^1.170.16
     '@tanstack/router-cli': ^1.167.10
     '@tanstack/router-plugin': ^1.168.11
     '@tanstack/router-devtools': ^1.167.0
