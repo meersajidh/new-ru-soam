@@ -22,6 +22,7 @@ import type { IScheduleViewStateService } from '../view-mode/schedule-view-state
 import type { IScheduleCountsService } from '../view-mode/schedule-counts';
 import type { IActiveEventService } from '../view-mode/active-event';
 import type { IScheduleRefreshSettingsService } from '../view-mode/schedule-refresh-settings';
+import type { IScheduleDisplaySettingsService } from '../view-mode/schedule-display-settings';
 import type { IMeetingProvidersSettingsService } from '../view-mode/meeting-providers-settings';
 import type { IIdleLockSettingsService } from '../security/idle-lock-settings';
 import type { ITelemetryModeService } from '../telemetry/telemetry-mode-service';
@@ -91,6 +92,9 @@ export const ActiveEventServiceId = serviceId<IActiveEventService>('workbench.ac
 
 // Schedule refresh settings — non-persisted relay for auto/manual mode + interval
 export const ScheduleRefreshSettingsServiceId = serviceId<IScheduleRefreshSettingsService>('workbench.scheduleRefreshSettings');
+
+// Schedule display settings — prefs-backed (schedule.chipLabelMode); relay to schedule.html
+export const ScheduleDisplaySettingsServiceId = serviceId<IScheduleDisplaySettingsService>('workbench.scheduleDisplaySettings');
 
 // Meeting providers settings — prefs-backed (schedule.meetingProviders); sole renderer writer (A2)
 export const MeetingProvidersSettingsServiceId = serviceId<IMeetingProvidersSettingsService>('workbench.meetingProvidersSettings');

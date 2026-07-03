@@ -54,6 +54,8 @@ import { ActiveEventService } from '../platform/view-mode/active-event';
 import { ActiveEventServiceId } from '../platform/services/ids';
 import { ScheduleRefreshSettingsService } from '../platform/view-mode/schedule-refresh-settings';
 import { ScheduleRefreshSettingsServiceId } from '../platform/services/ids';
+import { ScheduleDisplaySettingsService } from '../platform/view-mode/schedule-display-settings';
+import { ScheduleDisplaySettingsServiceId } from '../platform/services/ids';
 import { MeetingProvidersSettingsService } from '../platform/view-mode/meeting-providers-settings';
 import { MeetingProvidersSettingsServiceId } from '../platform/services/ids';
 import { IdleLockSettingsService } from '../platform/security/idle-lock-settings';
@@ -182,6 +184,10 @@ export function boot(): ServiceRegistry {
   // Schedule refresh settings — non-persisted; relay from nav.html to schedule.html.
   const scheduleRefreshSettings = new ScheduleRefreshSettingsService();
   registry.register(ScheduleRefreshSettingsServiceId, scheduleRefreshSettings);
+
+  // Schedule display settings — prefs-cap-backed (schedule.chipLabelMode); default 'title'.
+  const scheduleDisplaySettings = new ScheduleDisplaySettingsService();
+  registry.register(ScheduleDisplaySettingsServiceId, scheduleDisplaySettings);
 
   // Meeting providers settings — prefs-cap-backed; seeds defaults on first load; sole renderer writer (A2).
   const meetingProvidersSettings = new MeetingProvidersSettingsService();

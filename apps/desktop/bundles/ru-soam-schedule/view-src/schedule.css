@@ -292,10 +292,10 @@ body {
   outline-offset: 1px;
 }
 .popover-section-label {
-  @apply font-semibold uppercase text-fg-muted text-3xs;
+  @apply flex items-center font-semibold uppercase text-fg-muted text-3xs;
+  gap: 9px;
   letter-spacing: 0.07em;
   margin-bottom: 4px;
-  padding-left: 23px;
 }
 .popover-participant-class {
   @apply font-medium normal-case text-fg-muted opacity-80 text-3xs;
@@ -308,6 +308,9 @@ body {
 .popover-participant {
   @apply flex items-center gap-2 text-2xs;
 }
+.popover-avatar-wrap {
+  @apply relative inline-flex shrink-0;
+}
 .popover-avatar {
   @apply inline-flex items-center justify-center shrink-0 rounded-full font-bold uppercase text-4xs;
   width: 22px;
@@ -316,6 +319,27 @@ body {
   color: var(--color-accent);
   background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface-base) 80%);
   border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+.popover-resp-badge {
+  @apply absolute inline-flex items-center justify-center rounded-full;
+  width: 12px;
+  height: 12px;
+  right: -3px;
+  bottom: -3px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-surface-elevated);
+}
+.popover-resp-badge.resp-yes {
+  @apply text-success;
+}
+.popover-resp-badge.resp-no {
+  @apply text-error;
+}
+.popover-resp-badge.resp-maybe {
+  @apply text-warning;
+}
+.popover-resp-badge.resp-none {
+  @apply text-fg-muted;
 }
 .popover-participant-name {
   @apply flex-1 min-w-0 truncate text-fg-secondary;
@@ -855,6 +879,15 @@ body {
   @apply truncate text-fg-muted text-3xs;
   margin-top: 1px;
   line-height: 1.2;
+}
+
+/* Declined events (organizer or all participants declined) — struck-through title. */
+.event-title.is-declined,
+.tg-allday-pill.is-declined,
+.tg-event-title span.is-declined,
+.month-event-pill.is-declined {
+  text-decoration: line-through;
+  opacity: 0.75;
 }
 .tg-event.tiny .tg-event-time {
   display: none;

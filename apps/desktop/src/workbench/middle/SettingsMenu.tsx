@@ -20,6 +20,7 @@ import {
   IdleLockSettingsServiceId,
   MeetingProvidersSettingsServiceId,
   ScheduleRefreshSettingsServiceId,
+  ScheduleDisplaySettingsServiceId,
   ThemeServiceId,
   TelemetryModeServiceId,
 } from '../../platform/services/ids';
@@ -28,6 +29,7 @@ import type { ThemeDescriptor } from '../../platform/theme/tokens';
 import type { Density } from '../../platform/activity-bar/density-service';
 import type { TelemetryMode } from '../../platform/telemetry/telemetry-mode-service';
 import type { RefreshSettings } from '../../platform/view-mode/schedule-refresh-settings';
+import type { DisplaySettings } from '../../platform/view-mode/schedule-display-settings';
 import type { MeetingProvider } from '../../platform/view-mode/meeting-providers-settings';
 import type { IdleLockSettings } from '../../platform/security/idle-lock-settings';
 import type { FontScale } from '../../platform/font/font-scale-service';
@@ -49,6 +51,7 @@ export default function SettingsMenu() {
   const telemetrySvc = useService(TelemetryModeServiceId);
   const cloudSessionSvc = useService(CloudSessionServiceId);
   const refreshSettingsSvc = useService(ScheduleRefreshSettingsServiceId);
+  const displaySettingsSvc = useService(ScheduleDisplaySettingsServiceId);
   const meetingProvidersSvc = useService(MeetingProvidersSettingsServiceId);
   const idleLockSvc = useService(IdleLockSettingsServiceId);
   const fontScaleSvc = useService(FontScaleServiceId);
@@ -69,6 +72,11 @@ export default function SettingsMenu() {
   // Schedule refresh settings — driven by ScheduleRefreshSettingsService.
   const [refreshSettings, setRefreshSettingsState] = useState<RefreshSettings>(() =>
     refreshSettingsSvc.getSettings(),
+  );
+
+  // Schedule display settings — driven by ScheduleDisplaySettingsService.
+  const [displaySettings, setDisplaySettingsState] = useState<DisplaySettings>(() =>
+    displaySettingsSvc.getSettings(),
   );
 
   // Meeting providers — driven by MeetingProvidersSettingsService.
@@ -116,6 +124,7 @@ export default function SettingsMenu() {
     const offTelemetry = telemetrySvc.onChange(setTelemetryModeState);
     const offCloud = cloudSessionSvc.onChange(setCloudStatus);
     const offRefresh = refreshSettingsSvc.onDidChange(setRefreshSettingsState);
+    const offDisplay = displaySettingsSvc.onDidChange(setDisplaySettingsState);
     const offProviders = meetingProvidersSvc.onDidChange(setProvidersState);
     const offIdleLock = idleLockSvc.onDidChange(setIdleLockSettingsState);
     const offFontScale = fontScaleSvc.onDidChange(setActiveScale);
@@ -127,11 +136,12 @@ export default function SettingsMenu() {
       offTelemetry();
       offCloud();
       offRefresh();
+      offDisplay();
       offProviders();
       offIdleLock();
       offFontScale();
     };
-  }, [themeSvc, fontSvc, densitySvc, telemetrySvc, cloudSessionSvc, refreshSettingsSvc, meetingProvidersSvc, idleLockSvc, fontScaleSvc]);
+  }, [themeSvc, fontSvc, densitySvc, telemetrySvc, cloudSessionSvc, refreshSettingsSvc, displaySettingsSvc, meetingProvidersSvc, idleLockSvc, fontScaleSvc]);
 
   // Reset to root view each time popover opens.
   const prevOpen = useRef(false);
@@ -435,6 +445,36 @@ export default function SettingsMenu() {
                 </div>
                 <p className="settings-analytics-notice">
                   Refresh manually from the calendar toolbar.
+                </p>
+              </div>
+
+              <div className="settings-popover-divider" aria-hidden="true" />
+
+              {/* ── Event labels ───────────────────────────────────────────────── */}
+              <div className="settings-section">
+                <div className="settings-section-label">Event labels</div>
+
+                <div className="settings-toggle-row">
+                  <div className="settings-toggle-label-group">
+                    <span className="settings-toggle-label">Show client names</span>
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={displaySettings.chipLabelMode === 'clientName'}
+                    className="settings-switch"
+                    data-on={displaySettings.chipLabelMode === 'clientName' || undefined}
+                    onClick={() => {
+                      const next =
+                        displaySettings.chipLabelMode === 'clientName' ? 'title' : 'clientName';
+                      displaySettingsSvc.setSettings({ chipLabelMode: next });
+                    }}
+                    aria-label="Show client names on calendar events"
+                  >
+                    <span className="settings-switch-knob" aria-hidden="true" />
+                  </button>
+                </div>
+                <p className="settings-analytics-notice">
+                  Client events show the matched client&apos;s name instead of the calendar title.
                 </p>
               </div>
 

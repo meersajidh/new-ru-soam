@@ -131,6 +131,7 @@ export type ViewChannelName =
   | 'activeEvent'
   | 'overviewViewMode'
   | 'scheduleRefreshSettings'
+  | 'scheduleDisplaySettings'
   | 'auxVisible';
 
 export type ChannelStore = Partial<Record<ViewChannelName, unknown>>;
@@ -147,6 +148,7 @@ export const CHANNEL_KIND_PAYLOAD: Record<ViewChannelName, string> = {
   activeEvent: 'event',
   overviewViewMode: 'mode',
   scheduleRefreshSettings: 'settings',
+  scheduleDisplaySettings: 'settings',
   auxVisible: 'visible',
 };
 

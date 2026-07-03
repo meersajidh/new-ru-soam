@@ -1099,8 +1099,9 @@ export function activate(ctx) {
       }
 
       case 'rescanEvent': {
-        // O509: on-demand re-fetch a single event from Google to re-detect its meeting link.
-        // Only patches location/meeting_link/meeting_provider — does not touch title/attendees/etc.
+        // O509: on-demand re-fetch a single event from Google — full refresh.
+        // Patches ALL mutable fields (title/time/location/link/organizer/attendees) so the
+        // aux "Refresh" reflects any provider-side edit, not only the meeting link.
         // PHI: item.description scanned inside mapEvent (adapter), never stored or returned.
         // Audit: schedule.event.rescanned (PHI-free — providerType only, no title/email).
         const { externalAccountId, providerCalendarId, providerEventId } = args[0] || {};
@@ -1160,7 +1161,17 @@ export function activate(ctx) {
 
         if (!rsFetchedEv) return { updated: false };
 
-        // Patch only the link-relevant fields (PHI-min — no title/attendees update).
+        // Organizer / attendees → columns (mirrors syncEvents upsert).
+        const rsOrgEmail = (rsFetchedEv.organizer && rsFetchedEv.organizer.email) || null;
+        const rsOrgName  = (rsFetchedEv.organizer && rsFetchedEv.organizer.name)  || null;
+        const rsOrgSelf  = (rsFetchedEv.organizer && rsFetchedEv.organizer.self != null)
+          ? (rsFetchedEv.organizer.self ? 1 : 0)
+          : null;
+        const rsAttendeesJson = (Array.isArray(rsFetchedEv.attendees) && rsFetchedEv.attendees.length > 0)
+          ? JSON.stringify(rsFetchedEv.attendees)
+          : null;
+
+        // Full-refresh patch of all mutable fields.
         await storeWrite.call('updateWhere', [
           'event',
           {
@@ -1169,9 +1180,17 @@ export function activate(ctx) {
             provider_event_id:    providerEventId,
           },
           {
+            title:            rsFetchedEv.title || '(No title)',
+            start:            rsFetchedEv.start,
+            end:              rsFetchedEv.end || null,
+            all_day:          rsFetchedEv.allDay ? 1 : 0,
             location:         rsFetchedEv.location        || null,
             meeting_link:     rsFetchedEv.meetingLink     || null,
             meeting_provider: rsFetchedEv.meetingProvider || null,
+            organizer_email:  rsOrgEmail,
+            organizer_name:   rsOrgName,
+            organizer_self:   rsOrgSelf,
+            attendees:        rsAttendeesJson,
             synced_at:        Date.now(),
           },
           {
@@ -1183,10 +1202,18 @@ export function activate(ctx) {
         ]);
 
         return {
-          updated:         true,
-          meetingLink:     rsFetchedEv.meetingLink     || null,
-          meetingProvider: rsFetchedEv.meetingProvider || null,
-          location:        rsFetchedEv.location        || null,
+          updated: true,
+          event: {
+            title:           rsFetchedEv.title || '(No title)',
+            start:           rsFetchedEv.start,
+            end:             rsFetchedEv.end || null,
+            allDay:          !!rsFetchedEv.allDay,
+            location:        rsFetchedEv.location        || null,
+            meetingLink:     rsFetchedEv.meetingLink     || null,
+            meetingProvider: rsFetchedEv.meetingProvider || null,
+            organizer:       rsFetchedEv.organizer       || null,
+            attendees:       Array.isArray(rsFetchedEv.attendees) ? rsFetchedEv.attendees : null,
+          },
         };
       }
 

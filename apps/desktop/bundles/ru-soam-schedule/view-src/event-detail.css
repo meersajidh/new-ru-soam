@@ -50,6 +50,8 @@ body {
 /* ── Detail scroll ───────────────────────────────── */
 #detail-scroll {
   @apply flex-1 flex flex-col overflow-y-auto overflow-x-hidden;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 30%, transparent) transparent;
 }
 
 /* ── Header ──────────────────────────────────────── */
@@ -58,10 +60,52 @@ body {
   padding: 18px 16px 14px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
 }
+.det-title-row {
+  @apply flex items-start gap-2;
+}
 .det-title {
-  @apply font-bold text-fg-primary text-base;
+  @apply flex-1 min-w-0 font-bold text-fg-primary text-base;
   line-height: 1.3;
   word-break: break-word;
+}
+.det-refresh-btn {
+  @apply inline-flex items-center justify-center shrink-0 rounded-sm cursor-pointer;
+  width: 24px;
+  height: 24px;
+  margin-top: -1px;
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  transition:
+    background 130ms ease,
+    color 130ms ease;
+}
+.det-refresh-btn:hover:not(:disabled) {
+  @apply bg-surface-active text-fg-primary;
+}
+.det-refresh-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+.det-refresh-btn:disabled {
+  @apply cursor-not-allowed;
+}
+.det-refresh-btn.spinning > svg {
+  animation: det-spin 0.7s linear infinite;
+}
+@keyframes det-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .det-refresh-btn.spinning > svg {
+    animation: none;
+  }
+}
+.det-refresh-err {
+  @apply font-medium text-error text-2xs;
+  line-height: 1.4;
+  margin-top: 2px;
 }
 .det-meta {
   @apply text-fg-muted text-xs;
@@ -208,20 +252,6 @@ body {
   height: 8px;
   margin-right: 5px;
 }
-.det-raw-title-value {
-  @apply italic font-normal text-fg-secondary;
-}
-
-/* ── Honesty note ────────────────────────────────── */
-.det-honesty {
-  @apply flex items-start gap-[6px] text-fg-muted text-2xs;
-  line-height: 1.5;
-  padding-bottom: 8px;
-}
-.det-honesty-icon {
-  @apply shrink-0 text-fg-muted opacity-70;
-  margin-top: 1px;
-}
 
 /* ── Join button ─────────────────────────────────── */
 .det-join-btn {
@@ -283,76 +313,86 @@ body {
   @apply opacity-100;
 }
 
-/* ── Re-scan meeting link ────────────────────────── */
-.det-rescan-row {
-  @apply flex items-center gap-2;
-  margin-top: 2px;
-}
-.det-rescan-btn {
-  @apply font-medium text-fg-muted cursor-pointer whitespace-nowrap underline text-2xs;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 500;
-  background: none;
-  border: none;
-  padding: 0;
-  text-underline-offset: 2px;
-  text-decoration-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent);
-  transition: color 130ms ease;
-}
-.det-rescan-btn:hover:not(:disabled) {
-  @apply text-fg-secondary;
-}
-.det-rescan-btn:disabled {
-  @apply opacity-50 cursor-not-allowed;
-}
-.det-rescan-status {
-  @apply text-fg-muted text-2xs;
-  line-height: 1.4;
-}
-.det-rescan-status.err {
-  @apply text-error;
-}
 .det-no-meet-msg {
   @apply text-fg-muted text-xs;
-  margin-bottom: 6px;
+  line-height: 1.4;
 }
 
-/* ── Participants ────────────────────────────────── */
+/* ── Section header trailing (inline count) ──────── */
+.det-section-hdr-trailing {
+  @apply font-medium normal-case text-fg-muted opacity-80 text-3xs;
+  letter-spacing: 0;
+  margin-left: 5px;
+}
+
+/* ── Participants (compact, popover-style) ───────── */
 .det-participants {
-  @apply flex flex-col gap-[10px];
+  @apply flex flex-col gap-[6px];
   padding-bottom: 8px;
 }
 .det-participant-class {
-  @apply font-medium text-fg-muted text-2xs;
-  margin-top: -8px;
+  @apply font-medium text-fg-muted;
 }
 .det-participant {
-  @apply flex items-start gap-[10px];
+  @apply flex items-center gap-2 text-2xs;
 }
 .det-avatar {
   @apply inline-flex items-center justify-center shrink-0 rounded-full font-bold uppercase text-accent text-3xs;
   width: 28px;
   height: 28px;
   letter-spacing: -0.01em;
-  margin-top: 2px;
   background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface-base) 80%);
   border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
-.det-participant-info {
-  @apply flex flex-col gap-px min-w-0 flex-1;
+.det-avatar-wrap {
+  @apply relative inline-flex shrink-0;
+}
+.det-participant .det-avatar {
+  @apply text-4xs;
+  width: 24px;
+  height: 24px;
 }
 .det-participant-name {
-  @apply font-semibold truncate text-fg-primary text-sm;
+  @apply flex-1 min-w-0 truncate text-fg-secondary text-sm;
   line-height: 1.4;
 }
-.det-participant-role-line {
-  @apply text-fg-muted text-2xs;
-  line-height: 1.3;
+.det-resp-badge {
+  @apply absolute inline-flex items-center justify-center rounded-full;
+  width: 13px;
+  height: 13px;
+  right: -3px;
+  bottom: -3px;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-surface-panel);
+}
+.det-resp-badge.resp-yes {
+  @apply text-success;
+}
+.det-resp-badge.resp-no {
+  @apply text-error;
+}
+.det-resp-badge.resp-maybe {
+  @apply text-warning;
+}
+.det-resp-badge.resp-none {
+  @apply text-fg-muted;
+}
+.det-participant-role {
+  @apply shrink-0 font-medium text-fg-muted text-3xs;
+  border-radius: 3px;
+  padding: 0 4px;
+  line-height: 1.6;
+  background: color-mix(in srgb, var(--color-surface-base) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
 }
 .det-participants-more {
   @apply text-fg-muted text-xs;
-  padding-left: 38px;
+  padding-left: 34px;
+}
+.det-source-email {
+  @apply truncate text-fg-primary;
+  line-height: 1.5;
+  user-select: text;
 }
 
 /* ── Client-link action block ────────────────────── */

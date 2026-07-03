@@ -13,6 +13,7 @@ import {
 import type { BoundProxy } from '@ru-soam/view-kit';
 import {
   type CalendarEvent,
+  type ChipLabelMode,
   type EventMatch,
   addDays,
   isToday,
@@ -21,6 +22,8 @@ import {
   fmtTimeShort,
   fmtDuration,
   eventDisplayTitle,
+  isEventDeclined,
+  responseIcon,
   modalitySubline,
   participantClassHint,
   classClass,
@@ -290,10 +293,11 @@ interface ScheduleViewStatePayload {
 interface EventCardProps {
   ev: CalendarEvent;
   selected: boolean;
+  chipLabelMode: ChipLabelMode;
   onClick: (e: React.MouseEvent) => void;
 }
 
-function EventCard({ ev, selected, onClick }: EventCardProps) {
+function EventCard({ ev, selected, chipLabelMode, onClick }: EventCardProps) {
   const isAllDay = ev.allDay || !ev.start || ev.start.length <= 10;
   const style: React.CSSProperties = {};
   if (ev.calendarColor) {
@@ -312,7 +316,9 @@ function EventCard({ ev, selected, onClick }: EventCardProps) {
         {fmtTimeShort(ev)}
       </div>
       <div className="event-body">
-        <div className="event-title">{eventDisplayTitle(ev)}</div>
+        <div className={`event-title${isEventDeclined(ev) ? ' is-declined' : ''}`}>
+          {eventDisplayTitle(ev, chipLabelMode)}
+        </div>
         {subline && <div className="event-modality">{subline}</div>}
       </div>
       <div className={`event-kind-badge ${classClass(ev)}`}>
@@ -330,6 +336,7 @@ interface TimeGridProps {
   events: CalendarEvent[];
   calVisibility: Record<string, boolean>;
   classFilter: string | null;
+  chipLabelMode: ChipLabelMode;
   selectedId: string | null;
   onEventClick: (ev: CalendarEvent, e: React.MouseEvent) => void;
 }
@@ -344,6 +351,7 @@ function TimeGrid({
   events,
   calVisibility,
   classFilter,
+  chipLabelMode,
   selectedId,
   onEventClick,
 }: TimeGridProps) {
@@ -421,11 +429,11 @@ function TimeGrid({
                       key={ev.id}
                       className={`tg-allday-pill ${classClass(ev)}${
                         ev.id === selectedId ? ' is-selected' : ''
-                      }`}
+                      }${isEventDeclined(ev) ? ' is-declined' : ''}`}
                       style={style}
                       onClick={(e) => onEventClick(ev, e)}
                     >
-                      {eventDisplayTitle(ev)}
+                      {eventDisplayTitle(ev, chipLabelMode)}
                     </div>
                   );
                 })}
@@ -508,8 +516,9 @@ function TimeGrid({
                       style.right = `calc(${rightPct}% + 3px)`;
                     }
 
-                    const displayTitle = eventDisplayTitle(ev);
+                    const displayTitle = eventDisplayTitle(ev, chipLabelMode);
                     const participantLabel = getEventParticipantLabel(ev);
+                    const declined = isEventDeclined(ev);
 
                     return (
                       <button
@@ -523,7 +532,9 @@ function TimeGrid({
                       >
                         <div className="tg-event-time">{fmtTime(ev.start)}</div>
                         <div className="tg-event-title">
-                          <span>{displayTitle}</span>
+                          <span className={declined ? 'is-declined' : undefined}>
+                            {displayTitle}
+                          </span>
                           {!isTiny && (ev.meetingLink || ev.location) && (
                             <span
                               style={{
@@ -578,6 +589,7 @@ interface ViewProps {
   events: CalendarEvent[];
   calVisibility: Record<string, boolean>;
   classFilter: string | null;
+  chipLabelMode: ChipLabelMode;
   selectedId: string | null;
   onEventClick: (ev: CalendarEvent, e: React.MouseEvent) => void;
 }
@@ -587,6 +599,7 @@ function AgendaView({
   events,
   calVisibility,
   classFilter,
+  chipLabelMode,
   selectedId,
   onEventClick,
 }: ViewProps) {
@@ -620,6 +633,7 @@ function AgendaView({
                 key={ev.id}
                 ev={ev}
                 selected={ev.id === selectedId}
+                chipLabelMode={chipLabelMode}
                 onClick={(e) => onEventClick(ev, e)}
               />
             ))
@@ -662,6 +676,7 @@ function MonthView({
   events,
   calVisibility,
   classFilter,
+  chipLabelMode,
   selectedId,
   onEventClick,
 }: ViewProps) {
@@ -699,11 +714,11 @@ function MonthView({
               key={ev.id}
               className={`month-event-pill ${classClass(ev)}${
                 ev.id === selectedId ? ' is-selected' : ''
-              }`}
+              }${isEventDeclined(ev) ? ' is-declined' : ''}`}
               style={style}
               onClick={(e) => onEventClick(ev, e)}
             >
-              {eventDisplayTitle(ev)}
+              {eventDisplayTitle(ev, chipLabelMode)}
             </div>
           );
         })}
@@ -944,9 +959,20 @@ function EventPopover({ ev, anchorRect, onClose, onOpenSidePanel }: PopoverProps
                   <>
                     {ev.attendees!.slice(0, maxShown).map((a, i) => {
                       const nameStr = a.name || a.email || '?';
+                      const resp = responseIcon(a.responseStatus);
                       return (
                         <div className="popover-participant" key={`${a.email || a.name || i}`}>
-                          <div className="popover-avatar">{initialsOf(nameStr)}</div>
+                          <div className="popover-avatar-wrap">
+                            <div className="popover-avatar">{initialsOf(nameStr)}</div>
+                            {resp && (
+                              <span
+                                className={`popover-resp-badge ${resp.cls}`}
+                                title={resp.title}
+                              >
+                                <Icon name={resp.icon} size={8} />
+                              </span>
+                            )}
+                          </div>
                           <div className="popover-participant-name">
                             {a.name || a.email || 'Unknown'}
                           </div>
@@ -1017,6 +1043,11 @@ function Schedule() {
   const view = scheduleViewState?.view || 'week';
   const calRev = scheduleViewState?.calRev || 0;
   const classFilter = scheduleViewState?.classFilter || null;
+  const displaySettings = useViewChannel<{ chipLabelMode?: ChipLabelMode }>(
+    'scheduleDisplaySettings',
+  );
+  const chipLabelMode: ChipLabelMode =
+    displaySettings?.chipLabelMode === 'clientName' ? 'clientName' : 'title';
   const auxVisible = useViewChannel<boolean>('auxVisible') ?? false;
   const refreshSettings = useViewChannel<{ mode?: string; intervalMin?: number }>(
     'scheduleRefreshSettings',
@@ -1439,6 +1470,7 @@ function Schedule() {
             events={events}
             calVisibility={calVisibility}
             classFilter={classFilter}
+            chipLabelMode={chipLabelMode}
             selectedId={selectedId}
             onEventClick={handleEventClick}
           />
@@ -1450,6 +1482,7 @@ function Schedule() {
             events={events}
             calVisibility={calVisibility}
             classFilter={classFilter}
+            chipLabelMode={chipLabelMode}
             selectedId={selectedId}
             onEventClick={handleEventClick}
           />
@@ -1461,6 +1494,7 @@ function Schedule() {
             events={events}
             calVisibility={calVisibility}
             classFilter={classFilter}
+            chipLabelMode={chipLabelMode}
             selectedId={selectedId}
             onEventClick={handleEventClick}
           />
@@ -1472,6 +1506,7 @@ function Schedule() {
             events={events}
             calVisibility={calVisibility}
             classFilter={classFilter}
+            chipLabelMode={chipLabelMode}
             selectedId={selectedId}
             onEventClick={handleEventClick}
           />

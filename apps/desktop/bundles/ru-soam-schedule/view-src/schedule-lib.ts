@@ -181,11 +181,47 @@ export function classLabel(ev?: CalendarEvent): string {
   return CLS_LABEL[c] || 'UNCLASSIFIED';
 }
 
-export function eventDisplayTitle(ev: CalendarEvent): string {
-  if (ev.classification === 'client_session' && ev._clientLabel) {
+/** Chip label preference: raw event title (default) vs resolved client name. */
+export type ChipLabelMode = 'title' | 'clientName';
+
+/** Map an attendee responseStatus to an icon badge (name + color class + tooltip). */
+export function responseIcon(
+  status: string | undefined,
+): { icon: string; cls: string; title: string } | null {
+  switch (status) {
+    case 'accepted':
+      return { icon: 'thumbsup', cls: 'resp-yes', title: 'Accepted' };
+    case 'declined':
+      return { icon: 'thumbsdown', cls: 'resp-no', title: 'Declined' };
+    case 'tentative':
+      return { icon: 'question', cls: 'resp-maybe', title: 'Tentative' };
+    case 'needsAction':
+      return { icon: 'question', cls: 'resp-none', title: 'No response' };
+    default:
+      return null;
+  }
+}
+
+export function eventDisplayTitle(ev: CalendarEvent, mode: ChipLabelMode = 'title'): string {
+  if (mode === 'clientName' && ev.classification === 'client_session' && ev._clientLabel) {
     return ev._clientLabel;
   }
   return ev.title || '(No title)';
+}
+
+/**
+ * True when the event should render struck-through: the organizer has declined,
+ * or every attendee has declined. Requires attendee response data.
+ */
+export function isEventDeclined(ev: CalendarEvent): boolean {
+  const atts = ev.attendees;
+  if (!atts || atts.length === 0) return false;
+  const organiserEmail = ev.organizer?.email?.toLowerCase() || null;
+  const organiserAtt = atts.find(
+    (a) => a.organizer === true || (organiserEmail && (a.email || '').toLowerCase() === organiserEmail),
+  );
+  if (organiserAtt && organiserAtt.responseStatus === 'declined') return true;
+  return atts.every((a) => a.responseStatus === 'declined');
 }
 
 export function modalitySubline(ev: CalendarEvent): string {

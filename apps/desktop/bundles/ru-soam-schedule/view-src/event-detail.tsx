@@ -127,6 +127,23 @@ function joinLabel(url: string | undefined, providerName: string | undefined): s
   return 'Join meeting';
 }
 
+function responseIcon(
+  status: string | undefined,
+): { icon: string; cls: string; title: string } | null {
+  switch (status) {
+    case 'accepted':
+      return { icon: 'thumbsup', cls: 'resp-yes', title: 'Accepted' };
+    case 'declined':
+      return { icon: 'thumbsdown', cls: 'resp-no', title: 'Declined' };
+    case 'tentative':
+      return { icon: 'question', cls: 'resp-maybe', title: 'Tentative' };
+    case 'needsAction':
+      return { icon: 'question', cls: 'resp-none', title: 'No response' };
+    default:
+      return null;
+  }
+}
+
 function getInitials(name: string): string {
   return (
     String(name)
@@ -207,10 +224,12 @@ function fallbackCopy(text: string, onSuccess?: () => void): void {
 function Section({
   icon,
   label,
+  trailing,
   children,
 }: {
   icon: string;
   label: string;
+  trailing?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -220,6 +239,7 @@ function Section({
           <Icon name={icon} size={12} />
         </span>
         {label}
+        {trailing && <span className="det-section-hdr-trailing">{trailing}</span>}
       </div>
       {children}
     </div>
@@ -802,6 +822,7 @@ function ParticipantRow({
   isOrg,
   isMatchedClient,
   matchClientId,
+  responseStatus,
 }: {
   name: string;
   email?: string;
@@ -809,6 +830,7 @@ function ParticipantRow({
   isOrg: boolean;
   isMatchedClient: boolean;
   matchClientId: string | null;
+  responseStatus?: string;
 }) {
   const q = useCapQuery('record.patient.query', '1.0', 'get', [matchClientId ?? ''], {
     enabled: isMatchedClient && !!matchClientId,
@@ -820,19 +842,22 @@ function ParticipantRow({
       ? rec.displayName
       : name || email || '?';
   const initials = getInitials(displayName);
-
-  const roleParts: string[] = [];
-  if (isSelf) roleParts.push('You');
-  if (isOrg) roleParts.push('Organiser');
-  if (isMatchedClient) roleParts.push('Client');
+  const resp = responseIcon(responseStatus);
 
   return (
     <div className="det-participant">
-      <div className="det-avatar">{initials}</div>
-      <div className="det-participant-info">
-        <div className="det-participant-name">{displayName}</div>
-        <div className="det-participant-role-line">{roleParts.join(' · ')}</div>
+      <div className="det-avatar-wrap">
+        <div className="det-avatar">{initials}</div>
+        {resp && (
+          <span className={`det-resp-badge ${resp.cls}`} title={resp.title}>
+            <Icon name={resp.icon} size={9} />
+          </span>
+        )}
       </div>
+      <div className="det-participant-name">{displayName}</div>
+      {isSelf && <span className="det-participant-role">you</span>}
+      {isOrg && <span className="det-participant-role">organiser</span>}
+      {isMatchedClient && <span className="det-participant-role">client</span>}
     </div>
   );
 }
@@ -862,8 +887,11 @@ function ParticipantsSection({ ev }: { ev: ActiveEvent }) {
   const pcHint = participantClassHint(ev);
 
   return (
-    <Section icon="account" label="Participants">
-      {pcHint && <div className="det-participant-class">{pcHint}</div>}
+    <Section
+      icon="account"
+      label="Participants"
+      trailing={pcHint ? <span className="det-participant-class">{pcHint}</span> : null}
+    >
       <div className="det-participants">
         {hasAttendees ? (
           <>
@@ -879,6 +907,7 @@ function ParticipantsSection({ ev }: { ev: ActiveEvent }) {
                   isOrg={isOrganiser(a)}
                   isMatchedClient={isMatchedParticipant}
                   matchClientId={isMatchedParticipant ? matchClientId2 : null}
+                  responseStatus={a.responseStatus}
                 />
               );
             })}
@@ -905,72 +934,15 @@ function ParticipantsSection({ ev }: { ev: ActiveEvent }) {
 
 // ── MeetingSection — online meeting link, copy, and re-scan ──────────────────
 
-function MeetingSection({
-  ev,
-  onRescanSuccess,
-}: {
-  ev: ActiveEvent;
-  onRescanSuccess: (updated: ActiveEvent) => void;
-}) {
+function MeetingSection({ ev }: { ev: ActiveEvent }) {
   const soamView = useSoamView();
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [rescanStatus, setRescanStatus] = useState<{ msg: string; isErr: boolean } | null>(null);
-  const scheduleCmdRef = useRef<Promise<BoundProxy> | null>(null);
-
-  function getScheduleCmd(): Promise<BoundProxy> {
-    if (!scheduleCmdRef.current)
-      scheduleCmdRef.current = soamView.bindCommand('schedule.calendar', '1.0');
-    return scheduleCmdRef.current;
-  }
 
   function showCopied(): void {
     setCopied(true);
     if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
     copyTimerRef.current = setTimeout(() => setCopied(false), 1200);
-  }
-
-  async function doRescan(): Promise<void> {
-    const extAcctId = ev.externalAccountId ?? null;
-    const provCalId = ev.providerCalendarId ?? null;
-    const provEvId = ev.id ?? null;
-    if (!extAcctId || !provCalId || !provEvId) {
-      setRescanStatus({ msg: 'Event identity missing. Try a full re-sync first.', isErr: true });
-      return;
-    }
-    setScanning(true);
-    setRescanStatus(null);
-    try {
-      const cmd = await getScheduleCmd();
-      const result = (await cmd.call('rescanEvent', {
-        externalAccountId: extAcctId,
-        providerCalendarId: provCalId,
-        providerEventId: provEvId,
-      })) as {
-        updated?: boolean;
-        meetingLink?: string;
-        meetingProvider?: string;
-        location?: string;
-      } | null;
-      setScanning(false);
-      if (result?.updated && result.meetingLink) {
-        // Link found — update event in parent, bump schedule grid
-        onRescanSuccess({
-          ...ev,
-          meetingLink: result.meetingLink,
-          meetingProvider: result.meetingProvider ?? undefined,
-          location: result.location ?? ev.location,
-        });
-        soamView.bumpScheduleData();
-      } else {
-        setRescanStatus({ msg: 'No meeting link found.', isErr: false });
-      }
-    } catch (err) {
-      setScanning(false);
-      const msg = err instanceof Error ? err.message : String(err);
-      setRescanStatus({ msg: `Error: ${msg}`, isErr: true });
-    }
   }
 
   const url = ev.meetingLink;
@@ -1000,22 +972,6 @@ function MeetingSection({
           </button>
           <span className={`det-copy-confirm${copied ? ' show' : ''}`}>Copied</span>
         </div>
-        <div className="det-rescan-row">
-          <button
-            className="det-rescan-btn"
-            type="button"
-            disabled={scanning}
-            title="Re-fetch from Google to refresh the meeting link"
-            onClick={doRescan}
-          >
-            {scanning ? 'Scanning…' : 'Re-scan'}
-          </button>
-          {rescanStatus && (
-            <span className={`det-rescan-status${rescanStatus.isErr ? ' err' : ''}`}>
-              {rescanStatus.msg}
-            </span>
-          )}
-        </div>
       </Section>
     );
   }
@@ -1023,20 +979,9 @@ function MeetingSection({
   // No meeting link
   return (
     <Section icon="globe" label="Online meeting">
-      <div className="det-no-meet-msg">No meeting link detected.</div>
-      <button
-        className="det-act-btn"
-        type="button"
-        disabled={scanning}
-        onClick={doRescan}
-      >
-        {scanning ? 'Scanning…' : 'Re-scan for meeting link'}
-      </button>
-      {rescanStatus && (
-        <div className={`det-rescan-status${rescanStatus.isErr ? ' err' : ''}`}>
-          {rescanStatus.msg}
-        </div>
-      )}
+      <div className="det-no-meet-msg">
+        No meeting link detected. Use Refresh above to re-check.
+      </div>
     </Section>
   );
 }
@@ -1094,6 +1039,9 @@ function TimeSection({ ev }: { ev: ActiveEvent }) {
 // ── SourceSection ─────────────────────────────────────────────────────────────
 
 function SourceSection({ ev }: { ev: ActiveEvent }) {
+  // Non-self participant emails = each participant's own source calendar / account.
+  const partEmails = buildParticipantList(ev).filter((p) => p.email);
+
   return (
     <Section icon="layers" label="Source">
       <div className="det-kv">
@@ -1113,18 +1061,18 @@ function SourceSection({ ev }: { ev: ActiveEvent }) {
             </div>
           </div>
         )}
-        {ev.title && typeof ev.title === 'string' && (
+        {partEmails.length > 0 && (
           <div className="det-kv-row">
-            <div className="det-kv-label">Raw title</div>
-            <div className="det-kv-value det-raw-title-value">{ev.title}</div>
+            <div className="det-kv-label">Attendees</div>
+            <div className="det-kv-value">
+              {partEmails.map((p) => (
+                <div key={p.email} className="det-source-email">
+                  {p.email}
+                </div>
+              ))}
+            </div>
           </div>
         )}
-      </div>
-      <div className="det-honesty">
-        <span className="det-honesty-icon">
-          <Icon name="warning" size={12} />
-        </span>
-        {"This title rides on Google. The client's identity shown above comes from your roster, not the raw title."}
       </div>
     </Section>
   );
@@ -1212,6 +1160,11 @@ function EventDetailApp() {
   // Cap proxy refs for reclassify (separate from LinkBlock's own refs)
   const reclassSessionsMQRef = useRef<Promise<BoundProxy> | null>(null);
   const reclassRecordQRef = useRef<Promise<BoundProxy> | null>(null);
+
+  // Header "Refresh" — full live re-fetch of the event from the provider.
+  const scheduleCmdRef = useRef<Promise<BoundProxy> | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshErr, setRefreshErr] = useState<string | null>(null);
 
   // Effect: increment renderTokenRef when the event identity changes.
   // This is NOT a setState call — mutating a ref is fine in an effect body.
@@ -1364,6 +1317,58 @@ function EventDetailApp() {
     setEventPatch({ eventId: evId, ev: updated });
   }
 
+  // ── Refresh: full live re-fetch, patch display + grid, re-classify ──
+  async function doRefresh(): Promise<void> {
+    const ev = displayEvent;
+    if (!ev || refreshing) return;
+    const extAcctId = ev.externalAccountId ?? null;
+    const provCalId = ev.providerCalendarId ?? null;
+    const provEvId = ev.id ?? null;
+    if (!extAcctId || !provCalId || !provEvId) {
+      setRefreshErr('Event identity missing. Try a full re-sync first.');
+      return;
+    }
+    setRefreshing(true);
+    setRefreshErr(null);
+    try {
+      if (!scheduleCmdRef.current)
+        scheduleCmdRef.current = soamView.bindCommand('schedule.calendar', '1.0');
+      const cmd = await scheduleCmdRef.current;
+      const result = (await cmd.call('rescanEvent', {
+        externalAccountId: extAcctId,
+        providerCalendarId: provCalId,
+        providerEventId: provEvId,
+      })) as { updated?: boolean; event?: Partial<ActiveEvent> } | null;
+      setRefreshing(false);
+      if (result?.updated && result.event) {
+        const u = result.event;
+        const merged: ActiveEvent = {
+          ...ev,
+          title: u.title ?? ev.title,
+          start: u.start ?? ev.start,
+          end: u.end ?? ev.end,
+          allDay: u.allDay ?? ev.allDay,
+          location: u.location ?? ev.location,
+          meetingLink: u.meetingLink ?? undefined,
+          meetingProvider: u.meetingProvider ?? undefined,
+          organizer: u.organizer ?? ev.organizer,
+          attendees: u.attendees ?? ev.attendees,
+        };
+        if (currentEventId) setEventPatch({ eventId: currentEventId, ev: merged });
+        soamView.bumpScheduleData();
+        // Attendees may have changed → re-derive classification.
+        void reclassify(merged, ++renderTokenRef.current);
+      }
+    } catch (err) {
+      setRefreshing(false);
+      if (window.__viewBoot.isLockedError(err)) {
+        setRefreshErr('Workspace locked — unlock to continue.');
+      } else {
+        setRefreshErr(err instanceof Error ? err.message : String(err));
+      }
+    }
+  }
+
   // ── Effect: handle calRev changes → reclassify ──
   // setState only happens inside the async `reclassify` callback — never synchronously
   // in the effect body — so react-hooks/set-state-in-effect does not apply here.
@@ -1424,8 +1429,21 @@ function EventDetailApp() {
     <div id="detail-scroll">
       {/* 1. Header */}
       <div className="det-header">
-        <div className="det-title">{displayTitle}</div>
+        <div className="det-title-row">
+          <div className="det-title">{displayTitle}</div>
+          <button
+            className={`det-refresh-btn${refreshing ? ' spinning' : ''}`}
+            type="button"
+            disabled={refreshing}
+            title="Refresh from provider"
+            aria-label="Refresh"
+            onClick={doRefresh}
+          >
+            <Icon name="refresh" size={15} />
+          </button>
+        </div>
         {metaStr && <div className="det-meta">{metaStr}</div>}
+        {refreshErr && <div className="det-refresh-err">{refreshErr}</div>}
       </div>
 
       {/* 2. Status bar */}
@@ -1439,12 +1457,7 @@ function EventDetailApp() {
       <TimeSection ev={ev} />
 
       {/* 4. Online meeting section */}
-      <MeetingSection
-        ev={ev}
-        onRescanSuccess={(updated) => {
-          if (currentEventId) setEventPatch({ eventId: currentEventId, ev: updated });
-        }}
-      />
+      <MeetingSection ev={ev} />
 
       {/* 5. Participants section */}
       <ParticipantsSection ev={ev} />
