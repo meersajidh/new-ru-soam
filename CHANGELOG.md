@@ -7,6 +7,25 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-07-03
+
+### Added
+
+- Choose what calendar event chips show: the event title (default) or the matched client's name — Settings → Schedule → Event labels.
+- Event details now show each participant's response — accepted, declined, or no reply — as a badge on their avatar, in both the event popover and the side panel.
+- Declined events (where the organiser or everyone declined) now appear struck-through on the calendar.
+- Event details "Refresh" now re-fetches the whole event (title, time, participants), not just the meeting link.
+
+### Changed
+
+- Calendar chips show the event title by default again; switch to client names in Settings → Schedule.
+- Event details: participant emails moved to the Source section, and the participants list is more compact.
+- App text size now applies inside the calendar and record views too.
+
+### Removed
+
+- Removed the raw-title row and advisory note from the event-details Source section.
+
 ## [0.1.9] - 2026-06-24
 
 ### Added
