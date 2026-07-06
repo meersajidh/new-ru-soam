@@ -26,29 +26,32 @@
 
 import type DatabaseT from 'better-sqlite3';
 import { registerCapability } from '../capability/registry.js';
-import type { CallerIdentity } from '../capability/registry.js';
 import { CapErr } from '../../shared/ipc-protocol.js';
 import { localStoreManager } from './index.js';
 import { tableOwner, tableResidency, getOrderedMigrationSets } from './migrations.js';
 import { auditService } from '../audit/index.js';
 import type { AuditEventKind } from '../audit/audit-types.js';
+import {
+  PROTECTED_TABLES,
+  denied,
+  notFound,
+  validationErr,
+  validateColumns,
+  enforceOwnership,
+  enforceAudit,
+  parseInsertArgs,
+  parseUpdateArgs,
+  parseDeleteArgs,
+  parseDeleteWhereArgs,
+  parseUpdateWhereArgs,
+} from './store-write-validate.js';
+import type { TableMeta } from './store-write-validate.js';
 
-// ── Protected tables ──────────────────────────────────────────────────────────
-
-/**
- * Tables that must never be mutated via the generic write surface.
- *   audit_log    — append-only; written only by the audit service
- *   _schema_version — migration infra
- */
-const PROTECTED_TABLES: ReadonlySet<string> = new Set(['audit_log', '_schema_version']);
+// AuditTag now lives in store-write-validate; re-export so existing importers
+// (store-query-cap) keep resolving it from here.
+export type { AuditTag } from './store-write-validate.js';
 
 // ── Column-info cache ─────────────────────────────────────────────────────────
-
-interface TableMeta {
-  readonly columns: ReadonlySet<string>;
-  /** Name of the single-column primary key (pk=1 in PRAGMA table_info). */
-  readonly pk: string;
-}
 
 /** Module-level cache. Keys are table names (post-validation). */
 const _tableMeta = new Map<string, TableMeta>();
@@ -82,35 +85,6 @@ function getTableMeta(db: DatabaseT.Database, table: string): TableMeta {
   const meta: TableMeta = { columns, pk: pkRow.name };
   _tableMeta.set(table, meta);
   return meta;
-}
-
-// ── Error factories ───────────────────────────────────────────────────────────
-
-function denied(msg: string): Error {
-  return Object.assign(new Error(msg), { code: CapErr.Denied });
-}
-
-function notFound(msg: string): Error {
-  return Object.assign(new Error(msg), { code: CapErr.NotFound });
-}
-
-function validationErr(msg: string): Error {
-  return Object.assign(new Error(msg), { code: CapErr.HandlerThrew });
-}
-
-// ── AuditTag ──────────────────────────────────────────────────────────────────
-
-/**
- * Caller-supplied audit metadata. `event` is a bundle-defined string — the
- * AuditEventKind closed enum is a TS-only constraint on platform events; we
- * cast at the call site since the audit ledger stores raw strings at runtime.
- */
-export interface AuditTag {
-  readonly event: string;
-  readonly detail?: Record<string, unknown>;
-  readonly recordType?: string;
-  /** Non-PHI record identifier. For writes, derived from pk; for reads, caller-supplied. */
-  readonly recordId?: string;
 }
 
 // ── Store / DB helpers ────────────────────────────────────────────────────────
@@ -157,33 +131,6 @@ function enforceTable(table: string): string {
     );
   }
   return owner;
-}
-
-function enforceOwnership(owner: string, caller: CallerIdentity | undefined, table: string): void {
-  if (caller === undefined) return; // Main-internal caller → dormant
-  if (caller.bundleId !== owner) {
-    throw denied(
-      `store.write: caller '${caller.bundleId}' is not the owner of '${table}' (owner: '${owner}')`,
-    );
-  }
-}
-
-function enforceAudit(audit: AuditTag): void {
-  if (typeof audit.event !== 'string' || audit.event.trim().length === 0) {
-    throw validationErr('store.write: audit.event must be a non-empty string');
-  }
-}
-
-function validateColumns(
-  meta: TableMeta,
-  cols: ReadonlyArray<string>,
-  context: string,
-): void {
-  for (const col of cols) {
-    if (!meta.columns.has(col)) {
-      throw validationErr(`store.write: unknown column '${col}' in ${context}`);
-    }
-  }
 }
 
 // ── Write operations ──────────────────────────────────────────────────────────
@@ -280,118 +227,6 @@ function doUpdateWhere(
   const stmt = db.prepare(`UPDATE ${table} SET ${setClauses} WHERE ${whereClauses}`);
   const result = stmt.run(...patchValues, ...whereValues) as { changes: number };
   return { changes: result.changes };
-}
-
-// ── Argument parsing helpers ──────────────────────────────────────────────────
-
-function parseInsertArgs(args: ReadonlyArray<unknown>): {
-  table: string;
-  row: Record<string, unknown>;
-  audit: AuditTag;
-} {
-  const [table, row, audit] = args;
-  if (typeof table !== 'string') throw validationErr('store.write.insert: table must be a string');
-  if (!row || typeof row !== 'object' || Array.isArray(row)) {
-    throw validationErr('store.write.insert: row must be a plain object');
-  }
-  if (!audit || typeof audit !== 'object' || Array.isArray(audit)) {
-    throw validationErr('store.write.insert: audit must be a plain object');
-  }
-  return { table, row: row as Record<string, unknown>, audit: audit as AuditTag };
-}
-
-function parseUpdateArgs(args: ReadonlyArray<unknown>): {
-  table: string;
-  pkValue: unknown;
-  patch: Record<string, unknown>;
-  audit: AuditTag;
-} {
-  const [table, pkValue, patch, audit] = args;
-  if (typeof table !== 'string') throw validationErr('store.write.update: table must be a string');
-  if (pkValue === undefined || pkValue === null) {
-    throw validationErr('store.write.update: pkValue must be provided');
-  }
-  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
-    throw validationErr('store.write.update: patch must be a plain object');
-  }
-  if (!audit || typeof audit !== 'object' || Array.isArray(audit)) {
-    throw validationErr('store.write.update: audit must be a plain object');
-  }
-  return { table, pkValue, patch: patch as Record<string, unknown>, audit: audit as AuditTag };
-}
-
-function parseDeleteArgs(args: ReadonlyArray<unknown>): {
-  table: string;
-  pkValue: unknown;
-  audit: AuditTag;
-} {
-  const [table, pkValue, audit] = args;
-  if (typeof table !== 'string') throw validationErr('store.write.delete: table must be a string');
-  if (pkValue === undefined || pkValue === null) {
-    throw validationErr('store.write.delete: pkValue must be provided');
-  }
-  if (!audit || typeof audit !== 'object' || Array.isArray(audit)) {
-    throw validationErr('store.write.delete: audit must be a plain object');
-  }
-  return { table, pkValue, audit: audit as AuditTag };
-}
-
-/** Validate where object: must be non-empty, plain object; values must be string|number only. */
-function validateWherePredicate(
-  where: unknown,
-  context: string,
-): Record<string, string | number> {
-  if (!where || typeof where !== 'object' || Array.isArray(where)) {
-    throw validationErr(`store.write.${context}: where must be a plain object`);
-  }
-  const keys = Object.keys(where as object);
-  if (keys.length === 0) {
-    throw validationErr(
-      `store.write.${context}: where predicate must not be empty (blast-radius guard)`,
-    );
-  }
-  const typed = where as Record<string, unknown>;
-  for (const k of keys) {
-    const v = typed[k];
-    if (typeof v !== 'string' && typeof v !== 'number') {
-      throw validationErr(
-        `store.write.${context}: where value for column '${k}' must be string or number (got ${typeof v})`,
-      );
-    }
-  }
-  return typed as Record<string, string | number>;
-}
-
-function parseDeleteWhereArgs(args: ReadonlyArray<unknown>): {
-  table: string;
-  where: Record<string, string | number>;
-  audit: AuditTag;
-} {
-  const [table, whereRaw, audit] = args;
-  if (typeof table !== 'string') throw validationErr('store.write.deleteWhere: table must be a string');
-  const where = validateWherePredicate(whereRaw, 'deleteWhere');
-  if (!audit || typeof audit !== 'object' || Array.isArray(audit)) {
-    throw validationErr('store.write.deleteWhere: audit must be a plain object');
-  }
-  return { table, where, audit: audit as AuditTag };
-}
-
-function parseUpdateWhereArgs(args: ReadonlyArray<unknown>): {
-  table: string;
-  where: Record<string, string | number>;
-  patch: Record<string, unknown>;
-  audit: AuditTag;
-} {
-  const [table, whereRaw, patch, audit] = args;
-  if (typeof table !== 'string') throw validationErr('store.write.updateWhere: table must be a string');
-  const where = validateWherePredicate(whereRaw, 'updateWhere');
-  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
-    throw validationErr('store.write.updateWhere: patch must be a plain object');
-  }
-  if (!audit || typeof audit !== 'object' || Array.isArray(audit)) {
-    throw validationErr('store.write.updateWhere: audit must be a plain object');
-  }
-  return { table, where, patch: patch as Record<string, unknown>, audit: audit as AuditTag };
 }
 
 // ── Capability registration ───────────────────────────────────────────────────

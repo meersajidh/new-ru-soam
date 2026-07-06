@@ -90,7 +90,7 @@ Lane A and Lane B are independent up to the convergence point. Tier-1/1b tests d
 | A2 | ADR: view-kit / base-pkg module boundary | A1 | **yes (400s)** | ☐ Not started |
 | A2 | Extract primitives into owned boundary | A2 ADR | — | ☐ Not started |
 | A3 | Dev gallery route (`/dev/design-system`) | A2 | no | ☐ Not started |
-| B1 | Tier-1 pure-logic tests (fan-out) | B0 | no | ☐ Not started |
+| B1 | Tier-1 pure-logic tests (fan-out) | B0 | no | ◑ In progress — done: context-key `when-clause`, keybinding serialize (`chordFromEvent`/`isModifierEvent`), store.write predicate core (extracted → `store-write-validate.ts`). Remaining: migration-dedup, sync-merge, classification, cloud token math, attention/intake |
 | B2 | Tier-1b invariant-guard tests | B0 | no | ☐ Not started |
 | C | Tier-2 component/DOM tests | A2 + B0 | no | ☐ Not started |
 | — | Tier-3 E2E (Playwright + `_electron`) | — | tbd | ⏸ Deferred (separate track) |
@@ -112,6 +112,7 @@ Lane A and Lane B are independent up to the convergence point. Tier-1/1b tests d
 - **A2 is an ADR-gated architectural change** (new module boundary / trust-zone-adjacent). Do not extract before the ADR is written and accepted. Reconcile with O194 (base-pkg extraction) and O195/O196 (Layer-field sweep, brand rename) — the extraction may partially subsume or unblock those.
 - **Node-env only until convergence.** Introducing jsdom before A2 pulls in the exact heavy-mock friction this sequence is designed to avoid.
 - **Don't let Vitest and dogfood diverge on truth.** Tier-1/1b assert on pure functions (safe). Anything touching bridges/iframes/CSP stays dogfood/E2E — never fake it in a unit test and call the invariant "covered."
+- **B1 is mostly extract-then-test, not just test.** Discovered while landing B1: the high-value pure logic (store-predicate, migration-dedup, sync-merge, cloud token math) is embedded inside `registerCapability` handlers / service classes / bundle `.mjs`, not exported. Each unit needs a *behavior-preserving extraction* of its pure core into a dependency-free module first (no ADR — same package, not a boundary change), then a colocated test. `when-clause`/keybinding were the rare already-pure exceptions. Pattern established by `store-write-validate.ts` (extracted from `store-write-cap.ts`): move verbatim, keep error strings/codes identical, re-import into the cap, re-export any types external modules consumed. Verify: vitest + `pnpm compile` + existing node:test store suite all green.
 
 ---
 
