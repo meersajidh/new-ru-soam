@@ -90,7 +90,7 @@ Lane A and Lane B are independent up to the convergence point. Tier-1/1b tests d
 | A2 | ADR: view-kit / base-pkg module boundary | A1 | **yes (400s)** | ☐ Not started |
 | A2 | Extract primitives into owned boundary | A2 ADR | — | ☐ Not started |
 | A3 | Dev gallery route (`/dev/design-system`) | A2 | no | ☐ Not started |
-| B1 | Tier-1 pure-logic tests (fan-out) | B0 | no | ◑ In progress — done: `when-clause`, keybinding serialize, store.write predicate core (→ `store-write-validate.ts`), schedule `schedule-lib` (4 grid classes, test-only), migration-dedup union-find (extracted → `migration-dedup.mjs`; static-green, **dogfood pending** — fp-host change). Remaining: sync-merge (`.mjs`), cloud token math (thin), attention/intake |
+| B1 | Tier-1 pure-logic tests (fan-out) | B0 | no | ◑ In progress — done: `when-clause`, keybinding serialize, store.write predicate core (→ `store-write-validate.ts`), schedule `schedule-lib` (4 grid classes, test-only), migration-dedup union-find (→ `migration-dedup.mjs`; dogfood PASSED, committed), **sessions provider-sync core** (extracted → `sessions-sync.mjs`: deriveMeetingFields/collectParticipants/compositeKey/isOrphaned/buildReconcilePatch/isoToMs; 30 cases; **dogfood PASSED** — Sessions Sync ran 26 linked·1 reconciled·0 orphaned, no errors; awaiting commit). Remaining: cloud token math (thin), attention/intake |
 | B2 | Tier-1b invariant-guard tests | B0 | no | ☐ Not started |
 | C | Tier-2 component/DOM tests | A2 + B0 | no | ☐ Not started |
 | — | Tier-3 E2E (Playwright + `_electron`) | — | tbd | ⏸ Deferred (separate track) |

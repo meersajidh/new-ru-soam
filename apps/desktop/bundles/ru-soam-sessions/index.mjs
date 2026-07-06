@@ -7,6 +7,14 @@
 // writes. Row→record mapping is plain JS (no TypeScript, no platform imports
 // — only what ctx provides).
 
+import {
+  deriveMeetingFields,
+  collectParticipants,
+  compositeKey,
+  isOrphaned,
+  buildReconcilePatch,
+} from './sessions-sync.mjs';
+
 // ── Domain vocab (validate in host — ADR-506 §G) ─────────────────────────────
 
 const VALID_KINDS    = new Set(['intake', 'session', 'review', 'consult', 'other']);
@@ -42,13 +50,8 @@ function notFound(message) {
   return Object.assign(new Error(message), { code: 'cap.not_found' });
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function isoToMs(iso) {
-  if (!iso) return null;
-  const ms = new Date(iso).getTime();
-  return Number.isNaN(ms) ? null : ms;
-}
+// (pure helpers — isoToMs, deriveMeetingFields, collectParticipants, compositeKey,
+//  isOrphaned, buildReconcilePatch — live in ./sessions-sync.mjs)
 
 // ── Capability handler ────────────────────────────────────────────────────────
 
@@ -76,9 +79,8 @@ export function activate(ctx) {
     if (opts.kind !== undefined && !VALID_KINDS.has(opts.kind)) {
       throw new Error('sessions.meeting.linkEvent: invalid kind: ' + opts.kind);
     }
-    const eventId           = event.id ?? event.providerEventId;
-    const externalAccountId = event.externalAccountId ?? null;
-    const providerCalendarId = event.providerCalendarId ?? null;
+    const { eventId, externalAccountId, providerCalendarId, startsAt, endsAt, modality } =
+      deriveMeetingFields(event);
 
     // 1. Full triple lookup.
     const rows = await storeQuery.call('run', [
@@ -90,10 +92,6 @@ export function activate(ctx) {
         providerCalendarId,
       },
     ]);
-
-    const startsAt = isoToMs(event.start);
-    const endsAt = isoToMs(event.end);
-    const modality = event.meetingLink ? 'online' : 'in_person';
 
     if (rows.length === 0) {
       // 2. Legacy backfill: check for a bare-event-id row with NULL qualifiers.
@@ -166,20 +164,11 @@ export function activate(ctx) {
     // Reconcile — time snapshot + fill qualifiers if NULL; do NOT touch kind/status.
     const existing = rows[0];
     const now = Date.now();
-    const reconcilePatch = {
-      starts_at:  startsAt,
-      ends_at:    endsAt,
-      modality,
-      sync_state: 'linked',
-      updated_at: now,
-    };
-    // Fill qualifiers if the existing row had them as NULL (e.g. re-run after partial backfill).
-    if (existing.external_account_id == null && externalAccountId !== null) {
-      reconcilePatch.external_account_id = externalAccountId;
-    }
-    if (existing.provider_calendar_id == null && providerCalendarId !== null) {
-      reconcilePatch.provider_calendar_id = providerCalendarId;
-    }
+    const reconcilePatch = buildReconcilePatch(
+      existing,
+      { startsAt, endsAt, modality, externalAccountId, providerCalendarId },
+      now,
+    );
     await storeWrite.call('update', [
       'client_meeting',
       existing.id,
@@ -476,12 +465,6 @@ export function activate(ctx) {
           return { linked: 0, reconciled: 0, orphaned: 0 };
         }
 
-        // Composite key: "<externalAccountId>|<providerCalendarId>|<providerEventId>"
-        // Used for pulled-ids set + orphan comparison.
-        function compositeKey(extAcct, provCal, evId) {
-          return `${extAcct ?? ''}|${provCal ?? ''}|${evId}`;
-        }
-
         const pulledIds = new Set();
         // Track which (extAcct, provCal) pairs were actually pulled — calendars
         // that are de-selected or removed drop out of the aggregate; their linked
@@ -498,35 +481,7 @@ export function activate(ctx) {
           pulledCalendars.add(`${extAcct ?? ''}|${provCal ?? ''}`);
 
           // Collect participants: attendees (!self) + organizer (deduped by email).
-          const participantMap = new Map();
-
-          if (Array.isArray(event.attendees)) {
-            for (const a of event.attendees) {
-              if (a.self) continue;
-              const key = a.email || a.name || '';
-              if (key && !participantMap.has(key)) {
-                participantMap.set(key, { email: a.email, name: a.name });
-              }
-            }
-          }
-
-          if (event.organizer) {
-            // Include organizer unless their email matches an attendee marked self.
-            const selfEmail = Array.isArray(event.attendees)
-              ? (event.attendees.find((a) => a.self)?.email ?? null)
-              : null;
-            const orgEmail = event.organizer.email;
-            if (!orgEmail || orgEmail !== selfEmail) {
-              const key = orgEmail || event.organizer.name || '';
-              if (key && !participantMap.has(key)) {
-                participantMap.set(key, { email: orgEmail, name: event.organizer.name });
-              }
-            }
-          }
-
-          const participants = Array.from(participantMap.values()).filter(
-            (p) => p.email || p.name,
-          );
+          const participants = collectParticipants(event);
 
           // Resolve each participant.
           const resolvedClientIds = new Set();
@@ -569,16 +524,7 @@ export function activate(ctx) {
         ]);
         let orphaned = 0;
         for (const row of linkedRows) {
-          const rowCalKey = `${row.external_account_id ?? ''}|${row.provider_calendar_id ?? ''}`;
-          // If this row's calendar wasn't in the aggregate pull, skip — not orphaned.
-          if (!pulledCalendars.has(rowCalKey)) continue;
-
-          const rowComposite = compositeKey(
-            row.external_account_id,
-            row.provider_calendar_id,
-            row.provider_event_id,
-          );
-          if (!pulledIds.has(rowComposite)) {
+          if (isOrphaned(row, pulledIds, pulledCalendars)) {
             await storeWrite.call('update', [
               'client_meeting',
               row.id,
