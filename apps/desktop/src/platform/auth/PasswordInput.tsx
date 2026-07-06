@@ -2,8 +2,7 @@
 
 import './PasswordInput.css';
 import { useState } from 'react';
-import { Icon } from '../icons/Icon';
-import { TextInput } from '../ui/TextInput';
+import { Icon, TextInput } from '@basebench/ui';
 
 interface PasswordInputProps {
   id?: string;

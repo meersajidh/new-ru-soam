@@ -15,10 +15,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePrefsCapability } from '../../platform/data/use-capability';
-import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import { Button } from '../../platform/ui/Button';
-import { TextInput } from '../../platform/ui/TextInput';
-import { FormField } from '../../platform/ui/FormField';
+import { useModalKeys, Button, TextInput, FormField } from '@basebench/ui';
 import './UnlockGate.css';
 
 interface Props {

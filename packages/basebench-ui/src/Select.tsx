@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useId, useRef, useState } from 'react';
-import { Icon } from '../icons/Icon';
+import { Icon } from './Icon';
 import { usePopover } from './use-popover';
 import Popover from './Popover';
 import './Select.css';

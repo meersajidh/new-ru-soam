@@ -1,4 +1,4 @@
-import { Icon } from '../../platform/icons/Icon';
+import { Icon } from '@basebench/ui';
 import type { Notification, Severity } from '../../platform/notification/notification-service';
 
 export function SeverityIcon({ severity, size = 14 }: { severity: Severity; size?: number }) {

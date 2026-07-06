@@ -42,9 +42,15 @@ The package is created under the **final `@basebench/*` scope**, not `@ru-soam/u
 
 ### D3 — Initial extraction set (shell)
 
-Extract into `@basebench/ui` the A1 §2a set (all past rule-of-three, domain-free, token-only): `Button`, `FormField`, `TextInput`, `Dialog`, `Popover` + `usePopover`, `ContextMenu`, the **font** `<Icon>`, `ResizeHandle`, and utilities `cn()` + `useModalKeys`. Behavior-preserving move: keep public APIs and class names identical; rewrite importers to the package specifier.
+Extract into `@basebench/ui` the **13 clean primitives** (domain-free, token-only, no package→app back-edge): `Button`, `FormField`, `TextInput`, `Dialog`, `PageShell`, `Popover` + `usePopover`, `Select`, the **font** `<Icon>` + `icon-registry`, and utilities `cn()` + `useModalKeys`. Behavior-preserving move: keep public APIs and class names identical; rewrite importers to the package specifier.
 
-Also move the A1 §2b pair `PageShell` and `Select`. These have a single consumer today (below rule-of-three), but they are **generic and domain-free** (`Select` is built on `Popover`, which is already moving), reuse is **anticipated soon**, and splitting near-identical kit-shaped components across two homes is a worse readability cost than a slightly larger v1. Deliberate, documented deviation from strict rule-of-three — justified by *generic + imminent*, not applied to speculative one-offs generally. Screens and one-offs (A1 §2d/§3c) never enter either home.
+`PageShell` + `Select` are §2b single-consumer today but **generic and domain-free** (`Select` builds on `Popover`, already moving), reuse anticipated soon — deliberate documented deviation from strict rule-of-three (generic + imminent, not a general speculative-extraction license). Screens and one-offs (A1 §2d/§3c) never enter either home.
+
+**Amendment (2026-07-06, discovered in S1 execution):** two of the original 15 named primitives back-depend on app DI and are carved out of the clean move:
+- **`ResizeHandle` → deferred to slice S1b, committed to a split.** It consumes `LayoutService` + the `prefs` capability (3 Part consumers). The drag mechanics are a genuine generic primitive, but the service/persistence binding is app composition. Split into a pure `<ResizeHandle onResize min max>` in `@basebench/ui` + an app-side wrapper (`LayoutResizeHandle`) that binds `LayoutService`/prefs. It is a **refactor, not a move** — its drag behavior (incl. the drag-shield gotcha) + prefs persistence must be **dogfooded live**, so it earns its own slice rather than muddying S1's behavior-preserving mechanics proof.
+- **`ContextMenu` → deferred, reclassified as menu-service-internal (NOT a shared primitive).** Single consumer (`MenuHost`); needs `IMenuService`/`ResolvedMenuItem` types back from `menu-service` (stays in app). Under the §3 three-tier taxonomy it fails "Primitive" (cannot stand without the menu contract) — it is the render-half of the menu *service*, i.e. Screen/service-tier. A1 mis-slotted it. Stays in app beside `menu-service`; revisit only on a 2nd render-consumer **or** when `menu-service` itself extracts to base (contract types go base too, and `ContextMenu` rides along cleanly). Dragging the menu contract into the UI kit for one caller = net-negative.
+
+Net S1 = the 13 clean primitives; boundary stays clean with zero back-edge.
 
 ### D4 — Two-Icon contract is permanent
 

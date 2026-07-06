@@ -29,17 +29,12 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon, useModalKeys, Button, TextInput, FormField, PageShell } from '@basebench/ui';
 import { ProgressRail } from './-keys-components';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
 import GoogleMark from '../../platform/auth/GoogleMark';
 import Wordmark from '../../workbench/parts/Wordmark';
-import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import { Button } from '../../platform/ui/Button';
-import { TextInput } from '../../platform/ui/TextInput';
-import { FormField } from '../../platform/ui/FormField';
-import { PageShell } from '../../platform/ui/PageShell';
 import './keys.css';
 
 export const Route = createFileRoute('/setup/keys')({

@@ -14,11 +14,9 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon, usePopover, Popover } from '@basebench/ui';
 import type { StatusBarEntry } from '../../platform/statusbar/statusbar-service';
 import type { WorkspaceMeta } from '../../../electron/shared/lock-protocol';
-import { usePopover } from '../../platform/popover/use-popover';
-import Popover from '../../platform/popover/Popover';
 import './WorkspaceSwitcher.css';
 
 interface WorkspaceSwitcherProps {

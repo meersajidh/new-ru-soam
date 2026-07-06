@@ -52,6 +52,7 @@
     "vite-plugin-svgr": "^5.2.0"
   },
   "dependencies": {
+    "@basebench/ui": "workspace:*",
     "@fontsource-variable/inter-tight": "^5.2.7",
     "@fontsource-variable/source-serif-4": "^5.2.9",
     "@fontsource/ibm-plex-mono": "^5.2.7",

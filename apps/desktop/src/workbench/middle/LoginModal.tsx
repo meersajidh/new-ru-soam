@@ -13,16 +13,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon, useModalKeys, Button, FormField } from '@basebench/ui';
 import { zxcvbn } from '@zxcvbn-ts/core';
 import { useContextKey, useService } from '../../platform/services/hooks';
 import { ProductConfigServiceId } from '../../platform/services/ids';
 import type { UnlockResult, RecoveryUnlockResult, WorkspaceMeta } from '../../../electron/shared/lock-protocol';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
-import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import { Button } from '../../platform/ui/Button';
-import { FormField } from '../../platform/ui/FormField';
 import BridgeMark from '../parts/BridgeMark';
 import Wordmark from '../parts/Wordmark';
 import AccountSelect from './AccountSelect';

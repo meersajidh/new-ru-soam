@@ -13,14 +13,11 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon, useModalKeys, Button, FormField } from '@basebench/ui';
 import { useContextKey } from '../../platform/services/hooks';
 import type { UnlockResult, RecoveryUnlockResult } from '../../../electron/shared/lock-protocol';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
-import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import { Button } from '../../platform/ui/Button';
-import { FormField } from '../../platform/ui/FormField';
 import './UnlockGate.css';
 
 type GateMode = 'passphrase' | 'recovery' | 'reset-passphrase';

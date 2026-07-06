@@ -13,10 +13,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon, usePopover, Popover } from '@basebench/ui';
 import { useContextKey } from '../../platform/services/hooks';
-import { usePopover } from '../../platform/popover/use-popover';
-import Popover from '../../platform/popover/Popover';
 import ChangePassphraseDialog from './ChangePassphraseDialog';
 import './UserAvatar.css';
 

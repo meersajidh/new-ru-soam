@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon, usePopover, Popover } from '@basebench/ui';
 import { useContextKey, useService } from '../../platform/services/hooks';
 import {
   ActivityBarDensityServiceId,
@@ -33,8 +33,6 @@ import type { DisplaySettings } from '../../platform/view-mode/schedule-display-
 import type { MeetingProvider } from '../../platform/view-mode/meeting-providers-settings';
 import type { IdleLockSettings } from '../../platform/security/idle-lock-settings';
 import type { FontScale } from '../../platform/font/font-scale-service';
-import { usePopover } from '../../platform/popover/use-popover';
-import Popover from '../../platform/popover/Popover';
 import DeleteWorkspaceDialog from './DeleteWorkspaceDialog';
 import './SettingsMenu.css';
 

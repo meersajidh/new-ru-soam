@@ -1,6 +1,6 @@
 import './ActivityBar.css';
 import { useState, useEffect } from 'react';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon } from '@basebench/ui';
 import SettingsMenu from './SettingsMenu';
 import UserAvatar from './UserAvatar';
 import {

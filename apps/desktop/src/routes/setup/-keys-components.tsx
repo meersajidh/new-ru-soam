@@ -6,7 +6,7 @@
  */
 
 import './-keys-components.css';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon } from '@basebench/ui';
 import { STEPS, STEP_HEADLINES } from './-keys-constants';
 
 export { STEPS, STEP_HEADLINES };

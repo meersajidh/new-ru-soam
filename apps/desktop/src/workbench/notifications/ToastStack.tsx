@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon } from '@basebench/ui';
 import { useService, useNotifications } from '../../platform/services/hooks';
 import { NotificationServiceId } from '../../platform/services/ids';
 import { SeverityIcon } from './NotificationItem';

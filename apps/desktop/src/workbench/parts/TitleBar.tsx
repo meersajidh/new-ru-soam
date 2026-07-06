@@ -1,6 +1,6 @@
 import './TitleBar.css';
 import { useState, useEffect, useRef } from 'react';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon } from '@basebench/ui';
 import type { SoamCapabilityProxy } from '../../../electron/preload/soam';
 import { useService, useLayoutVisible } from '../../platform/services/hooks';
 import { CommandServiceId, ContextKeyServiceId, MenuServiceId } from '../../platform/services/ids';

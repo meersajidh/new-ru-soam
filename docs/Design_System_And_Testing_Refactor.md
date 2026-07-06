@@ -132,6 +132,12 @@ Lane A and Lane B are independent up to the convergence point. Tier-1/1b tests d
 
 ---
 
+## 6b. Queued follow-up
+
+- **O194 scoping (post-refactor).** After A2 + A3 land, scope + plan the full O194 base-pkg extraction (the mass move of the base layer out of `apps/desktop/src` into `@basebench/*`). `@basebench/ui` (A2/S1) is the first proving slice; O194 rung-2 is the rest. Deferred deliberately until this refactor completes — do not start mid-A2. (User directive 2026-07-06.)
+
+---
+
 ## 7. Related
 
 - O194 — extract base pkg (`basebench`) — Lane A2 reconciles with this.

@@ -16,8 +16,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import { Dialog } from '../../platform/ui/Dialog';
+import { useModalKeys, Dialog } from '@basebench/ui';
 import { useContextKey, useService } from '../../platform/services/hooks';
 import { ContextKeyServiceId } from '../../platform/services/ids';
 import { usePrefsCapability } from '../../platform/data/use-capability';

@@ -6,7 +6,7 @@
  */
 
 import type { WorkspaceMeta } from '../../../electron/shared/lock-protocol';
-import Select from '../../platform/popover/Select';
+import { Select } from '@basebench/ui';
 import './AccountSelect.css';
 
 interface AccountSelectProps {

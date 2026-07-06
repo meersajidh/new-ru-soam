@@ -1,5 +1,5 @@
 import './StatusBar.css';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon } from '@basebench/ui';
 import { useStatusBarEntries, useService } from '../../platform/services/hooks';
 import { CommandServiceId } from '../../platform/services/ids';
 import type { StatusBarEntry } from '../../platform/statusbar/statusbar-service';

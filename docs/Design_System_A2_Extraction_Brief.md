@@ -4,19 +4,28 @@
 **Authority:** `docs/ADRs/420-design-system-component-boundary.md` (the decisions), `docs/Guides/design-system.md` (the discipline), `docs/Design_System_Inventory.md` (the file-level map — §2a/§2b/§3b).
 **Note for next session:** this is a multi-step, cross-cutting move with a mass import rewrite + a new workspace package + native/vite/tsconfig wiring — do NOT one-shot it. Land it in the 4 slices below, each independently green (`pnpm --filter ru-soam compile && lint`), each its own commit. Slice 1 (shell pkg) and Slice 4 (view backfill) are independent — either can go first.
 
+**Division of labor (delegation rule — see `[[feedback_implementer_no_run_no_git]]`):** a delegated implementer does **static gates only** (compile + lint), leaves the tree **uncommitted**, and does **NOT run the app / CDP / dogfood** and **NOT git**. The "dogfood live" success bars in each slice below are the *slice's* exit criteria — but the **main thread** runs that live/CDP verification after the implementer returns green static gates, and the **user** owns git. Don't brief an implementer to run `just dev-desktop` or commit.
+
 ---
 
-## Slice 1 — Create `@basebench/ui` + move the shell kit
+## Slice 1 — Create `@basebench/ui` + move the 13 clean primitives
 
-**Goal:** stand up `packages/basebench-ui`, move the proven-shared shell primitives into it, rewrite importers.
+> **AMENDED 2026-07-06 (S1 execution).** The original 15-item scope included two
+> primitives that back-depend on app DI — `ResizeHandle` (LayoutService + prefs
+> cap) and `ContextMenu` (menu-service contract types). Moving either as-is =
+> a package→app back-edge = the exact one-way-dep violation this slice proves
+> clean. **Carved out:** `ResizeHandle` → new **S1b** (split, not move);
+> `ContextMenu` → deferred + reclassified as menu-service-internal (see ADR-420
+> D3 Amendment). S1 = the **13 clean primitives** below.
+
+**Goal:** stand up `packages/basebench-ui`, move the 13 clean shell primitives, rewrite importers. Keep S1 a pure behavior-preserving move — no refactors.
 
 **Scope (move, behavior-preserving — keep public APIs + class names + `.css` identical):**
 - From `apps/desktop/src/platform/ui/`: `Button`, `TextInput`, `Dialog`, `FormField`, `PageShell`, `cn` (all + their `.css`).
 - From `apps/desktop/src/platform/popover/`: `Popover`, `use-popover`, `Select` (+ `.css`).
-- From `apps/desktop/src/platform/menu/`: `ContextMenu` (+ `.css`). Leave `menu-service`/`MenuHost` in `platform` (DI-coupled, screen-tier) — but `ContextMenu` the presentational primitive moves.
-- From `apps/desktop/src/platform/icons/`: the **font** `Icon` (`Icon.tsx`). `icon-registry.ts` — evaluate: if it's the glyph/name registry it likely moves with `Icon`; if DI-wired, split.
-- From `apps/desktop/src/workbench/middle/`: `ResizeHandle`.
+- From `apps/desktop/src/platform/icons/`: the **font** `Icon` (`Icon.tsx`) + `icon-registry.ts` (glyph/name data — confirmed clean, moves with `Icon`).
 - From `apps/desktop/src/platform/hooks/`: `useModalKeys`.
+- **NOT in S1:** `ResizeHandle` (→ S1b), `ContextMenu` (→ deferred, stays with `menu-service`).
 
 **Package setup (this is the O194-mechanics-proving part — do it carefully, it's the template for the eventual mass move):**
 - `packages/basebench-ui/package.json` — name `@basebench/ui`, `"type":"module"`, `exports` map, `workspace:*` deps as needed (React peer).
@@ -37,11 +46,26 @@
 
 ---
 
+## Slice 1b — ResizeHandle split (pure primitive + app wrapper)
+
+**Goal:** move the generic drag primitive into `@basebench/ui` while leaving the `LayoutService`/prefs binding in app. A refactor, not a straight move — hence its own slice + dogfood gate.
+
+**Scope:**
+- New pure `<ResizeHandle>` in `@basebench/ui`: props-only (`onResize`, `min`, `max`, orientation, etc.). No `useService`, no `window.soam`, no `LayoutService` import. Owns the pointer handling + the drag-shield (full-viewport transparent overlay on mousedown — the documented gotcha) + clamp math.
+- App-side wrapper `LayoutResizeHandle` (stays in `apps/desktop/src`, near `layout`/the Parts): binds `LayoutService` + the `prefs` capability, translates to the pure primitive's `onResize`/`min`/`max`.
+- Rewrite the 3 Part consumers (AuxSideBar, PrimarySideBar, Panel per A1) → the app wrapper.
+
+**Success:** `compile` + `lint` green; **dogfood live** — resize each of the 3 Parts, confirm clamp behavior, drag-over-iframe still works (drag-shield), and sizes **persist across restart** (prefs round-trip). Behavior identical to pre-split.
+
+**Watch out:** the drag-shield + prefs persistence are exactly what compile won't catch — this slice is not done until dogfooded. Full `just dev-desktop` restart (HMR won't swap the LayoutService singleton).
+
+---
+
 ## Slice 2 — Boundary-import lint rule (D5.1)
 
 **Goal:** enforce that shell primitives import only from `@basebench/ui`; no reaching into package internals; no cross-bundle `view-src` imports; no `app://`↔view-kit crossing.
 
-**Scope:** extend the existing ADR-106 one-way-dependency import-lint (`apps/desktop/eslint.config.js` — find the rule that enforces base/domain today). Add: forbid deep imports past `@basebench/ui` / `@ru-soam/view-kit` public entry; forbid `platform/ui|popover|menu` relative paths now that the canonical home is the package.
+**Scope:** extend the existing ADR-106 one-way-dependency import-lint (`apps/desktop/eslint.config.js` — find the rule that enforces base/domain today). Add: forbid deep imports past `@basebench/ui` / `@ru-soam/view-kit` public entry; forbid relative-path imports to the **moved** primitives (their canonical home is now the package). Do NOT forbid `platform/menu/ContextMenu` — it stays in app (S1 carve-out); `MenuHost` importing it relatively is correct.
 
 **Success:** lint fails on a deliberately-wrong import (test it), passes clean on the rewritten tree.
 

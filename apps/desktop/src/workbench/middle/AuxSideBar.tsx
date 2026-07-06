@@ -10,7 +10,7 @@ import {
 } from '../../platform/services/hooks';
 import { ContextKeyServiceId, LayoutServiceId } from '../../platform/services/ids';
 import { SlotId } from '../../platform/layout/slots';
-import { Icon } from '../../platform/icons/Icon';
+import { Icon } from '@basebench/ui';
 import BundleViewIframe from './BundleViewIframe';
 import ResizeHandle from './ResizeHandle';
 

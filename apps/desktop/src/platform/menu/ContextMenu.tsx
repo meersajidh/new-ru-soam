@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../icons/Icon';
+import { Icon, usePopover } from '@basebench/ui';
 import type { IMenuService, ResolvedMenuItem } from './menu-service';
-import { usePopover } from '../popover/use-popover';
 import './ContextMenu.css';
 
 interface Props {

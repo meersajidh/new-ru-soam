@@ -13,11 +13,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import { Dialog } from '../../platform/ui/Dialog';
-import { Button } from '../../platform/ui/Button';
-import { TextInput } from '../../platform/ui/TextInput';
-import { FormField } from '../../platform/ui/FormField';
+import { useModalKeys, Dialog, Button, TextInput, FormField } from '@basebench/ui';
 import { useService } from '../../platform/services/hooks';
 import { ProductConfigServiceId } from '../../platform/services/ids';
 import './DeleteWorkspaceDialog.css';

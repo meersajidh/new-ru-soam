@@ -13,11 +13,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import { useModalKeys } from '../../platform/hooks/useModalKeys';
-import { Dialog } from '../../platform/ui/Dialog';
-import { Button } from '../../platform/ui/Button';
-import { TextInput } from '../../platform/ui/TextInput';
-import { FormField } from '../../platform/ui/FormField';
+import { useModalKeys, Dialog, Button, TextInput, FormField } from '@basebench/ui';
 
 interface Props {
   onClose: () => void;
