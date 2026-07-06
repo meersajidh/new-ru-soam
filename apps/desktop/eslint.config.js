@@ -60,6 +60,50 @@ const DOMAIN_BOUNDARY_RESTRICTED_IMPORTS = {
   ],
 };
 
+// ADR-420: design-system boundary — each render surface imports only its own kit.
+// Shell (app://, src/**) uses @basebench/ui; view (view://, bundles/*/view-src)
+// uses @ru-soam/view-kit. No deep imports past a package's public root, and no
+// cross-surface kit import (the two kits are permanently separate — ADR-420 D4).
+// NOTE (deferred): cross-bundle view-src imports (one bundle reaching into
+// another bundle's view-src) are not yet path-restricted here — follow-up.
+const DESIGN_SYSTEM_SHELL_RESTRICTED = {
+  paths: [
+    {
+      name: '@ru-soam/view-kit',
+      message: 'ADR-420: @ru-soam/view-kit is the view:// (iframe) kit; shell (app://) code uses @basebench/ui.',
+    },
+  ],
+  patterns: [
+    {
+      group: ['@basebench/ui/*'],
+      message: 'ADR-420: import @basebench/ui from its public root, not internals.',
+    },
+    {
+      group: ['@ru-soam/view-kit/*'],
+      message: 'ADR-420: @ru-soam/view-kit is the view kit; shell (app://) code uses @basebench/ui.',
+    },
+  ],
+};
+
+const DESIGN_SYSTEM_VIEW_RESTRICTED = {
+  paths: [
+    {
+      name: '@basebench/ui',
+      message: 'ADR-420: @basebench/ui is the shell (app://) kit; view (view://) code uses @ru-soam/view-kit.',
+    },
+  ],
+  patterns: [
+    {
+      group: ['@basebench/ui/*'],
+      message: 'ADR-420: @basebench/ui is the shell kit; view (view://) code uses @ru-soam/view-kit.',
+    },
+    {
+      group: ['@ru-soam/view-kit/src/*'],
+      message: 'ADR-420: import @ru-soam/view-kit from its public root (or /theme.css), not src internals.',
+    },
+  ],
+};
+
 export default defineConfig([
   globalIgnores(['dist']),
   {
@@ -80,7 +124,13 @@ export default defineConfig([
   {
     files: ['src/**/*.{ts,tsx}'],
     rules: {
-      'no-restricted-imports': ['error', RENDERER_RESTRICTED_IMPORTS],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [...RENDERER_RESTRICTED_IMPORTS.paths, ...DESIGN_SYSTEM_SHELL_RESTRICTED.paths],
+          patterns: [...RENDERER_RESTRICTED_IMPORTS.patterns, ...DESIGN_SYSTEM_SHELL_RESTRICTED.patterns],
+        },
+      ],
       'no-restricted-syntax': ['error', ...RENDERER_RESTRICTED_SYNTAX],
     },
   },
@@ -95,13 +145,27 @@ export default defineConfig([
       'no-restricted-imports': [
         'error',
         {
-          paths: RENDERER_RESTRICTED_IMPORTS.paths,
+          paths: [...RENDERER_RESTRICTED_IMPORTS.paths, ...DESIGN_SYSTEM_SHELL_RESTRICTED.paths],
           patterns: [
             ...RENDERER_RESTRICTED_IMPORTS.patterns,
             ...DOMAIN_BOUNDARY_RESTRICTED_IMPORTS.patterns,
+            ...DESIGN_SYSTEM_SHELL_RESTRICTED.patterns,
           ],
         },
       ],
+    },
+  },
+  // ADR-420: view-surface kit boundary — bundle view-src (view://) uses
+  // @ru-soam/view-kit and must not reach the shell kit @basebench/ui.
+  // Also (S3): no raw <svg> in view-src — use <Icon> from @ru-soam/view-kit.
+  {
+    files: ['bundles/*/view-src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', DESIGN_SYSTEM_VIEW_RESTRICTED],
+      'no-restricted-syntax': ['error', {
+        selector: "JSXOpeningElement[name.name='svg']",
+        message: 'ADR-420: no inline <svg> in view-src — use <Icon> from @ru-soam/view-kit. Brand logos / bespoke markers may opt out with an eslint-disable-next-line no-restricted-syntax and a reason.',
+      }],
     },
   },
 ]);
