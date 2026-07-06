@@ -117,6 +117,9 @@
   `@reference` target, BEM naming, review checklist) live in
   `docs/Guides/styling-system.md`. Follow it.
 - Architectural changes to the styling system require an ADR.
+- Component/design-system discipline (3-tier taxonomy, rule-of-three promotion,
+  gallery route, no-sprawl): `docs/Guides/design-system.md`. Read before building
+  any new view or Activity.
 
 ---
 
