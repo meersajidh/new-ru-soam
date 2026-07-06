@@ -91,7 +91,7 @@ Lane A and Lane B are independent up to the convergence point. Tier-1/1b tests d
 | A2 | Extract primitives into owned boundary | A2 ADR | — | ☐ Not started |
 | A3 | Dev gallery route (`/dev/design-system`) | A2 | no | ☐ Not started |
 | B1 | Tier-1 pure-logic tests (fan-out) | B0 | no | ☑ Done — units: `when-clause`, keybinding serialize, store.write predicate core (`store-write-validate.ts`), schedule `schedule-lib` (4 grid classes), migration-dedup union-find (`migration-dedup.mjs`), sessions provider-sync core (`sessions-sync.mjs`: derive/collect/composite/orphan/reconcile), cloud rotation-delay clamp (`session-rotation.ts`), Practice attention/intake read-derivation (`attention-intake.mjs`: deriveObligations/mapIntakeCompleteness/deriveDisplayName). All dogfood-PASSED where a live path exists (cloud rotation = pure extraction, path PARKED). 105 vitest cases across 8 files; compile + lint green |
-| B2 | Tier-1b invariant-guard tests | B0 | no | ☐ Not started |
+| B2 | Tier-1b invariant-guard tests | B0 | no | ☑ Done — real-gate guards: registry PHI-by-trustClass + CQRS-kind + PHI-lock (`capability/registry.test.ts`, drives real `invokeCapability`); identity-client wire shape — account_id never client-asserted + telemetry events PHI-free (`cloud/identity-client.test.ts`, stubbed fetch); telemetry PHI-free construction (`cloud/telemetry-event.ts` extracted from `emit()` + `telemetry-event.test.ts`). trustClass-not-self-declared + keys-Main-only = covered-by-construction (see note). 23 cases; 128 vitest total; compile + lint green |
 | C | Tier-2 component/DOM tests | A2 + B0 | no | ☐ Not started |
 | — | Tier-3 E2E (Playwright + `_electron`) | — | tbd | ⏸ Deferred (separate track) |
 
@@ -103,6 +103,22 @@ Lane A and Lane B are independent up to the convergence point. Tier-1/1b tests d
 > extraction first. `when-clause` is a pure, dependency-free, already-exported
 > unit and is itself on the B1 list (context-key expr eval). Migration-dedup
 > extraction+test moves to B1, where the extraction is appropriate anyway.
+
+> **B2 covered-by-construction note.** Two of the four named B2 invariants are
+> guaranteed structurally, not by a runtime unit test — encoding them as a fake
+> unit test would assert the mock, not the invariant (see §6 "don't fake it"):
+> - **trustClass platform-assigned, never self-declared (ADR-418).** The host→Main
+>   wire type `host.consume.invoke` carries `bundleId` only — there is no
+>   trustClass field for a host to send (`shared/host-protocol.ts:127`). Main
+>   resolves trustClass from its own `activated`-bundle record
+>   (`fp-host/manager.ts` `handleConsumeRequest`). `registry.test.ts` proves the
+>   gate trusts only the caller identity Main supplies (a third-party caller
+>   cannot smuggle a first-party claim through args).
+> - **keys / ciphertext Main-only (ADR-301/506).** Enforced by the residency
+>   split (PHI tables in the KEK-gated protected store) + the store-write
+>   predicate/ownership gate (`store-write-validate.test.ts`, B1). The crypto /
+>   KEK-at-rest layer is cross-process real-Electron — it belongs to the Tier-3
+>   E2E track, not a Vitest unit.
 
 ---
 

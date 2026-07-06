@@ -21,6 +21,7 @@ import { app, net } from 'electron';
 import { getDeviceId } from './device-id.js';
 import { postEvents, CloudAuthError, CloudOfflineError } from './identity-client.js';
 import type { TelemetryEvent } from './identity-client.js';
+import { buildTelemetryEvent } from './telemetry-event.js';
 import { localStoreManager } from '../local-store/index.js';
 
 export type TelemetryMode = 'off' | 'online-only' | 'on';
@@ -64,11 +65,7 @@ class TelemetryService {
       const m = this.mode();
       if (m === 'off') return;
 
-      const ev: TelemetryEvent = {
-        event_type: eventType,
-        device_id: getDeviceId(),
-        app_version: app.getVersion(),
-      };
+      const ev: TelemetryEvent = buildTelemetryEvent(eventType, getDeviceId(), app.getVersion());
 
       if (!token) {
         // No token to authenticate — queue if durable, else drop.
