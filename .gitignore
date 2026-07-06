@@ -79,3 +79,16 @@ apps/desktop/release-notes-*.md
 .pi/
 .agents/
 practice-proto-handoff/
+
+# design-sync (claude.ai/design) — staged converter + build output are
+# regenerated from the skill; only .design-sync/{config.json,NOTES.md,
+# conventions.md,previews/,overrides/,entry-src/} are committed.
+.ds-sync/
+ds-bundle/
+.design-sync
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+# Dev-session app screenshots for claude.ai/design reference prompts —
+# may contain real personal calendar data from the dev account; never commit.
+.design-sync/app-screens/
