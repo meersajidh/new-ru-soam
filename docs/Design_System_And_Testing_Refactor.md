@@ -90,7 +90,7 @@ Lane A and Lane B are independent up to the convergence point. Tier-1/1b tests d
 | A2 | ADR: view-kit / base-pkg module boundary | A1 | **yes (400s)** | ☐ Not started |
 | A2 | Extract primitives into owned boundary | A2 ADR | — | ☐ Not started |
 | A3 | Dev gallery route (`/dev/design-system`) | A2 | no | ☐ Not started |
-| B1 | Tier-1 pure-logic tests (fan-out) | B0 | no | ◑ In progress — done: context-key `when-clause`, keybinding serialize (`chordFromEvent`/`isModifierEvent`), store.write predicate core (extracted → `store-write-validate.ts`). Remaining: migration-dedup, sync-merge, classification, cloud token math, attention/intake |
+| B1 | Tier-1 pure-logic tests (fan-out) | B0 | no | ◑ In progress — done: context-key `when-clause`, keybinding serialize, store.write predicate core (extracted → `store-write-validate.ts`), schedule `schedule-lib` (4 grid classes + date/format helpers — already pure, test-only). Remaining: migration-dedup, sync-merge, cloud token math (thin — one clamp), attention/intake |
 | B2 | Tier-1b invariant-guard tests | B0 | no | ☐ Not started |
 | C | Tier-2 component/DOM tests | A2 + B0 | no | ☐ Not started |
 | — | Tier-3 E2E (Playwright + `_electron`) | — | tbd | ⏸ Deferred (separate track) |
