@@ -49,18 +49,7 @@ import {
   CloudAuthError,
 } from './identity-client.js';
 import { telemetryService } from './telemetry.js';
-
-/**
- * Minimum delay before proactive rotation fires, even when expiresIn is very short.
- * Prevents rapid-fire retries on tokens that expire in < 60 s (unusual but safe).
- */
-const MIN_ROTATION_DELAY_MS = 30_000;
-
-/**
- * How far before expiry to rotate (seconds). Fires at expiresIn - ROTATION_LEAD_SEC.
- * Server access JWTs are currently 15 min (900 s); we rotate at 840 s = 60 s before expiry.
- */
-const ROTATION_LEAD_SEC = 60;
+import { rotationDelayMs } from './session-rotation.js';
 
 /**
  * Retry delay on CloudOfflineError during proactive rotation (60 s).
@@ -317,7 +306,7 @@ export class CloudSessionService {
    */
   private scheduleRotation(expiresInSec: number): void {
     this.stopRotation();
-    const delayMs = Math.max((expiresInSec - ROTATION_LEAD_SEC) * 1000, MIN_ROTATION_DELAY_MS);
+    const delayMs = rotationDelayMs(expiresInSec);
     const timer = setTimeout(() => {
       this.rotateNow();
     }, delayMs);
