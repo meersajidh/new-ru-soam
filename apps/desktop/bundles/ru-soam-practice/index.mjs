@@ -10,6 +10,10 @@
 // eraseSubject@1.0 (O490) handles the patient_id cascade across all bundles.
 // No per-bundle table list needed here — the base cap PRAGMA-checks each table.
 
+// Pure duplicate-clustering core, extracted for unit testing (O517 B1). Sibling
+// .mjs in this bundle dir — loaded as raw ESM by the fp-host, no build step.
+import { clusterDuplicates } from './migration-dedup.mjs';
+
 // ── Lifecycle stage definitions (static domain data, no SQL) ─────────────────
 // Copied from electron/main/domain/lifecycle-stages.ts — same values, no import.
 
@@ -1844,167 +1848,10 @@ export function activate(ctx) {
           emailGroupMap = {};
         }
 
-        const candidates = cached.candidates;
-        const n = candidates.length;
-
-        if (n < 2) {
-          return { clusters: [], cached: true };
-        }
-
-        // ── Union-find with contact-edge tracking ─────────────────────────────
-        const parent = Array.from({ length: n }, (_, i) => i);
-        const ufRank = new Array(n).fill(0);
-        const hasContactEdge = new Array(n).fill(false);
-
-        function ufFind(x) {
-          while (parent[x] !== x) {
-            parent[x] = parent[parent[x]]; // path halving
-            x = parent[x];
-          }
-          return x;
-        }
-
-        function ufUnion(i, j, isContact) {
-          const ri = ufFind(i);
-          const rj = ufFind(j);
-          if (ri === rj) {
-            if (isContact) hasContactEdge[ri] = true;
-            return;
-          }
-          let newRoot;
-          if (ufRank[ri] < ufRank[rj]) {
-            parent[ri] = rj;
-            newRoot = rj;
-          } else if (ufRank[ri] > ufRank[rj]) {
-            parent[rj] = ri;
-            newRoot = ri;
-          } else {
-            parent[rj] = ri;
-            ufRank[ri]++;
-            newRoot = ri;
-          }
-          // Propagate contact-edge flag to the new root.
-          hasContactEdge[newRoot] = isContact || hasContactEdge[ri] || hasContactEdge[rj];
-        }
-
-        // ── Anti-signal: build forbidden pairs (shared event ref → different people) ──
-        // Two candidates co-attending the same event are never the same person.
-        const eventToIdx = new Map(); // eventRef → Set<candidateIndex>
-        for (let i = 0; i < n; i++) {
-          for (const ref of (candidates[i].eventRefs || [])) {
-            if (!eventToIdx.has(ref)) eventToIdx.set(ref, new Set());
-            eventToIdx.get(ref).add(i);
-          }
-        }
-        const forbidden = new Set(); // 'lo,hi' strings
-        for (const [, idxSet] of eventToIdx) {
-          const idxArr = [...idxSet];
-          for (let a = 0; a < idxArr.length; a++) {
-            for (let b = a + 1; b < idxArr.length; b++) {
-              const lo = Math.min(idxArr[a], idxArr[b]);
-              const hi = Math.max(idxArr[a], idxArr[b]);
-              forbidden.add(lo + ',' + hi);
-            }
-          }
-        }
-
-        function isForbidden(i, j) {
-          const lo = Math.min(i, j);
-          const hi = Math.max(i, j);
-          return forbidden.has(lo + ',' + hi);
-        }
-
-        // ── Pass 1: Confirmed edges — same Google Contacts resourceName ────────
-        for (let i = 0; i < n; i++) {
-          const ci = candidates[i];
-          if (!ci.seedEmail) continue;
-          const rni = emailGroupMap[ci.seedEmail.toLowerCase()];
-          if (!rni) continue;
-          for (let j = i + 1; j < n; j++) {
-            const cj = candidates[j];
-            if (!cj.seedEmail) continue;
-            if (emailGroupMap[cj.seedEmail.toLowerCase()] !== rni) continue;
-            if (isForbidden(i, j)) continue;
-            ufUnion(i, j, true);
-          }
-        }
-
-        // ── Normalize name for heuristic comparison ────────────────────────────
-        function normName(s) {
-          return String(s).trim().toLowerCase().replace(/\s+/g, ' ').replace(/\.+$/, '');
-        }
-
-        // ── Pass 2: Heuristic edges — phone match / name overlap ──────────────
-        for (let i = 0; i < n; i++) {
-          const ci = candidates[i];
-          for (let j = i + 1; j < n; j++) {
-            if (ufFind(i) === ufFind(j)) continue; // already unioned
-            if (isForbidden(i, j)) continue;
-            const cj = candidates[j];
-            let shouldUnion = false;
-
-            // Heuristic 1: same normalized phone
-            if (!shouldUnion && ci.seedPhone && cj.seedPhone) {
-              if (normalizePhone(ci.seedPhone) === normalizePhone(cj.seedPhone)) {
-                shouldUnion = true;
-              }
-            }
-
-            // Heuristic 2: same normalized name
-            if (!shouldUnion && ci.seedName && cj.seedName) {
-              if (normName(ci.seedName) === normName(cj.seedName)) {
-                shouldUnion = true;
-              }
-            }
-
-            // Heuristic 3: single-token name (no email/phone) matches the other's full name prefix
-            if (!shouldUnion) {
-              for (const [single, other] of [[ci, cj], [cj, ci]]) {
-                if (!single.seedName) continue;
-                if (single.seedEmail || single.seedPhone) continue;
-                const singleNorm = normName(single.seedName);
-                if (singleNorm.includes(' ')) continue; // not a single token
-                if (!other.seedName) continue;
-                const otherNorm = normName(other.seedName);
-                if (otherNorm === singleNorm || otherNorm.startsWith(singleNorm + ' ')) {
-                  shouldUnion = true;
-                  break;
-                }
-              }
-            }
-
-            if (shouldUnion) {
-              ufUnion(i, j, false);
-            }
-          }
-        }
-
-        // ── Collect clusters of ≥2 members ─────────────────────────────────────
-        const clusterMap = new Map(); // root → indices[]
-        for (let i = 0; i < n; i++) {
-          const root = ufFind(i);
-          if (!clusterMap.has(root)) clusterMap.set(root, []);
-          clusterMap.get(root).push(i);
-        }
-
-        const clusters = [];
-        for (const [root, indices] of clusterMap) {
-          if (indices.length < 2) continue;
-          const reason = hasContactEdge[root] ? 'contact' : 'heuristic';
-          // clusterId = deterministic, keyed on smallest participantKey.
-          const minKey = indices.map((i) => candidates[i].participantKey).sort()[0];
-          clusters.push({
-            clusterId: 'cl_' + minKey,
-            reason,
-            members: indices.map((i) => ({
-              participantKey: candidates[i].participantKey,
-              seedName:       candidates[i].seedName,
-              seedEmail:      candidates[i].seedEmail,
-              seedPhone:      candidates[i].seedPhone,
-            })),
-          });
-        }
-
+        // Pure clustering lives in migration-dedup.mjs (union-find + heuristic
+        // passes + forbidden-pair anti-signal). normalizePhone is injected so the
+        // policy stays owned here. Returns [] for < 2 candidates.
+        const clusters = clusterDuplicates(cached.candidates, emailGroupMap, normalizePhone);
         return { clusters, cached: true };
       }
 
