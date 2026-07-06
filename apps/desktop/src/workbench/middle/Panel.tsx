@@ -12,7 +12,7 @@ import { ContextKeyServiceId, ContributionServiceId, LayoutServiceId } from '../
 import { SlotId } from '../../platform/layout/slots';
 import { Icon } from '@basebench/ui';
 import BundleViewIframe from './BundleViewIframe';
-import ResizeHandle from './ResizeHandle';
+import LayoutResizeHandle from './LayoutResizeHandle';
 
 const MIN_HEIGHT = 120;
 
@@ -84,7 +84,7 @@ export default function Panel() {
         style={{ height: panelHeight, flex: '0 0 auto' }}
       >
         <p className="panel-empty-state">No panel views</p>
-        <ResizeHandle
+        <LayoutResizeHandle
           sizeKey="panelHeight"
           axis="vertical"
           sign={-1}
@@ -135,7 +135,7 @@ export default function Panel() {
           />
         )}
       </div>
-      <ResizeHandle
+      <LayoutResizeHandle
         sizeKey="panelHeight"
         axis="vertical"
         sign={-1}

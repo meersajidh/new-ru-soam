@@ -2,7 +2,7 @@ import './PrimarySideBar.css';
 import { useActiveViewContainer, useLayoutSizes, useService } from '../../platform/services/hooks';
 import { ContributionServiceId } from '../../platform/services/ids';
 import BundleViewIframe from './BundleViewIframe';
-import ResizeHandle from './ResizeHandle';
+import LayoutResizeHandle from './LayoutResizeHandle';
 
 const MIN_WIDTH = 180;
 const MAX_WIDTH = 480;
@@ -30,7 +30,7 @@ export default function PrimarySideBar() {
             onRequestFocus={() => { /* side bar has no tab focus concept */ }}
           />
         </div>
-        <ResizeHandle
+        <LayoutResizeHandle
           sizeKey="primarySideBarWidth"
           axis="horizontal"
           sign={1}
@@ -49,7 +49,7 @@ export default function PrimarySideBar() {
       style={{ width: primarySideBarWidth, flex: '0 0 auto' }}
     >
       <p className="sidebar-empty-state">No views</p>
-      <ResizeHandle
+      <LayoutResizeHandle
         sizeKey="primarySideBarWidth"
         axis="horizontal"
         sign={1}

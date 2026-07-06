@@ -12,7 +12,7 @@ import { ContextKeyServiceId, LayoutServiceId } from '../../platform/services/id
 import { SlotId } from '../../platform/layout/slots';
 import { Icon } from '@basebench/ui';
 import BundleViewIframe from './BundleViewIframe';
-import ResizeHandle from './ResizeHandle';
+import LayoutResizeHandle from './LayoutResizeHandle';
 
 const MIN_WIDTH = 180;
 const MAX_WIDTH = 480;
@@ -84,7 +84,7 @@ export default function AuxSideBar() {
       ) : (
         <p className="sidebar-empty-state">No views</p>
       )}
-      <ResizeHandle
+      <LayoutResizeHandle
         sizeKey="auxSideBarWidth"
         axis="horizontal"
         sign={-1}

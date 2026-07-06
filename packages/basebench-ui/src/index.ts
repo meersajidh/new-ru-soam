@@ -10,6 +10,7 @@
  *   Button, TextInput, Dialog, FormField, PageShell — form/layout primitives
  *   Popover, usePopover, Select                     — positioning + listbox
  *   Icon, resolveIconGlyph                          — font codicon + glyph data
+ *   ResizeHandle                                    — drag-resize strip
  *   cn, useModalKeys                                — utilities
  */
 
@@ -32,3 +33,6 @@ export { resolveIconGlyph } from './icon-registry.js';
 export type { SemanticIconId } from './icon-registry.js';
 
 export { useModalKeys } from './useModalKeys.js';
+
+export { ResizeHandle } from './ResizeHandle.js';
+export type { ResizeHandleProps } from './ResizeHandle.js';

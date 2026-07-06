@@ -1,21 +1,19 @@
 /**
- * ResizeHandle — thin drag strip for resizable workbench Parts.
+ * ResizeHandle — thin drag strip for resizable panels/sidebars.
  *
- * Attaches document mousemove/mouseup listeners on drag start and cleans up on
- * mouseup or unmount (disposable pattern). Sets user-select:none on body during
- * drag to prevent text selection. Double-click resets to the default size.
+ * Pure primitive (ADR-420 D3): callers supply the current size (`getSize`)
+ * and receive resize callbacks (`onResize`/`onResizeEnd`/`onReset`); this
+ * component owns no app state — no service lookups, no persistence.
+ *
+ * Attaches document mousemove/mouseup listeners on drag start and cleans up
+ * on mouseup or unmount (disposable pattern). Sets user-select:none on body
+ * during drag to prevent text selection. Double-click resets to default.
  */
 
 import './ResizeHandle.css';
 import { useRef, useEffect } from 'react';
-import { useService } from '../../platform/services/hooks';
-import { LayoutServiceId } from '../../platform/services/ids';
-import type { LayoutSizes } from '../../platform/layout/layout-service';
-import { LAYOUT_SIZE_DEFAULTS } from '../../platform/layout/layout-service';
 
-interface ResizeHandleProps {
-  /** Which size dimension this handle controls. */
-  sizeKey: keyof LayoutSizes;
+export interface ResizeHandleProps {
   /** Drag axis. */
   axis: 'horizontal' | 'vertical';
   /**
@@ -27,23 +25,27 @@ interface ResizeHandleProps {
   max: number;
   /** Position on the part: 'right' | 'left' | 'top'. */
   edge: 'right' | 'left' | 'top';
+  /** Read the current size at drag start. */
+  getSize: () => number;
+  /** Called (rAF-throttled) with the clamped size during drag. */
+  onResize: (size: number) => void;
+  /** Called with the final clamped size on mouseup — use to persist. */
+  onResizeEnd?: (size: number) => void;
+  /** Called on double-click — use to reset to a default size. */
+  onReset?: () => void;
 }
 
-const PERSIST_KEY_MAP: Record<keyof LayoutSizes, string> = {
-  primarySideBarWidth: 'workbench.layout.primarySideBarWidth',
-  auxSideBarWidth: 'workbench.layout.auxSideBarWidth',
-  panelHeight: 'workbench.layout.panelHeight',
-};
-
-export default function ResizeHandle({
-  sizeKey,
+export function ResizeHandle({
   axis,
   sign = 1,
   min,
   max,
   edge,
+  getSize,
+  onResize,
+  onResizeEnd,
+  onReset,
 }: ResizeHandleProps) {
-  const layout = useService(LayoutServiceId);
   const cleanupRef = useRef<(() => void) | null>(null);
 
   // Clean up listeners on unmount
@@ -57,7 +59,7 @@ export default function ResizeHandle({
   function handleMouseDown(e: React.MouseEvent) {
     e.preventDefault();
     const startCoord = axis === 'horizontal' ? e.clientX : e.clientY;
-    const startSize = layout.getSizes()[sizeKey];
+    const startSize = getSize();
 
     document.body.style.userSelect = 'none';
     const cursor = axis === 'horizontal' ? 'col-resize' : 'row-resize';
@@ -83,7 +85,7 @@ export default function ResizeHandle({
         rafId = requestAnimationFrame(() => {
           rafId = null;
           if (pendingSize !== null) {
-            layout.setSize(sizeKey, pendingSize);
+            onResize(pendingSize);
           }
         });
       }
@@ -96,7 +98,7 @@ export default function ResizeHandle({
       }
       // Flush final size if pending
       if (pendingSize !== null) {
-        layout.setSize(sizeKey, pendingSize);
+        onResize(pendingSize);
       }
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
@@ -105,12 +107,7 @@ export default function ResizeHandle({
       document.removeEventListener('mouseup', onMouseUp);
       cleanupRef.current = null;
       // Persist final size
-      void window.soam.bindCapability('prefs', '1.0').then((proxy) => {
-        const key = PERSIST_KEY_MAP[sizeKey];
-        void proxy.call('set', key, String(layout.getSizes()[sizeKey])).then(() => {
-          proxy.dispose();
-        });
-      });
+      onResizeEnd?.(pendingSize ?? startSize);
     };
 
     document.addEventListener('mousemove', onMouseMove);
@@ -126,14 +123,7 @@ export default function ResizeHandle({
   }
 
   function handleDoubleClick() {
-    layout.setSize(sizeKey, LAYOUT_SIZE_DEFAULTS[sizeKey]);
-    // Persist reset
-    void window.soam.bindCapability('prefs', '1.0').then((proxy) => {
-      const key = PERSIST_KEY_MAP[sizeKey];
-      void proxy.call('set', key, String(LAYOUT_SIZE_DEFAULTS[sizeKey])).then(() => {
-        proxy.dispose();
-      });
-    });
+    onReset?.();
   }
 
   return (
@@ -144,6 +134,8 @@ export default function ResizeHandle({
       role="separator"
       aria-orientation={axis === 'horizontal' ? 'vertical' : 'horizontal'}
       title="Drag to resize. Double-click to reset."
-    />
+    >
+      <span className="resize-handle__grip" aria-hidden="true" />
+    </div>
   );
 }

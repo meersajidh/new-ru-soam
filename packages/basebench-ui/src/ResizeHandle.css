@@ -1,0 +1,93 @@
+@reference "../../../apps/desktop/src/styles/theme.css";
+
+/* Shared base — an invisible hit-strip straddling the Part edge. The visible
+   affordance is the centered grip pill (below); the strip only widens the grab
+   target and tints faintly while interacting. */
+.resize-handle {
+  position: absolute;
+  z-index: 10;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+}
+
+/* ── Grip pill ──────────────────────────────────────────────────────────────
+   Faint at rest (discoverability hint), accent + slight grow on hover, full
+   accent while dragging. The col/row-resize cursor conveys the drag axis;
+   flanking arrows were dropped — they clip against the neighbouring Part in a
+   docked layout. */
+.resize-handle__grip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: var(--color-border);
+  opacity: 0.4;
+  pointer-events: none;
+  transition:
+    background 120ms ease,
+    opacity 120ms ease,
+    width 120ms ease,
+    height 120ms ease;
+}
+
+.resize-handle:hover .resize-handle__grip,
+.resize-handle:active .resize-handle__grip {
+  background: var(--color-accent);
+  opacity: 1;
+}
+
+/* ── Vertical edges (col-resize): vertical pill ───────────────────────────── */
+.resize-handle--right .resize-handle__grip,
+.resize-handle--left .resize-handle__grip {
+  width: 4px;
+  height: 34px;
+}
+
+.resize-handle--right:hover .resize-handle__grip,
+.resize-handle--left:hover .resize-handle__grip,
+.resize-handle--right:active .resize-handle__grip,
+.resize-handle--left:active .resize-handle__grip {
+  height: 46px;
+}
+
+/* ── Top edge (row-resize): horizontal pill ───────────────────────────────── */
+.resize-handle--top .resize-handle__grip {
+  width: 34px;
+  height: 4px;
+}
+
+.resize-handle--top:hover .resize-handle__grip,
+.resize-handle--top:active .resize-handle__grip {
+  width: 46px;
+}
+
+/* ── Edge placement ───────────────────────────────────────────────────────── */
+.resize-handle--right {
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.resize-handle--left {
+  top: 0;
+  left: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.resize-handle--top {
+  top: -3px;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  cursor: row-resize;
+}
