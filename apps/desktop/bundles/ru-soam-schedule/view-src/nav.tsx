@@ -377,6 +377,7 @@ function Nav() {
                     }
                   >
                     {/* Tick mark: M1.5,5 L4,7.5 L8.5,2 */}
+                    {/* eslint-disable-next-line no-restricted-syntax -- decorative tick marker in calendar-visibility dot */}
                     <svg viewBox="0 0 10 10" fill="none">
                       <path
                         d="M1.5 5 L4 7.5 L8.5 2"

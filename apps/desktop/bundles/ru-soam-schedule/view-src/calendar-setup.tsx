@@ -3,7 +3,7 @@
 import './calendar-setup.css';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ViewRoot, useSoamView, useViewQuery, useViewChannel } from '@ru-soam/view-kit';
+import { ViewRoot, useSoamView, useViewQuery, useViewChannel, Icon } from '@ru-soam/view-kit';
 import type { BoundProxy } from '@ru-soam/view-kit';
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -55,91 +55,11 @@ const PALETTE = [
   '#c0965c',
 ] as const;
 
-// ── Inline SVG helpers (decorative; no codicon dependency) ───────────────────
-
-function CalendarIcon() {
-  return (
-    <svg
-      width="26"
-      height="26"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <rect
-        x="3"
-        y="4"
-        width="18"
-        height="17"
-        rx="3"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        fill="none"
-        style={{ color: 'var(--color-fg-secondary, #aeaeb2)' }}
-      />
-      <line
-        x1="3"
-        y1="9"
-        x2="21"
-        y2="9"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        style={{ color: 'var(--color-fg-secondary, #aeaeb2)' }}
-      />
-      <line
-        x1="8"
-        y1="2"
-        x2="8"
-        y2="6"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        style={{ color: 'var(--color-fg-secondary, #aeaeb2)' }}
-      />
-      <line
-        x1="16"
-        y1="2"
-        x2="16"
-        y2="6"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        style={{ color: 'var(--color-fg-secondary, #aeaeb2)' }}
-      />
-      <rect
-        x="7"
-        y="12"
-        width="3"
-        height="3"
-        rx="0.5"
-        fill="currentColor"
-        style={{ color: 'var(--color-fg-muted, #636366)' }}
-      />
-      <rect
-        x="10.5"
-        y="12"
-        width="3"
-        height="3"
-        rx="0.5"
-        fill="currentColor"
-        style={{ color: 'var(--color-fg-muted, #636366)' }}
-      />
-      <rect
-        x="14"
-        y="12"
-        width="3"
-        height="3"
-        rx="0.5"
-        fill="currentColor"
-        style={{ color: 'var(--color-fg-muted, #636366)' }}
-      />
-    </svg>
-  );
-}
+// ── Inline SVG helpers (brand logo; no codicon dependency) ───────────────────
 
 function GoogleGIcon() {
   return (
+    // eslint-disable-next-line no-restricted-syntax -- brand logo (Google G), not a codicon
     <svg
       width="16"
       height="16"
@@ -162,92 +82,6 @@ function GoogleGIcon() {
       <path
         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
         fill="#EA4335"
-      />
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      style={{ flexShrink: 0 }}
-    >
-      <rect x="2" y="7" width="12" height="8" rx="2" stroke="currentColor" strokeWidth="1.4" fill="none" />
-      <path
-        d="M5 7V5a3 3 0 016 0v2"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <line x1="6" y1="1" x2="6" y2="11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PersonArrowIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <circle
-        cx="9"
-        cy="7"
-        r="3.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        style={{ color: 'var(--color-fg-secondary, #aeaeb2)' }}
-      />
-      <path
-        d="M3 19c0-3.314 2.686-6 6-6h2"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        style={{ color: 'var(--color-fg-secondary, #aeaeb2)' }}
-      />
-      <path
-        d="M17 13l3 3-3 3"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ color: 'var(--color-accent, #5ac85a)' }}
-      />
-      <line
-        x1="14"
-        y1="16"
-        x2="20"
-        y2="16"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        style={{ color: 'var(--color-accent, #5ac85a)' }}
       />
     </svg>
   );
@@ -650,7 +484,7 @@ function CalendarSetup() {
           style={{ display: showHero ? 'flex' : 'none' }}
         >
           <div className="connect-icon-wrap">
-            <CalendarIcon />
+            <Icon name="calendar" size={26} />
           </div>
           <div>
             <div className="connect-heading">Connect your Google Calendar</div>
@@ -669,7 +503,7 @@ function CalendarSetup() {
             {connecting ? 'Connecting…' : 'Sign in with Google'}
           </button>
           <div className="connect-footer">
-            <LockIcon />
+            <Icon name="lock" size={11} />
             <span>Your credential never leaves this device. Read-only access by default.</span>
           </div>
           <div className={`inline-error${s1HeroError ? ' visible' : ''}`}>{s1HeroError}</div>
@@ -725,7 +559,7 @@ function CalendarSetup() {
             disabled={connecting}
             onClick={() => void connectGoogle(false)}
           >
-            <PlusIcon />
+            <Icon name="add" size={12} />
             {connecting ? 'Connecting…' : 'Connect another Google account'}
           </button>
           <div className={`inline-error${s1AcctsError ? ' visible' : ''}`}>{s1AcctsError}</div>
@@ -841,7 +675,7 @@ function CalendarSetup() {
       <div className={`step${step === 4 ? ' active' : ''}`}>
         <div className="migrate-hero">
           <div className="migrate-icon-wrap" aria-hidden="true">
-            <PersonArrowIcon />
+            <Icon name="person-add" size={24} />
           </div>
           <div className="migrate-heading">Migrate existing clients?</div>
           <div className="migrate-subtext">
