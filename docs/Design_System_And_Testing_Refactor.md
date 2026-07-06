@@ -83,9 +83,9 @@ Lane A and Lane B are independent up to the convergence point. Tier-1/1b tests d
 
 | Step | Item | Depends on | ADR? | Status |
 | ---- | ---- | ---------- | ---- | ------ |
-| B0 | Vitest projects config + node-env + colocated `*.test.ts` | — | no | ☐ Not started |
-| B0 | One proof test (sync-merge or migration-dedup) | B0 config | no | ☐ Not started |
-| B0 | Wire `vitest run` into CI gate (beside compile + lint) | B0 config | no | ☐ Not started |
+| B0 | Vitest projects config + node-env + colocated `*.test.ts` | — | no | ☑ Done (`vitest.config.ts`, projects: desktop/editor/domain/view-kit, node env) |
+| B0 | One proof test (`when-clause` parser/eval — see note) | B0 config | no | ☑ Done (`when-clause.test.ts`, 10 cases, green) |
+| B0 | Wire `vitest run` into CI gate (beside compile + lint) | B0 config | no | ☑ Done (`dependabot_ci.yml` "Run tests" step) |
 | A1 | Primitive inventory table (shared vs one-off) | — | no | ☐ Not started |
 | A2 | ADR: view-kit / base-pkg module boundary | A1 | **yes (400s)** | ☐ Not started |
 | A2 | Extract primitives into owned boundary | A2 ADR | — | ☐ Not started |
@@ -94,6 +94,15 @@ Lane A and Lane B are independent up to the convergence point. Tier-1/1b tests d
 | B2 | Tier-1b invariant-guard tests | B0 | no | ☐ Not started |
 | C | Tier-2 component/DOM tests | A2 + B0 | no | ☐ Not started |
 | — | Tier-3 E2E (Playwright + `_electron`) | — | tbd | ⏸ Deferred (separate track) |
+
+> **B0 proof-test note.** Target switched from sync-merge / migration-dedup to
+> the context-key `when-clause` parser/evaluator (`apps/desktop/src/platform/context-key/when-clause.ts`).
+> Reason: both original candidates live *inside* `registerCapability` handlers in
+> bundle `.mjs` files (not exported, only observable through store-write I/O) — a
+> "proof" test there would exercise a store mock, not a pure unit, and needs
+> extraction first. `when-clause` is a pure, dependency-free, already-exported
+> unit and is itself on the B1 list (context-key expr eval). Migration-dedup
+> extraction+test moves to B1, where the extraction is appropriate anyway.
 
 ---
 

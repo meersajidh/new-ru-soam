@@ -15,7 +15,8 @@
   ],
   "scripts": {
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "check:public": "node scripts/check-public.mjs",
     "check:all": "pnpm --filter ru-soam compile && pnpm --filter ru-soam lint && pnpm run check:public",
     "prepare": "husky"
@@ -31,6 +32,7 @@
     "husky": "^9.1.7",
     "prettier": "^3.8.3",
     "typescript": "catalog:",
-    "typescript-eslint": "^8.60.1"
+    "typescript-eslint": "^8.60.1",
+    "vitest": "^4.0.0"
   }
 }

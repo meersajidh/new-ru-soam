@@ -58,3 +58,9 @@ jobs:
 
       - name: Lint desktop
         run: pnpm --filter ru-soam lint
+
+      # Behavior gate (Vitest). Separate from the type gate above — Vitest uses
+      # esbuild transform, not tsc, so it does not enforce project-refs /
+      # erasableSyntaxOnly. See docs/Design_System_And_Testing_Refactor.md (B0).
+      - name: Run tests
+        run: pnpm test
