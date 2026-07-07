@@ -303,6 +303,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
       )}
 
       {/* Catenary arc SVG background — same idiom as LoadingSplash */}
+      {/* eslint-disable-next-line no-restricted-syntax -- decorative catenary-arc background, not an icon */}
       <svg
         className="login-modal-overlay__arcs"
         viewBox="0 0 1440 900"

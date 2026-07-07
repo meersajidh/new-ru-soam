@@ -18,6 +18,7 @@ export default function LoadingSplash({ embedded = false }: LoadingSplashProps) 
       aria-live="polite"
       aria-label="Loading account"
     >
+      {/* eslint-disable-next-line no-restricted-syntax -- decorative catenary-arc background, not an icon */}
       <svg
         className="loading-splash__background"
         viewBox="0 0 1280 800"

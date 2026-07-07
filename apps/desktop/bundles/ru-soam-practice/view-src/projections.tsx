@@ -3,7 +3,8 @@
 import './projections.css';
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ViewRoot, useSoamView, useViewContext, useCapQuery, Icon } from '@ru-soam/view-kit';
+import { ViewRoot, useSoamView, useViewContext, useCapQuery } from '@ru-soam/view-kit';
+import { Icon } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

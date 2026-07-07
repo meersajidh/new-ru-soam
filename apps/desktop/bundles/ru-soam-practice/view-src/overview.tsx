@@ -9,37 +9,8 @@ import {
   useViewContext,
   useViewChannel,
   useCapQuery,
-  Icon,
 } from '@ru-soam/view-kit';
-
-// ── Icon name map (lucide → codicon) ────────────────────────────────────────────
-
-const ICON_MAP: Record<string, string> = {
-  'shield-alert': 'shield',
-  shield: 'shield',
-  'chevron-right': 'chevron-right',
-  'circle-user': 'account',
-  'calendar-clock': 'calendar',
-  'file-text': 'file-text',
-  activity: 'pulse',
-  'list-checks': 'check-all',
-  'indian-rupee': 'credit-card',
-  users: 'organization',
-  video: 'device-camera-video',
-  'map-pin': 'location',
-  'arrow-up-right': 'link-external',
-  'scroll-text': 'bookmark',
-  'circle-check': 'pass',
-  pill: 'milestone',
-  languages: 'symbol-key',
-  'user-round': 'person',
-  phone: 'account',
-  target: 'target',
-};
-
-function MIcon({ name, size }: { name: string; size: number }) {
-  return <Icon name={ICON_MAP[name] ?? name} size={size} />;
-}
+import { Icon } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -108,12 +79,12 @@ const MOCK = {
   ],
   payment: { status: 'pending', amount: '₹1,500', detail: '28 May session · self-pay' },
   timeline: [
-    { when: 'Thu 04 Jun', iconName: 'calendar-clock', tone: 'accent', title: 'Upcoming — Tele-session 11:00', body: 'Session prep ready.' },
-    { when: '28 May', iconName: 'shield-alert', tone: 'error', title: 'Risk — passive SI noted', body: 'Safety plan revisited & shared with NR. Capacity intact.' },
+    { when: 'Thu 04 Jun', iconName: 'calendar', tone: 'accent', title: 'Upcoming — Tele-session 11:00', body: 'Session prep ready.' },
+    { when: '28 May', iconName: 'shield-warning', tone: 'error', title: 'Risk — passive SI noted', body: 'Safety plan revisited & shared with NR. Capacity intact.' },
     { when: '28 May', iconName: 'file-text', tone: '', title: 'Progress note', body: 'Sleep improving on sertraline 100 mg. Continue BA homework.' },
     { when: '24 May', iconName: 'activity', tone: '', title: 'PHQ-9 recorded — 11', body: 'Down from 14. Moderate band.' },
     { when: '14 May', iconName: 'file-text', tone: '', title: 'Progress note', body: 'Sertraline titrated to 100 mg. Tele-consent recorded.' },
-    { when: '12 Jan', iconName: 'scroll-text', tone: '', title: 'Advance Directive filed', body: 'Names treatment preferences. NR: R. Deshpande.' },
+    { when: '12 Jan', iconName: 'note', tone: '', title: 'Advance Directive filed', body: 'Names treatment preferences. NR: R. Deshpande.' },
   ],
 } as const;
 
@@ -238,7 +209,7 @@ function RiskBanner({
     <div className="risk-banner" data-maturity-id="risk-banner">
       <div className="risk-banner-bar" onClick={onToggle}>
         <div className="risk-banner-ico">
-          <MIcon name="shield-alert" size={16} />
+          <Icon name="shield-warning" size={16} />
         </div>
         <div className="risk-banner-text">
           <span className="risk-banner-headline">{headline}</span>
@@ -253,7 +224,7 @@ function RiskBanner({
               onOpenSafetyPlan();
             }}
           >
-            <MIcon name="shield" size={12} /> Safety plan
+            <Icon name="shield" size={12} /> Safety plan
           </button>
           <button
             className="cmd-btn ghost"
@@ -263,7 +234,7 @@ function RiskBanner({
               onToggle();
             }}
           >
-            <MIcon name="chevron-right" size={12} />
+            <Icon name="chevron-right" size={12} />
             <span className={`aspect-caret${open ? ' is-open' : ''}`} />
             <span>{open ? 'Less' : 'Details'}</span>
           </button>
@@ -331,17 +302,17 @@ function Header({ record, profile, lifecycle, consent, nextMeeting }: HeaderProp
       <div className="ov-badges">
         {consent?.advanceDirectiveStatus && (
           <span className="ov-badge ok" data-maturity-id="badge-advance-directive">
-            <MIcon name="scroll-text" size={12} /> AD: {consent.advanceDirectiveStatus}
+            <Icon name="note" size={12} /> AD: {consent.advanceDirectiveStatus}
           </span>
         )}
         {consent?.capacityStatus && (
           <span className="ov-badge ok" data-maturity-id="badge-capacity">
-            <MIcon name="circle-check" size={12} /> {consent.capacityStatus}
+            <Icon name="pass" size={12} /> {consent.capacityStatus}
           </span>
         )}
         {consent?.teleConsentMode && (
           <span className="ov-badge ok" data-maturity-id="badge-tele-consent">
-            <MIcon name="video" size={12} /> Tele: {consent.teleConsentMode}
+            <Icon name="video" size={12} /> Tele: {consent.teleConsentMode}
           </span>
         )}
       </div>
@@ -370,7 +341,7 @@ function Card({ iconName, title, source, foot, maturityId, children }: CardProps
   return (
     <section className="ov-card" data-maturity-id={maturityId}>
       <header className="ov-card-head">
-        <MIcon name={iconName} size={13} />
+        <Icon name={iconName} size={13} />
         <span className="ov-card-title">{title}</span>
         {source && <span className="ov-card-source">{source}</span>}
       </header>
@@ -447,7 +418,7 @@ function PaymentBody() {
     <div className="payment">
       <div className="payment-amt">
         <span className={`payment-status ${p.status}`}>
-          <MIcon name="indian-rupee" size={12} />
+          <Icon name="rupee" size={12} />
           <span> {p.status.charAt(0).toUpperCase() + p.status.slice(1)}</span>
         </span>
         <span className="payment-figure">{p.amount}</span>
@@ -472,11 +443,11 @@ function CircleMini({ circle }: { circle: CircleMember[] | null }) {
   return (
     <ul className="circle-mini" data-maturity-id="card-circle-mini">
       {shown.map((m, i) => {
-        const iconName = m.kind === 'nominated_rep' ? 'shield' : 'user-round';
+        const iconName = m.kind === 'nominated_rep' ? 'shield' : 'person';
         const kindLabel = CIRCLE_KIND_LABELS[m.kind] || m.kind;
         return (
           <li key={i}>
-            <MIcon name={iconName} size={13} />
+            <Icon name={iconName} size={13} />
             <span>
               <b>
                 {kindLabel}
@@ -503,18 +474,18 @@ function NextSessionCard() {
   const a = MOCK.nextAppt;
   return (
     <Card
-      iconName="calendar-clock"
+      iconName="calendar"
       title="Next session"
       source="Schedule"
       maturityId="card-next-session"
       foot={
         <button className="link-btn" type="button">
-          Open session prep <MIcon name="arrow-up-right" size={12} />
+          Open session prep <Icon name="link-external" size={12} />
         </button>
       }
     >
       <div className="next-appt">
-        <MIcon name={a.modality === 'video' ? 'video' : 'map-pin'} size={18} />
+        <Icon name={a.modality === 'video' ? 'video' : 'location'} size={18} />
         <div>
           <div className="next-when">{a.when}</div>
           <div className="next-label">{a.label}</div>
@@ -534,7 +505,7 @@ function LastNoteCard() {
       maturityId="card-last-note"
       foot={
         <button className="link-btn" type="button">
-          Read full note <MIcon name="arrow-up-right" size={12} />
+          Read full note <Icon name="link-external" size={12} />
         </button>
       }
     >
@@ -556,10 +527,10 @@ function DenseGrid({ circle }: { circle: CircleMember[] | null }) {
       <Card iconName="activity" title="Assessment trend" source="Assessments" maturityId="card-scores">
         <ScoresBody />
       </Card>
-      <Card iconName="list-checks" title="Treatment goals" source="Planner" maturityId="card-goals">
+      <Card iconName="check-square" title="Treatment goals" source="Planner" maturityId="card-goals">
         <GoalsBody />
       </Card>
-      <Card iconName="indian-rupee" title="Payment" source="Billing" maturityId="card-payment">
+      <Card iconName="rupee" title="Payment" source="Billing" maturityId="card-payment">
         <PaymentBody />
       </Card>
       <Card iconName="users" title="People / Circle" source="Practice" maturityId="card-circle">
@@ -572,8 +543,8 @@ function DenseGrid({ circle }: { circle: CircleMember[] | null }) {
 const GLANCE_STATS = [
   { iconName: 'activity', label: 'PHQ-9', value: '11', sub: '↓ improving', tone: 'ok' },
   { iconName: 'activity', label: 'GAD-7', value: '11', sub: 'moderate', tone: 'warn' },
-  { iconName: 'list-checks', label: 'Goals', value: '3', sub: '1 slipping', tone: 'warn' },
-  { iconName: 'indian-rupee', label: 'Payment', value: '₹1,500', sub: 'pending', tone: 'warn' },
+  { iconName: 'check-square', label: 'Goals', value: '3', sub: '1 slipping', tone: 'warn' },
+  { iconName: 'rupee', label: 'Payment', value: '₹1,500', sub: 'pending', tone: 'warn' },
 ] as const;
 
 function FocusedGrid() {
@@ -587,7 +558,7 @@ function FocusedGrid() {
           {GLANCE_STATS.map((s) => (
             <div className="mini-stat" key={s.label}>
               <span className="mini-stat-label">
-                <MIcon name={s.iconName} size={12} /> {s.label}
+                <Icon name={s.iconName} size={12} /> {s.label}
               </span>
               <span className="mini-stat-value">{s.value}</span>
               <span className={`mini-stat-sub ${s.tone}`}>{s.sub}</span>
@@ -615,7 +586,7 @@ function Timeline({
           <li className="tl-event" key={i}>
             <span className="tl-when">{ev.when}</span>
             <span className={`tl-dot${ev.tone ? ` tone-${ev.tone}` : ''}`}>
-              <MIcon name={ev.iconName} size={13} />
+              <Icon name={ev.iconName} size={13} />
             </span>
             <div className="tl-card">
               <div className="tl-title">{ev.title}</div>
@@ -629,12 +600,12 @@ function Timeline({
         <CircleMini circle={circle} />
         {medText && (
           <div className="tl-fact">
-            <MIcon name="pill" size={12} /> {medText}
+            <Icon name="pill" size={12} /> {medText}
           </div>
         )}
         {langText && (
           <div className="tl-fact">
-            <MIcon name="languages" size={12} /> {langText}
+            <Icon name="translate" size={12} /> {langText}
           </div>
         )}
       </aside>
@@ -684,7 +655,7 @@ function DensitySwitcher({
           setOpen((o) => !o);
         }}
       >
-        <Icon name="gear" size={13} />
+        <Icon name="settings" size={13} />
       </button>
       {open && (
         <div id="density-menu" role="menu" aria-label="Overview density">

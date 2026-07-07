@@ -3,8 +3,9 @@
 import './calendar-setup.css';
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ViewRoot, useSoamView, useViewQuery, useViewChannel, Icon } from '@ru-soam/view-kit';
+import { ViewRoot, useSoamView, useViewQuery, useViewChannel } from '@ru-soam/view-kit';
 import type { BoundProxy } from '@ru-soam/view-kit';
+import { Icon } from '@basebench/ui';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 

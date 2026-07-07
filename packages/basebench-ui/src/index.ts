@@ -1,15 +1,15 @@
 /**
- * @basebench/ui — shell (app://) UI primitive kit (ADR-420).
+ * @basebench/ui — the single base-layer UI kit (ADR-421 D3).
  *
- * The trusted-renderer counterpart to @ru-soam/view-kit (which serves the
- * sandboxed view:// surface). The two are permanently separate — see
- * ADR-420 D4 (two-Icon contract) and ADR-413 Am1. Do not attempt to share
- * a component across that boundary.
+ * ONE kit, BOTH render surfaces: the shell (app://) and every bundle view
+ * (view:// build) import from here (domain→base, the allowed ADR-106 direction).
+ * Build/source unification only — each surface still compiles into its own
+ * origin/process (ADR-421 D6; trust/render surface untouched).
  *
  * Public surface:
  *   Button, TextInput, Dialog, FormField, PageShell — form/layout primitives
  *   Popover, usePopover, Select                     — positioning + listbox
- *   Icon, resolveIconGlyph                          — font codicon + glyph data
+ *   Icon, resolveIcon                               — one inline-SVG multi-source Icon (Phosphor primary — D5)
  *   ResizeHandle                                    — drag-resize strip
  *   cn, useModalKeys                                — utilities
  */
@@ -29,8 +29,8 @@ export type { SelectItem, SelectProps } from './Select.js';
 
 export { Icon } from './Icon.js';
 export type { IconProps } from './Icon.js';
-export { resolveIconGlyph } from './icon-registry.js';
-export type { SemanticIconId } from './icon-registry.js';
+export { resolveIcon } from './icon-registry.js';
+export type { SemanticIconId, IconEntry } from './icon-registry.js';
 
 export { useModalKeys } from './useModalKeys.js';
 

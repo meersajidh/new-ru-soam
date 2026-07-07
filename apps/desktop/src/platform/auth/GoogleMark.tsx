@@ -2,6 +2,7 @@
 
 export default function GoogleMark({ size = 18 }: { size?: number }) {
   return (
+    // eslint-disable-next-line no-restricted-syntax -- Google "G" brand logo, not an icon-set glyph
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
       <path
         fill="#4285F4"

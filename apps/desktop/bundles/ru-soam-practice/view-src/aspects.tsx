@@ -3,7 +3,8 @@
 import './aspects.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ViewRoot, useSoamView, useViewContext, useCapQuery, useCapMutation, Icon } from '@ru-soam/view-kit';
+import { ViewRoot, useSoamView, useViewContext, useCapQuery, useCapMutation } from '@ru-soam/view-kit';
+import { Icon } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -887,7 +888,7 @@ function CircleSection({
   return (
     <Section
       domId="section-circle"
-      icon="organization"
+      icon="users"
       title="People / Circle"
       open={open}
       onToggle={onToggle}

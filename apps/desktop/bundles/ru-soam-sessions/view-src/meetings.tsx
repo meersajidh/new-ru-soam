@@ -4,7 +4,8 @@ import './meetings.css';
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { ViewRoot, useSoamView, useCapQuery, useCapMutation, Icon } from '@ru-soam/view-kit';
+import { ViewRoot, useSoamView, useCapQuery, useCapMutation } from '@ru-soam/view-kit';
+import { Icon } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -109,7 +110,7 @@ function MeetingRow({ meeting: m, clientName, onOpen }: MeetingRowProps) {
               title="Online"
               aria-label="Online"
             >
-              <Icon name="device-camera-video" size={12} />
+              <Icon name="video" size={12} />
             </span>
           )}
           {m.modality === 'in_person' && (

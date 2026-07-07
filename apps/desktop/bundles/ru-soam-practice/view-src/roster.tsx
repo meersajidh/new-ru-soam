@@ -3,7 +3,8 @@
 import './roster.css';
 import { useRef, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ViewRoot, useSoamView, useCapQuery, Icon } from '@ru-soam/view-kit';
+import { ViewRoot, useSoamView, useCapQuery } from '@ru-soam/view-kit';
+import { Icon } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ function computeAge(dob: string | null | undefined): number | null {
 // ── Lens definitions ───────────────────────────────────────────────────────────
 
 const LENSES = [
-  { id: 'roster', icon: 'organization', label: 'Roster' },
+  { id: 'roster', icon: 'users', label: 'Roster' },
   { id: 'agenda', icon: 'calendar', label: 'Agenda' },
   { id: 'attention', icon: 'shield', label: 'Attention' },
   { id: 'intake', icon: 'inbox', label: 'Intake' },
@@ -383,7 +384,7 @@ function Roster() {
           {!isRosterLocked && !rosterQuery.isPending && roster.length === 0 && (
             <div id="roster-empty" className="visible">
               <div className="empty-graphic">
-                <Icon name="organization" size={18} />
+                <Icon name="users" size={18} />
               </div>
               <strong>No clients yet</strong>
               <p>Add your first client with the New button above.</p>

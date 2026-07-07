@@ -1,137 +1,207 @@
 /**
- * Icon registry — single semantic-id → codicon-glyph mapping table.
+ * Icon registry — semantic-id → glyph mapping (ADR-421 F3, D5).
  *
- * This is the ONE place to touch when swapping icon libraries.
- * Future: an icon-theme override layer will intercept resolveIconGlyph here
- * (per ADR-413 Amendment 1) — add that seam here, not at call sites.
+ * ONE multi-source registry, both render surfaces. Each entry names a SOURCE
+ * (the icon set the glyph comes from) + the glyph itself. **Phosphor is the
+ * primary — and, today, only mounted — source** (`@phosphor-icons/react`).
+ * Codicon / Fluent remain *mountable*: add a source branch to `IconEntry` +
+ * `resolveIcon` and register its glyphs — no call-site change. The `source:`
+ * name-prefix seam (`resolveIcon('phosphor:gear')`) is reserved for forcing a
+ * specific source on collision; only `phosphor` is valid now.
  *
- * Authoritative glyph source: node_modules/@vscode/codicons/dist/codicon.css
- * Every entry has been validated against `.codicon-<name>:before` rules.
+ * This is the ONE place to touch when swapping/curating icons. Call sites pass
+ * a stable semantic id (e.g. `settings`, `shield-check`) — never a raw glyph.
+ *
+ * NOTE: Phosphor v2.1 uses `*Icon`-suffixed component exports (`GearIcon`); the
+ * bare names (`Gear`) are deprecated aliases — always import the suffixed form.
  */
+import type { Icon as PhosphorIcon, IconWeight } from '@phosphor-icons/react';
+import {
+  ArrowLeftIcon, ArrowRightIcon, CaretUpIcon, CaretDownIcon, CaretLeftIcon, CaretRightIcon, MagnifyingGlassIcon,
+  SidebarSimpleIcon, SquareHalfBottomIcon, MinusIcon, SquareIcon, XIcon,
+  CheckIcon, CopyIcon, PlusIcon, FloppyDiskIcon, ArrowClockwiseIcon, ArrowsClockwiseIcon, TrashIcon, PushPinIcon, FlagIcon,
+  ChecksIcon, LinkIcon, ArrowSquareOutIcon, SplitHorizontalIcon,
+  EyeIcon, EyeSlashIcon, LockIcon, LockOpenIcon, KeyIcon, SignOutIcon, ShieldIcon, ShieldCheckIcon,
+  WarningCircleIcon, WarningIcon, InfoIcon, CheckCircleIcon,
+  FileIcon, FilePlusIcon, FileTextIcon, NotePencilIcon, FolderIcon, FoldersIcon, TrayIcon, StackIcon, BriefcaseIcon,
+  BookOpenIcon, ClipboardTextIcon, ListChecksIcon, ChartBarIcon, SquaresFourIcon,
+  UserIcon, UserPlusIcon, UsersIcon,
+  CalendarIcon, ClockIcon, MapPinIcon, GlobeIcon, ScalesIcon, StethoscopeIcon, PulseIcon, HouseIcon, HashIcon, TreeStructureIcon, VideoCameraIcon,
+  CloudIcon, CloudArrowDownIcon, CloudArrowUpIcon, CloudSlashIcon,
+  SunIcon, MoonIcon, BroadcastIcon, BellIcon, BellRingingIcon, CircleIcon, QuestionIcon, GearIcon, KeyReturnIcon,
+  CurrencyInrIcon, TranslateIcon, PillIcon, ShieldWarningIcon, ThumbsUpIcon, ThumbsDownIcon, PencilSimpleIcon,
+  DownloadSimpleIcon, TargetIcon,
+} from '@phosphor-icons/react';
 
-/** Semantic icon ids used throughout the shell. */
+/** Semantic icon id used at every call site (the stable vocabulary). */
 export type SemanticIconId = string;
 
 /**
- * Codicon glyph name (the part after `codicon-`).
- * Validated present in @vscode/codicons@0.0.45.
+ * A resolved icon. `source` discriminates which set the glyph belongs to —
+ * `phosphor` is the only mounted source today; adding `codicon`/`fluent` means
+ * a new variant here + a branch in <Icon>. `weight`/`mirrored` are per-entry
+ * Phosphor defaults (e.g. filled radio circles, right-side panel).
  */
-type CodiconGlyph = string;
+export interface IconEntry {
+  source: 'phosphor';
+  icon: PhosphorIcon;
+  weight?: IconWeight;
+  mirrored?: boolean;
+}
 
-// Substitution notes (for review):
-//   hash        → tag                  (no hash/number-sign glyph in codicons; tag is the nearest visual substitute)
-//   stethoscope → pulse                (no stethoscope in codicons; pulse is the medical-monitor nearest)
-//   theme-light → circle-large-outline (distinct open-circle glyph for light mode)
-//   theme-dark  → circle-large-filled  (distinct filled-circle glyph for dark mode)
-//   dot         → circle-filled        (dot glyph maps to circle-filled; visually equivalent small filled circle)
-//   circle-dot  → circle-filled        (circle-dot maps to circle-filled as closest match)
-//   shield-check→ verified-filled      (no shield-check; verified-filled = shield + check mark composite)
+function ph(icon: PhosphorIcon, opts?: { weight?: IconWeight; mirrored?: boolean }): IconEntry {
+  return { source: 'phosphor', icon, weight: opts?.weight, mirrored: opts?.mirrored };
+}
 
-const REGISTRY: Record<SemanticIconId, CodiconGlyph> = {
-  // Navigation
-  'arrow-left': 'arrow-left',
-  'arrow-right': 'arrow-right',
-  'search': 'search',
-  'chevron-down': 'chevron-down',
-  'chevron-up': 'chevron-up',
-  'chevron-right': 'chevron-right',
-  'chevron-left': 'chevron-left',
+const REGISTRY: Record<SemanticIconId, IconEntry> = {
+  // Navigation / chevrons
+  'arrow-left': ph(ArrowLeftIcon),
+  'arrow-right': ph(ArrowRightIcon),
+  'chevron-up': ph(CaretUpIcon),
+  'chevron-down': ph(CaretDownIcon),
+  'chevron-left': ph(CaretLeftIcon),
+  'chevron-right': ph(CaretRightIcon),
+  search: ph(MagnifyingGlassIcon),
 
-  // Panel layout toggles
-  'panel-left': 'layout-sidebar-left',
-  'panel-bottom': 'layout-panel',
-  'panel-right': 'layout-sidebar-right',
+  // Panel layout toggles (right = left mirrored; bottom = half-bottom square)
+  'panel-left': ph(SidebarSimpleIcon),
+  'panel-right': ph(SidebarSimpleIcon, { mirrored: true }),
+  'panel-bottom': ph(SquareHalfBottomIcon),
 
   // Window chrome
-  'window-minimize': 'chrome-minimize',
-  'window-maximize': 'chrome-maximize',
-  'window-close': 'chrome-close',
+  'window-minimize': ph(MinusIcon),
+  'window-maximize': ph(SquareIcon),
+  'window-close': ph(XIcon),
 
-  // Common actions
-  'check': 'check',
-  'close': 'close',
-  'copy': 'copy',
+  // Actions
+  check: ph(CheckIcon),
+  close: ph(XIcon),
+  copy: ph(CopyIcon),
+  add: ph(PlusIcon),
+  edit: ph(PencilSimpleIcon),
+  save: ph(FloppyDiskIcon),
+  refresh: ph(ArrowClockwiseIcon),
+  sync: ph(ArrowsClockwiseIcon),
+  trash: ph(TrashIcon),
+  pin: ph(PushPinIcon),
+  flag: ph(FlagIcon),
+  'check-all': ph(ChecksIcon),
+  link: ph(LinkIcon),
+  'link-external': ph(ArrowSquareOutIcon),
+  'open-in-window': ph(ArrowSquareOutIcon),
+  'split-horizontal': ph(SplitHorizontalIcon),
 
   // Visibility
-  'eye': 'eye',
-  'eye-off': 'eye-closed',
+  eye: ph(EyeIcon),
+  'eye-off': ph(EyeSlashIcon),
 
   // Security / auth
-  'lock': 'lock',
-  'unlock': 'unlock',
-  'key': 'key',
-  'sign-out': 'sign-out',
-  'shield': 'shield',
-  'shield-check': 'verified-filled',
-
-  // UI chrome
-  'help': 'question',
-  'settings': 'settings-gear',
-  'trash': 'trash',
-  'newline': 'newline',
-  'bell': 'bell',
-  'bell-dot': 'bell-dot',
-
-  // Theme (distinct glyphs: outline = light, filled = dark)
-  'theme-light': 'circle-large-outline',
-  'theme-dark': 'circle-large-filled',
+  lock: ph(LockIcon),
+  unlock: ph(LockOpenIcon),
+  key: ph(KeyIcon),
+  'sign-out': ph(SignOutIcon),
+  shield: ph(ShieldIcon),
+  'shield-check': ph(ShieldCheckIcon),
 
   // Status / severity
-  'error': 'error',
-  'warning': 'warning',
-  'info': 'info',
-  'pass': 'pass-filled',
+  error: ph(WarningCircleIcon),
+  warning: ph(WarningIcon),
+  info: ph(InfoIcon),
+  pass: ph(CheckCircleIcon),
 
-  // Telemetry mode indicators
-  'telemetry-off': 'eye-closed',        // off — clearly "nothing being observed"
-  'telemetry-online-only': 'pulse',     // online-only — activity when connected
-  'telemetry-on': 'broadcast',          // on — active transmission
+  // Files / data
+  file: ph(FileIcon),
+  'file-add': ph(FilePlusIcon),
+  'file-text': ph(FileTextIcon),
+  note: ph(NotePencilIcon),
+  folder: ph(FolderIcon),
+  files: ph(FoldersIcon),
+  inbox: ph(TrayIcon),
+  layers: ph(StackIcon),
+  briefcase: ph(BriefcaseIcon),
+  'book-open': ph(BookOpenIcon),
+  'clipboard-list': ph(ClipboardTextIcon),
+  'check-square': ph(ListChecksIcon),
+  'bar-chart-2': ph(ChartBarIcon),
+  'layout-grid': ph(SquaresFourIcon),
+
+  // People
+  person: ph(UserIcon),
+  'person-add': ph(UserPlusIcon),
+  users: ph(UsersIcon),
+
+  // Domain
+  calendar: ph(CalendarIcon),
+  clock: ph(ClockIcon),
+  clockface: ph(ClockIcon),
+  location: ph(MapPinIcon),
+  globe: ph(GlobeIcon),
+  law: ph(ScalesIcon),
+  stethoscope: ph(StethoscopeIcon),
+  activity: ph(PulseIcon),
+  home: ph(HouseIcon),
+  hash: ph(HashIcon),
+  'group-by-ref-type': ph(TreeStructureIcon),
+  video: ph(VideoCameraIcon),
 
   // Cloud
-  'cloud': 'cloud',
-  'cloud-download': 'cloud-download',
-  'cloud-disconnected': 'debug-disconnect', // dead cloud session — plug pulled
+  cloud: ph(CloudIcon),
+  'cloud-download': ph(CloudArrowDownIcon),
+  'cloud-upload': ph(CloudArrowUpIcon),
+  'cloud-disconnected': ph(CloudSlashIcon),
 
-  // Data / workspace
-  'briefcase': 'briefcase',
-  'hash': 'tag',
-  'dot': 'circle-filled',
-  'circle-dot': 'circle-filled',
+  // Theme
+  'theme-light': ph(SunIcon),
+  'theme-dark': ph(MoonIcon),
 
-  // Radio / toggle glyphs (menu system)
-  'circle-large-outline': 'circle-large-outline',
-  'circle-large-filled': 'circle-large-filled',
-  'circle-filled': 'circle-filled',
+  // Telemetry mode indicators
+  'telemetry-off': ph(EyeSlashIcon),
+  'telemetry-online-only': ph(PulseIcon),
+  'telemetry-on': ph(BroadcastIcon),
 
-  // Linking / relations
-  'link': 'link',
+  // Bell
+  bell: ph(BellIcon),
+  'bell-dot': ph(BellRingingIcon),
 
-  // ActivityBar manifest vocabulary (stable contract — O435 controls bundle icons)
-  'users': 'organization',
-  'calendar': 'calendar',
-  'clockface': 'clockface',
-  'clipboard-list': 'checklist',
-  'book-open': 'book',
-  'check-square': 'checklist',
-  'layout-grid': 'layout',
-  'files': 'files',
-  'file-text': 'note',
-  'activity': 'pulse',
-  'stethoscope': 'pulse',
-  'bar-chart-2': 'graph',
-  'folder': 'folder',
-  'home': 'home',
+  // Radio / status circles (fill = selected/active state)
+  'circle-large-outline': ph(CircleIcon),
+  'circle-large-filled': ph(CircleIcon, { weight: 'fill' }),
+  'circle-filled': ph(CircleIcon, { weight: 'fill' }),
+  'circle-dot': ph(CircleIcon, { weight: 'fill' }),
+  dot: ph(CircleIcon, { weight: 'fill' }),
+
+  // Clinical / domain (Practice overview)
+  rupee: ph(CurrencyInrIcon),
+  translate: ph(TranslateIcon),
+  pill: ph(PillIcon),
+  'shield-warning': ph(ShieldWarningIcon),
+
+  // Attendee-response badges (schedule responseIcon)
+  thumbsup: ph(ThumbsUpIcon),
+  thumbsdown: ph(ThumbsDownIcon),
+  question: ph(QuestionIcon),
+
+  // Status-bar producers (anchored-ids / boot)
+  download: ph(DownloadSimpleIcon),
+  moon: ph(MoonIcon),
+  target: ph(TargetIcon),
+  'triangle-alert': ph(WarningIcon),
+
+  // Misc
+  help: ph(QuestionIcon),
+  settings: ph(GearIcon),
+  newline: ph(KeyReturnIcon),
 };
 
-const FALLBACK_GLYPH: CodiconGlyph = 'question';
+const FALLBACK: IconEntry = ph(QuestionIcon);
 
 /**
- * Resolve a semantic icon id to a codicon glyph name.
- * Unknown ids fall back to `question` so UI never breaks silently.
- *
- * Icon-theme override seam: insert theme-specific overrides here in a future
- * ADR-413 Amendment 1 implementation before the fallback lookup.
+ * Resolve a semantic icon id to a glyph entry. Unknown ids fall back to
+ * `Question` so the UI never breaks silently. A `source:` prefix (e.g.
+ * `phosphor:gear`) forces a source — reserved seam; only `phosphor` today.
  */
-export function resolveIconGlyph(name: SemanticIconId): CodiconGlyph {
-  return REGISTRY[name] ?? FALLBACK_GLYPH;
+export function resolveIcon(name: SemanticIconId): IconEntry {
+  const colon = name.indexOf(':');
+  const id = colon === -1 ? name : name.slice(colon + 1);
+  return REGISTRY[id] ?? FALLBACK;
 }

@@ -2,7 +2,8 @@
 // Entry file — createRoot called at bottom; fast-refresh does not apply here.
 import './meeting-record.css';
 import { createRoot } from 'react-dom/client';
-import { ViewRoot, useSoamView, useViewQuery, useCapQuery, useCapMutation, Icon } from '@ru-soam/view-kit';
+import { ViewRoot, useSoamView, useViewQuery, useCapQuery, useCapMutation } from '@ru-soam/view-kit';
+import { Icon } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -192,7 +193,7 @@ function MeetingRecord() {
           </div>
           {meeting.modality === 'online' && (
             <div className="rec-modality-row">
-              <Icon name="device-camera-video" size={12} />
+              <Icon name="video" size={12} />
               <span>Online</span>
             </div>
           )}

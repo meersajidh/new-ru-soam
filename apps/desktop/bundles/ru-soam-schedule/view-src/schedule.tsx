@@ -8,9 +8,9 @@ import {
   useSoamView,
   useCapQuery,
   useViewChannel,
-  Icon,
 } from '@ru-soam/view-kit';
 import type { BoundProxy } from '@ru-soam/view-kit';
+import { Icon } from '@basebench/ui';
 import {
   type CalendarEvent,
   type ChipLabelMode,
@@ -871,7 +871,7 @@ function EventPopover({ ev, anchorRect, onClose, onOpenSidePanel }: PopoverProps
           <div className="popover-title">{ev.title || '(No title)'}</div>
           <div className={`event-kind-badge ${classClass(ev)}`}>{classLabel(ev)}</div>
           <button className="popover-close" type="button" onClick={onClose} aria-label="Close">
-            <Icon name="x" size={14} />
+            <Icon name="close" size={14} />
           </button>
         </div>
         <div className="popover-body">

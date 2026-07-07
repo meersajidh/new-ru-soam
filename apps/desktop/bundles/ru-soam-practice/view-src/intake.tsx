@@ -7,9 +7,9 @@ import {
   useSoamView,
   useViewQuery,
   useCapQuery,
-  Icon,
   type SoamView,
 } from '@ru-soam/view-kit';
+import { Icon } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

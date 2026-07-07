@@ -9,9 +9,9 @@ import {
   useSoamView,
   useCapQuery,
   useViewChannel,
-  Icon,
   type BoundProxy,
 } from '@ru-soam/view-kit';
+import { Icon } from '@basebench/ui';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 

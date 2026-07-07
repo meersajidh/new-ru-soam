@@ -60,7 +60,6 @@
     "@ru-soam/domain": "workspace:*",
     "@ru-soam/editor": "workspace:*",
     "@scure/bip39": "^2.2.0",
-    "@vscode/codicons": "^0.0.45",
     "@zxcvbn-ts/core": "^3.0.4",
     "better-sqlite3": "npm:better-sqlite3-multiple-ciphers@^12.9.0",
     "better-sqlite3-multiple-ciphers": "^12.9.0",

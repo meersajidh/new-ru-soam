@@ -1,6 +1,6 @@
 # ADR-421 Execution Tracker (F1–F6)
 
-**Status:** F1 committed. **F2 DONE + dogfooded (token unification), uncommitted.** **Date:** 2026-07-07.
+**Status:** F1 + F2 committed. **F3 DONE + dogfooded (unified Phosphor Icon), uncommitted.** **Date:** 2026-07-07.
 **Authority:** `docs/ADRs/421-design-system-foundation-shadcn.md`. Supersedes ADR-420 model; builds on committed S1/S1b/S2/S4a/S3.
 **Strategy (locked):** shim-transition — adopt the shadcn CSS-var contract as the new source of truth; keep a thin alias layer mapping old `--color-*` names → new contract vars so **every existing component keeps rendering**; migrate consumers off old names incrementally (F2/F5); delete the shim when the last consumer moves. **App never breaks between commits.**
 
@@ -244,9 +244,46 @@ Static gates green: `compile`, `lint`, editor `compile`, `build:views`.
 - **F4** owns the deferred `apply --preset` (hand-config `components.json` first) + Base UI spike.
 - **F5** owns bridge `TOKEN_NAMES`→contract-leaf retarget **+** shim deletion (done together once consumers move off `--color-*`). Also: consider font-asset pruning (Source Serif/IBM Plex if editor drops them).
 
-## F3–F6 (stubs — detail when reached)
+## F3 PLAN (cut 2026-07-07) — unify Icon, Phosphor primary
 
-- **F3** — unify Icon: single inline-SVG `<Icon>`, multi-source registry, **Phosphor primary** (`@phosphor-icons/react` paths) + codicon/Fluent mountable; drop shell font-codicon; lint no-raw-svg both surfaces.
+**Decisions (user, 2026-07-07):** (1) Phosphor delivery = **`@phosphor-icons/react` lib** (runtime dep, component API, tree-shaken per build; inline-SVG → CSP-clean in views). (2) Call sites = **unify to clean semantic vocab** — rewrite all ~143 (67 shell semantic + 76 view raw-codicon).
+
+**Install (user-run):** `pnpm --filter @basebench/ui add @phosphor-icons/react`. Dep home = `@basebench/ui` (Icon's package); resolves in shell + every view build under `nodeLinker: hoisted`.
+
+**Current state:** two Icons — shell `basebench-ui/Icon.tsx` (FONT codicon `<i class=codicon>`, `@vscode/codicons` CSS, semantic-id→glyph via `icon-registry.ts`); view `view-kit/Icon.tsx` (inline-SVG from hand-extracted `codicon-paths.ts` (210 lines), raw codicon names). no-raw-svg lint = view-src only (S3). No Fluent anywhere.
+
+### Slices (each `compile`+`lint`+`build:views`, dogfood at end)
+- **F3a** — unified `<Icon>` in `@basebench/ui`: `name`(semantic id) → Phosphor React component (`PHOSPHOR_REGISTRY`); multi-source — Phosphor primary + codicon-path **fallback source** (move `codicon-paths.ts` into `@basebench/ui`) for any glyph Phosphor lacks + `source:` prefix override (`codicon:foo`). Define canonical semantic vocabulary = deduped superset of the two current name sets. Icon renders `<PhosphorComp size weight/>` or inline-SVG codicon fallback. Export from `@basebench/ui`.
+- **F3b** — shell imports unified Icon; rewrite 67 shell sites to canonical vocab (most already semantic); delete old font `Icon.tsx` path + `@vscode/codicons/dist/codicon.css` import (drop shell font-codicon). Keep `icon-registry.ts`? folds into the Phosphor registry.
+- **F3c** — views: view-kit re-exports (or bundles import) the `@basebench/ui` Icon; rewrite 76 view sites raw-codicon→semantic; delete `view-kit/Icon.tsx` + `codicon-paths.ts` (moved to base). **Dogfood: Phosphor renders + positions in a real `view://` iframe under STRICT_VIEW_CSP** (Phosphor = pure SVG + a props Context, no runtime `<style>`/network → expected clean; verify).
+- **F3d** — extend no-raw-svg `no-restricted-syntax` to the shell renderer block too; message → `@basebench/ui`; update `index.ts` exports/comments. Brand logo (MSH mark) keeps its `eslint-disable` opt-out.
+
+### Watch
+- Per-source **viewBox** differs (Phosphor `0 0 256 256`, codicon `0 0 16 16`) — registry entry carries its own viewBox.
+- `@vscode/codicons` may drop to devDep (codicon-paths already hand-vendored) or be removed if the fallback source is unused post-curation.
+- Medical glyphs improve: Phosphor HAS `stethoscope` (codicon substituted `pulse`).
+- Icon **size** semantics change shell-side: font `fontSize` → SVG width/height (Phosphor `size` px). Audit any call passing odd sizes.
+
+## F3 OUTCOME (2026-07-07) — done, dogfooded, uncommitted
+
+**Decisions:** Phosphor delivery = `@phosphor-icons/react` lib (v2.1.10; `*Icon`-suffixed exports — bare names deprecated); vocab unified to clean semantic ids. **`apply --preset` NOT run** (only Phosphor installed; full preset → F4).
+
+**Delivered:**
+- **F3a** — ONE inline-SVG `<Icon name size? weight? className? title? />` in `@basebench/ui` (`Icon.tsx` + `icon-registry.ts`). Multi-source registry: **source-discriminated `IconEntry`** (Phosphor mounted; codicon/Fluent *mountable* — interface + `source:` prefix seam ready, not shipped). ~100 semantic ids → Phosphor components; per-entry `weight`/`mirrored` (filled radio circles, panel-right = SidebarSimple mirrored, panel-bottom = SquareHalfBottom). `size` omitted → `1em` (inherits font-size = old codicon-font behaviour). Fallback = Question.
+- **F3b** — shell auto-picked up the new Icon (already imports `@basebench/ui`); **0 shell call-site edits** (shell vocab already semantic). Dropped `@vscode/codicons` font CSS import + old `<i class=codicon>`.
+- **F3c** (delegated to implementer, verified) — 13 view files: Icon import swapped `@ru-soam/view-kit`→`@basebench/ui`; 5 conflict renames (gear→settings, x→close, organization→users, device-camera-video→video); **overview.tsx `ICON_MAP`/`MIcon` lucide-shim fully removed** (~20 sites → canonical ids). Deleted `view-kit/src/Icon.tsx` + `codicon-paths.ts`; removed from view-kit index.
+- **F3d** — extended `no-restricted-syntax` no-raw-`<svg>` to the shell (`src/**`) too (shared `NO_RAW_SVG_SYNTAX`, msg → `@basebench/ui`); migrated 2 trash-glyph SVGs (Client/Workspace erase dialogs) to `<Icon name="trash">`; opt-out on 3 genuinely-bespoke (Google brand mark, 2 catenary-arc backgrounds). **Lint boundary retuned (ADR-421 D3/D9):** view-src may now import `@basebench/ui` (was banned); shell still can't import view-kit (view runtime is iframe-only).
+
+**Registry gap hunt (0-gap proven):** diffed every used icon name (call-site literals + dynamic producers `icon:'…'` + default params + manifests, both surfaces) vs registry keys. Fixed gaps the literal-scope missed: `responseIcon` badges (thumbsup/thumbsdown/question), roster lens `organization`→users data, aspects `editIcon` default `edit`, statusbar `download/moon/target/triangle-alert` (last four ALREADY hit the old codicon fallback pre-F3 — fixed anyway). Final: 96 registry keys cover all 48 bundle + 46 shell used names.
+
+**`@vscode/codicons` dep removed** from apps/desktop + basebench-ui package.json (fully dead post-F3). **→ user must `pnpm install` to prune the lockfile before commit.**
+
+**Static gates green:** compile, editor compile, lint, build:views, node --test (18), **vitest 128/128**.
+**Dogfood (CDP :9333):** shell chrome + Practice roster/overview/aspects `view://` iframes, light **and** dark. **Phosphor renders + positions in the strict-CSP view origin** (all svgs viewBox `0 0 256 256`, varied paths — no fallback storm; the D5 analog of the Base UI gate — inline SVG confirmed CSP-clean). overview (heaviest-migrated) visually verified: rupee ₹, video, calendar, users, link-external, check-square all correct. Dev app down, ports clear.
+
+**Carry into F4/F5:** unchanged (F4 = `apply --preset` + Base UI CSP spike; F5 = static fragments + finish shim deletion + bridge retarget).
+
+## F4–F6 (stubs — detail when reached)
 - **F4** — **Owns the F2-deferred `apply --preset`:** hand-config `@basebench/ui/components.json` (two-surface, Tailwind-v4 CSS-var mode) → hand user `shadcn apply --preset b6tOtw19k` (writes deps + `components/ui/*`; stakeholder runs). Then **Base UI CSP spike** (prove Select/Popover positions in a real `view://` iframe under STRICT_VIEW_CSP) → vendor shadcn/Base UI interactive primitives into `@basebench/ui`; both surfaces import; re-base the 13 S1 primitives.
 - **F5** — (was S4b) static fragments EmptyState/Card/Badge/Chip/KvRow/Section in `@basebench/ui`, shadcn-styled, token-only; migrate ~14 views + shell call-sites; delete copies. **Also finishes shim deletion + bridge `TOKEN_NAMES`→contract-leaf retarget** (deferred from F2 — done together once consumers are off the `--color-*` names).
 - **F6** — `/dev/design-system` gallery; theme × mode toggles; view primitives in a real `view://` iframe frame.

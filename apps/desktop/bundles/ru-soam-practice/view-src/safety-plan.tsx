@@ -3,7 +3,8 @@
 import './safety-plan.css';
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ViewRoot, useViewQuery, useCapQuery, useCapMutation, Icon } from '@ru-soam/view-kit';
+import { ViewRoot, useViewQuery, useCapQuery, useCapMutation } from '@ru-soam/view-kit';
+import { Icon } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
