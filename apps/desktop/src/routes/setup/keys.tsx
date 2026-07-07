@@ -29,7 +29,7 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import { Icon, useModalKeys, Button, TextInput, FormField, PageShell } from '@basebench/ui';
+import { Icon, useModalKeys, Button, Input, FormField, PageShell } from '@basebench/ui';
 import { ProgressRail } from './-keys-components';
 import StrengthMeter from '../../platform/auth/StrengthMeter';
 import PasswordInput from '../../platform/auth/PasswordInput';
@@ -292,7 +292,7 @@ function SetupKeysContent() {
           htmlFor="nickname"
           error={state.nickname.length > 0 && !nicknameValid ? 'Nickname must be 4-64 characters.' : null}
         >
-          <TextInput
+          <Input
             id="nickname"
             type="text"
             value={state.nickname}
@@ -315,7 +315,7 @@ function SetupKeysContent() {
             </Button>
           )}
           <Button
-            variant="primary"
+            variant="default"
             onClick={() => setState((s) => ({ ...s, step: 3 }))}
             disabled={!nicknameValid}
           >
@@ -397,7 +397,7 @@ function SetupKeysContent() {
             </Button>
           )}
           <Button
-            variant="primary"
+            variant="default"
             onClick={handlePassphraseNext}
             disabled={!passphraseOk || step3Loading}
           >
@@ -470,7 +470,7 @@ function SetupKeysContent() {
 
         <div className="setup-actions">
           <Button
-            variant="primary"
+            variant="default"
             onClick={() => setState((s) => ({ ...s, step: 5 }))}
             disabled={!acknowledged}
           >
@@ -503,7 +503,7 @@ function SetupKeysContent() {
               Restart passphrase step
             </Button>
           )}
-          <Button variant="primary" onClick={handleFinish} disabled={finishLoading}>
+          <Button variant="default" onClick={handleFinish} disabled={finishLoading}>
             {finishLoading ? (
               'Finishing…'
             ) : (

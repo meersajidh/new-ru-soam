@@ -16,7 +16,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useModalKeys, Dialog } from '@basebench/ui';
+import { Dialog, DialogContent, DialogTitle } from '@basebench/ui';
 import { useContextKey, useService } from '../../platform/services/hooks';
 import { ContextKeyServiceId } from '../../platform/services/ids';
 import { usePrefsCapability } from '../../platform/data/use-capability';
@@ -141,8 +141,6 @@ export function WhatsNewModal() {
 
   const isOpen = !dismissed && (autoOpen || onDemandOpen);
 
-  useModalKeys(isOpen ? handleClose : undefined);
-
   function handleClose() {
     setDismissed(true);
     ctxSvc.set('whatsNew.open', false);
@@ -178,18 +176,12 @@ export function WhatsNewModal() {
   }
 
   return (
-    <Dialog
-      open={true}
-      onClose={handleClose}
-      width={520}
-      aria-labelledby="whats-new-title"
-    >
-      <div className="wn-header">
-        <div className="wn-header__eyebrow">What's new in Ru-Soam</div>
-        <h2 id="whats-new-title" className="t-h2 wn-header__version">
-          v{currentVersion}
-        </h2>
-      </div>
+    <Dialog open onOpenChange={(o) => { if (!o) handleClose(); }}>
+      <DialogContent className="sm:max-w-[540px]">
+        <div className="wn-header">
+          <div className="wn-header__eyebrow">What's new in Ru-Soam</div>
+          <DialogTitle className="t-h2 wn-header__version">v{currentVersion}</DialogTitle>
+        </div>
 
       {blocksToShow.length === 0 ? (
         <p className="t-description wn-empty">No changelog entries for this version.</p>
@@ -206,6 +198,7 @@ export function WhatsNewModal() {
           Got it
         </button>
       </div>
+      </DialogContent>
     </Dialog>
   );
 }

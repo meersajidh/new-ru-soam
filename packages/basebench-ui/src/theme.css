@@ -12,4 +12,5 @@
    Tailwind plugin (observed in the shell 2026-05-19). */
 
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "./tokens.css";

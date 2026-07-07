@@ -19,9 +19,9 @@ import type { ActivityBarItem } from '../../platform/contributions/contribution-
 import type { Density } from '../../platform/activity-bar/density-service';
 
 const DENSITY_ICON_SIZE: Record<Density, number> = {
-  compact: 18,
-  default: 22,
-  large: 26,
+  compact: 24,
+  default: 28,
+  large: 32,
 };
 
 /** Bumps a counter on every ContextKeyService change — triggers re-evaluation of when-clauses. */

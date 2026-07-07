@@ -13,7 +13,16 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { zxcvbn } from '@zxcvbn-ts/core';
-import { useModalKeys, Dialog, Button, TextInput, FormField } from '@basebench/ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Button,
+  Input,
+  FormField,
+} from '@basebench/ui';
 
 interface Props {
   onClose: () => void;
@@ -30,8 +39,6 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
   const [loading, setLoading] = useState(false);
 
   const currentRef = useRef<HTMLInputElement>(null);
-
-  useModalKeys(onClose);
 
   useEffect(() => {
     currentRef.current?.focus();
@@ -83,16 +90,17 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
   ];
 
   return (
-    <Dialog open={true} onClose={onClose} width={400} aria-labelledby="change-passphrase-title">
-      <h2 id="change-passphrase-title" className="t-base font-semibold text-fg-primary m-0">
-        Change passphrase
-      </h2>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>Change passphrase</DialogTitle>
+        </DialogHeader>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         {/* Current passphrase */}
         <FormField label="Current passphrase" htmlFor="cp-current" error={currentError || null}>
           <div className="flex gap-2 items-center">
-            <TextInput
+            <Input
               id="cp-current"
               ref={currentRef}
               type={showCurrent ? 'text' : 'password'}
@@ -115,7 +123,7 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
         {/* New passphrase */}
         <FormField label="New passphrase" htmlFor="cp-new">
           <div className="flex gap-2 items-center">
-            <TextInput
+            <Input
               id="cp-new"
               type={showNew ? 'text' : 'password'}
               value={newPassphrase}
@@ -167,7 +175,7 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
           htmlFor="cp-confirm"
           error={confirmPassphrase.length > 0 && newPassphrase !== confirmPassphrase ? 'Passphrases do not match.' : null}
         >
-          <TextInput
+          <Input
             id="cp-confirm"
             type={showNew ? 'text' : 'password'}
             value={confirmPassphrase}
@@ -178,19 +186,20 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
 
         {generalError && <p className="text-xs text-error m-0 flex items-center gap-1.5">{generalError}</p>}
 
-        <div className="setup-actions">
+        <DialogFooter className="mt-1">
           <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
           <Button
             type="submit"
-            variant="primary"
+            variant="default"
             disabled={!currentPassphrase || !newOk || loading}
           >
             {loading ? 'Changing…' : 'Change passphrase'}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
+      </DialogContent>
     </Dialog>
   );
 }

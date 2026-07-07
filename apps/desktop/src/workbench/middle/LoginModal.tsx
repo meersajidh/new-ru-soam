@@ -395,7 +395,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
 
             <Button
               type="submit"
-              variant="primary"
+              variant="default"
               className="login-modal-submit"
               disabled={!selectedWorkspaceId || !passphrase || identifying || unlocking}
             >
@@ -475,7 +475,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
 
             <Button
               type="submit"
-              variant="primary"
+              variant="default"
               className="login-modal-submit"
               disabled={!passphrase || unlocking}
             >
@@ -542,7 +542,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
               </Button>
               <Button
                 type="submit"
-                variant="primary"
+                variant="default"
                 disabled={!recoveryText.trim() || recoveryLoading}
               >
                 {recoveryLoading ? 'Checking…' : 'Unlock with recovery code'}
@@ -596,7 +596,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
             <div className="setup-actions">
               <Button
                 type="submit"
-                variant="primary"
+                variant="default"
                 disabled={!newPassOk || resetLoading}
               >
                 {resetLoading ? 'Setting…' : 'Set passphrase'}

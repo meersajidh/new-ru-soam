@@ -14,9 +14,20 @@
  *   cn, useModalKeys                                — utilities
  */
 
-export { Button } from './Button.js';
-export { TextInput } from './TextInput.js';
-export { Dialog } from './Dialog.js';
+export { Button, buttonVariants } from './components/ui/button.js';
+export { Input } from './components/ui/input.js';
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from './components/ui/dialog.js';
 export { FormField } from './FormField.js';
 export { PageShell } from './PageShell.js';
 export { cn } from './cn.js';
@@ -33,6 +44,12 @@ export { resolveIcon } from './icon-registry.js';
 export type { SemanticIconId, IconEntry } from './icon-registry.js';
 
 export { useModalKeys } from './useModalKeys.js';
+
+// Base UI CSP integration (ADR-421 D4 / F4 gate finding). `disableStyleElements`
+// stops Base UI injecting inline <style> (scroll-lock etc.) that STRICT_VIEW_CSP
+// `style-src 'self'` would block; positioning stays CSSOM (ungoverned). ViewRoot
+// wraps every view tree in this. Re-exported so consumers need only @basebench/ui.
+export { CSPProvider } from '@base-ui/react/csp-provider';
 
 export { ResizeHandle } from './ResizeHandle.js';
 export type { ResizeHandleProps } from './ResizeHandle.js';

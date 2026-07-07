@@ -2,7 +2,7 @@
 
 import './PasswordInput.css';
 import { useState } from 'react';
-import { Icon, TextInput } from '@basebench/ui';
+import { Icon, Input } from '@basebench/ui';
 
 interface PasswordInputProps {
   id?: string;
@@ -30,7 +30,7 @@ export default function PasswordInput({
 
   return (
     <div className="pw-wrap">
-      <TextInput
+      <Input
         ref={inputRef}
         id={id}
         name={name}

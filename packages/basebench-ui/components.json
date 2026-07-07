@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-luma",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/theme.css",
+    "baseColor": "olive",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "phosphor",
+  "menuAccent": "subtle",
+  "menuColor": "default",
+  "aliases": {
+    "components": "@basebench/ui/components",
+    "ui": "@basebench/ui/components/ui",
+    "lib": "@basebench/ui/lib",
+    "utils": "@basebench/ui/lib/utils",
+    "hooks": "@basebench/ui/hooks"
+  }
+}

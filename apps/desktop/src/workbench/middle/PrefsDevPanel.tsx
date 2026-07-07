@@ -15,7 +15,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePrefsCapability } from '../../platform/data/use-capability';
-import { useModalKeys, Button, TextInput, FormField } from '@basebench/ui';
+import { useModalKeys, Button, Input, FormField } from '@basebench/ui';
 import './UnlockGate.css';
 
 interface Props {
@@ -75,7 +75,7 @@ export default function PrefsDevPanel({ onClose }: Props) {
           <>
             <form className="unlock-gate-form" onSubmit={handleSubmit}>
               <FormField label="Key" htmlFor="pref-key">
-                <TextInput
+                <Input
                   id="pref-key"
                   value={key}
                   onChange={(e) => setKey(e.target.value)}
@@ -84,7 +84,7 @@ export default function PrefsDevPanel({ onClose }: Props) {
                 />
               </FormField>
               <FormField label="Value" htmlFor="pref-value">
-                <TextInput
+                <Input
                   id="pref-value"
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
@@ -99,7 +99,7 @@ export default function PrefsDevPanel({ onClose }: Props) {
               <div className="setup-actions">
                 <Button
                   type="submit"
-                  variant="primary"
+                  variant="default"
                   disabled={!key || setMutation.isPending}
                 >
                   {setMutation.isPending ? 'Saving…' : 'Set pref'}

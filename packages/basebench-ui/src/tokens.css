@@ -28,6 +28,14 @@
  * `var(--contract)` chain. Frozen through F2; retargeted to contract leaves in
  * F5 with shim deletion. */
 
+/* ADR-421 F4: the kit's shadcn/Base UI components (src/components/ui/*) style via
+   Tailwind utility classes that the CONSUMING build must GENERATE. packages/basebench-ui
+   sits outside each consumer's own content root, so register the kit source here.
+   @source resolves relative to THIS file (packages/basebench-ui/src), so every
+   surface importing these tokens (shell app:// + every view://) scans the kit and
+   emits its classes. Without this, bg-primary/rounded-* etc. silently no-op. */
+@source "./**/*.{ts,tsx}";
+
 /* ── Layer 1: contract (base-luma) — light ──────────────────────────────── */
 :root {
   --background:            oklch(1 0 0);
@@ -107,6 +115,33 @@
   --info:    oklch(0.72 0.12 245);
   --success: oklch(0.72 0.11 150);
   --warning: oklch(0.80 0.13 75);
+}
+
+/* ── Layer 2b: shadcn CANONICAL color utilities (ADR-421 F4) ──────────────────
+   Maps the base-luma contract vars → Tailwind's `--color-*` namespace so the
+   kit's shadcn/Base UI components generate `bg-primary` / `text-muted-foreground`
+   / `border-destructive` / `ring-ring` etc. `inline` = utilities reference the
+   contract var directly, so they mode-switch via `.dark` (no static snapshot).
+   `--color-accent` is DELIBERATELY absent: the legacy shim below owns it
+   (= --primary, the app's amber, ~45 sites) so shadcn `bg-accent` resolves to
+   amber for now (slightly-wrong hover); the accent rename is F5 shim work. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 }
 
 @theme {

@@ -213,7 +213,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
               )}
               <Button
                 type="submit"
-                variant="primary"
+                variant="default"
                 disabled={!passphrase || unlocking}
               >
                 {unlocking ? 'Unlocking…' : 'Unlock'}
@@ -263,7 +263,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
               </Button>
               <Button
                 type="submit"
-                variant="primary"
+                variant="default"
                 disabled={!recoveryText.trim() || recoveryLoading}
               >
                 {recoveryLoading ? 'Checking…' : 'Unlock with recovery code'}
@@ -316,7 +316,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
             <div className="setup-actions">
               <Button
                 type="submit"
-                variant="primary"
+                variant="default"
                 disabled={!newPassOk || resetLoading}
               >
                 {resetLoading ? 'Setting…' : 'Set passphrase'}

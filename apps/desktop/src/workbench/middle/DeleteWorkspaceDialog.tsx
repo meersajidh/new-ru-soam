@@ -13,7 +13,16 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { useModalKeys, Dialog, Button, TextInput, FormField, Icon } from '@basebench/ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogFooter,
+  Button,
+  Input,
+  FormField,
+  Icon,
+} from '@basebench/ui';
 import { useService } from '../../platform/services/hooks';
 import { ProductConfigServiceId } from '../../platform/services/ids';
 import './DeleteWorkspaceDialog.css';
@@ -33,7 +42,6 @@ export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
 
   const nicknameRef = useRef<HTMLInputElement>(null);
 
-  useModalKeys(onClose);
 
   useEffect(() => {
     nicknameRef.current?.focus();
@@ -83,20 +91,14 @@ export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
   }
 
   return (
-    <Dialog
-      open={true}
-      onClose={onClose}
-      width={440}
-      aria-labelledby="delete-workspace-title"
-    >
-      <div className="delete-workspace-header">
-        <div className="delete-workspace-icon" aria-hidden="true">
-          <Icon name="trash" size={22} />
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-[460px]">
+        <div className="delete-workspace-header">
+          <div className="delete-workspace-icon" aria-hidden="true">
+            <Icon name="trash" size={22} />
+          </div>
+          <DialogTitle className="delete-workspace-title">Delete account</DialogTitle>
         </div>
-        <h2 id="delete-workspace-title" className="delete-workspace-title">
-          Delete account
-        </h2>
-      </div>
 
       <div className="delete-workspace-warning" role="alert">
         <p className="delete-workspace-warning-headline">This cannot be undone.</p>
@@ -113,7 +115,7 @@ export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
           htmlFor="dw-nickname"
           error={nicknameError || null}
         >
-          <TextInput
+          <Input
             id="dw-nickname"
             ref={nicknameRef}
             type="text"
@@ -131,19 +133,20 @@ export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
           <p className="text-xs text-error m-0 flex items-center gap-1.5">{generalError}</p>
         )}
 
-        <div className="setup-actions">
+        <DialogFooter className="mt-1">
           <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
           <Button
             type="submit"
-            variant="danger"
+            variant="destructive"
             disabled={!canSubmit}
           >
             {loading ? 'Deleting…' : 'Delete account'}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
+      </DialogContent>
     </Dialog>
   );
 }

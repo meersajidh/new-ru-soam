@@ -9,7 +9,16 @@
  */
 
 import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
-import { useModalKeys, Dialog, Button, TextInput, FormField, Icon } from '@basebench/ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogFooter,
+  Button,
+  Input,
+  FormField,
+  Icon,
+} from '@basebench/ui';
 import { useService } from '../platform/services/hooks';
 import { EditorServiceId, ScheduleViewStateServiceId } from '../platform/services/ids';
 import {
@@ -38,7 +47,6 @@ function ClientEraseDialogInner({
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useModalKeys(onClose);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -85,15 +93,14 @@ function ClientEraseDialogInner({
   }
 
   return (
-    <Dialog open={true} onClose={onClose} width={440} aria-labelledby="client-erase-title">
-      <div className="client-erase-header">
-        <div className="client-erase-icon" aria-hidden="true">
-          <Icon name="trash" size={22} />
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-[460px]">
+        <div className="client-erase-header">
+          <div className="client-erase-icon" aria-hidden="true">
+            <Icon name="trash" size={22} />
+          </div>
+          <DialogTitle className="client-erase-title">Erase client record</DialogTitle>
         </div>
-        <h2 id="client-erase-title" className="client-erase-title">
-          Erase client record
-        </h2>
-      </div>
 
       <div className="client-erase-warning" role="alert">
         <p className="client-erase-warning-headline">This cannot be undone.</p>
@@ -111,7 +118,7 @@ function ClientEraseDialogInner({
           htmlFor="ce-name"
           error={nameError || null}
         >
-          <TextInput
+          <Input
             id="ce-name"
             ref={inputRef}
             type="text"
@@ -129,15 +136,16 @@ function ClientEraseDialogInner({
           <p className="text-xs text-error m-0 flex items-center gap-1.5">{generalError}</p>
         )}
 
-        <div className="setup-actions">
+        <DialogFooter className="mt-1">
           <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" variant="danger" disabled={!canSubmit}>
+          <Button type="submit" variant="destructive" disabled={!canSubmit}>
             {loading ? 'Erasing…' : 'Erase client'}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
+      </DialogContent>
     </Dialog>
   );
 }

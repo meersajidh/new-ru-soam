@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { CSPProvider } from '@basebench/ui';
 import {
   ViewContext,
   ChannelContext,
@@ -156,10 +157,12 @@ export function ViewRoot({ children, queryClient }: ViewRootProps) {
   if (!bridgeReady) return null;
 
   return (
-    <QueryClientProvider client={qc}>
-      <ChannelContext.Provider value={channelStore}>
-        <ViewContext.Provider value={{ entityId }}>{children}</ViewContext.Provider>
-      </ChannelContext.Provider>
-    </QueryClientProvider>
+    <CSPProvider disableStyleElements>
+      <QueryClientProvider client={qc}>
+        <ChannelContext.Provider value={channelStore}>
+          <ViewContext.Provider value={{ entityId }}>{children}</ViewContext.Provider>
+        </ChannelContext.Provider>
+      </QueryClientProvider>
+    </CSPProvider>
   );
 }
