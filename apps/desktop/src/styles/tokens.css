@@ -1,42 +1,143 @@
-/* Design token declarations — overridden at runtime by theme + font-set classes on <html>. */
-/* Defaults mirror `.theme-bamboo.dark` — bamboo is the cold-start theme
-   (see initial-theme.ts). Per-theme files under styles/themes/*.css override
-   these via class selectors on <html>. The luminance axis (`.dark`) is OS-
-   decided on first run via prefers-color-scheme; the `@theme {}` default just
-   provides a stable frame for the brief window before applyInitialTheme runs.
-   Authoring space per theme is the theme file's choice — bamboo/stone/primer
-   author in oklch for perceptual uniformity; iris authors in hex. */
+/* Design tokens — ADR-421 shadcn foundation, signature theme "base-luma".
+ *
+ * THREE LAYERS (ADR-421 F1, shim-transition):
+ *   1. Contract  — the shadcn CSS-var token contract (base-luma preset
+ *                  `b6tOtw19k`). Real `:root` (light) + `.dark` custom props,
+ *                  mode-switched by the `.dark` class alone. Source of truth.
+ *   2. Extension — our semantic/tint/shadow/type/spacing/radius tokens that
+ *                  shadcn has no equivalent for. Rebased on layer 1; kept.
+ *   3. Shim      — the existing bespoke `--color-*` utility namespace, rebased
+ *                  to reference layer 1 so every already-shipped component keeps
+ *                  rendering unchanged. Migrated off / deleted across F2/F5.
+ *
+ * The 3-axis theme model (palette × luminance × font-set) is collapsed: one
+ * named theme (base-luma) on `:root`, mode via `.dark`, fonts folded in. The old
+ * per-palette files (themes/*.css) + font-set files are unimported (F1) and
+ * removed in F2.
+ *
+ * @theme tree-shake gotcha (CLAUDE.md): hand-written CSS must reference real
+ * `:root`/class custom props — layer-1 contract vars are plain `:root`/`.dark`
+ * props (never `@theme`), so `var(--card)` etc. always resolve. */
+
+/* ── Layer 1: contract (base-luma) — light ──────────────────────────────── */
+:root {
+  --background:            oklch(1 0 0);
+  --foreground:            oklch(0.153 0.006 107.1);
+  --card:                  oklch(1 0 0);
+  --card-foreground:       oklch(0.153 0.006 107.1);
+  --popover:               oklch(1 0 0);
+  --popover-foreground:    oklch(0.153 0.006 107.1);
+  --primary:               oklch(0.555 0.163 48.998);   /* burnt amber */
+  --primary-foreground:    oklch(0.987 0.022 95.277);
+  --secondary:             oklch(0.967 0.001 286.375);
+  --secondary-foreground:  oklch(0.21 0.006 285.885);
+  --muted:                 oklch(0.966 0.005 106.5);
+  --muted-foreground:      oklch(0.58 0.031 107.3);
+  --accent:                oklch(0.966 0.005 106.5);
+  --accent-foreground:     oklch(0.228 0.013 107.4);
+  --destructive:           oklch(0.577 0.245 27.325);
+  --border:                oklch(0.93 0.007 106.5);
+  --input:                 oklch(0.93 0.007 106.5);
+  --ring:                  oklch(0.737 0.021 106.9);
+  --chart-1:               oklch(0.88 0.011 106.6);
+  --chart-2:               oklch(0.58 0.031 107.3);
+  --chart-3:               oklch(0.466 0.025 107.3);
+  --chart-4:               oklch(0.394 0.023 107.4);
+  --chart-5:               oklch(0.286 0.016 107.4);
+  --radius:                0.625rem;
+  --sidebar:                     oklch(0.988 0.003 106.5);
+  --sidebar-foreground:          oklch(0.153 0.006 107.1);
+  --sidebar-primary:             oklch(0.666 0.179 58.318);
+  --sidebar-primary-foreground:  oklch(0.987 0.022 95.277);
+  --sidebar-accent:              oklch(0.966 0.005 106.5);
+  --sidebar-accent-foreground:   oklch(0.228 0.013 107.4);
+  --sidebar-border:              oklch(0.93 0.007 106.5);
+  --sidebar-ring:                oklch(0.737 0.021 106.9);
+
+  /* Extension: semantic colors with no shadcn contract slot (error → destructive
+     is the only mapped one). Harmonized with base-luma's warm neutral. Light. */
+  --info:    oklch(0.55 0.13 245);
+  --success: oklch(0.56 0.12 150);
+  --warning: oklch(0.68 0.14 70);
+}
+
+/* ── Layer 1: contract (base-luma) — dark ───────────────────────────────── */
+.dark {
+  --background:            oklch(0.153 0.006 107.1);
+  --foreground:            oklch(0.988 0.003 106.5);
+  --card:                  oklch(0.228 0.013 107.4);
+  --card-foreground:       oklch(0.988 0.003 106.5);
+  --popover:               oklch(0.228 0.013 107.4);
+  --popover-foreground:    oklch(0.988 0.003 106.5);
+  --primary:               oklch(0.473 0.137 46.201);   /* burnt amber (dark) */
+  --primary-foreground:    oklch(0.987 0.022 95.277);
+  --secondary:             oklch(0.274 0.006 286.033);
+  --secondary-foreground:  oklch(0.985 0 0);
+  --muted:                 oklch(0.286 0.016 107.4);
+  --muted-foreground:      oklch(0.737 0.021 106.9);
+  --accent:                oklch(0.286 0.016 107.4);
+  --accent-foreground:     oklch(0.988 0.003 106.5);
+  --destructive:           oklch(0.704 0.191 22.216);
+  --border:                oklch(1 0 0 / 10%);
+  --input:                 oklch(1 0 0 / 15%);
+  --ring:                  oklch(0.58 0.031 107.3);
+  --chart-1:               oklch(0.88 0.011 106.6);
+  --chart-2:               oklch(0.58 0.031 107.3);
+  --chart-3:               oklch(0.466 0.025 107.3);
+  --chart-4:               oklch(0.394 0.023 107.4);
+  --chart-5:               oklch(0.286 0.016 107.4);
+  --sidebar:                     oklch(0.228 0.013 107.4);
+  --sidebar-foreground:          oklch(0.988 0.003 106.5);
+  --sidebar-primary:             oklch(0.769 0.188 70.08);
+  --sidebar-primary-foreground:  oklch(0.279 0.077 45.635);
+  --sidebar-accent:              oklch(0.286 0.016 107.4);
+  --sidebar-accent-foreground:   oklch(0.988 0.003 106.5);
+  --sidebar-border:              oklch(1 0 0 / 10%);
+  --sidebar-ring:                oklch(0.58 0.031 107.3);
+
+  --info:    oklch(0.72 0.12 245);
+  --success: oklch(0.72 0.11 150);
+  --warning: oklch(0.80 0.13 75);
+}
 
 @theme {
+  /* ── Layer 3: shim — bespoke `--color-*` utility namespace, rebased on the
+     contract. Existing components (bg-surface-panel, text-fg-primary, …) keep
+     rendering; values now come from base-luma and mode-switch via `.dark`
+     through the var indirection. Migrated off across F2/F5. ── */
+
   /* Surfaces */
-  --color-surface-base:     oklch(0.160 0.025 95.0);
-  --color-surface-panel:    oklch(0.195 0.030 95.0);
-  --color-surface-elevated: oklch(0.230 0.035 95.0);
-  --color-surface-active:   oklch(0.300 0.045 130.0);
+  --color-surface-base:     var(--background);
+  --color-surface-panel:    var(--card);
+  --color-surface-elevated: var(--popover);
+  --color-surface-active:   var(--accent);
 
   /* Foreground */
-  --color-fg-primary:   oklch(0.950 0.0072 95.0);
-  --color-fg-secondary: oklch(0.750 0.0090 95.0);
-  --color-fg-muted:     oklch(0.560 0.0114 95.0);
+  --color-fg-primary:   var(--foreground);
+  --color-fg-secondary: var(--muted-foreground);
+  --color-fg-muted:     var(--muted-foreground);
 
   /* Borders */
-  --color-border:       oklch(0.320 0.032 95.0);
-  --color-border-focus: oklch(0.740 0.1105 130.0);
+  --color-border:       var(--border);
+  --color-border-focus: var(--ring);
 
-  /* Accent */
-  --color-accent:         oklch(0.740 0.1105 130.0);
-  --color-accent-fg:      oklch(0.141 0.0168 95.0);
-  --color-accent-hover:   oklch(0.768 0.0985 130.0);
-  --color-accent-pressed: oklch(0.692 0.0985 130.0);
+  /* Accent — our "accent" is the brand primary (shadcn `accent` is a muted
+     hover surface; do not confuse — that maps to --color-surface-active above). */
+  --color-accent:         var(--primary);
+  --color-accent-fg:      var(--primary-foreground);
+  --color-accent-hover:   color-mix(in oklch, var(--primary) 88%, white 12%);
+  --color-accent-pressed: color-mix(in oklch, var(--primary) 82%, black 18%);
 
   /* Semantic */
-  --color-info:    oklch(0.720 0.1001 200.0);
-  --color-success: oklch(0.740 0.0897 145.0);
-  --color-warning: oklch(0.800 0.1105 75.0);
-  --color-error:   oklch(0.700 0.1300 25.0);
+  --color-info:    var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error:   var(--destructive);
 
-  /* Fonts */
-  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* Fonts — base-luma folds display into a single sans. Inter Tight is the
+     self-hosted interim (via @fontsource, index.css); swap to exact Inter when
+     the font dep is installed (deferred, needs `@fontsource-variable/inter`). */
+  --font-sans: 'Inter Tight Variable', 'Inter Tight', system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
   --font-display: var(--font-sans);
 
@@ -170,11 +271,43 @@
      N × 0.25rem). Replaces the old `--space-N` family in PR-7b. */
   --spacing: 0.25rem;
 
-  /* Radii — rem-based so they scale with root font-size.
-     Tailwind generates rounded-sm / rounded-md / rounded-card utilities from these. */
+  /* Radii — rem-based so they scale with root font-size. `--radius-md` folds
+     onto the base-luma contract `--radius` (0.625rem); card/sm stay derived. */
   --radius-card: 1rem;   /* 16px — setup content card, workspace tile parent */
   --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
+  --radius-md: var(--radius);
+}
+
+/* Bridge-snapshot shim — REAL `:root` props mirroring the shim `--color-*` /
+   `--font-*` names the iframe bridge snapshots (ThemeService.TOKEN_NAMES +
+   FontService.FONT_VAR_NAMES). The `@theme` copies above PAINT correctly but
+   read back "" via getComputedStyle (the @theme tree-shake/readback gotcha),
+   which zeroed the bridge appearance snapshot → bundle views fell to their
+   cold-start defaults. These plain props resolve `var(--…)` through the
+   contract, so getComputedStyle returns real values; mode-switch rides the
+   contract indirection (no `.dark` duplicate needed). Retired with the shim in
+   F2/F5 once the snapshot reads contract leaves directly. */
+:root {
+  --color-surface-base:     var(--background);
+  --color-surface-panel:    var(--card);
+  --color-surface-elevated: var(--popover);
+  --color-surface-active:   var(--accent);
+  --color-fg-primary:   var(--foreground);
+  --color-fg-secondary: var(--muted-foreground);
+  --color-fg-muted:     var(--muted-foreground);
+  --color-border:       var(--border);
+  --color-border-focus: var(--ring);
+  --color-accent:         var(--primary);
+  --color-accent-fg:      var(--primary-foreground);
+  --color-accent-hover:   color-mix(in oklch, var(--primary) 88%, white 12%);
+  --color-accent-pressed: color-mix(in oklch, var(--primary) 82%, black 18%);
+  --color-info:    var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error:   var(--destructive);
+  --font-sans: 'Inter Tight Variable', 'Inter Tight', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
+  --font-display: var(--font-sans);
 }
 
 /* Root font-size — drives every rem-based value in the system. A future
@@ -186,4 +319,7 @@
   /* Shared top-chrome header height (sidebar header, editor tab strip, aux/panel
      headers) so their bottom borders align. rem-based → scales with text size. */
   --header-height: 2.1875rem; /* 35px @ root 16 */
+  /* Display headings ride these (base-luma display = sans; single font model). */
+  --font-display-weight: 600;
+  --font-display-letter-spacing: -0.01em;
 }

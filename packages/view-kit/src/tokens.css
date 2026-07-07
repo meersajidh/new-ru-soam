@@ -9,37 +9,38 @@
    shadows) are theme-independent and stay as authored — they are the values baked
    into the generated utilities.
 
-   Deliberate duplication of the shell tokens for now; O194 unifies shell + view
-   tokens into a single base source. Keep in sync until then. Defaults mirror
-   `.theme-bamboo.dark` (the shell cold-start theme). */
+   Deliberate duplication of the shell tokens for now; O194/ADR-421 F2 unifies
+   shell + view tokens into a single base source. Keep in sync until then.
+   Defaults mirror base-luma DARK (the shell cold-start theme); at runtime the
+   bridge `applyTheme` overrides with the live light/dark values. */
 
 @theme {
   /* Surfaces */
-  --color-surface-base:     oklch(0.160 0.025 95.0);
-  --color-surface-panel:    oklch(0.195 0.030 95.0);
-  --color-surface-elevated: oklch(0.230 0.035 95.0);
-  --color-surface-active:   oklch(0.300 0.045 130.0);
+  --color-surface-base:     oklch(0.153 0.006 107.1);
+  --color-surface-panel:    oklch(0.228 0.013 107.4);
+  --color-surface-elevated: oklch(0.228 0.013 107.4);
+  --color-surface-active:   oklch(0.286 0.016 107.4);
 
   /* Foreground */
-  --color-fg-primary:   oklch(0.950 0.0072 95.0);
-  --color-fg-secondary: oklch(0.750 0.0090 95.0);
-  --color-fg-muted:     oklch(0.560 0.0114 95.0);
+  --color-fg-primary:   oklch(0.988 0.003 106.5);
+  --color-fg-secondary: oklch(0.737 0.021 106.9);
+  --color-fg-muted:     oklch(0.737 0.021 106.9);
 
   /* Borders */
-  --color-border:       oklch(0.320 0.032 95.0);
-  --color-border-focus: oklch(0.740 0.1105 130.0);
+  --color-border:       oklch(1 0 0 / 10%);
+  --color-border-focus: oklch(0.58 0.031 107.3);
 
-  /* Accent */
-  --color-accent:         oklch(0.740 0.1105 130.0);
-  --color-accent-fg:      oklch(0.141 0.0168 95.0);
-  --color-accent-hover:   oklch(0.768 0.0985 130.0);
-  --color-accent-pressed: oklch(0.692 0.0985 130.0);
+  /* Accent (brand primary) */
+  --color-accent:         oklch(0.473 0.137 46.201);
+  --color-accent-fg:      oklch(0.987 0.022 95.277);
+  --color-accent-hover:   color-mix(in oklch, var(--color-accent) 88%, white 12%);
+  --color-accent-pressed: color-mix(in oklch, var(--color-accent) 82%, black 18%);
 
   /* Semantic */
-  --color-info:    oklch(0.720 0.1001 200.0);
-  --color-success: oklch(0.740 0.0897 145.0);
-  --color-warning: oklch(0.800 0.1105 75.0);
-  --color-error:   oklch(0.700 0.1300 25.0);
+  --color-info:    oklch(0.72 0.12 245);
+  --color-success: oklch(0.72 0.11 150);
+  --color-warning: oklch(0.80 0.13 75);
+  --color-error:   oklch(0.704 0.191 22.216);
 
   /* Fonts */
   --font-sans: 'Inter Tight', system-ui, 'Segoe UI', Roboto, sans-serif;

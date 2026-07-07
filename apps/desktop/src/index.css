@@ -1,14 +1,10 @@
 @import "tailwindcss";
 @import "./styles/fonts/google-fonts.css";
 @import "./styles/tokens.css";
-@import "./styles/themes/iris.css";
-@import "./styles/themes/primer.css";
-@import "./styles/themes/spectrum.css";
-@import "./styles/themes/bamboo.css";
-@import "./styles/themes/stone.css";
-@import "./styles/font-sets/system-sans.css";
-@import "./styles/font-sets/ru-display.css";
-@import "./styles/font-sets/ru-editorial.css";
+/* ADR-421 F1: palette (themes/*.css) + font-set (font-sets/*.css) files are
+   retired — the 3-axis model collapsed to one signature theme (base-luma) on
+   :root with `.dark` mode + a single folded font. Files kept in tree until F2
+   deletes them. */
 @import "./styles/type.css";
 :root {
   font-synthesis: none;

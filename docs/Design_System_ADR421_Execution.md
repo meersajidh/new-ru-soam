@@ -1,6 +1,6 @@
 # ADR-421 Execution Tracker (F1–F6)
 
-**Status:** F1 in progress (shim-transition). **Date:** 2026-07-07.
+**Status:** F1 DONE + dogfooded (shim-transition), uncommitted. **Date:** 2026-07-07.
 **Authority:** `docs/ADRs/421-design-system-foundation-shadcn.md`. Supersedes ADR-420 model; builds on committed S1/S1b/S2/S4a/S3.
 **Strategy (locked):** shim-transition — adopt the shadcn CSS-var contract as the new source of truth; keep a thin alias layer mapping old `--color-*` names → new contract vars so **every existing component keeps rendering**; migrate consumers off old names incrementally (F2/F5); delete the shim when the last consumer moves. **App never breaks between commits.**
 
@@ -146,6 +146,45 @@ Old tokens are in `apps/desktop/src/styles/tokens.css` (`@theme {}`) + `packages
 - boot apply site (App.tsx / main.tsx `applyInitialTheme`)
 
 **Retire (this phase or F2):** 5 palette files (`themes/{bamboo,iris,primer,spectrum,stone}.css`), 3 font-sets (`font-sets/*.css`), `fonts/google-fonts.css` (CDN — must go, CSP). Since **1 signature theme**, palettes are removed, not converted. Keep archived in git history.
+
+---
+
+## F1 OUTCOME (2026-07-07) — done, uncommitted
+
+**Approach taken = minimal-churn shim, NOT a service merge.** The 3-axis collapse
+was achieved without merging ThemeService/FontService (deferred to F2): services
+stay, fed **single-entry registries** (`built-in.ts` → one `base-luma` theme +
+one `base-luma` font-set), so SettingsMenu/commands render one option with zero
+component change. `theme-*` / `font-set-*` classes still get applied but match no
+CSS (base-luma lives on `:root`); `.dark` is the only live axis.
+
+**Files changed (all uncommitted):**
+- `styles/tokens.css` — contract (`:root` light + `.dark`, base-luma verbatim) +
+  semantic `--info/success/warning` (light+dark) + rebased the 17 `@theme`
+  color leaves → `var(--contract)` + `--radius-md: var(--radius)` + font shim.
+- `styles/index.css` — dropped 5 palette + 3 font-set `@import`s (files kept, F2 deletes).
+- `themes/built-in.ts`, `font-sets/built-in.ts` — single `base-luma` descriptor.
+- `themes/initial-theme.ts`, `font-sets/initial-font-set.ts` — base-luma ids; stale prefs sanitize.
+- `platform-commands.ts` — 5 theme + 3 font commands + submenu → 1 each (dark toggle kept).
+- `view-kit/src/tokens.css` — cold-start defaults → base-luma DARK (bridge overrides at runtime).
+
+**★ Bridge-snapshot gotcha found + fixed (carry into F2).** `ThemeService.getTokenSnapshot()`
+reads `getComputedStyle(root).getPropertyValue('--color-*')`. Once the old
+`--color-*` names became `@theme` vars = `var(--card)`, **getComputedStyle returns
+`""` for them** (the @theme readback/tree-shake gotcha) → the iframe appearance
+snapshot went empty → bundle views fell to cold-start defaults (dark panel in a
+light shell). CONTRACT leaves (`--card`, `--background`… = real `:root`/`.dark`
+props) read back fine; a real `:root` prop `--x: var(--card)` **also** reads back
+resolved (CDP-verified). **Fix:** a real `:root` shim block in `tokens.css`
+mirroring the snapshot names (`--color-*` + `--font-*`) = `var(<contract>)`, so
+getComputedStyle resolves them; mode rides the contract indirection (no `.dark`
+copy needed). **F2 retires this block** by pointing the snapshot at contract
+leaves directly (`TOKEN_NAMES` → contract, view-kit maps contract→utilities).
+
+**Dogfood (CDP :9333):** light + dark, shell (lock + workbench chrome) + Practice
+roster `view://` iframe — both modes coherent, burnt-amber primary, Inter Tight
+sans, no empty/transparent paints, no blank views, no console theme errors.
+Static gates green: `compile`, `lint`, editor `compile`, `build:views`.
 
 ---
 

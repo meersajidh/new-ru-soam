@@ -214,34 +214,13 @@ export function registerPlatformCommands(
   );
 
 
+  // ADR-421 F1: 3-axis palette/font model collapsed to one signature theme
+  // (base-luma). Only the dark-mode toggle is a live axis; the single theme +
+  // font commands are placeholders that re-expand in F2+.
   commands.register(
-    'workbench.theme.bamboo',
-    'Color Theme: Bamboo',
-    () => theme.setTheme('bamboo'),
-    { category: 'Preferences' },
-  );
-  commands.register(
-    'workbench.theme.primer',
-    'Color Theme: Primer',
-    () => theme.setTheme('primer'),
-    { category: 'Preferences' },
-  );
-  commands.register(
-    'workbench.theme.spectrum',
-    'Color Theme: Spectrum',
-    () => theme.setTheme('spectrum'),
-    { category: 'Preferences' },
-  );
-  commands.register(
-    'workbench.theme.iris',
-    'Color Theme: Iris',
-    () => theme.setTheme('iris'),
-    { category: 'Preferences' },
-  );
-  commands.register(
-    'workbench.theme.stone',
-    'Color Theme: Stone',
-    () => theme.setTheme('stone'),
+    'workbench.theme.baseLuma',
+    'Color Theme: Base Luma',
+    () => theme.setTheme('base-luma'),
     { category: 'Preferences' },
   );
   commands.register(
@@ -251,21 +230,9 @@ export function registerPlatformCommands(
     { category: 'Preferences' },
   );
   commands.register(
-    'workbench.font.systemSans',
-    'Font Set: System Sans',
-    () => font.setFontSet('system-sans'),
-    { category: 'Preferences' },
-  );
-  commands.register(
-    'workbench.font.ruDisplay',
-    'Font Set: Ru Display',
-    () => font.setFontSet('ru-display'),
-    { category: 'Preferences' },
-  );
-  commands.register(
-    'workbench.font.ruEditorial',
-    'Font Set: Ru Editorial',
-    () => font.setFontSet('ru-editorial'),
+    'workbench.font.baseLuma',
+    'Font Set: Base Luma',
+    () => font.setFontSet('base-luma'),
     { category: 'Preferences' },
   );
 
@@ -705,14 +672,11 @@ export function registerPlatformCommands(
     { group: '2_appearance', order: 1, title: 'Color Theme', submenu: 'workbench/title/colorTheme' },
   ]);
 
-  // O425: submenu slot — 5 palette radio items.
-  // Each uses radioGroup + toggled when-clause driven by workbench.colorTheme context key.
+  // O425 / ADR-421 F1: submenu slot — single signature theme (base-luma) until
+  // named themes return in F2. radioGroup + toggled when-clause kept for the
+  // re-expansion.
   menu.register('workbench/title/colorTheme', [
-    { command: 'workbench.theme.bamboo',   group: '1_palette', order: 1, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'bamboo'",   title: 'Bamboo'   },
-    { command: 'workbench.theme.primer',   group: '1_palette', order: 2, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'primer'",   title: 'Primer'   },
-    { command: 'workbench.theme.spectrum', group: '1_palette', order: 3, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'spectrum'", title: 'Spectrum' },
-    { command: 'workbench.theme.iris',     group: '1_palette', order: 4, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'iris'",     title: 'Iris'     },
-    { command: 'workbench.theme.stone',    group: '1_palette', order: 5, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'stone'",    title: 'Stone'    },
+    { command: 'workbench.theme.baseLuma', group: '1_palette', order: 1, radioGroup: 'colorTheme', toggled: "workbench.colorTheme == 'base-luma'", title: 'Base Luma' },
   ]);
 
   keybindings.seedDefaults(DEFAULT_KEYBINDINGS);
