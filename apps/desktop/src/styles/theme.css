@@ -12,4 +12,4 @@
    (observed 2026-05-19 with @reference "../index.css"). */
 
 @import "tailwindcss";
-@import "./tokens.css";
+@import "@basebench/ui/tokens.css";

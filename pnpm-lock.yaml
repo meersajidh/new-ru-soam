@@ -287,6 +287,9 @@ importers:
 
   packages/view-kit:
     dependencies:
+      '@basebench/ui':
+        specifier: workspace:*
+        version: link:../basebench-ui
       '@tanstack/react-query':
         specifier: 'catalog:'
         version: 5.100.14(react@19.2.6)

@@ -24,6 +24,7 @@
     "typescript": "catalog:"
   },
   "dependencies": {
+    "@basebench/ui": "workspace:*",
     "@tanstack/react-query": "catalog:"
   }
 }

@@ -1,0 +1,15 @@
+/* Tailwind entry for @basebench/ui (base layer, ADR-106) — the single
+   `@reference` / build target for the kit's component CSS and the shared token
+   source both surfaces consume.
+
+   Component CSS in this package references it for @apply resolution:
+       @reference "@basebench/ui/theme.css";   (or "./theme.css" within the pkg)
+   so utilities (bg-*, text-*, p-*, gap-*, rounded-*, …) and @theme tokens
+   resolve. The shell + view Tailwind entries pull the same tokens via
+   `@import "@basebench/ui/tokens.css"`.
+
+   Do NOT transitively @import component CSS here — @reference recursion OOMs the
+   Tailwind plugin (observed in the shell 2026-05-19). */
+
+@import "tailwindcss";
+@import "./tokens.css";

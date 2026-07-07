@@ -15,12 +15,14 @@
  *   IBM Plex Mono  — mono; static 400 / 500. Self-hosts as family
  *                    'IBM Plex Mono' (plain name — matches the font-set stacks).
  *
- * The variable families register a `... Variable` family name, so the brand
- * font-set stacks (font-sets/ru-display.css, ru-editorial.css) list the
- * `Variable` name first, then the plain name, then the system fallback.
+ * The variable families register a `... Variable` family name, so the token
+ * `--font-sans` (base-luma, in @basebench/ui/tokens.css) lists the `Variable`
+ * name first, then the plain name, then the system fallback.
  *
- * This `@import` block must precede any font-set class application — see
- * font-sets/README.md.
+ * ADR-421 F1/F2: the 3-axis font-set files (font-sets/*.css) are retired — the
+ * signature theme (base-luma) folds display+body into one sans (Inter Tight,
+ * interim for the preset's Inter). Source Serif 4 / IBM Plex Mono are kept for
+ * the editor + code; font-asset pruning is deferred (own follow-up).
  * ──────────────────────────────────────────────────────────────────────────── */
 
 @import '@fontsource-variable/inter-tight/wght.css';

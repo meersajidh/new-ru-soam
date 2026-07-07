@@ -1,6 +1,6 @@
 # ADR-421 Execution Tracker (F1–F6)
 
-**Status:** F1 DONE + dogfooded (shim-transition), uncommitted. **Date:** 2026-07-07.
+**Status:** F1 committed. **F2 DONE + dogfooded (token unification), uncommitted.** **Date:** 2026-07-07.
 **Authority:** `docs/ADRs/421-design-system-foundation-shadcn.md`. Supersedes ADR-420 model; builds on committed S1/S1b/S2/S4a/S3.
 **Strategy (locked):** shim-transition — adopt the shadcn CSS-var contract as the new source of truth; keep a thin alias layer mapping old `--color-*` names → new contract vars so **every existing component keeps rendering**; migrate consumers off old names incrementally (F2/F5); delete the shim when the last consumer moves. **App never breaks between commits.**
 
@@ -188,12 +188,67 @@ Static gates green: `compile`, `lint`, editor `compile`, `build:views`.
 
 ---
 
-## F2–F6 (stubs — detail when reached)
+## F2 PLAN (cut 2026-07-07) — token unification only; `apply --preset` folded into F4
 
-- **F2** — `@basebench/ui` becomes shadcn `packages/ui` (hand-configured `components.json`, Tailwind-v4 empty-tailwind CSS-var mode); `theme.css` = the contract; reconcile `tokens.css` ↔ view-kit `theme.css` → one theme both surfaces import; begin deleting shim as shell consumers migrate; retire palette files if not in F1.
+**Scope cut:** F2-as-written bundled two separable things. Split:
+- **(a) token/theme unification** = F2 now. Pure CSS + package.json. No install, no git.
+- **(b) `@basebench/ui` → shadcn `packages/ui`** (`components.json` + `shadcn apply --preset b6tOtw19k`, adds Base UI deps, scaffolds `components/ui/*`) = **folded into F4**, where Base UI is actually consumed. Single user-run CLI step there (ADR D7 / integration-constraint-2: stakeholder runs it).
+
+**Bridge NOT touched in F2.** `TOKEN_NAMES` stays the 17 old `--color-*` names; the F1 real-`:root` shim stays (still the bridge readback source + legacy hand-CSS compat). The bridge retarget (`TOKEN_NAMES`→contract leaves) pairs naturally with **shim deletion in F5** — do them together, not now. Keeping the bridge frozen de-risks F2 (F1 bridge is dogfooded-good).
+
+**Why unification is safe with the frozen bridge:** shared file carries contract (`:root`+`.dark` real props) + `@theme`(extension + `--color-*`→`var(--contract)` map) + real-`:root` `--color-*` shim. View utilities `bg-surface-panel`=`var(--color-surface-panel)`; bridge pushes resolved `--color-surface-panel` inline on the iframe root (mode already baked by shell's `getComputedStyle`) → inline shadows the `var(--card)` chain → correct. Cold-start (pre-push) resolves via `:root` shim → light contract, then push corrects. Identical to how the shell shim already works.
+
+**Resolution:** `nodeLinker: hoisted` + apps/desktop already deps `@basebench/ui` ⇒ `@basebench/ui/tokens.css` resolves from any view CSS with NO relink; only need export-map subpaths.
+
+### Slices
+- **F2a+b (combined — a alone not dogfoodable):**
+  1. New `packages/basebench-ui/src/tokens.css` = current shell `styles/tokens.css` 3-layer content verbatim (header updated: now the shared base-layer source).
+  2. New `packages/basebench-ui/src/theme.css` = `@import "tailwindcss"; @import "./tokens.css";` (Tailwind entry / `@reference` target; mirrors shell+view entries).
+  3. basebench-ui `package.json` exports: add `"./tokens.css"`, `"./theme.css"`.
+  4. Shell `index.css`: `@import "./styles/tokens.css"` → `@import "@basebench/ui/tokens.css"`.
+  5. Shell `styles/theme.css`: `@import "./tokens.css"` → `@import "@basebench/ui/tokens.css"`.
+  6. **Delete** shell `styles/tokens.css` (only index.css + theme.css imported it, both repointed).
+  7. view-kit `src/tokens.css` → body becomes `@import "@basebench/ui/tokens.css";` (drop the hardcoded base-luma-dark parallel; kills the drift).
+  8. 7 basebench-ui component `.css` `@reference "../../../apps/desktop/src/styles/theme.css"` → `@reference "./theme.css"` (own entry; the base→app relative smell, breaks when views import these in F4).
+  9. view-kit `package.json`: add `"@basebench/ui": "workspace:*"` dep (hygiene; resolvable now under hoisted). If a `pnpm install` is wanted to formalize the symlink, hand to user — NOT build-blocking.
+  - Gates: `compile` + `lint` + `build:views`. Dogfood shell + a view, light **and** dark.
+- **F2c:** delete 5 `styles/themes/*.css` + 3 `styles/font-sets/*.css` (dead since F1). Keep `styles/fonts/google-fonts.css` (still index.css-imported; the @fontsource loader). Gate `build:views` + shell boot.
+
+### Deferred out of F2 (were in the old stub)
+- `components.json` + `shadcn apply --preset` + Base UI deps + `components/ui/*` → **F4**.
+- Bridge `TOKEN_NAMES`→contract-leaf retarget + shim deletion → **F5**.
+
+## F2 OUTCOME (2026-07-07) — done, uncommitted
+
+**Delivered = token unification (scope (a)); `apply --preset` (scope (b)) folded into F4; bridge frozen (retarget → F5).**
+
+**Single shared token source created:** `packages/basebench-ui/src/tokens.css` = the former shell 3-layer content (contract `:root`+`.dark` + `@theme` extension/shim + real-`:root` bridge shim + root-font-size block), now the ONE source both surfaces import. New `packages/basebench-ui/src/theme.css` = Tailwind entry / `@reference` target. Exports added (`./tokens.css`, `./theme.css`).
+
+**Files changed (all uncommitted):**
+- **new** `basebench-ui/src/tokens.css` (the shared source) + `theme.css` (entry) + package.json exports.
+- `apps/desktop/src/index.css` + `styles/theme.css` → `@import "@basebench/ui/tokens.css"`.
+- **deleted** `apps/desktop/src/styles/tokens.css` (redundant; both importers repointed).
+- `view-kit/src/tokens.css` → `@import "@basebench/ui/tokens.css"` (dropped the hardcoded base-luma-dark parallel — **kills the drift**). view-kit `package.json` += `@basebench/ui: workspace:*`.
+- 7 basebench-ui component `.css`: `@reference "../../../apps/desktop/src/styles/theme.css"` → `@reference "./theme.css"` (killed the base→app relative smell that would break when views import these in F4).
+- **deleted** 5 `styles/themes/*.css` + 3 `styles/font-sets/*.css` (dead since F1) + orphaned `styles/font-sets/README.md` + both now-empty dirs (`styles/themes/`, `styles/font-sets/`). Stale `index.css` collapse comment fixed.
+- `styles/fonts/google-fonts.css` **renamed → `webfonts.css`** (legacy misnomer — self-hosted @fontsource, never Google CDN; index.css import + fonts/README updated). Comment de-staled; Source Serif/IBM Plex kept for editor+code — font-asset pruning deferred.
+
+**Resolution proof:** `nodeLinker: hoisted` + apps/desktop already deps `@basebench/ui` ⇒ `@import "@basebench/ui/tokens.css"` from view-kit resolved in the view build with NO relink. `build:views` green.
+
+**Bridge unchanged (as planned):** `TOKEN_NAMES` = 17 old `--color-*`; real-`:root` shim in the shared file remains the readback source. View utilities `bg-surface-panel` → shim `--color-*`, bridge pushes resolved values inline on the iframe root (mode baked by shell `getComputedStyle`), inline shadows the `var(--contract)` chain. CDP-verified: iframe `hasInlineColorVars:true`, correct dark AND light values after a `setDarkMode` flip re-push.
+
+**Static gates green:** workspace `compile`, editor `compile`, `lint`, `build:views` (×2 — before + after deletions).
+**Dogfood (CDP :9333):** shell light (screenshot — clean, burnt-amber active tab/avatar, chips/dots correct) + dark (computed values); Practice roster `view://` iframe light + dark (computed values, not blank, bridge re-push follows mode). No regression on fresh reload post-deletion. Dev app shut down, `:9333`+`:5173` clear.
+
+**Carry into F4/F5:**
+- **F4** owns the deferred `apply --preset` (hand-config `components.json` first) + Base UI spike.
+- **F5** owns bridge `TOKEN_NAMES`→contract-leaf retarget **+** shim deletion (done together once consumers move off `--color-*`). Also: consider font-asset pruning (Source Serif/IBM Plex if editor drops them).
+
+## F3–F6 (stubs — detail when reached)
+
 - **F3** — unify Icon: single inline-SVG `<Icon>`, multi-source registry, **Phosphor primary** (`@phosphor-icons/react` paths) + codicon/Fluent mountable; drop shell font-codicon; lint no-raw-svg both surfaces.
-- **F4** — **Base UI CSP spike** (prove Select/Popover positions in a real `view://` iframe under STRICT_VIEW_CSP) → vendor shadcn/Base UI interactive primitives into `@basebench/ui`; both surfaces import; re-base the 13 S1 primitives; finish shim deletion.
-- **F5** — (was S4b) static fragments EmptyState/Card/Badge/Chip/KvRow/Section in `@basebench/ui`, shadcn-styled, token-only; migrate ~14 views + shell call-sites; delete copies.
+- **F4** — **Owns the F2-deferred `apply --preset`:** hand-config `@basebench/ui/components.json` (two-surface, Tailwind-v4 CSS-var mode) → hand user `shadcn apply --preset b6tOtw19k` (writes deps + `components/ui/*`; stakeholder runs). Then **Base UI CSP spike** (prove Select/Popover positions in a real `view://` iframe under STRICT_VIEW_CSP) → vendor shadcn/Base UI interactive primitives into `@basebench/ui`; both surfaces import; re-base the 13 S1 primitives.
+- **F5** — (was S4b) static fragments EmptyState/Card/Badge/Chip/KvRow/Section in `@basebench/ui`, shadcn-styled, token-only; migrate ~14 views + shell call-sites; delete copies. **Also finishes shim deletion + bridge `TOKEN_NAMES`→contract-leaf retarget** (deferred from F2 — done together once consumers are off the `--color-*` names).
 - **F6** — `/dev/design-system` gallery; theme × mode toggles; view primitives in a real `view://` iframe frame.
 
 ## Deps for the user to install (when reached, NOT in F1)

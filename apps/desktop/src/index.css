@@ -1,10 +1,10 @@
 @import "tailwindcss";
-@import "./styles/fonts/google-fonts.css";
-@import "./styles/tokens.css";
-/* ADR-421 F1: palette (themes/*.css) + font-set (font-sets/*.css) files are
-   retired — the 3-axis model collapsed to one signature theme (base-luma) on
-   :root with `.dark` mode + a single folded font. Files kept in tree until F2
-   deletes them. */
+@import "./styles/fonts/webfonts.css";
+@import "@basebench/ui/tokens.css";
+/* ADR-421 F2: the 3-axis model (palette × luminance × font-set) collapsed to one
+   signature theme (base-luma) on :root with `.dark` mode + a single folded font.
+   Tokens live in the shared @basebench/ui/tokens.css (above); the old palette +
+   font-set files are deleted. */
 @import "./styles/type.css";
 :root {
   font-synthesis: none;

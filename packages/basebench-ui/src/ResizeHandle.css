@@ -1,4 +1,4 @@
-@reference "../../../apps/desktop/src/styles/theme.css";
+@reference "./theme.css";
 
 /* Shared base — an invisible hit-strip straddling the Part edge. The visible
    affordance is the centered grip pill (below); the strip only widens the grab

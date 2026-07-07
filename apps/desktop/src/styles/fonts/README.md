@@ -12,8 +12,9 @@ Self-hosted webfonts (via `@fontsource`) for the Ru-Soam font sets — O422.
 
 ## Notes
 
-- `google-fonts.css` (filename kept to avoid churn) now `@import`s the
-  `@fontsource` package CSS instead of the Google Fonts CDN. Vite rewrites the
+- `webfonts.css` (renamed from the legacy `google-fonts.css` — it never fetched
+  Google; the name was a misnomer) `@import`s the `@fontsource` package CSS
+  instead of the Google Fonts CDN. Vite rewrites the
   packages' `url(./files/*.woff2)` rules to hashed assets under
   `dist/renderer/assets/` at build time — fonts ship inside the app, **no
   runtime CDN fetch** (offline-clean + removes the ADR-203 third-party-fetch
