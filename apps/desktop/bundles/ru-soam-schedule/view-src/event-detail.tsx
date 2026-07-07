@@ -1054,7 +1054,7 @@ function SourceSection({ ev }: { ev: ActiveEvent }) {
                 style={
                   ev.calendarColor && typeof ev.calendarColor === 'string'
                     ? { background: ev.calendarColor }
-                    : { background: 'var(--color-fg-muted)', opacity: 0.5 }
+                    : { background: 'var(--muted-foreground)', opacity: 0.5 }
                 }
               />
               {ev.calendarName}
@@ -1403,7 +1403,7 @@ function EventDetailApp() {
   if (!displayEvent) {
     return (
       <div id="empty-state">
-        <span style={{ opacity: 0.5, color: 'var(--color-fg-muted)', display: 'flex' }}>
+        <span style={{ opacity: 0.5, color: 'var(--muted-foreground)', display: 'flex' }}>
           <Icon name="calendar" size={22} />
         </span>
         <div>Select an event to see details</div>

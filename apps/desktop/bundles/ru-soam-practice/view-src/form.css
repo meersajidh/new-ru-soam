@@ -14,7 +14,7 @@
 }
 html,
 body {
-  @apply font-sans text-sm h-full overflow-hidden bg-surface-base text-fg-primary;
+  @apply font-sans text-sm h-full overflow-hidden bg-background text-foreground;
   line-height: 1.5;
 }
 #root {
@@ -26,37 +26,37 @@ body {
   @apply h-full overflow-y-auto overflow-x-hidden;
   padding: 24px 28px 40px;
   scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
+  scrollbar-color: var(--border) transparent;
 }
 
 /* ── Card ────────────────────────────────────────── */
 #form-card {
-  @apply overflow-hidden bg-surface-elevated;
+  @apply overflow-hidden bg-popover;
   max-width: 560px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 6px;
 }
 
 /* ── Card header ─────────────────────────────────── */
 #card-header {
-  @apply flex items-center gap-3 border-b border-border bg-surface-panel;
+  @apply flex items-center gap-3 border-b border-border bg-card;
   padding: 15px 18px 13px;
 }
 #card-avatar {
-  @apply flex items-center justify-center shrink-0 rounded-full font-bold text-accent text-base;
+  @apply flex items-center justify-center shrink-0 rounded-full font-bold text-primary text-base;
   width: 40px;
   height: 40px;
-  background: color-mix(in srgb, var(--color-accent) 18%, var(--color-surface-elevated));
+  background: color-mix(in srgb, var(--primary) 18%, var(--popover));
 }
 #card-meta {
   @apply flex-1 min-w-0;
 }
 #card-title {
-  @apply font-semibold text-fg-primary truncate;
+  @apply font-semibold text-foreground truncate;
   font-size: 15px;
 }
 #card-subtitle {
-  @apply font-mono text-fg-muted truncate text-2xs;
+  @apply font-mono text-muted-foreground truncate text-2xs;
   margin-top: 1px;
 }
 
@@ -76,11 +76,11 @@ body {
   grid-column: 1 / -1;
 }
 label {
-  @apply font-semibold uppercase text-fg-secondary select-none text-3xs;
+  @apply font-semibold uppercase text-muted-foreground select-none text-3xs;
   letter-spacing: 0.05em;
 }
 label .req {
-  color: var(--color-error);
+  color: var(--destructive);
   margin-left: 2px;
 }
 input[type='text'],
@@ -88,9 +88,9 @@ input[type='email'],
 input[type='tel'],
 input[type='date'],
 select {
-  @apply w-full font-sans text-fg-primary bg-surface-base outline-none text-sm;
+  @apply w-full font-sans text-foreground bg-background outline-none text-sm;
   padding: 7px 10px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 5px;
   appearance: none;
   -webkit-appearance: none;
@@ -100,14 +100,14 @@ select {
 }
 input:focus,
 select:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-border-focus) 18%, transparent);
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
 }
 input::placeholder {
-  color: color-mix(in srgb, var(--color-fg-primary) 26%, transparent);
+  color: color-mix(in srgb, var(--foreground) 26%, transparent);
 }
 input[aria-invalid='true'] {
-  border-color: color-mix(in srgb, var(--color-error) 65%, transparent);
+  border-color: color-mix(in srgb, var(--destructive) 65%, transparent);
 }
 .select-wrap {
   @apply relative;
@@ -122,7 +122,7 @@ input[aria-invalid='true'] {
   height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-top: 5px solid var(--color-fg-muted);
+  border-top: 5px solid var(--muted-foreground);
 }
 .select-wrap select {
   padding-right: 28px;
@@ -133,12 +133,12 @@ input[aria-invalid='true'] {
   @apply opacity-55;
   height: 1px;
   margin: 2px 0;
-  background: var(--color-border);
+  background: var(--border);
 }
 
 /* ── Form actions ────────────────────────────────── */
 #form-actions {
-  @apply flex items-center justify-between gap-2 border-t border-border bg-surface-panel;
+  @apply flex items-center justify-between gap-2 border-t border-border bg-card;
   padding: 13px 18px 14px;
   margin-top: 18px;
 }
@@ -153,16 +153,16 @@ input[aria-invalid='true'] {
   @apply text-success;
 }
 #save-status.err {
-  @apply font-medium text-error;
+  @apply font-medium text-destructive;
 }
 #save-status.locked {
-  @apply font-semibold text-error;
+  @apply font-semibold text-destructive;
 }
 .btn {
   @apply inline-flex items-center gap-[5px] font-sans font-medium cursor-pointer outline-none whitespace-nowrap text-sm;
   padding: 6px 15px;
   border-radius: 5px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 150ms ease,
     border-color 150ms ease,
@@ -170,11 +170,11 @@ input[aria-invalid='true'] {
 }
 .btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-border-focus) 28%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 28%, transparent);
 }
 .btn-primary {
-  @apply font-semibold bg-accent;
-  color: var(--color-accent-fg);
+  @apply font-semibold bg-primary;
+  color: var(--primary-foreground);
   border-color: transparent;
 }
 .btn-primary:hover {
@@ -198,11 +198,11 @@ input[aria-invalid='true'] {
 }
 #state-not-found p,
 #state-locked p {
-  @apply text-fg-secondary text-sm;
+  @apply text-muted-foreground text-sm;
   max-width: 280px;
   line-height: 1.6;
 }
 #state-locked p {
   @apply font-medium opacity-80;
-  color: var(--color-error);
+  color: var(--destructive);
 }

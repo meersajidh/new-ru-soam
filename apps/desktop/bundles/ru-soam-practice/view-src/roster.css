@@ -15,7 +15,7 @@
 }
 html,
 body {
-  @apply font-sans text-sm h-full overflow-hidden bg-surface-panel text-fg-primary;
+  @apply font-sans text-sm h-full overflow-hidden bg-card text-foreground;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -25,7 +25,7 @@ body {
 
 /* ── Bridge wait ─────────────────────────────────── */
 #bridge-wait {
-  @apply fixed inset-0 flex items-center justify-center gap-2 bg-surface-panel text-fg-muted text-2xs;
+  @apply fixed inset-0 flex items-center justify-center gap-2 bg-card text-muted-foreground text-2xs;
   z-index: 100;
 }
 .spinner {
@@ -49,12 +49,12 @@ body {
   padding: 0 10px 0 12px;
 }
 #panel-title {
-  @apply font-sans font-semibold uppercase text-fg-muted select-none text-3xs;
+  @apply font-sans font-semibold uppercase text-muted-foreground select-none text-3xs;
   letter-spacing: 0.08em;
   line-height: 1;
 }
 #btn-new {
-  @apply inline-flex items-center justify-center shrink-0 rounded-sm bg-transparent text-fg-secondary cursor-pointer outline-none;
+  @apply inline-flex items-center justify-center shrink-0 rounded-sm bg-transparent text-muted-foreground cursor-pointer outline-none;
   width: 22px;
   height: 22px;
   padding: 0;
@@ -64,10 +64,10 @@ body {
     color 130ms ease;
 }
 #btn-new:hover {
-  @apply bg-surface-active text-fg-primary;
+  @apply bg-muted text-foreground;
 }
 #btn-new:focus-visible {
-  outline: 2px solid var(--color-border-focus);
+  outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
 #btn-new svg {
@@ -78,9 +78,9 @@ body {
 #status-msg {
   @apply hidden shrink-0 font-medium text-2xs;
   padding: 5px 10px;
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 9%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 9%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--destructive) 25%, transparent);
 }
 #status-msg.visible {
   @apply block;
@@ -94,7 +94,7 @@ body {
   padding: 0 8px 7px;
 }
 .lens-tab {
-  @apply flex flex-col items-center justify-center gap-[3px] rounded-sm bg-transparent text-fg-muted cursor-pointer font-sans font-medium outline-none select-none text-3xs;
+  @apply flex flex-col items-center justify-center gap-[3px] rounded-sm bg-transparent text-muted-foreground cursor-pointer font-sans font-medium outline-none select-none text-3xs;
   padding: 7px 2px;
   border: 1px solid transparent;
   letter-spacing: 0.01em;
@@ -104,15 +104,15 @@ body {
     border-color 130ms ease;
 }
 .lens-tab:hover {
-  @apply bg-surface-active text-fg-secondary;
+  @apply bg-muted text-muted-foreground;
 }
 .lens-tab.is-active {
-  color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 13%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent) 42%, transparent);
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 13%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 42%, transparent);
 }
 .lens-tab:focus-visible {
-  outline: 2px solid var(--color-border-focus);
+  outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
 .lens-tab svg {
@@ -123,7 +123,7 @@ body {
 #lens-body {
   @apply flex-auto overflow-y-auto overflow-x-hidden;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
   padding-bottom: 8px;
 }
 
@@ -135,7 +135,7 @@ body {
   @apply block;
 }
 .lens-placeholder {
-  @apply text-center text-fg-muted italic text-xs;
+  @apply text-center text-muted-foreground italic text-xs;
   padding: 24px 16px;
   line-height: 1.55;
 }
@@ -151,23 +151,23 @@ body {
   margin: 0 8px 6px;
 }
 .search-lead {
-  @apply absolute inline-flex items-center pointer-events-none text-fg-muted;
+  @apply absolute inline-flex items-center pointer-events-none text-muted-foreground;
   left: 9px;
   top: 50%;
   transform: translateY(-50%);
 }
 #search-input {
-  @apply w-full font-sans rounded-sm text-fg-primary bg-surface-base outline-none text-xs;
+  @apply w-full font-sans rounded-sm text-foreground bg-background outline-none text-xs;
   padding: 6px 10px 6px 29px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   line-height: 1.4;
   transition: border-color 130ms ease;
 }
 #search-input::placeholder {
-  color: var(--color-fg-muted);
+  color: var(--muted-foreground);
 }
 #search-input:focus {
-  border-color: var(--color-border-focus);
+  border-color: var(--ring);
 }
 
 /* Arrange row */
@@ -176,15 +176,15 @@ body {
   padding: 2px 12px 6px;
 }
 .arrange-label {
-  @apply inline-flex items-center gap-1 font-medium text-fg-muted select-none text-3xs;
+  @apply inline-flex items-center gap-1 font-medium text-muted-foreground select-none text-3xs;
   letter-spacing: 0.01em;
 }
 .seg {
-  @apply inline-flex overflow-hidden rounded-sm bg-surface-base;
-  border: 1px solid var(--color-border);
+  @apply inline-flex overflow-hidden rounded-sm bg-background;
+  border: 1px solid var(--border);
 }
 .seg-btn {
-  @apply bg-transparent font-sans font-medium text-fg-muted cursor-pointer outline-none select-none text-3xs;
+  @apply bg-transparent font-sans font-medium text-muted-foreground cursor-pointer outline-none select-none text-3xs;
   border: none;
   padding: 3px 8px;
   transition:
@@ -192,20 +192,20 @@ body {
     color 130ms ease;
 }
 .seg-btn:hover {
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
 .seg-btn.is-active {
-  @apply bg-accent;
-  color: var(--color-accent-fg);
+  @apply bg-primary;
+  color: var(--primary-foreground);
 }
 .seg-btn:focus-visible {
-  outline: 2px solid var(--color-border-focus);
+  outline: 2px solid var(--ring);
   outline-offset: -2px;
 }
 
 /* ── Group header ────────────────────────────────── */
 .group-header {
-  @apply font-semibold uppercase text-fg-muted select-none text-3xs;
+  @apply font-semibold uppercase text-muted-foreground select-none text-3xs;
   padding: 9px 14px 3px;
   letter-spacing: 0.07em;
 }
@@ -227,10 +227,10 @@ body {
     border-left-color 130ms ease;
 }
 .client-row:hover {
-  @apply bg-surface-active;
+  @apply bg-muted;
 }
 .client-row:focus-visible {
-  outline: 2px solid var(--color-border-focus);
+  outline: 2px solid var(--ring);
   outline-offset: -2px;
 }
 
@@ -239,16 +239,16 @@ body {
   @apply shrink-0 rounded-full;
   width: 7px;
   height: 7px;
-  background: var(--color-fg-muted);
+  background: var(--muted-foreground);
 }
 .status-dot.active {
   @apply bg-success;
 }
 .status-dot.inactive {
-  background: var(--color-fg-muted);
+  background: var(--muted-foreground);
 }
 .status-dot.archived {
-  @apply bg-error;
+  @apply bg-destructive;
 }
 
 /* Row text */
@@ -256,24 +256,24 @@ body {
   @apply flex-auto min-w-0 flex flex-col gap-px;
 }
 .client-row-name {
-  @apply font-medium truncate text-fg-secondary text-sm;
+  @apply font-medium truncate text-muted-foreground text-sm;
   line-height: 1.3;
 }
 .client-row-sub {
-  @apply truncate font-mono text-fg-muted text-2xs;
+  @apply truncate font-mono text-muted-foreground text-2xs;
   line-height: 1.3;
 }
 
 /* Active / selected row */
 .client-row.is-active {
-  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
-  border-left-color: var(--color-accent);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-left-color: var(--primary);
 }
 .client-row.is-active .client-row-name {
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 .client-row.is-active:hover {
-  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
 }
 
 /* ── Empty state ─────────────────────────────────── */
@@ -289,17 +289,17 @@ body {
   width: 38px;
   height: 38px;
   margin: 0 auto 12px;
-  background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 10%, transparent);
 }
 .empty-graphic svg {
-  @apply opacity-30 text-fg-primary;
+  @apply opacity-30 text-foreground;
 }
 #roster-empty strong {
-  @apply block font-semibold text-fg-secondary text-xs;
+  @apply block font-semibold text-muted-foreground text-xs;
   margin-bottom: 5px;
 }
 #roster-empty p {
-  @apply text-fg-muted text-2xs;
+  @apply text-muted-foreground text-2xs;
   line-height: 1.55;
   max-width: 180px;
   margin: 0 auto;
@@ -315,7 +315,7 @@ body {
 }
 #roster-locked p {
   @apply font-medium opacity-80 text-2xs;
-  color: var(--color-error);
+  color: var(--destructive);
   line-height: 1.55;
 }
 
@@ -328,7 +328,7 @@ body {
   @apply block;
 }
 #roster-no-results p {
-  @apply text-fg-muted text-2xs;
+  @apply text-muted-foreground text-2xs;
 }
 
 /* ── Roster content container ────────────────────── */
@@ -357,12 +357,12 @@ body {
   background: color-mix(in srgb, var(--color-warning) 24%, transparent);
 }
 .obligation-chip.chip-intake {
-  color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
 }
 .obligation-chip.chip-intake:hover {
-  background: color-mix(in srgb, var(--color-accent) 24%, transparent);
+  background: color-mix(in srgb, var(--primary) 24%, transparent);
 }
 
 /* ── Attention row ───────────────────────────────── */
@@ -376,20 +376,20 @@ body {
     border-left-color 130ms ease;
 }
 .attention-row:hover {
-  @apply bg-surface-active;
+  @apply bg-muted;
 }
 .attention-row-top {
   @apply flex items-center gap-2;
 }
 .attention-row-name {
-  @apply flex-auto font-medium truncate text-fg-secondary text-sm;
+  @apply flex-auto font-medium truncate text-muted-foreground text-sm;
 }
 .attention-count {
-  @apply shrink-0 font-mono text-fg-muted text-3xs;
+  @apply shrink-0 font-mono text-muted-foreground text-3xs;
 }
 
 /* ── Intake badge ────────────────────────────────── */
 .intake-badge {
-  @apply shrink-0 font-semibold font-mono text-fg-muted text-3xs;
+  @apply shrink-0 font-semibold font-mono text-muted-foreground text-3xs;
   margin-left: 6px;
 }

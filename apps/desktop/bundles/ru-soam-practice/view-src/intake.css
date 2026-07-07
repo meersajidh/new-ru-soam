@@ -24,7 +24,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 body {
-  @apply font-sans text-sm bg-surface-base text-fg-primary;
+  @apply font-sans text-sm bg-background text-foreground;
   line-height: 1.5;
 }
 #root {
@@ -35,9 +35,9 @@ body {
 #status-bar {
   @apply hidden shrink-0 font-medium text-2xs;
   padding: 5px 16px;
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 9%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 9%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--destructive) 25%, transparent);
 }
 #status-bar.visible {
   @apply block;
@@ -50,18 +50,18 @@ body {
 
 /* ── Header strip ────────────────────────────────── */
 #header-strip {
-  @apply flex items-center gap-[10px] shrink-0 border-b border-border bg-surface-panel;
+  @apply flex items-center gap-[10px] shrink-0 border-b border-border bg-card;
   padding: 12px 20px 11px;
 }
 .hs-icon {
-  @apply flex-none text-accent;
+  @apply flex-none text-primary;
 }
 .hs-title {
   @apply flex-auto font-semibold;
   font-size: 14px;
 }
 .hs-client {
-  @apply font-mono text-fg-muted text-2xs;
+  @apply font-mono text-muted-foreground text-2xs;
 }
 
 /* ── Scroll area ─────────────────────────────────── */
@@ -69,15 +69,15 @@ body {
   @apply flex-auto overflow-y-auto overflow-x-hidden;
   padding: 24px 28px 48px;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
 }
 
 /* ── Card ────────────────────────────────────────── */
 #ic-card {
-  @apply flex flex-col gap-[6px] rounded-md bg-surface-elevated;
+  @apply flex flex-col gap-[6px] rounded-md bg-popover;
   max-width: 560px;
   padding: 20px 24px 24px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
 }
 
 /* ── Progress header ─────────────────────────────── */
@@ -85,23 +85,23 @@ body {
   @apply flex items-center gap-[10px];
   padding-bottom: 14px;
   margin-bottom: 6px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 .ic-count {
-  @apply shrink-0 font-bold font-mono text-fg-primary;
+  @apply shrink-0 font-bold font-mono text-foreground;
   font-size: 22px;
 }
 .ic-count-label {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
 }
 .ic-progress-bar-wrap {
   @apply flex-auto overflow-hidden;
   height: 6px;
   border-radius: 3px;
-  background: color-mix(in srgb, var(--color-fg-muted) 20%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 20%, transparent);
 }
 .ic-progress-bar-fill {
-  @apply h-full bg-accent;
+  @apply h-full bg-primary;
   border-radius: 3px;
   transition: width 0.25s ease;
 }
@@ -113,7 +113,7 @@ body {
   transition: background 130ms ease;
 }
 .ic-item:hover {
-  @apply bg-surface-active;
+  @apply bg-muted;
 }
 .ic-item-icon {
   @apply flex items-center justify-center shrink-0;
@@ -123,28 +123,28 @@ body {
   @apply text-success;
 }
 .ic-item-icon.missing {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
 }
 .ic-item-label {
-  @apply flex-auto text-fg-secondary;
+  @apply flex-auto text-muted-foreground;
   font-size: 12.5px;
 }
 .ic-item.done-row .ic-item-label {
-  @apply text-fg-muted line-through;
-  text-decoration-color: color-mix(in srgb, var(--color-fg-muted) 50%, transparent);
+  @apply text-muted-foreground line-through;
+  text-decoration-color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
 }
 .ic-open-btn {
-  @apply shrink-0 font-sans font-medium rounded-sm bg-transparent text-fg-muted cursor-pointer text-2xs;
+  @apply shrink-0 font-sans font-medium rounded-sm bg-transparent text-muted-foreground cursor-pointer text-2xs;
   padding: 3px 9px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 130ms ease,
     color 130ms ease,
     border-color 130ms ease;
 }
 .ic-open-btn:hover {
-  @apply bg-surface-active text-fg-secondary;
-  border-color: color-mix(in srgb, var(--color-border-focus) 60%, transparent);
+  @apply bg-muted text-muted-foreground;
+  border-color: color-mix(in srgb, var(--ring) 60%, transparent);
 }
 
 /* ── Complete banner ─────────────────────────────── */
@@ -161,7 +161,7 @@ body {
 
 /* ── Empty ───────────────────────────────────────── */
 #ic-empty {
-  @apply hidden text-center text-fg-muted text-xs;
+  @apply hidden text-center text-muted-foreground text-xs;
   padding: 32px 0 0;
 }
 #ic-empty.visible {

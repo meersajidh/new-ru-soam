@@ -21,7 +21,7 @@ button {
 }
 html,
 body {
-  @apply font-sans text-sm h-full overflow-hidden bg-surface-panel text-fg-primary;
+  @apply font-sans text-sm h-full overflow-hidden bg-card text-foreground;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -35,18 +35,18 @@ body {
   padding: 12px 12px 10px;
 }
 .activity-title-label {
-  @apply font-bold uppercase text-fg-secondary text-2xs;
+  @apply font-bold uppercase text-muted-foreground text-2xs;
   letter-spacing: 0.08em;
 }
 .activity-title-period {
-  @apply font-medium text-fg-muted text-2xs;
+  @apply font-medium text-muted-foreground text-2xs;
 }
 
 /* ── Scrollable body ─────────────────────────────── */
 #scroll-body {
   @apply flex-1 flex flex-col overflow-y-auto overflow-x-hidden;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 30%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 30%, transparent) transparent;
 }
 
 /* ── Accounts section — pinned to bottom ─────────── */
@@ -57,7 +57,7 @@ body {
 
 /* ── Section header ──────────────────────────────── */
 .section-header {
-  @apply flex items-center justify-between font-bold uppercase text-fg-muted text-3xs;
+  @apply flex items-center justify-between font-bold uppercase text-muted-foreground text-3xs;
   padding: 10px 12px 6px;
   letter-spacing: 0.07em;
 }
@@ -65,7 +65,7 @@ body {
   @apply flex-1;
 }
 .btn-section-add {
-  @apply inline-flex items-center justify-center bg-transparent text-fg-muted cursor-pointer normal-case;
+  @apply inline-flex items-center justify-center bg-transparent text-muted-foreground cursor-pointer normal-case;
   width: 18px;
   height: 18px;
   border-radius: 3px;
@@ -78,7 +78,7 @@ body {
     color 130ms ease;
 }
 .btn-section-add:hover {
-  @apply bg-surface-active text-fg-secondary;
+  @apply bg-muted text-muted-foreground;
 }
 .section-header-actions {
   @apply flex items-center gap-[6px];
@@ -94,13 +94,13 @@ body {
   transition: background 110ms ease;
 }
 .cal-row:hover {
-  background: color-mix(in srgb, var(--color-fg-muted) 7%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 7%, transparent);
 }
 .cal-row.active {
-  background: color-mix(in srgb, var(--color-fg-muted) 9%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 9%, transparent);
 }
 .cal-row.active:hover {
-  background: color-mix(in srgb, var(--color-fg-muted) 13%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 13%, transparent);
 }
 .cal-row--disabled {
   @apply cursor-default opacity-45;
@@ -129,10 +129,10 @@ body {
   display: block;
 }
 .cal-name {
-  @apply flex-1 min-w-0 truncate text-fg-secondary text-xs;
+  @apply flex-1 min-w-0 truncate text-muted-foreground text-xs;
 }
 .cals-empty {
-  @apply text-fg-muted italic text-2xs;
+  @apply text-muted-foreground italic text-2xs;
   padding: 10px 12px;
 }
 
@@ -146,27 +146,27 @@ body {
   transition: background 110ms ease;
 }
 .classif-row:hover {
-  background: color-mix(in srgb, var(--color-fg-muted) 7%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 7%, transparent);
 }
 .classif-row.active {
-  background: color-mix(in srgb, var(--color-fg-muted) 9%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 9%, transparent);
 }
 .classif-row.active:hover {
-  background: color-mix(in srgb, var(--color-fg-muted) 13%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 13%, transparent);
 }
 .classif-label {
-  @apply flex-1 truncate text-fg-secondary text-xs;
+  @apply flex-1 truncate text-muted-foreground text-xs;
 }
 .classif-row:not(.active) .classif-label {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
 }
 .classif-count {
-  @apply shrink-0 text-right text-fg-muted text-2xs;
+  @apply shrink-0 text-right text-muted-foreground text-2xs;
   font-variant-numeric: tabular-nums;
   min-width: 18px;
 }
 .classif-row.active .classif-count {
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
 
 /* ── Accounts section ────────────────────────────── */
@@ -179,26 +179,26 @@ body {
   transition: background 110ms ease;
 }
 .acct-row:hover {
-  background: color-mix(in srgb, var(--color-fg-muted) 7%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 7%, transparent);
 }
 .acct-row.active {
-  background: color-mix(in srgb, var(--color-fg-muted) 9%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 9%, transparent);
 }
 .acct-row.active:hover {
-  background: color-mix(in srgb, var(--color-fg-muted) 13%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 13%, transparent);
 }
 .acct-row-icon {
-  @apply flex items-center justify-center shrink-0 font-bold rounded-full text-fg-muted text-2xs;
+  @apply flex items-center justify-center shrink-0 font-bold rounded-full text-muted-foreground text-2xs;
   width: 16px;
   height: 16px;
   line-height: 1;
-  border: 1.5px solid var(--color-fg-muted);
+  border: 1.5px solid var(--muted-foreground);
 }
 .acct-row-info {
   @apply flex-1 min-w-0;
 }
 .acct-row-email {
-  @apply truncate text-fg-secondary text-xs;
+  @apply truncate text-muted-foreground text-xs;
 }
 .acct-row-status {
   @apply truncate text-2xs;
@@ -207,5 +207,5 @@ body {
   @apply text-success;
 }
 .acct-row-status--disconnected {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
 }

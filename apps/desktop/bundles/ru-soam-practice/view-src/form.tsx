@@ -465,7 +465,7 @@ function EditContent({ id }: { id: string }) {
   if (recQuery.isPending || profileQuery.isPending) {
     return (
       <div id="page">
-        <div className="text-fg-muted text-xs">Loading…</div>
+        <div className="text-muted-foreground text-xs">Loading…</div>
       </div>
     );
   }

@@ -79,14 +79,14 @@ function MeetingRow({ meeting: m, clientName, onOpen }: MeetingRowProps) {
     <li className="meeting-row" role="listitem" aria-label={ariaLabel} onClick={onOpen}>
       {/* Time column */}
       <div className="shrink-0 flex flex-col items-end min-w-[44px] pt-px" aria-hidden="true">
-        <div className="text-3xs font-semibold text-fg-secondary font-mono whitespace-nowrap leading-[1.3]">
+        <div className="text-3xs font-semibold text-muted-foreground font-mono whitespace-nowrap leading-[1.3]">
           {fmtDate(m.startsAt)}
         </div>
-        <div className="text-3xs text-fg-muted font-mono whitespace-nowrap leading-[1.3]">
+        <div className="text-3xs text-muted-foreground font-mono whitespace-nowrap leading-[1.3]">
           {fmtTime(m.startsAt)}
         </div>
         {dur != null && (
-          <div className="text-4xs text-fg-muted font-mono whitespace-nowrap leading-[1.3]">
+          <div className="text-4xs text-muted-foreground font-mono whitespace-nowrap leading-[1.3]">
             {dur}
           </div>
         )}
@@ -94,11 +94,11 @@ function MeetingRow({ meeting: m, clientName, onOpen }: MeetingRowProps) {
 
       {/* Main body */}
       <div className="flex-auto min-w-0 flex flex-col gap-[2px]">
-        <div className="text-sm font-medium text-fg-secondary truncate leading-[1.3]">
+        <div className="text-sm font-medium text-muted-foreground truncate leading-[1.3]">
           {displayName}
         </div>
         <div className="flex items-center gap-[5px] flex-wrap">
-          <span className="text-3xs text-fg-muted capitalize leading-[1.3]">
+          <span className="text-3xs text-muted-foreground capitalize leading-[1.3]">
             {m.kind || 'session'}
           </span>
           <span className={`status-badge ${m.status || 'scheduled'}`}>
@@ -106,7 +106,7 @@ function MeetingRow({ meeting: m, clientName, onOpen }: MeetingRowProps) {
           </span>
           {m.modality === 'online' && (
             <span
-              className="inline-flex items-center text-fg-muted shrink-0"
+              className="inline-flex items-center text-muted-foreground shrink-0"
               title="Online"
               aria-label="Online"
             >
@@ -115,7 +115,7 @@ function MeetingRow({ meeting: m, clientName, onOpen }: MeetingRowProps) {
           )}
           {m.modality === 'in_person' && (
             <span
-              className="inline-flex items-center text-fg-muted shrink-0"
+              className="inline-flex items-center text-muted-foreground shrink-0"
               title="In person"
               aria-label="In person"
             >
@@ -124,7 +124,7 @@ function MeetingRow({ meeting: m, clientName, onOpen }: MeetingRowProps) {
           )}
         </div>
         {m.syncState === 'orphaned' && (
-          <div className="text-3xs text-fg-muted italic mt-px">event removed</div>
+          <div className="text-3xs text-muted-foreground italic mt-px">event removed</div>
         )}
       </div>
     </li>
@@ -223,7 +223,7 @@ function Meetings() {
 
       {/* Sync summary */}
       {syncSummary != null && (
-        <div className="shrink-0 px-3 py-1 text-fg-muted border-b border-border text-3xs leading-[1.4]">
+        <div className="shrink-0 px-3 py-1 text-muted-foreground border-b border-border text-3xs leading-[1.4]">
           {syncSummary}
         </div>
       )}
@@ -231,7 +231,7 @@ function Meetings() {
       {/* Error banner (non-locked failures) */}
       {meetingsQuery.isError && !isLocked && (
         <div
-          className="shrink-0 px-[10px] py-[5px] text-2xs font-medium text-error border-b bg-[color-mix(in_srgb,var(--color-error)_9%,transparent)] border-[color-mix(in_srgb,var(--color-error)_25%,transparent)]"
+          className="shrink-0 px-[10px] py-[5px] text-2xs font-medium text-destructive border-b bg-[color-mix(in_srgb,var(--destructive)_9%,transparent)] border-[color-mix(in_srgb,var(--destructive)_25%,transparent)]"
           role="alert"
         >
           {`Failed to load: ${(meetingsQuery.error as Error)?.message ?? 'Unknown error'}`}
@@ -243,7 +243,7 @@ function Meetings() {
         {/* Locked */}
         {isLocked && (
           <div className="p-4 text-center">
-            <p className="text-2xs leading-[1.55] text-error opacity-80 font-medium">
+            <p className="text-2xs leading-[1.55] text-destructive opacity-80 font-medium">
               Workspace locked — unlock to view meetings.
             </p>
           </div>
@@ -264,10 +264,10 @@ function Meetings() {
             <div className="empty-graphic">
               <Icon name="calendar" size={18} />
             </div>
-            <strong className="block text-xs font-semibold text-fg-secondary mb-[5px]">
+            <strong className="block text-xs font-semibold text-muted-foreground mb-[5px]">
               No meetings yet
             </strong>
-            <p className="text-2xs leading-[1.55] text-fg-muted max-w-[200px] mx-auto italic">
+            <p className="text-2xs leading-[1.55] text-muted-foreground max-w-[200px] mx-auto italic">
               Meetings appear here once calendar sync runs.
             </p>
           </div>

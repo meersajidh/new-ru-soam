@@ -382,7 +382,7 @@ function RiskSection({
         <div className="risk-fact">
           <span>{capText}</span>
         </div>
-        <div className="risk-fact" style={s23Active ? { color: 'var(--color-error)' } : undefined}>
+        <div className="risk-fact" style={s23Active ? { color: 'var(--destructive)' } : undefined}>
           {s23Active ? 'MHA §23 exception INVOKED' : 'MHA §23 not invoked'}
         </div>
         <div className="risk-fact">{nr ? `NR: ${nr.displayName}` : 'No NR set'}</div>
@@ -427,7 +427,7 @@ function RiskSection({
           <>
             <div className="pe-field">
               <label className="pe-label" htmlFor="s23-ground">
-                Statutory ground <span style={{ color: 'var(--color-error)' }}>*</span>
+                Statutory ground <span style={{ color: 'var(--destructive)' }}>*</span>
               </label>
               <select
                 className="pe-input"
@@ -508,7 +508,7 @@ function RiskSection({
       <div className={`risk-inline-form${riskAdd.open ? ' is-open' : ''}`}>
         <div className="pe-field">
           <label className="pe-label" htmlFor="re-kind">
-            Event type <span style={{ color: 'var(--color-error)' }}>*</span>
+            Event type <span style={{ color: 'var(--destructive)' }}>*</span>
           </label>
           <select className="pe-input" id="re-kind" value={reKind} onChange={(e) => setReKind(e.target.value)}>
             <option value="si">Suicidal ideation (SI)</option>
@@ -942,7 +942,7 @@ function CircleSection({
         </div>
         <div className="pe-field">
           <label className="pe-label" htmlFor="ca-name">
-            Display name <span style={{ color: 'var(--color-error)' }}>*</span>
+            Display name <span style={{ color: 'var(--destructive)' }}>*</span>
           </label>
           <input
             className="pe-input"
@@ -1004,14 +1004,14 @@ function CircleSection({
           <input
             type="checkbox"
             id="ca-isnr"
-            style={{ accentColor: 'var(--color-accent)', width: '14px', height: '14px' }}
+            style={{ accentColor: 'var(--primary)', width: '14px', height: '14px' }}
             checked={isNr}
             onChange={(e) => setIsNr(e.target.checked)}
           />
           <label
             className="pe-label"
             htmlFor="ca-isnr"
-            style={{ textTransform: 'none', fontSize: '11px', fontWeight: 400, color: 'var(--color-fg-secondary)' }}
+            style={{ textTransform: 'none', fontSize: '11px', fontWeight: 400, color: 'var(--muted-foreground)' }}
           >
             Set as Nominated Representative (primary contact)
           </label>
@@ -1176,7 +1176,7 @@ function ConsentSection({
           <label
             className="pe-label"
             htmlFor="ce-s23"
-            style={{ textTransform: 'none', fontSize: '11px', fontWeight: 400, color: 'var(--color-fg-secondary)' }}
+            style={{ textTransform: 'none', fontSize: '11px', fontWeight: 400, color: 'var(--muted-foreground)' }}
           >
             MHA §23 confidentiality exception currently active
           </label>
@@ -1306,7 +1306,7 @@ function DocumentsSection({
           })
         )}
       </div>
-      <div id="doc-upload-form" style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--color-border)' }}>
+      <div id="doc-upload-form" style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
         <div className="pe-field" style={{ marginBottom: '6px' }}>
           <label className="pe-label" htmlFor="doc-file-input">
             Attach file
@@ -1319,7 +1319,7 @@ function DocumentsSection({
             <span
               style={{
                 fontSize: '10.5px',
-                color: 'var(--color-fg-muted)',
+                color: 'var(--muted-foreground)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -1338,7 +1338,7 @@ function DocumentsSection({
           </div>
         </div>
         {sizeErr && (
-          <div style={{ fontSize: '10.5px', color: 'var(--color-error)', marginBottom: '6px' }}>{sizeErr}</div>
+          <div style={{ fontSize: '10.5px', color: 'var(--destructive)', marginBottom: '6px' }}>{sizeErr}</div>
         )}
         <div className="pe-actions">
           <button className="pe-btn primary" type="button" disabled={!file || attachMut.isPending} onClick={upload}>

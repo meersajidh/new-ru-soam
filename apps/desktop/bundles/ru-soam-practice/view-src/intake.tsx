@@ -134,7 +134,7 @@ function Intake() {
         <div id="ic-card" data-maturity-id="intake-checklist">
           {/* Loading state — only while first fetch is in flight */}
           {completenessQuery.isPending && (
-            <div className="text-fg-muted text-xs">Loading…</div>
+            <div className="text-muted-foreground text-xs">Loading…</div>
           )}
           {/* Data card — only when completeness query succeeded with data */}
           {data != null && (

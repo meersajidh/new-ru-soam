@@ -112,12 +112,12 @@ function Projections() {
       )}
 
       {/* Header bar */}
-      <div className="flex items-center justify-between h-8 px-[14px] shrink-0 border-b border-border bg-surface-panel">
-        <span className="flex items-center gap-[6px] font-semibold text-fg-secondary text-2xs">
+      <div className="flex items-center justify-between h-8 px-[14px] shrink-0 border-b border-border bg-card">
+        <span className="flex items-center gap-[6px] font-semibold text-muted-foreground text-2xs">
           <Icon name="file-text" size={12} />
           Notes
           <span className="header-source">Sessions</span>
-          <span className="font-normal text-fg-muted text-2xs" aria-live="polite">
+          <span className="font-normal text-muted-foreground text-2xs" aria-live="polite">
             {clientName ? `· ${clientName}` : ''}
           </span>
         </span>
@@ -162,11 +162,11 @@ interface NoteItemProps {
 function NoteItem({ note, onToggle }: NoteItemProps) {
   return (
     <li className="note-item">
-      <div className="flex items-center gap-2 font-mono text-fg-muted text-3xs">
+      <div className="flex items-center gap-2 font-mono text-muted-foreground text-3xs">
         <span>{note.when}</span>
         <span className="note-kind">{note.kind}</span>
       </div>
-      <p className="text-fg-secondary text-xs leading-[1.45]">{note.summary}</p>
+      <p className="text-muted-foreground text-xs leading-[1.45]">{note.summary}</p>
       <div className="flex gap-[5px] mt-[3px]">
         <button
           type="button"

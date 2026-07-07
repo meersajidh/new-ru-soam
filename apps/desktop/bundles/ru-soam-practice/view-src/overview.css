@@ -20,7 +20,7 @@ button {
 }
 html,
 body {
-  @apply font-sans text-sm h-full overflow-hidden bg-surface-base text-fg-primary;
+  @apply font-sans text-sm h-full overflow-hidden bg-background text-foreground;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -43,7 +43,7 @@ body {
   }
 }
 .ov-loading {
-  @apply flex items-center justify-center gap-2 text-fg-muted text-2xs;
+  @apply flex items-center justify-center gap-2 text-muted-foreground text-2xs;
   padding: 48px;
 }
 
@@ -51,9 +51,9 @@ body {
 #status-bar {
   @apply shrink-0 font-medium text-2xs;
   padding: 6px 16px;
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 9%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 9%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--destructive) 25%, transparent);
 }
 #status-bar.is-locked {
   color: var(--color-warning);
@@ -63,7 +63,7 @@ body {
 
 /* ── Density switcher ────────────────────────────── */
 #density-btn {
-  @apply fixed flex items-center justify-center bg-transparent rounded-sm text-fg-muted cursor-pointer;
+  @apply fixed flex items-center justify-center bg-transparent rounded-sm text-muted-foreground cursor-pointer;
   top: 8px;
   right: 14px;
   z-index: 200;
@@ -78,21 +78,21 @@ body {
 }
 #density-btn:hover,
 #density-btn.is-open {
-  @apply bg-surface-elevated text-fg-secondary;
-  border-color: var(--color-border);
+  @apply bg-popover text-muted-foreground;
+  border-color: var(--border);
 }
 #density-menu {
-  @apply fixed bg-surface-elevated rounded-md;
+  @apply fixed bg-popover rounded-md;
   top: 40px;
   right: 14px;
   z-index: 201;
   min-width: 130px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   padding: 4px 0;
 }
 .density-item {
-  @apply flex items-center gap-2 w-full bg-transparent font-sans text-fg-secondary cursor-pointer text-left text-2xs;
+  @apply flex items-center gap-2 w-full bg-transparent font-sans text-muted-foreground cursor-pointer text-left text-2xs;
   padding: 5px 10px;
   border: none;
   transition:
@@ -100,13 +100,13 @@ body {
     color 130ms ease;
 }
 .density-item:hover {
-  @apply bg-surface-active text-fg-primary;
+  @apply bg-muted text-foreground;
 }
 .density-item.is-active {
-  @apply text-accent;
+  @apply text-primary;
 }
 .density-item-check {
-  @apply text-accent;
+  @apply text-primary;
   flex: 0 0 12px;
   width: 12px;
   height: 12px;
@@ -122,7 +122,7 @@ body {
   @apply flex-auto overflow-y-auto overflow-x-hidden relative;
   padding: 24px 28px 56px;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
 }
 .ov-inner {
   max-width: 1100px;
@@ -132,8 +132,8 @@ body {
 /* ── Risk banner ─────────────────────────────────── */
 .risk-banner {
   @apply overflow-hidden rounded-md;
-  border: 1px solid color-mix(in srgb, var(--color-error) 50%, var(--color-border));
-  background: color-mix(in srgb, var(--color-error) 9%, var(--color-surface-elevated));
+  border: 1px solid color-mix(in srgb, var(--destructive) 50%, var(--border));
+  background: color-mix(in srgb, var(--destructive) 9%, var(--popover));
   margin-bottom: 20px;
 }
 .risk-banner-bar {
@@ -144,18 +144,18 @@ body {
   @apply flex-none flex items-center justify-center rounded-full;
   width: 32px;
   height: 32px;
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 18%, transparent);
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 18%, transparent);
 }
 .risk-banner-text {
   @apply min-w-0;
   flex: 1 1 220px;
 }
 .risk-banner-headline {
-  @apply block font-semibold text-fg-primary text-sm;
+  @apply block font-semibold text-foreground text-sm;
 }
 .risk-banner-meta {
-  @apply block text-fg-secondary text-2xs;
+  @apply block text-muted-foreground text-2xs;
   margin-top: 2px;
 }
 .risk-banner-cmds {
@@ -163,30 +163,30 @@ body {
 }
 .risk-banner-detail {
   padding: 14px 16px 16px;
-  border-top: 1px solid color-mix(in srgb, var(--color-error) 25%, var(--color-border));
+  border-top: 1px solid color-mix(in srgb, var(--destructive) 25%, var(--border));
 }
 .risk-items {
   @apply list-none flex flex-col gap-[7px];
 }
 .risk-item {
-  @apply flex items-start gap-2 text-fg-secondary text-xs;
+  @apply flex items-start gap-2 text-muted-foreground text-xs;
 }
 .risk-item-dot {
   @apply flex-none rounded-full;
   width: 6px;
   height: 6px;
   margin-top: 5px;
-  background: var(--color-error);
+  background: var(--destructive);
 }
 .risk-item-when {
-  @apply font-mono text-fg-muted whitespace-nowrap text-3xs;
+  @apply font-mono text-muted-foreground whitespace-nowrap text-3xs;
   margin-left: 4px;
 }
 
 /* ── cmd-btn ─────────────────────────────────────── */
 .cmd-btn {
-  @apply inline-flex items-center gap-[5px] bg-accent rounded-sm font-medium font-sans cursor-pointer text-2xs;
-  color: var(--color-accent-fg);
+  @apply inline-flex items-center gap-[5px] bg-primary rounded-sm font-medium font-sans cursor-pointer text-2xs;
+  color: var(--primary-foreground);
   border: 1px solid transparent;
   padding: 4px 10px;
   transition: background 130ms ease;
@@ -195,12 +195,12 @@ body {
   background: var(--color-accent-hover, var(--color-success));
 }
 .cmd-btn.ghost {
-  @apply bg-transparent text-fg-secondary;
-  border-color: var(--color-border);
+  @apply bg-transparent text-muted-foreground;
+  border-color: var(--border);
 }
 .cmd-btn.ghost:hover {
-  @apply bg-surface-active text-fg-primary;
-  border-color: var(--color-fg-muted);
+  @apply bg-muted text-foreground;
+  border-color: var(--muted-foreground);
 }
 
 /* ── aspect-caret ────────────────────────────────── */
@@ -218,10 +218,10 @@ body {
   margin-bottom: 22px;
 }
 .ov-avatar {
-  @apply flex-none flex items-center justify-center rounded-full font-semibold bg-accent;
+  @apply flex-none flex items-center justify-center rounded-full font-semibold bg-primary;
   width: 56px;
   height: 56px;
-  color: var(--color-accent-fg);
+  color: var(--primary-foreground);
   font-size: 22px;
   letter-spacing: -0.02em;
 }
@@ -237,44 +237,44 @@ body {
   overflow-wrap: break-word;
 }
 .ov-id-sub {
-  @apply font-mono text-fg-muted text-xs;
+  @apply font-mono text-muted-foreground text-xs;
   margin: 4px 0 10px;
 }
 .ov-problems {
   @apply flex flex-wrap gap-[6px];
 }
 .ov-chip {
-  @apply inline-flex items-center gap-[6px] text-fg-secondary bg-surface-active text-2xs;
+  @apply inline-flex items-center gap-[6px] text-muted-foreground bg-muted text-2xs;
   border-radius: 999px;
   padding: 3px 10px;
 }
 .ov-chip.is-primary {
-  @apply text-fg-primary;
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  @apply text-foreground;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
 }
 .ov-chip-code {
-  @apply font-mono text-fg-muted text-4xs;
+  @apply font-mono text-muted-foreground text-4xs;
 }
 .ov-badges {
   @apply flex flex-col gap-[6px] items-end flex-none;
 }
 .ov-next-meeting {
-  @apply flex items-baseline gap-[6px] text-fg-muted text-2xs;
+  @apply flex items-baseline gap-[6px] text-muted-foreground text-2xs;
   margin-top: 6px;
   flex-basis: 100%;
 }
 .ov-next-meeting-label {
   @apply font-semibold whitespace-nowrap;
-  color: var(--color-fg-subtle, var(--color-fg-muted));
+  color: var(--color-fg-subtle, var(--muted-foreground));
 }
 .ov-next-meeting-value {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
 }
 .ov-badge {
   @apply inline-flex items-center gap-[5px] whitespace-nowrap text-3xs;
   padding: 4px 9px;
   border-radius: 999px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
 }
 .ov-badge.ok {
   color: var(--color-success);
@@ -296,21 +296,21 @@ body {
   grid-column: 1 / -1;
 }
 .ov-card {
-  @apply flex flex-col bg-surface-elevated rounded-md;
-  border: 1px solid var(--color-border);
+  @apply flex flex-col bg-popover rounded-md;
+  border: 1px solid var(--border);
   padding: 14px 16px;
 }
 .ov-card-head {
-  @apply flex items-center gap-[7px] text-fg-secondary;
+  @apply flex items-center gap-[7px] text-muted-foreground;
   margin-bottom: 12px;
 }
 .ov-card-title {
-  @apply flex-auto font-semibold text-fg-primary text-xs;
+  @apply flex-auto font-semibold text-foreground text-xs;
 }
 .ov-card-source {
-  @apply font-mono uppercase text-fg-muted text-4xs;
+  @apply font-mono uppercase text-muted-foreground text-4xs;
   letter-spacing: 0.04em;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 3px;
   padding: 1px 5px;
 }
@@ -320,10 +320,10 @@ body {
 .ov-card-foot {
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 .link-btn {
-  @apply inline-flex items-center gap-[5px] bg-transparent text-accent cursor-pointer font-sans text-2xs;
+  @apply inline-flex items-center gap-[5px] bg-transparent text-primary cursor-pointer font-sans text-2xs;
   border: none;
   padding: 0;
 }
@@ -333,22 +333,22 @@ body {
 
 /* Next session card */
 .next-appt {
-  @apply flex items-center gap-3 text-accent;
+  @apply flex items-center gap-3 text-primary;
 }
 .next-when {
-  @apply font-semibold text-fg-primary text-base;
+  @apply font-semibold text-foreground text-base;
 }
 .next-label {
-  @apply text-fg-muted text-2xs;
+  @apply text-muted-foreground text-2xs;
 }
 
 /* Last note card */
 .last-note-meta {
-  @apply font-mono text-fg-muted text-3xs;
+  @apply font-mono text-muted-foreground text-3xs;
   margin-bottom: 6px;
 }
 .last-note-summary {
-  @apply text-fg-secondary text-sm;
+  @apply text-muted-foreground text-sm;
   margin: 0;
   line-height: 1.5;
 }
@@ -365,10 +365,10 @@ body {
   @apply flex items-baseline justify-between gap-2;
 }
 .score-name {
-  @apply font-mono text-fg-secondary text-2xs;
+  @apply font-mono text-muted-foreground text-2xs;
 }
 .score-latest {
-  @apply inline-flex items-center gap-1 font-semibold text-fg-primary;
+  @apply inline-flex items-center gap-1 font-semibold text-foreground;
   font-size: 18px;
 }
 .spark {
@@ -377,7 +377,7 @@ body {
 }
 .spark-bar {
   width: 9px;
-  background: var(--color-accent);
+  background: var(--primary);
   border-radius: 2px 2px 0 0;
   opacity: 0.6;
 }
@@ -385,13 +385,13 @@ body {
   opacity: 1;
 }
 .score-band {
-  @apply text-fg-muted text-3xs;
+  @apply text-muted-foreground text-3xs;
 }
 
 /* Goals */
 .goal-row {
   padding: 8px 0;
-  border-bottom: 1px dashed var(--color-border);
+  border-bottom: 1px dashed var(--border);
 }
 .goal-row:last-child {
   border-bottom: none;
@@ -401,7 +401,7 @@ body {
   margin-bottom: 6px;
 }
 .goal-label {
-  @apply text-fg-secondary text-xs;
+  @apply text-muted-foreground text-xs;
   line-height: 1.35;
 }
 .goal-status {
@@ -419,15 +419,15 @@ body {
   background: color-mix(in srgb, var(--color-warning) 14%, transparent);
 }
 .goal-status.st-notstarted {
-  @apply text-fg-muted bg-surface-active;
+  @apply text-muted-foreground bg-muted;
 }
 .goal-track {
-  @apply overflow-hidden bg-surface-active;
+  @apply overflow-hidden bg-muted;
   height: 5px;
   border-radius: 3px;
 }
 .goal-fill {
-  @apply block h-full bg-accent;
+  @apply block h-full bg-primary;
   border-radius: 3px;
 }
 
@@ -445,7 +445,7 @@ body {
   color: var(--color-warning);
 }
 .payment-figure {
-  @apply font-semibold text-fg-primary;
+  @apply font-semibold text-foreground;
   font-size: 18px;
 }
 
@@ -454,27 +454,27 @@ body {
   @apply list-none flex flex-col gap-[7px];
 }
 .circle-mini li {
-  @apply flex items-start gap-[7px] text-fg-secondary text-xs;
+  @apply flex items-start gap-[7px] text-muted-foreground text-xs;
 }
 .circle-mini svg {
-  @apply flex-none text-fg-muted;
+  @apply flex-none text-muted-foreground;
   margin-top: 1px;
 }
 .circle-mini b {
-  @apply font-semibold text-fg-primary;
+  @apply font-semibold text-foreground;
 }
 .aspect-meta {
-  @apply text-fg-muted text-2xs;
+  @apply text-muted-foreground text-2xs;
 }
 
 /* Focused density glance row */
 .ov-more {
-  @apply bg-surface-elevated rounded-md;
-  border: 1px solid var(--color-border);
+  @apply bg-popover rounded-md;
+  border: 1px solid var(--border);
   padding: 14px 16px;
 }
 .ov-more-head {
-  @apply font-semibold text-fg-primary text-xs;
+  @apply font-semibold text-foreground text-xs;
 }
 .ov-more-row {
   @apply grid gap-3;
@@ -482,14 +482,14 @@ body {
   margin-top: 12px;
 }
 .mini-stat {
-  @apply flex flex-col gap-[3px] rounded-sm bg-surface-active;
+  @apply flex flex-col gap-[3px] rounded-sm bg-muted;
   padding: 10px 12px;
 }
 .mini-stat-label {
-  @apply inline-flex items-center gap-[5px] text-fg-muted text-3xs;
+  @apply inline-flex items-center gap-[5px] text-muted-foreground text-3xs;
 }
 .mini-stat-value {
-  @apply font-semibold text-fg-primary text-lg;
+  @apply font-semibold text-foreground text-lg;
 }
 .mini-stat-sub {
   @apply text-3xs;
@@ -517,7 +517,7 @@ body {
   top: 6px;
   bottom: 6px;
   width: 1px;
-  background: var(--color-border);
+  background: var(--border);
 }
 .tl-event {
   @apply grid items-start;
@@ -526,54 +526,54 @@ body {
   padding-bottom: 18px;
 }
 .tl-when {
-  @apply font-mono text-fg-muted text-right text-2xs;
+  @apply font-mono text-muted-foreground text-right text-2xs;
   padding-top: 6px;
 }
 .tl-dot {
-  @apply flex items-center justify-center rounded-full bg-surface-elevated text-fg-muted;
+  @apply flex items-center justify-center rounded-full bg-popover text-muted-foreground;
   width: 28px;
   height: 28px;
   z-index: 1;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
 }
 .tl-dot.tone-error {
-  color: var(--color-error);
-  border-color: color-mix(in srgb, var(--color-error) 50%, transparent);
-  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface-elevated));
+  color: var(--destructive);
+  border-color: color-mix(in srgb, var(--destructive) 50%, transparent);
+  background: color-mix(in srgb, var(--destructive) 12%, var(--popover));
 }
 .tl-dot.tone-accent {
-  color: var(--color-accent);
-  border-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
-  background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface-elevated));
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  background: color-mix(in srgb, var(--primary) 12%, var(--popover));
 }
 .tl-card {
-  @apply bg-surface-elevated rounded-md;
-  border: 1px solid var(--color-border);
+  @apply bg-popover rounded-md;
+  border: 1px solid var(--border);
   padding: 11px 14px;
 }
 .tl-title {
-  @apply font-semibold text-fg-primary text-sm;
+  @apply font-semibold text-foreground text-sm;
   margin-bottom: 3px;
 }
 .tl-body {
-  @apply text-fg-secondary text-xs;
+  @apply text-muted-foreground text-xs;
   line-height: 1.45;
 }
 .tl-facts {
-  @apply bg-surface-elevated rounded-md sticky flex flex-col gap-2;
+  @apply bg-popover rounded-md sticky flex flex-col gap-2;
   flex: 0 0 220px;
   top: 0;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   padding: 14px 16px;
 }
 .tl-facts-head {
-  @apply font-semibold uppercase text-fg-secondary text-2xs;
+  @apply font-semibold uppercase text-muted-foreground text-2xs;
   letter-spacing: 0.05em;
   margin-bottom: 4px;
 }
 .tl-fact {
-  @apply flex items-center gap-[7px] text-fg-secondary text-xs;
+  @apply flex items-center gap-[7px] text-muted-foreground text-xs;
 }
 .tl-fact svg {
-  @apply flex-none text-fg-muted;
+  @apply flex-none text-muted-foreground;
 }

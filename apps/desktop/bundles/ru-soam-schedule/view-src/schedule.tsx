@@ -989,7 +989,7 @@ function EventPopover({ ev, anchorRect, onClose, onOpenSidePanel }: PopoverProps
                         style={{
                           fontSize: '11px',
                           paddingLeft: '30px',
-                          color: 'var(--color-fg-muted)',
+                          color: 'var(--muted-foreground)',
                         }}
                       >
                         +{ev.attendees!.length - maxShown} more

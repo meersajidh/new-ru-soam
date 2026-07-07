@@ -25,7 +25,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 body {
-  @apply font-sans text-sm bg-surface-base text-fg-primary;
+  @apply font-sans text-sm bg-background text-foreground;
   line-height: 1.5;
 }
 #root {
@@ -36,9 +36,9 @@ body {
 #status-bar {
   @apply hidden shrink-0 font-medium text-2xs;
   padding: 5px 16px;
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 9%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--color-error) 25%, transparent);
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 9%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--destructive) 25%, transparent);
 }
 #status-bar.visible {
   @apply block;
@@ -51,7 +51,7 @@ body {
 
 /* ── Header strip ────────────────────────────────── */
 #header-strip {
-  @apply flex items-center gap-[10px] shrink-0 border-b border-border bg-surface-panel;
+  @apply flex items-center gap-[10px] shrink-0 border-b border-border bg-card;
   padding: 12px 20px 11px;
 }
 .hs-icon {
@@ -62,7 +62,7 @@ body {
   font-size: 14px;
 }
 .hs-client {
-  @apply font-mono text-fg-muted text-2xs;
+  @apply font-mono text-muted-foreground text-2xs;
 }
 
 /* ── Scroll area ─────────────────────────────────── */
@@ -70,24 +70,24 @@ body {
   @apply flex-auto overflow-y-auto overflow-x-hidden;
   padding: 24px 28px 48px;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
 }
 
 /* ── Form card ───────────────────────────────────── */
 #sp-card {
-  @apply flex flex-col gap-5 rounded-md bg-surface-elevated;
+  @apply flex flex-col gap-5 rounded-md bg-popover;
   max-width: 640px;
   padding: 24px 28px 28px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
 }
 
 /* ── Section heading ─────────────────────────────── */
 .sp-section-head {
-  @apply font-bold uppercase text-fg-muted text-3xs;
+  @apply font-bold uppercase text-muted-foreground text-3xs;
   letter-spacing: 0.08em;
   margin-bottom: 12px;
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 
 /* ── Field ───────────────────────────────────────── */
@@ -95,16 +95,16 @@ body {
   @apply flex flex-col gap-[5px];
 }
 .sp-label {
-  @apply font-semibold text-fg-secondary text-2xs;
+  @apply font-semibold text-muted-foreground text-2xs;
 }
 .sp-input {
-  @apply w-full font-sans rounded-sm text-fg-primary bg-surface-base outline-none text-xs;
+  @apply w-full font-sans rounded-sm text-foreground bg-background outline-none text-xs;
   padding: 7px 10px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition: border-color 130ms ease;
 }
 .sp-input:focus {
-  border-color: var(--color-border-focus);
+  border-color: var(--ring);
 }
 select.sp-input {
   appearance: none;
@@ -118,11 +118,11 @@ textarea.sp-input {
 
 /* ── Checkbox row ────────────────────────────────── */
 .sp-check-row {
-  @apply flex items-center gap-[9px] text-fg-secondary text-xs;
+  @apply flex items-center gap-[9px] text-muted-foreground text-xs;
   margin-top: 10px;
 }
 .sp-check-row input[type='checkbox'] {
-  accent-color: var(--color-accent);
+  accent-color: var(--primary);
   width: 15px;
   height: 15px;
   cursor: pointer;
@@ -133,22 +133,22 @@ textarea.sp-input {
 #sp-actions {
   @apply flex items-center gap-[10px];
   padding-top: 4px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 .sp-btn {
-  @apply inline-flex items-center gap-[5px] font-sans font-medium rounded-sm bg-transparent text-fg-secondary cursor-pointer text-2xs;
+  @apply inline-flex items-center gap-[5px] font-sans font-medium rounded-sm bg-transparent text-muted-foreground cursor-pointer text-2xs;
   padding: 6px 14px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 130ms ease,
     color 130ms ease;
 }
 .sp-btn:hover {
-  @apply bg-surface-active text-fg-primary;
+  @apply bg-muted text-foreground;
 }
 .sp-btn.primary {
-  @apply bg-accent;
-  color: var(--color-accent-fg);
+  @apply bg-primary;
+  color: var(--primary-foreground);
   border-color: transparent;
 }
 .sp-btn.primary:hover {
@@ -172,5 +172,5 @@ textarea.sp-input {
   @apply text-success;
 }
 .sp-save-msg.err {
-  @apply text-error;
+  @apply text-destructive;
 }

@@ -29,7 +29,7 @@ input {
 }
 html,
 body {
-  @apply font-sans text-sm h-full overflow-hidden bg-surface-base text-fg-primary;
+  @apply font-sans text-sm h-full overflow-hidden bg-background text-foreground;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -60,35 +60,35 @@ body {
   @apply flex flex-col items-center gap-4 text-center;
 }
 .connect-icon-wrap {
-  @apply flex items-center justify-center shrink-0 bg-surface-elevated;
+  @apply flex items-center justify-center shrink-0 bg-popover;
   width: 56px;
   height: 56px;
   border-radius: 14px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
 }
 .connect-heading {
-  @apply font-semibold text-fg-primary text-base;
+  @apply font-semibold text-foreground text-base;
   letter-spacing: -0.01em;
   line-height: 1.3;
 }
 .connect-subtext {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
   line-height: 1.55;
   max-width: 320px;
 }
 
 /* ── Sign-in button ──────────────────────────────── */
 .btn-google {
-  @apply inline-flex items-center justify-center gap-[10px] w-full rounded-md font-medium bg-surface-elevated text-fg-primary cursor-pointer text-sm;
+  @apply inline-flex items-center justify-center gap-[10px] w-full rounded-md font-medium bg-popover text-foreground cursor-pointer text-sm;
   padding: 10px 18px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 120ms ease,
     border-color 120ms ease;
 }
 .btn-google:hover:not(:disabled) {
-  @apply bg-surface-active;
-  border-color: color-mix(in srgb, var(--color-fg-muted) 50%, transparent);
+  @apply bg-muted;
+  border-color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
 }
 .btn-google:disabled {
   @apply opacity-50 cursor-not-allowed;
@@ -96,7 +96,7 @@ body {
 
 /* ── Connect footer ──────────────────────────────── */
 .connect-footer {
-  @apply flex items-center justify-center gap-[5px] text-fg-muted text-2xs;
+  @apply flex items-center justify-center gap-[5px] text-muted-foreground text-2xs;
 }
 
 /* ── Account list (Step 1, has-accounts) ─────────── */
@@ -104,47 +104,47 @@ body {
   @apply flex flex-col gap-[6px];
 }
 .acct-item {
-  @apply flex items-center gap-3 rounded-md bg-surface-elevated cursor-pointer;
+  @apply flex items-center gap-3 rounded-md bg-popover cursor-pointer;
   padding: 10px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 110ms ease,
     border-color 110ms ease;
 }
 .acct-item:hover {
-  @apply bg-surface-active;
-  border-color: color-mix(in srgb, var(--color-fg-muted) 50%, transparent);
+  @apply bg-muted;
+  border-color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
 }
 .acct-dot {
-  @apply shrink-0 rounded-full bg-accent;
+  @apply shrink-0 rounded-full bg-primary;
   width: 8px;
   height: 8px;
 }
 .acct-dot.disconnected {
-  @apply bg-error;
+  @apply bg-destructive;
 }
 .acct-info {
   @apply flex-1 min-w-0;
 }
 .acct-email {
-  @apply font-medium truncate text-fg-primary text-sm;
+  @apply font-medium truncate text-foreground text-sm;
 }
 .acct-name {
-  @apply truncate text-fg-muted text-2xs;
+  @apply truncate text-muted-foreground text-2xs;
 }
 .btn-connect-another {
-  @apply flex items-center justify-center gap-2 w-full rounded-md bg-transparent text-fg-muted text-xs;
+  @apply flex items-center justify-center gap-2 w-full rounded-md bg-transparent text-muted-foreground text-xs;
   padding: 9px 14px;
-  border: 1px dashed var(--color-border);
+  border: 1px dashed var(--border);
   transition:
     color 110ms ease,
     border-color 110ms ease,
     background 110ms ease;
 }
 .btn-connect-another:hover:not(:disabled) {
-  @apply text-fg-secondary;
-  border-color: color-mix(in srgb, var(--color-fg-muted) 60%, transparent);
-  background: color-mix(in srgb, var(--color-fg-muted) 4%, transparent);
+  @apply text-muted-foreground;
+  border-color: color-mix(in srgb, var(--muted-foreground) 60%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 4%, transparent);
 }
 .btn-connect-another:disabled {
   @apply opacity-45 cursor-not-allowed;
@@ -152,12 +152,12 @@ body {
 
 /* ── Step heading shared ─────────────────────────── */
 .step-heading {
-  @apply font-semibold text-fg-primary;
+  @apply font-semibold text-foreground;
   font-size: 14px;
   letter-spacing: -0.01em;
 }
 .step-subtext {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
   margin-top: -12px;
 }
 
@@ -166,7 +166,7 @@ body {
   @apply flex flex-col gap-1 overflow-y-auto;
   max-height: 280px;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 25%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 25%, transparent) transparent;
 }
 .cal-pick-item {
   @apply flex items-center gap-[10px] rounded-sm cursor-pointer;
@@ -175,21 +175,21 @@ body {
   transition: background 100ms ease;
 }
 .cal-pick-item:hover {
-  background: color-mix(in srgb, var(--color-fg-muted) 7%, transparent);
-  border-color: color-mix(in srgb, var(--color-border) 60%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 7%, transparent);
+  border-color: color-mix(in srgb, var(--border) 60%, transparent);
 }
 .cal-pick-name {
-  @apply flex-1 truncate text-fg-primary text-sm;
+  @apply flex-1 truncate text-foreground text-sm;
 }
 .cal-badge {
-  @apply shrink-0 font-semibold text-fg-muted whitespace-nowrap text-3xs;
+  @apply shrink-0 font-semibold text-muted-foreground whitespace-nowrap text-3xs;
   letter-spacing: 0.04em;
   border-radius: 3px;
   padding: 1px 5px;
-  background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 10%, transparent);
 }
 .cal-pick-empty {
-  @apply text-center text-fg-muted italic text-xs;
+  @apply text-center text-muted-foreground italic text-xs;
   padding: 16px 0;
 }
 
@@ -198,17 +198,17 @@ body {
   @apply flex flex-col gap-[6px];
 }
 .field-label {
-  @apply font-semibold uppercase text-fg-muted text-2xs;
+  @apply font-semibold uppercase text-muted-foreground text-2xs;
   letter-spacing: 0.05em;
 }
 .text-input {
-  @apply w-full rounded-sm bg-surface-elevated text-fg-primary text-sm;
+  @apply w-full rounded-sm bg-popover text-foreground text-sm;
   padding: 9px 11px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition: border-color 120ms ease;
 }
 .text-input:focus {
-  border-color: var(--color-border-focus);
+  border-color: var(--ring);
 }
 
 /* ── Color swatch palette ────────────────────────── */
@@ -228,7 +228,7 @@ body {
   transform: scale(1.12);
 }
 .color-swatch.selected {
-  border-color: var(--color-fg-primary);
+  border-color: var(--foreground);
   transform: scale(1.08);
 }
 .color-swatch.selected::after {
@@ -246,20 +246,20 @@ body {
   padding-top: 4px;
 }
 .btn-back {
-  @apply shrink-0 rounded-sm bg-transparent text-fg-muted text-xs;
+  @apply shrink-0 rounded-sm bg-transparent text-muted-foreground text-xs;
   padding: 8px 14px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     color 110ms ease,
     background 110ms ease;
 }
 .btn-back:hover {
-  @apply text-fg-secondary bg-surface-elevated;
+  @apply text-muted-foreground bg-popover;
 }
 .btn-primary {
-  @apply flex-1 rounded-sm font-medium bg-accent cursor-pointer text-sm;
+  @apply flex-1 rounded-sm font-medium bg-primary cursor-pointer text-sm;
   padding: 9px 16px;
-  color: var(--color-accent-fg);
+  color: var(--primary-foreground);
   border: none;
   transition:
     background 110ms ease,
@@ -277,7 +277,7 @@ body {
 
 /* ── Inline error ────────────────────────────────── */
 .inline-error {
-  @apply hidden text-error text-xs;
+  @apply hidden text-destructive text-xs;
   min-height: 16px;
 }
 .inline-error.visible {
@@ -289,20 +289,20 @@ body {
   @apply flex flex-col items-center gap-4 text-center;
 }
 .migrate-icon-wrap {
-  @apply flex items-center justify-center shrink-0 bg-surface-elevated;
+  @apply flex items-center justify-center shrink-0 bg-popover;
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
 }
 .migrate-heading {
-  @apply font-semibold text-fg-primary;
+  @apply font-semibold text-foreground;
   font-size: 15px;
   letter-spacing: -0.01em;
   line-height: 1.3;
 }
 .migrate-subtext {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
   line-height: 1.55;
   max-width: 300px;
 }
@@ -311,9 +311,9 @@ body {
   padding-top: 4px;
 }
 .btn-migrate-now {
-  @apply w-full rounded-sm font-medium bg-accent cursor-pointer text-sm;
+  @apply w-full rounded-sm font-medium bg-primary cursor-pointer text-sm;
   padding: 9px 16px;
-  color: var(--color-accent-fg);
+  color: var(--primary-foreground);
   border: none;
   transition: background 110ms ease;
 }
@@ -324,13 +324,13 @@ body {
   background: var(--color-accent-pressed, var(--color-success));
 }
 .btn-migrate-skip {
-  @apply w-full rounded-sm bg-transparent text-fg-muted cursor-pointer text-xs;
+  @apply w-full rounded-sm bg-transparent text-muted-foreground cursor-pointer text-xs;
   padding: 8px 16px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     color 110ms ease,
     background 110ms ease;
 }
 .btn-migrate-skip:hover {
-  @apply text-fg-secondary bg-surface-elevated;
+  @apply text-muted-foreground bg-popover;
 }

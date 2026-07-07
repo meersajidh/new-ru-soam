@@ -10,9 +10,9 @@
   color-scheme: light dark;
   --cls-client-color: var(--color-success);
   --cls-probable-color: var(--color-warning);
-  --cls-not-color: var(--color-fg-muted);
+  --cls-not-color: var(--muted-foreground);
   --cls-personal-color: var(--color-info);
-  --cls-unclassified-color: var(--color-fg-muted);
+  --cls-unclassified-color: var(--muted-foreground);
 }
 
 /* ── Reset ───────────────────────────────────────── */
@@ -32,7 +32,7 @@ button {
 }
 html,
 body {
-  @apply font-sans h-full overflow-hidden bg-surface-panel text-fg-primary;
+  @apply font-sans h-full overflow-hidden bg-card text-foreground;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -43,7 +43,7 @@ body {
 
 /* ── Empty state ─────────────────────────────────── */
 #empty-state {
-  @apply flex-1 flex flex-col items-center justify-center gap-2 text-center text-fg-muted text-sm;
+  @apply flex-1 flex flex-col items-center justify-center gap-2 text-center text-muted-foreground text-sm;
   padding: 24px;
 }
 
@@ -51,20 +51,20 @@ body {
 #detail-scroll {
   @apply flex-1 flex flex-col overflow-y-auto overflow-x-hidden;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 30%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 30%, transparent) transparent;
 }
 
 /* ── Header ──────────────────────────────────────── */
 .det-header {
   @apply flex flex-col gap-1;
   padding: 18px 16px 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
 }
 .det-title-row {
   @apply flex items-start gap-2;
 }
 .det-title {
-  @apply flex-1 min-w-0 font-bold text-fg-primary text-base;
+  @apply flex-1 min-w-0 font-bold text-foreground text-base;
   line-height: 1.3;
   word-break: break-word;
 }
@@ -80,10 +80,10 @@ body {
     color 130ms ease;
 }
 .det-refresh-btn:hover:not(:disabled) {
-  @apply bg-surface-active text-fg-primary;
+  @apply bg-muted text-foreground;
 }
 .det-refresh-btn:focus-visible {
-  outline: 2px solid var(--color-border-focus);
+  outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
 .det-refresh-btn:disabled {
@@ -103,12 +103,12 @@ body {
   }
 }
 .det-refresh-err {
-  @apply font-medium text-error text-2xs;
+  @apply font-medium text-destructive text-2xs;
   line-height: 1.4;
   margin-top: 2px;
 }
 .det-meta {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
   line-height: 1.4;
 }
 
@@ -116,7 +116,7 @@ body {
 .det-status-bar {
   @apply flex items-center gap-2;
   padding: 10px 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 30%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
 }
 .det-cls-dot {
   @apply shrink-0 rounded-full;
@@ -124,7 +124,7 @@ body {
   height: 8px;
 }
 .det-cls-human {
-  @apply flex-1 min-w-0 font-medium text-fg-secondary text-sm;
+  @apply flex-1 min-w-0 font-medium text-muted-foreground text-sm;
 }
 .det-cls-badge {
   @apply shrink-0 font-semibold text-2xs;
@@ -214,18 +214,18 @@ body {
 .det-section {
   @apply flex flex-col gap-[10px];
   padding: 16px 16px 4px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 35%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 35%, transparent);
 }
 .det-section:last-child {
   border-bottom: none;
 }
 .det-section-hdr {
-  @apply flex items-center gap-[7px] font-bold uppercase text-fg-muted text-2xs;
+  @apply flex items-center gap-[7px] font-bold uppercase text-muted-foreground text-2xs;
   letter-spacing: 0.07em;
   padding-bottom: 2px;
 }
 .det-section-hdr-icon {
-  @apply inline-flex items-center shrink-0 text-fg-muted;
+  @apply inline-flex items-center shrink-0 text-muted-foreground;
 }
 
 /* ── KV rows ─────────────────────────────────────── */
@@ -238,11 +238,11 @@ body {
   min-height: 20px;
 }
 .det-kv-label {
-  @apply shrink-0 text-right text-fg-muted text-xs;
+  @apply shrink-0 text-right text-muted-foreground text-xs;
   width: 72px;
 }
 .det-kv-value {
-  @apply flex-1 min-w-0 font-medium text-fg-primary;
+  @apply flex-1 min-w-0 font-medium text-foreground;
   line-height: 1.4;
   word-break: break-word;
 }
@@ -255,21 +255,21 @@ body {
 
 /* ── Join button ─────────────────────────────────── */
 .det-join-btn {
-  @apply flex items-center justify-center gap-[6px] w-full rounded-md font-sans font-bold cursor-pointer select-none whitespace-nowrap bg-accent text-sm;
+  @apply flex items-center justify-center gap-[6px] w-full rounded-md font-sans font-bold cursor-pointer select-none whitespace-nowrap bg-primary text-sm;
   padding: 9px 14px;
-  border: 1px solid var(--color-accent);
-  color: var(--color-accent-fg);
+  border: 1px solid var(--primary);
+  color: var(--primary-foreground);
   margin-bottom: 4px;
   transition:
     background 130ms ease,
     border-color 130ms ease;
 }
 .det-join-btn:hover {
-  background: color-mix(in srgb, var(--color-accent) 85%, white);
-  border-color: color-mix(in srgb, var(--color-accent) 85%, white);
+  background: color-mix(in srgb, var(--primary) 85%, white);
+  border-color: color-mix(in srgb, var(--primary) 85%, white);
 }
 .det-join-btn:focus-visible {
-  outline: 2px solid var(--color-border-focus);
+  outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
 
@@ -278,14 +278,14 @@ body {
   @apply flex items-center gap-[6px] flex-wrap;
 }
 .det-join-url {
-  @apply flex-1 min-w-0 font-mono text-accent text-2xs;
+  @apply flex-1 min-w-0 font-mono text-primary text-2xs;
   line-height: 1.45;
   user-select: text;
   cursor: text;
   word-break: break-all;
 }
 .det-copy-btn {
-  @apply inline-flex items-center justify-center shrink-0 rounded-sm text-fg-muted cursor-pointer align-middle;
+  @apply inline-flex items-center justify-center shrink-0 rounded-sm text-muted-foreground cursor-pointer align-middle;
   width: 24px;
   height: 24px;
   border: none;
@@ -296,10 +296,10 @@ body {
     color 130ms ease;
 }
 .det-copy-btn:hover {
-  @apply bg-surface-active text-fg-primary;
+  @apply bg-muted text-foreground;
 }
 .det-copy-btn:focus-visible {
-  outline: 2px solid var(--color-border-focus);
+  outline: 2px solid var(--ring);
   outline-offset: 1px;
 }
 .det-copy-btn.copied {
@@ -314,13 +314,13 @@ body {
 }
 
 .det-no-meet-msg {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
   line-height: 1.4;
 }
 
 /* ── Section header trailing (inline count) ──────── */
 .det-section-hdr-trailing {
-  @apply font-medium normal-case text-fg-muted opacity-80 text-3xs;
+  @apply font-medium normal-case text-muted-foreground opacity-80 text-3xs;
   letter-spacing: 0;
   margin-left: 5px;
 }
@@ -331,18 +331,18 @@ body {
   padding-bottom: 8px;
 }
 .det-participant-class {
-  @apply font-medium text-fg-muted;
+  @apply font-medium text-muted-foreground;
 }
 .det-participant {
   @apply flex items-center gap-2 text-2xs;
 }
 .det-avatar {
-  @apply inline-flex items-center justify-center shrink-0 rounded-full font-bold uppercase text-accent text-3xs;
+  @apply inline-flex items-center justify-center shrink-0 rounded-full font-bold uppercase text-primary text-3xs;
   width: 28px;
   height: 28px;
   letter-spacing: -0.01em;
-  background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface-base) 80%);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+  background: color-mix(in srgb, var(--primary) 20%, var(--background) 80%);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
 }
 .det-avatar-wrap {
   @apply relative inline-flex shrink-0;
@@ -353,7 +353,7 @@ body {
   height: 24px;
 }
 .det-participant-name {
-  @apply flex-1 min-w-0 truncate text-fg-secondary text-sm;
+  @apply flex-1 min-w-0 truncate text-muted-foreground text-sm;
   line-height: 1.4;
 }
 .det-resp-badge {
@@ -362,35 +362,35 @@ body {
   height: 13px;
   right: -3px;
   bottom: -3px;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-surface-panel);
+  background: var(--card);
+  border: 1px solid var(--card);
 }
 .det-resp-badge.resp-yes {
   @apply text-success;
 }
 .det-resp-badge.resp-no {
-  @apply text-error;
+  @apply text-destructive;
 }
 .det-resp-badge.resp-maybe {
   @apply text-warning;
 }
 .det-resp-badge.resp-none {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
 }
 .det-participant-role {
-  @apply shrink-0 font-medium text-fg-muted text-3xs;
+  @apply shrink-0 font-medium text-muted-foreground text-3xs;
   border-radius: 3px;
   padding: 0 4px;
   line-height: 1.6;
-  background: color-mix(in srgb, var(--color-surface-base) 80%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  background: color-mix(in srgb, var(--background) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 }
 .det-participants-more {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
   padding-left: 34px;
 }
 .det-source-email {
-  @apply truncate text-fg-primary;
+  @apply truncate text-foreground;
   line-height: 1.5;
   user-select: text;
 }
@@ -401,11 +401,11 @@ body {
   padding-bottom: 8px;
 }
 .det-link-desc {
-  @apply text-fg-secondary text-sm;
+  @apply text-muted-foreground text-sm;
   line-height: 1.5;
 }
 .det-link-desc strong {
-  @apply font-semibold text-fg-primary;
+  @apply font-semibold text-foreground;
 }
 .det-link-actions {
   @apply flex flex-wrap items-center gap-[6px];
@@ -418,10 +418,10 @@ body {
   flex: 1 1 calc(50% - 3px);
 }
 .det-link-inline-msg {
-  @apply italic text-fg-muted text-xs;
+  @apply italic text-muted-foreground text-xs;
 }
 .det-link-inline-msg.err {
-  @apply font-medium text-error not-italic;
+  @apply font-medium text-destructive not-italic;
 }
 .det-link-inline-msg.ok {
   @apply font-medium text-success not-italic;
@@ -431,14 +431,14 @@ body {
 .det-linked-card {
   @apply flex items-center gap-[10px] rounded-md;
   padding: 10px 12px;
-  background: color-mix(in srgb, var(--color-surface-elevated) 70%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  background: color-mix(in srgb, var(--popover) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
 }
 .det-linked-card-info {
   @apply flex-1 min-w-0 flex flex-col gap-[2px];
 }
 .det-linked-card-name {
-  @apply font-semibold truncate text-fg-primary text-sm;
+  @apply font-semibold truncate text-foreground text-sm;
 }
 .det-linked-card-sub {
   @apply font-medium text-success text-2xs;
@@ -446,38 +446,38 @@ body {
 
 /* Action buttons */
 .det-act-btn {
-  @apply inline-flex items-center justify-center gap-1 rounded-sm bg-transparent font-sans font-medium text-fg-secondary cursor-pointer select-none whitespace-nowrap text-xs;
+  @apply inline-flex items-center justify-center gap-1 rounded-sm bg-transparent font-sans font-medium text-muted-foreground cursor-pointer select-none whitespace-nowrap text-xs;
   padding: 5px 11px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 130ms ease,
     color 130ms ease;
 }
 .det-act-btn:hover:not(:disabled) {
-  @apply text-fg-primary;
-  background: color-mix(in srgb, var(--color-fg-muted) 10%, transparent);
+  @apply text-foreground;
+  background: color-mix(in srgb, var(--muted-foreground) 10%, transparent);
 }
 .det-act-btn:disabled {
   @apply opacity-40 cursor-not-allowed;
 }
 .det-act-btn.primary {
-  @apply font-semibold text-accent;
-  border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  @apply font-semibold text-primary;
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
 }
 .det-act-btn.primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
-  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+  border-color: var(--primary);
 }
 .det-act-btn.primary-solid {
-  @apply w-full justify-center font-bold bg-accent rounded-md text-sm;
-  border-color: var(--color-accent);
-  color: var(--color-accent-fg);
+  @apply w-full justify-center font-bold bg-primary rounded-md text-sm;
+  border-color: var(--primary);
+  color: var(--primary-foreground);
   padding: 9px 14px;
 }
 .det-act-btn.primary-solid:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-accent) 85%, white);
-  border-color: color-mix(in srgb, var(--color-accent) 85%, white);
+  background: color-mix(in srgb, var(--primary) 85%, white);
+  border-color: color-mix(in srgb, var(--primary) 85%, white);
 }
 
 /* Inline picker */
@@ -485,33 +485,33 @@ body {
   @apply flex flex-col gap-[5px];
 }
 .det-picker-search {
-  @apply w-full rounded-sm font-sans text-fg-primary bg-surface-base outline-none text-xs;
+  @apply w-full rounded-sm font-sans text-foreground bg-background outline-none text-xs;
   padding: 5px 9px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition: border-color 130ms ease;
 }
 .det-picker-search::placeholder {
-  color: var(--color-fg-muted);
+  color: var(--muted-foreground);
 }
 .det-picker-search:focus {
-  border-color: var(--color-border-focus);
+  border-color: var(--ring);
 }
 .det-picker-list {
-  @apply list-none overflow-y-auto rounded-sm bg-surface-base;
+  @apply list-none overflow-y-auto rounded-sm bg-background;
   max-height: 140px;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 30%, transparent) transparent;
-  border: 1px solid var(--color-border);
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 30%, transparent) transparent;
+  border: 1px solid var(--border);
 }
 .det-picker-list:empty::after {
   content: 'No clients match';
-  @apply block italic text-fg-muted text-xs;
+  @apply block italic text-muted-foreground text-xs;
   padding: 8px 10px;
 }
 .det-picker-item {
-  @apply truncate text-fg-secondary cursor-pointer text-sm;
+  @apply truncate text-muted-foreground cursor-pointer text-sm;
   padding: 6px 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
   transition:
     background 130ms ease,
     color 130ms ease;
@@ -520,8 +520,8 @@ body {
   border-bottom: none;
 }
 .det-picker-item:hover {
-  @apply text-fg-primary;
-  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  @apply text-foreground;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
 }
 
 /* New-intake inline form */
@@ -529,14 +529,14 @@ body {
   @apply flex flex-col gap-[6px];
 }
 .det-intake-input {
-  @apply rounded-sm font-sans text-fg-primary bg-surface-base outline-none text-xs;
+  @apply rounded-sm font-sans text-foreground bg-background outline-none text-xs;
   padding: 5px 9px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition: border-color 130ms ease;
 }
 .det-intake-input::placeholder {
-  color: var(--color-fg-muted);
+  color: var(--muted-foreground);
 }
 .det-intake-input:focus {
-  border-color: var(--color-border-focus);
+  border-color: var(--ring);
 }

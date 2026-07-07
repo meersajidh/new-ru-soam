@@ -21,7 +21,7 @@ button {
 }
 html,
 body {
-  @apply font-sans text-sm h-full overflow-hidden bg-surface-base text-fg-primary;
+  @apply font-sans text-sm h-full overflow-hidden bg-background text-foreground;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -31,7 +31,7 @@ body {
 
 /* ── Bridge wait ─────────────────────────────────── */
 .bridge-wait {
-  @apply fixed inset-0 flex items-center justify-center gap-2 bg-surface-base text-fg-muted text-xs;
+  @apply fixed inset-0 flex items-center justify-center gap-2 bg-background text-muted-foreground text-xs;
   z-index: 100;
 }
 
@@ -40,8 +40,8 @@ body {
   @apply shrink-0 rounded-full;
   width: 14px;
   height: 14px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-accent);
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
   animation: spin 0.6s linear infinite;
 }
 @keyframes spin {
@@ -52,11 +52,11 @@ body {
 
 /* ── Error / locked banners ──────────────────────── */
 .rec-banner {
-  @apply text-center text-fg-muted text-xs;
+  @apply text-center text-muted-foreground text-xs;
   padding: 20px 16px;
 }
 .rec-banner.err {
-  @apply text-error;
+  @apply text-destructive;
 }
 
 /* ── Scrollable body ─────────────────────────────── */
@@ -68,10 +68,10 @@ body {
 /* ── Header ──────────────────────────────────────── */
 .rec-header {
   padding: 20px 20px 14px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 .rec-client-name {
-  @apply font-semibold text-fg-primary;
+  @apply font-semibold text-foreground;
   font-size: 18px;
   letter-spacing: -0.01em;
   margin-bottom: 6px;
@@ -81,7 +81,7 @@ body {
   @apply flex items-center gap-2 flex-wrap;
 }
 .rec-kind {
-  @apply font-medium capitalize text-fg-secondary bg-surface-elevated rounded-sm text-2xs;
+  @apply font-medium capitalize text-muted-foreground bg-popover rounded-sm text-2xs;
   padding: 2px 7px;
 }
 .status-badge {
@@ -93,12 +93,12 @@ body {
   background: color-mix(in srgb, var(--color-success) 15%, transparent);
 }
 .status-badge.completed {
-  color: var(--color-fg-secondary);
+  color: var(--muted-foreground);
   background: color-mix(in srgb, var(--color-success) 10%, transparent);
 }
 .status-badge.cancelled {
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
 }
 .status-badge.no_show {
   color: var(--color-warning);
@@ -107,7 +107,7 @@ body {
 
 /* ── Open client record btn ──────────────────────── */
 .open-client-btn {
-  @apply flex items-center gap-[5px] text-accent cursor-pointer text-xs;
+  @apply flex items-center gap-[5px] text-primary cursor-pointer text-xs;
   margin-top: 10px;
   padding: 0;
   transition: color 130ms ease;
@@ -119,13 +119,13 @@ body {
 /* ── Sections ────────────────────────────────────── */
 .rec-section {
   padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 .rec-section:last-child {
   border-bottom: none;
 }
 .rec-section-title {
-  @apply flex items-center gap-[6px] font-semibold uppercase text-fg-muted text-2xs;
+  @apply flex items-center gap-[6px] font-semibold uppercase text-muted-foreground text-2xs;
   letter-spacing: 0.06em;
   margin-bottom: 10px;
 }
@@ -135,31 +135,31 @@ body {
 
 /* ── Time section ────────────────────────────────── */
 .rec-time-row {
-  @apply flex items-center gap-[6px] text-fg-primary text-sm;
+  @apply flex items-center gap-[6px] text-foreground text-sm;
   margin-bottom: 4px;
 }
 .rec-time-row:last-child {
   margin-bottom: 0;
 }
 .rec-time-label {
-  @apply text-fg-muted text-2xs;
+  @apply text-muted-foreground text-2xs;
   min-width: 70px;
 }
 .rec-modality-row {
-  @apply flex items-center gap-[6px] text-fg-secondary text-xs;
+  @apply flex items-center gap-[6px] text-muted-foreground text-xs;
   margin-top: 8px;
 }
 
 /* ── Source section ──────────────────────────────── */
 .rec-source-row {
-  @apply flex items-start gap-[6px] text-fg-secondary text-xs;
+  @apply flex items-start gap-[6px] text-muted-foreground text-xs;
   margin-bottom: 4px;
 }
 .rec-source-row:last-child {
   margin-bottom: 0;
 }
 .rec-source-label {
-  @apply shrink-0 text-fg-muted text-2xs;
+  @apply shrink-0 text-muted-foreground text-2xs;
   min-width: 70px;
 }
 .rec-source-value {
@@ -172,38 +172,38 @@ body {
   @apply flex flex-wrap gap-[6px];
 }
 .rec-status-btn {
-  @apply font-medium rounded-sm text-fg-secondary bg-surface-elevated cursor-pointer text-xs;
+  @apply font-medium rounded-sm text-muted-foreground bg-popover cursor-pointer text-xs;
   padding: 5px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 130ms ease,
     color 130ms ease,
     border-color 130ms ease;
 }
 .rec-status-btn:hover:not(:disabled) {
-  @apply bg-surface-active text-fg-primary;
-  border-color: var(--color-border-focus);
+  @apply bg-muted text-foreground;
+  border-color: var(--ring);
 }
 .rec-status-btn:disabled {
   opacity: 0.45;
   cursor: default;
 }
 .rec-status-btn.active {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
+  color: var(--primary);
+  border-color: var(--primary);
 }
 .rec-status-msg {
-  @apply text-fg-muted text-2xs;
+  @apply text-muted-foreground text-2xs;
   margin-top: 6px;
   min-height: 16px;
 }
 .rec-status-msg.err {
-  @apply text-error;
+  @apply text-destructive;
 }
 
 /* ── Notes placeholder ───────────────────────────── */
 .notes-placeholder {
-  @apply flex items-start gap-[10px] rounded-md bg-surface-elevated text-fg-muted italic text-xs;
+  @apply flex items-start gap-[10px] rounded-md bg-popover text-muted-foreground italic text-xs;
   padding: 12px 14px;
   line-height: 1.55;
 }

@@ -27,7 +27,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 body {
-  @apply font-sans text-xs bg-surface-base text-fg-primary;
+  @apply font-sans text-xs bg-background text-foreground;
   line-height: 1.5;
 }
 #root {
@@ -51,10 +51,10 @@ body {
 
 /* ── Status bar ──────────────────────────────────── */
 #status-bar {
-  @apply hidden shrink-0 font-medium text-fg-primary text-2xs;
+  @apply hidden shrink-0 font-medium text-foreground text-2xs;
   padding: 5px 14px;
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 9%, transparent);
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 9%, transparent);
 }
 #status-bar.visible {
   @apply block;
@@ -66,14 +66,14 @@ body {
 
 /* ── Header ──────────────────────────────────────── */
 .header-source {
-  @apply font-mono uppercase text-fg-muted text-4xs;
+  @apply font-mono uppercase text-muted-foreground text-4xs;
   letter-spacing: 0.04em;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 3px;
   padding: 1px 5px;
 }
 .header-link {
-  @apply inline-flex items-center gap-1 bg-transparent text-accent cursor-pointer text-2xs;
+  @apply inline-flex items-center gap-1 bg-transparent text-primary cursor-pointer text-2xs;
   border: none;
   padding: 0;
 }
@@ -85,39 +85,39 @@ body {
 #notes-scroll {
   @apply flex-auto overflow-y-auto overflow-x-hidden;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
 }
 .note-item {
   @apply flex flex-col gap-1;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
   transition: background 130ms ease;
 }
 .note-item:hover {
-  background: color-mix(in srgb, var(--color-fg-muted) 5%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 5%, transparent);
 }
 .note-kind {
-  @apply font-sans font-medium text-fg-muted text-3xs;
-  border: 1px solid var(--color-border);
+  @apply font-sans font-medium text-muted-foreground text-3xs;
+  border: 1px solid var(--border);
   border-radius: 3px;
   padding: 1px 5px;
 }
 .overlay-btn {
-  @apply inline-flex items-center gap-1 bg-transparent text-fg-muted rounded-sm cursor-pointer text-3xs;
+  @apply inline-flex items-center gap-1 bg-transparent text-muted-foreground rounded-sm cursor-pointer text-3xs;
   padding: 2px 7px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 130ms ease,
     color 130ms ease;
 }
 .overlay-btn:hover {
-  @apply text-fg-primary;
-  background: var(--color-surface-active);
+  @apply text-foreground;
+  background: var(--accent);
 }
 .overlay-btn.is-on {
-  color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
 }
 .overlay-btn.is-flag.is-on {
   color: var(--color-warning);
@@ -125,6 +125,6 @@ body {
   border-color: color-mix(in srgb, var(--color-warning) 35%, transparent);
 }
 .empty-state {
-  @apply text-center text-fg-muted text-2xs;
+  @apply text-center text-muted-foreground text-2xs;
   padding: 20px 14px;
 }

@@ -26,7 +26,7 @@ input {
 }
 html,
 body {
-  @apply font-sans text-sm h-full overflow-hidden bg-surface-base text-fg-primary;
+  @apply font-sans text-sm h-full overflow-hidden bg-background text-foreground;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -43,12 +43,12 @@ body {
   @apply flex-1 min-w-0;
 }
 .work-header-title {
-  @apply font-semibold truncate text-fg-primary;
+  @apply font-semibold truncate text-foreground;
   font-size: 14px;
   letter-spacing: -0.01em;
 }
 .work-header-sub {
-  @apply truncate text-fg-muted text-2xs;
+  @apply truncate text-muted-foreground text-2xs;
   margin-top: 1px;
 }
 
@@ -58,37 +58,37 @@ body {
   padding: 8px 20px;
 }
 .toolbar-status {
-  @apply flex-1 text-fg-muted text-xs;
+  @apply flex-1 text-muted-foreground text-xs;
 }
 .toolbar-status.scanning {
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
 .toolbar-status.done {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
 }
 .toolbar-status.error {
-  @apply text-error;
+  @apply text-destructive;
 }
 .toolbar-select-all {
-  @apply flex items-center gap-[6px] shrink-0 text-fg-muted cursor-pointer select-none text-xs;
+  @apply flex items-center gap-[6px] shrink-0 text-muted-foreground cursor-pointer select-none text-xs;
 }
 .toolbar-select-all input[type="checkbox"] {
   width: 14px;
   height: 14px;
-  accent-color: var(--color-accent);
+  accent-color: var(--primary);
   cursor: pointer;
 }
 .btn-refresh {
-  @apply inline-flex items-center gap-[6px] shrink-0 rounded-sm font-medium text-fg-secondary bg-surface-elevated text-xs;
+  @apply inline-flex items-center gap-[6px] shrink-0 rounded-sm font-medium text-muted-foreground bg-popover text-xs;
   padding: 5px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 110ms ease,
     border-color 110ms ease;
 }
 .btn-refresh:hover:not(:disabled) {
-  @apply bg-surface-active;
-  border-color: color-mix(in srgb, var(--color-fg-muted) 50%, transparent);
+  @apply bg-muted;
+  border-color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
 }
 .btn-refresh:disabled {
   @apply opacity-45 cursor-not-allowed;
@@ -98,19 +98,19 @@ body {
 .batch-bar {
   @apply flex items-center gap-2 shrink-0;
   padding: 7px 20px;
-  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface-panel));
-  border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 20%, var(--color-border));
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  border-bottom: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
 }
 .batch-count {
-  @apply flex-1 font-medium text-fg-secondary text-xs;
+  @apply flex-1 font-medium text-muted-foreground text-xs;
 }
 .batch-progress {
-  @apply flex-1 text-fg-muted text-2xs;
+  @apply flex-1 text-muted-foreground text-2xs;
 }
 .btn-batch-promote {
-  @apply inline-flex items-center gap-[5px] rounded-sm font-medium bg-accent whitespace-nowrap text-xs;
+  @apply inline-flex items-center gap-[5px] rounded-sm font-medium bg-primary whitespace-nowrap text-xs;
   padding: 5px 12px;
-  color: var(--color-accent-fg);
+  color: var(--primary-foreground);
   border: none;
   transition:
     background 100ms ease,
@@ -126,29 +126,29 @@ body {
   @apply opacity-45 cursor-not-allowed;
 }
 .btn-batch-exclude {
-  @apply inline-flex items-center gap-[5px] rounded-sm bg-transparent text-fg-muted whitespace-nowrap text-xs;
+  @apply inline-flex items-center gap-[5px] rounded-sm bg-transparent text-muted-foreground whitespace-nowrap text-xs;
   padding: 5px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     color 100ms ease,
     background 100ms ease,
     border-color 100ms ease;
 }
 .btn-batch-exclude:hover:not(:disabled) {
-  color: var(--color-error);
-  border-color: color-mix(in srgb, var(--color-error) 40%, transparent);
-  background: color-mix(in srgb, var(--color-error) 7%, transparent);
+  color: var(--destructive);
+  border-color: color-mix(in srgb, var(--destructive) 40%, transparent);
+  background: color-mix(in srgb, var(--destructive) 7%, transparent);
 }
 .btn-batch-exclude:disabled {
   @apply opacity-45 cursor-not-allowed;
 }
 .btn-batch-clear {
-  @apply rounded-sm bg-transparent text-fg-muted text-xs;
+  @apply rounded-sm bg-transparent text-muted-foreground text-xs;
   padding: 5px 10px;
   transition: color 100ms ease;
 }
 .btn-batch-clear:hover:not(:disabled) {
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
 .btn-batch-clear:disabled {
   @apply opacity-45 cursor-not-allowed;
@@ -158,7 +158,7 @@ body {
 .list-area {
   @apply flex-1 overflow-y-auto overflow-x-hidden;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 25%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 25%, transparent) transparent;
 }
 .list-inner {
   @apply flex flex-col;
@@ -172,7 +172,7 @@ body {
 .candidate-card {
   @apply flex items-start gap-[10px];
   padding: 11px 20px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   transition: background 100ms ease;
 }
 .candidate-card:first-child {
@@ -182,13 +182,13 @@ body {
   border-bottom: none;
 }
 .candidate-card:hover {
-  background: color-mix(in srgb, var(--color-fg-muted) 4%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 4%, transparent);
 }
 .candidate-card.is-selected {
-  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
 }
 .candidate-card.is-selected:hover {
-  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
 }
 .card-checkbox-wrap {
   @apply flex items-center shrink-0;
@@ -197,24 +197,24 @@ body {
 .card-checkbox {
   width: 14px;
   height: 14px;
-  accent-color: var(--color-accent);
+  accent-color: var(--primary);
   cursor: pointer;
 }
 .candidate-avatar {
-  @apply flex items-center justify-center shrink-0 rounded-full font-semibold bg-surface-elevated text-fg-secondary select-none text-sm;
+  @apply flex items-center justify-center shrink-0 rounded-full font-semibold bg-popover text-muted-foreground select-none text-sm;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   margin-top: 1px;
 }
 .candidate-body {
   @apply flex-1 min-w-0;
 }
 .candidate-name {
-  @apply font-medium truncate text-fg-primary text-sm;
+  @apply font-medium truncate text-foreground text-sm;
 }
 .candidate-email {
-  @apply truncate text-fg-muted text-xs;
+  @apply truncate text-muted-foreground text-xs;
   margin-top: 1px;
 }
 .candidate-meta {
@@ -228,15 +228,15 @@ body {
   border-radius: 3px;
 }
 .badge--none {
-  color: var(--color-fg-muted);
-  background: color-mix(in srgb, var(--color-fg-muted) 12%, transparent);
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--muted-foreground) 12%, transparent);
 }
 .badge--candidates {
   color: var(--color-warning);
   background: color-mix(in srgb, var(--color-warning) 12%, transparent);
 }
 .candidate-event-count {
-  @apply text-fg-muted text-2xs;
+  @apply text-muted-foreground text-2xs;
 }
 
 /* ── Confirm-candidate strip ─────────────────────── */
@@ -244,22 +244,22 @@ body {
   @apply flex items-center gap-2 flex-wrap rounded-sm;
   margin-top: 6px;
   padding: 6px 8px;
-  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface-elevated));
-  border: 1px solid color-mix(in srgb, var(--color-warning) 20%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--popover));
+  border: 1px solid color-mix(in srgb, var(--color-warning) 20%, var(--border));
 }
 .confirm-strip-label {
-  @apply flex-1 min-w-0 truncate text-fg-secondary text-2xs;
+  @apply flex-1 min-w-0 truncate text-muted-foreground text-2xs;
 }
 .btn-confirm-match {
   @apply inline-flex items-center gap-1 shrink-0 rounded-sm font-medium whitespace-nowrap text-2xs;
   padding: 3px 9px;
   color: var(--color-warning);
-  background: color-mix(in srgb, var(--color-warning) 15%, var(--color-surface-elevated));
+  background: color-mix(in srgb, var(--color-warning) 15%, var(--popover));
   border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
   transition: background 100ms ease;
 }
 .btn-confirm-match:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-warning) 22%, var(--color-surface-elevated));
+  background: color-mix(in srgb, var(--color-warning) 22%, var(--popover));
 }
 .btn-confirm-match:disabled {
   @apply opacity-45 cursor-not-allowed;
@@ -271,9 +271,9 @@ body {
   padding-top: 2px;
 }
 .btn-promote {
-  @apply inline-flex items-center gap-[5px] rounded-sm font-medium bg-accent whitespace-nowrap text-xs;
+  @apply inline-flex items-center gap-[5px] rounded-sm font-medium bg-primary whitespace-nowrap text-xs;
   padding: 5px 11px;
-  color: var(--color-accent-fg);
+  color: var(--primary-foreground);
   border: none;
   transition:
     background 100ms ease,
@@ -307,18 +307,18 @@ body {
   @apply opacity-45 cursor-not-allowed;
 }
 .btn-exclude {
-  @apply inline-flex items-center gap-[5px] rounded-sm bg-transparent text-fg-muted whitespace-nowrap text-xs;
+  @apply inline-flex items-center gap-[5px] rounded-sm bg-transparent text-muted-foreground whitespace-nowrap text-xs;
   padding: 5px 11px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     color 100ms ease,
     background 100ms ease,
     border-color 100ms ease;
 }
 .btn-exclude:hover:not(:disabled) {
-  color: var(--color-error);
-  border-color: color-mix(in srgb, var(--color-error) 40%, transparent);
-  background: color-mix(in srgb, var(--color-error) 7%, transparent);
+  color: var(--destructive);
+  border-color: color-mix(in srgb, var(--destructive) 40%, transparent);
+  background: color-mix(in srgb, var(--destructive) 7%, transparent);
 }
 .btn-exclude:disabled {
   @apply opacity-45 cursor-not-allowed;
@@ -329,30 +329,30 @@ body {
   padding: 3px 0;
 }
 .card-feedback--ok {
-  @apply text-accent;
+  @apply text-primary;
 }
 .card-feedback--error {
-  @apply text-error;
+  @apply text-destructive;
 }
 
 /* ── Empty / done state ──────────────────────────── */
 .empty-state {
-  @apply flex flex-col items-center justify-center gap-3 h-full text-center text-fg-muted;
+  @apply flex flex-col items-center justify-center gap-3 h-full text-center text-muted-foreground;
   min-height: 200px;
   padding: 32px 24px;
 }
 .empty-state-icon {
-  @apply flex items-center justify-center rounded-full bg-surface-elevated text-fg-muted;
+  @apply flex items-center justify-center rounded-full bg-popover text-muted-foreground;
   width: 40px;
   height: 40px;
   font-size: 18px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
 }
 .empty-state-heading {
-  @apply font-semibold text-fg-secondary text-sm;
+  @apply font-semibold text-muted-foreground text-sm;
 }
 .empty-state-body {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
   max-width: 280px;
   line-height: 1.55;
 }
@@ -363,15 +363,15 @@ body {
   padding: 16px 20px;
 }
 .btn-show-more {
-  @apply rounded-sm bg-transparent text-fg-muted text-xs;
+  @apply rounded-sm bg-transparent text-muted-foreground text-xs;
   padding: 6px 16px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     color 110ms ease,
     background 110ms ease;
 }
 .btn-show-more:hover {
-  @apply text-fg-secondary bg-surface-elevated;
+  @apply text-muted-foreground bg-popover;
 }
 
 /* ── Spinner ─────────────────────────────────────── */
@@ -384,32 +384,32 @@ body {
   @apply inline-block shrink-0 rounded-full align-middle;
   width: 12px;
   height: 12px;
-  border: 1.5px solid color-mix(in srgb, var(--color-fg-muted) 30%, transparent);
-  border-top-color: var(--color-fg-muted);
+  border: 1.5px solid color-mix(in srgb, var(--muted-foreground) 30%, transparent);
+  border-top-color: var(--muted-foreground);
   animation: spin 0.7s linear infinite;
 }
 
 /* ── Possible-duplicates section ─────────────────── */
 .dedup-section {
   @apply shrink-0;
-  border-bottom: 2px solid var(--color-border);
+  border-bottom: 2px solid var(--border);
 }
 .dedup-section-header {
-  @apply flex items-center gap-[6px] font-bold uppercase text-fg-muted text-3xs;
+  @apply flex items-center gap-[6px] font-bold uppercase text-muted-foreground text-3xs;
   padding: 7px 20px 5px;
   letter-spacing: 0.06em;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 }
 .dedup-clusters {
   @apply flex flex-col overflow-y-auto;
   max-height: 300px;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 25%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 25%, transparent) transparent;
 }
 .dedup-cluster-card {
   @apply flex flex-col gap-[6px] w-full;
   padding: 10px 20px 11px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
   max-width: 720px;
   margin: 0 auto;
 }
@@ -434,7 +434,7 @@ body {
 .dedup-member-radio {
   width: 14px;
   height: 14px;
-  accent-color: var(--color-accent);
+  accent-color: var(--primary);
   cursor: pointer;
   flex-shrink: 0;
   margin-top: 1px;
@@ -443,10 +443,10 @@ body {
   cursor: not-allowed;
 }
 .dedup-member-name {
-  @apply flex-1 min-w-0 font-medium truncate text-fg-primary text-xs;
+  @apply flex-1 min-w-0 font-medium truncate text-foreground text-xs;
 }
 .dedup-member-email {
-  @apply shrink-0 truncate text-fg-muted text-2xs;
+  @apply shrink-0 truncate text-muted-foreground text-2xs;
   max-width: 200px;
 }
 .dedup-actions {
@@ -454,9 +454,9 @@ body {
   margin-top: 2px;
 }
 .btn-dedup-merge {
-  @apply inline-flex items-center gap-[5px] rounded-sm font-medium bg-accent whitespace-nowrap text-xs;
+  @apply inline-flex items-center gap-[5px] rounded-sm font-medium bg-primary whitespace-nowrap text-xs;
   padding: 4px 11px;
-  color: var(--color-accent-fg);
+  color: var(--primary-foreground);
   border: none;
   transition:
     background 100ms ease,
@@ -472,15 +472,15 @@ body {
   @apply opacity-45 cursor-not-allowed;
 }
 .btn-dedup-keep {
-  @apply rounded-sm bg-transparent text-fg-muted whitespace-nowrap text-xs;
+  @apply rounded-sm bg-transparent text-muted-foreground whitespace-nowrap text-xs;
   padding: 4px 10px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     color 100ms ease,
     background 100ms ease;
 }
 .btn-dedup-keep:hover:not(:disabled) {
-  @apply text-fg-secondary bg-surface-elevated;
+  @apply text-muted-foreground bg-popover;
 }
 .btn-dedup-keep:disabled {
   @apply opacity-45 cursor-not-allowed;
@@ -490,10 +490,10 @@ body {
   margin-top: 2px;
 }
 .dedup-feedback--ok {
-  @apply text-accent;
+  @apply text-primary;
 }
 .dedup-feedback--error {
-  @apply text-error;
+  @apply text-destructive;
 }
 
 /* ── Roster picker modal ─────────────────────────── */
@@ -503,8 +503,8 @@ body {
   z-index: 200;
 }
 .picker-modal {
-  @apply flex flex-col overflow-hidden bg-surface-panel;
-  border: 1px solid var(--color-border);
+  @apply flex flex-col overflow-hidden bg-card;
+  border: 1px solid var(--border);
   border-radius: 10px;
   width: 360px;
   max-width: calc(100vw - 40px);
@@ -516,15 +516,15 @@ body {
   padding: 12px 16px 10px;
 }
 .picker-title {
-  @apply font-semibold text-fg-primary text-sm;
+  @apply font-semibold text-foreground text-sm;
 }
 .picker-subtitle {
-  @apply truncate text-fg-muted text-2xs;
+  @apply truncate text-muted-foreground text-2xs;
   margin-top: 2px;
   max-width: 280px;
 }
 .picker-close {
-  @apply flex items-center justify-center shrink-0 rounded-sm text-fg-muted;
+  @apply flex items-center justify-center shrink-0 rounded-sm text-muted-foreground;
   width: 24px;
   height: 24px;
   transition:
@@ -532,43 +532,43 @@ body {
     background 100ms ease;
 }
 .picker-close:hover {
-  @apply text-fg-secondary bg-surface-elevated;
+  @apply text-muted-foreground bg-popover;
 }
 .picker-search-wrap {
   @apply shrink-0 border-b border-border;
   padding: 8px 12px;
 }
 .picker-search {
-  @apply w-full rounded-sm bg-surface-elevated text-fg-primary outline-none text-xs;
+  @apply w-full rounded-sm bg-popover text-foreground outline-none text-xs;
   padding: 5px 10px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition: border-color 100ms ease;
 }
 .picker-search:focus {
-  border-color: var(--color-border-focus);
+  border-color: var(--ring);
 }
 .picker-search::placeholder {
-  color: var(--color-fg-muted);
+  color: var(--muted-foreground);
 }
 .picker-list {
   @apply flex-1 overflow-y-auto;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 25%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 25%, transparent) transparent;
 }
 .picker-item {
   @apply flex items-center gap-[10px] cursor-pointer;
   padding: 8px 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 40%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
   transition: background 80ms ease;
 }
 .picker-item:last-child {
   border-bottom: none;
 }
 .picker-item:hover {
-  @apply bg-surface-elevated;
+  @apply bg-popover;
 }
 .picker-item:active {
-  @apply bg-surface-active;
+  @apply bg-muted;
 }
 .picker-item.is-busy {
   @apply pointer-events-none opacity-50;
@@ -580,18 +580,18 @@ body {
   border: 1px solid transparent;
 }
 .picker-item-name {
-  @apply flex-1 min-w-0 truncate text-fg-primary text-xs;
+  @apply flex-1 min-w-0 truncate text-foreground text-xs;
 }
 .picker-empty {
-  @apply text-center text-fg-muted text-xs;
+  @apply text-center text-muted-foreground text-xs;
   padding: 24px 16px;
 }
 .picker-status {
-  @apply flex items-center gap-2 shrink-0 text-fg-muted text-2xs;
+  @apply flex items-center gap-2 shrink-0 text-muted-foreground text-2xs;
   padding: 10px 16px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
   min-height: 36px;
 }
 .picker-status--error {
-  @apply text-error;
+  @apply text-destructive;
 }

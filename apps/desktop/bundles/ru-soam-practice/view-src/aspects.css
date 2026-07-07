@@ -20,7 +20,7 @@ button {
 }
 html,
 body {
-  @apply font-sans text-xs h-full overflow-hidden bg-surface-panel text-fg-primary;
+  @apply font-sans text-xs h-full overflow-hidden bg-card text-foreground;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -30,7 +30,7 @@ body {
 
 /* ── Bridge wait ─────────────────────────────────── */
 #bridge-wait {
-  @apply fixed inset-0 flex items-center justify-center gap-2 bg-surface-panel text-fg-muted text-2xs;
+  @apply fixed inset-0 flex items-center justify-center gap-2 bg-card text-muted-foreground text-2xs;
   z-index: 100;
 }
 .spinner {
@@ -51,8 +51,8 @@ body {
 #status-bar {
   @apply hidden shrink-0 font-medium text-2xs;
   padding: 5px 12px;
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 9%, transparent);
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 9%, transparent);
 }
 #status-bar.visible {
   @apply block;
@@ -64,14 +64,14 @@ body {
 
 /* ── Client identity strip ───────────────────────── */
 #identity-strip {
-  @apply flex items-center gap-[10px] shrink-0 border-b border-border bg-surface-elevated;
+  @apply flex items-center gap-[10px] shrink-0 border-b border-border bg-popover;
   padding: 10px 12px;
 }
 .id-avatar {
-  @apply flex-none flex items-center justify-center rounded-full font-semibold bg-accent text-sm;
+  @apply flex-none flex items-center justify-center rounded-full font-semibold bg-primary text-sm;
   width: 32px;
   height: 32px;
-  color: var(--color-accent-fg);
+  color: var(--primary-foreground);
   letter-spacing: -0.01em;
 }
 .id-text {
@@ -81,43 +81,43 @@ body {
   @apply font-semibold truncate text-sm;
 }
 .id-sub {
-  @apply truncate font-mono text-fg-muted text-3xs;
+  @apply truncate font-mono text-muted-foreground text-3xs;
 }
 
 /* ── Scroll area ─────────────────────────────────── */
 #aspects-scroll {
   @apply flex-auto overflow-y-auto overflow-x-hidden;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-fg-muted) 40%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
 }
 
 /* ── Section / aspect ────────────────────────────── */
 .section {
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 .section-header {
   @apply flex items-center gap-[7px] cursor-pointer select-none;
   padding: 3px 12px;
-  background: color-mix(in srgb, var(--color-surface-panel) 50%, transparent);
+  background: color-mix(in srgb, var(--card) 50%, transparent);
   transition: background 130ms ease;
 }
 .section-header:hover {
-  background: color-mix(in srgb, var(--color-fg-muted) 25%, transparent);
+  background: color-mix(in srgb, var(--muted-foreground) 25%, transparent);
 }
 .section-caret {
-  @apply flex-none text-fg-muted;
+  @apply flex-none text-muted-foreground;
   transition: transform 120ms ease;
 }
 .section-caret.is-open {
   transform: rotate(90deg);
 }
 .section-title {
-  @apply flex-auto font-extrabold text-fg-primary text-2xs;
+  @apply flex-auto font-extrabold text-foreground text-2xs;
 }
 .section-source {
-  @apply shrink-0 font-mono uppercase text-fg-muted text-4xs;
+  @apply shrink-0 font-mono uppercase text-muted-foreground text-4xs;
   letter-spacing: 0.04em;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 3px;
   padding: 1px 5px;
 }
@@ -133,49 +133,49 @@ body {
 .risk-alert-bar {
   @apply flex items-center gap-2 shrink-0 font-semibold text-2xs;
   padding: 8px 12px;
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface-elevated));
-  border-bottom: 1px solid color-mix(in srgb, var(--color-error) 30%, var(--color-border));
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 12%, var(--popover));
+  border-bottom: 1px solid color-mix(in srgb, var(--destructive) 30%, var(--border));
 }
 .risk-facts {
   @apply flex flex-col gap-[5px];
   margin-bottom: 10px;
 }
 .risk-fact {
-  @apply flex items-center gap-[6px] text-fg-secondary text-2xs;
+  @apply flex items-center gap-[6px] text-muted-foreground text-2xs;
 }
 .risk-items {
   @apply list-none flex flex-col gap-[6px];
   margin-bottom: 12px;
 }
 .risk-item {
-  @apply flex items-start gap-[7px] text-fg-secondary text-2xs;
+  @apply flex items-start gap-[7px] text-muted-foreground text-2xs;
 }
 .risk-dot {
   @apply flex-none rounded-full;
   width: 5px;
   height: 5px;
   margin-top: 5px;
-  background: var(--color-error);
+  background: var(--destructive);
 }
 .risk-when {
-  @apply font-mono text-fg-muted whitespace-nowrap text-4xs;
+  @apply font-mono text-muted-foreground whitespace-nowrap text-4xs;
   margin-left: 3px;
 }
 .risk-actions {
   @apply flex flex-wrap gap-[6px];
 }
 .action-btn {
-  @apply inline-flex items-center gap-[5px] bg-transparent text-fg-secondary rounded-sm font-medium font-sans cursor-pointer text-3xs;
-  border: 1px solid var(--color-border);
+  @apply inline-flex items-center gap-[5px] bg-transparent text-muted-foreground rounded-sm font-medium font-sans cursor-pointer text-3xs;
+  border: 1px solid var(--border);
   padding: 4px 9px;
   transition:
     background 130ms ease,
     color 130ms ease;
 }
 .action-btn:hover {
-  @apply bg-surface-active text-fg-primary;
-  border-color: var(--color-fg-muted);
+  @apply bg-muted text-foreground;
+  border-color: var(--muted-foreground);
 }
 
 /* ── Profile KV ──────────────────────────────────── */
@@ -186,17 +186,17 @@ body {
   @apply flex items-baseline gap-2 text-2xs;
 }
 .kv-label {
-  @apply text-fg-muted text-3xs;
+  @apply text-muted-foreground text-3xs;
   flex: 0 0 90px;
 }
 .kv-value {
-  @apply flex-auto text-fg-secondary;
+  @apply flex-auto text-muted-foreground;
 }
 .kv-value.is-empty {
-  @apply text-fg-muted italic;
+  @apply text-muted-foreground italic;
 }
 .note-subtle {
-  @apply text-fg-muted text-3xs;
+  @apply text-muted-foreground text-3xs;
   margin-top: 6px;
 }
 
@@ -205,7 +205,7 @@ body {
   @apply hidden flex-col gap-2;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 #profile-edit-form.is-open {
   @apply flex;
@@ -214,36 +214,36 @@ body {
   @apply flex flex-col gap-[3px];
 }
 .pe-label {
-  @apply font-semibold uppercase text-fg-muted text-3xs;
+  @apply font-semibold uppercase text-muted-foreground text-3xs;
   letter-spacing: 0.05em;
 }
 .pe-input {
-  @apply w-full font-sans rounded-sm text-fg-primary bg-surface-base outline-none text-2xs;
+  @apply w-full font-sans rounded-sm text-foreground bg-background outline-none text-2xs;
   padding: 5px 8px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition: border-color 130ms ease;
 }
 .pe-input:focus {
-  border-color: var(--color-border-focus);
+  border-color: var(--ring);
 }
 .pe-actions {
   @apply flex items-center gap-[6px];
   margin-top: 2px;
 }
 .pe-btn {
-  @apply inline-flex items-center gap-1 font-medium font-sans rounded-sm bg-transparent text-fg-secondary cursor-pointer text-3xs;
+  @apply inline-flex items-center gap-1 font-medium font-sans rounded-sm bg-transparent text-muted-foreground cursor-pointer text-3xs;
   padding: 4px 10px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 130ms ease,
     color 130ms ease;
 }
 .pe-btn:hover {
-  @apply bg-surface-active text-fg-primary;
+  @apply bg-muted text-foreground;
 }
 .pe-btn.primary {
-  @apply bg-accent;
-  color: var(--color-accent-fg);
+  @apply bg-primary;
+  color: var(--primary-foreground);
   border-color: transparent;
 }
 .pe-btn.primary:hover {
@@ -265,7 +265,7 @@ body {
   @apply text-success;
 }
 .pe-save-msg.err {
-  @apply text-error;
+  @apply text-destructive;
 }
 
 /* ── Identifiers section ─────────────────────────── */
@@ -277,12 +277,12 @@ body {
   @apply flex items-center gap-[6px] min-w-0 text-2xs;
 }
 .alias-kind {
-  @apply font-mono uppercase text-fg-muted text-4xs;
+  @apply font-mono uppercase text-muted-foreground text-4xs;
   letter-spacing: 0.04em;
   flex: 0 0 42px;
 }
 .alias-value {
-  @apply flex-auto min-w-0 truncate text-fg-secondary;
+  @apply flex-auto min-w-0 truncate text-muted-foreground;
 }
 .alias-actions {
   @apply flex gap-1 shrink-0;
@@ -290,7 +290,7 @@ body {
 #alias-add-form {
   @apply flex flex-col gap-2;
   padding-top: 10px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
   margin-top: 4px;
 }
 #alias-add-form .pe-field {
@@ -305,29 +305,29 @@ body {
   @apply flex flex-col gap-2;
 }
 .circle-member {
-  @apply rounded-sm bg-surface-base;
-  border: 1px solid var(--color-border);
+  @apply rounded-sm bg-background;
+  border: 1px solid var(--border);
   padding: 7px 10px;
 }
 .circle-member-row {
   @apply flex items-baseline gap-[6px] flex-wrap;
 }
 .circle-member-name {
-  @apply font-semibold text-fg-primary text-2xs;
+  @apply font-semibold text-foreground text-2xs;
 }
 .circle-member-kind {
-  @apply font-mono uppercase text-fg-muted text-3xs;
+  @apply font-mono uppercase text-muted-foreground text-3xs;
   letter-spacing: 0.04em;
 }
 .circle-nr-badge {
-  @apply font-bold uppercase text-accent text-4xs;
+  @apply font-bold uppercase text-primary text-4xs;
   letter-spacing: 0.05em;
-  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
   border-radius: 3px;
   padding: 1px 5px;
 }
 .circle-member-meta {
-  @apply text-fg-secondary text-3xs;
+  @apply text-muted-foreground text-3xs;
   margin-top: 2px;
 }
 .circle-member-actions {
@@ -335,18 +335,18 @@ body {
   margin-top: 5px;
 }
 .circle-action-btn {
-  @apply font-medium font-sans rounded-sm bg-transparent text-fg-secondary cursor-pointer text-3xs;
+  @apply font-medium font-sans rounded-sm bg-transparent text-muted-foreground cursor-pointer text-3xs;
   padding: 2px 8px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 130ms ease,
     color 130ms ease;
 }
 .circle-action-btn:hover {
-  @apply bg-surface-active text-fg-primary;
+  @apply bg-muted text-foreground;
 }
 .circle-empty {
-  @apply text-fg-muted italic text-2xs;
+  @apply text-muted-foreground italic text-2xs;
   padding: 4px 0;
 }
 
@@ -355,7 +355,7 @@ body {
   @apply hidden flex-col gap-2;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 #circle-add-form.is-open {
   @apply flex;
@@ -376,7 +376,7 @@ body {
   @apply hidden flex-col gap-2;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 #consent-edit-form.is-open {
   @apply flex;
@@ -384,20 +384,20 @@ body {
 
 /* ── Risk severity dot colors ────────────────────── */
 .risk-dot.sev-info {
-  background: var(--color-fg-muted);
+  background: var(--muted-foreground);
 }
 .risk-dot.sev-concern {
   background: var(--color-warning);
 }
 .risk-dot.sev-elevated {
-  background: var(--color-error);
+  background: var(--destructive);
 }
 .risk-dot.sev-critical {
   background: #e0193a;
   box-shadow: 0 0 4px #e0193a88;
 }
 .risk-empty {
-  @apply text-fg-muted italic text-2xs;
+  @apply text-muted-foreground italic text-2xs;
   padding: 4px 0 8px;
 }
 
@@ -406,7 +406,7 @@ body {
   @apply hidden flex-col gap-2;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 .risk-inline-form.is-open {
   @apply flex;
@@ -414,7 +414,7 @@ body {
 
 /* ── Edit button on section header ───────────────── */
 .section-edit-btn {
-  @apply inline-flex items-center justify-center shrink-0 rounded-sm bg-transparent text-fg-muted cursor-pointer;
+  @apply inline-flex items-center justify-center shrink-0 rounded-sm bg-transparent text-muted-foreground cursor-pointer;
   width: 20px;
   height: 20px;
   border: none;
@@ -423,10 +423,10 @@ body {
     color 130ms ease;
 }
 .section-edit-btn:hover {
-  @apply bg-surface-active text-fg-secondary;
+  @apply bg-muted text-muted-foreground;
 }
 .section-edit-btn.is-active {
-  @apply text-accent;
+  @apply text-primary;
 }
 
 /* ── Documents section ───────────────────────────── */
@@ -434,44 +434,44 @@ body {
   @apply flex flex-col gap-[6px];
 }
 .doc-item {
-  @apply flex items-start gap-[7px] rounded-sm bg-surface-base;
-  border: 1px solid var(--color-border);
+  @apply flex items-start gap-[7px] rounded-sm bg-background;
+  border: 1px solid var(--border);
   padding: 6px 9px;
 }
 .doc-icon {
-  @apply flex-none text-fg-muted;
+  @apply flex-none text-muted-foreground;
   margin-top: 1px;
 }
 .doc-info {
   @apply flex-auto min-w-0;
 }
 .doc-title {
-  @apply font-semibold truncate text-fg-primary text-2xs;
+  @apply font-semibold truncate text-foreground text-2xs;
 }
 .doc-meta {
-  @apply font-mono text-fg-muted text-3xs;
+  @apply font-mono text-muted-foreground text-3xs;
   margin-top: 1px;
 }
 .doc-remove-btn {
-  @apply flex-none font-medium font-sans rounded-sm bg-transparent text-fg-muted cursor-pointer text-3xs;
+  @apply flex-none font-medium font-sans rounded-sm bg-transparent text-muted-foreground cursor-pointer text-3xs;
   padding: 2px 7px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   transition:
     background 130ms ease,
     color 130ms ease;
 }
 .doc-remove-btn:hover {
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-error) 30%, var(--color-border));
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
+  border-color: color-mix(in srgb, var(--destructive) 30%, var(--border));
 }
 .doc-empty {
-  @apply text-fg-muted italic text-2xs;
+  @apply text-muted-foreground italic text-2xs;
   padding: 4px 0;
 }
 
 /* ── Loading ─────────────────────────────────────── */
 .aspects-loading {
-  @apply flex items-center justify-center gap-2 text-fg-muted text-2xs;
+  @apply flex items-center justify-center gap-2 text-muted-foreground text-2xs;
   padding: 40px;
 }
