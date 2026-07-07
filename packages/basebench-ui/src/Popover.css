@@ -1,9 +1,0 @@
-@reference "./theme.css";
-
-/* Popover shell — fixed-positioned portal container.
-   Consumers layer content on top; this only handles z-index + elevation. */
-.popover-shell {
-  position: fixed;
-  z-index: 8500;
-  outline: none;
-}

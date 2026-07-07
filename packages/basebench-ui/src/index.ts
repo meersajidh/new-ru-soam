@@ -8,7 +8,7 @@
  *
  * Public surface:
  *   Button, TextInput, Dialog, FormField, PageShell — form/layout primitives
- *   Popover, usePopover, Select                     — positioning + listbox
+ *   Select, Popover, DropdownMenu (compounds)       — Base UI listbox / floating / menu (D4)
  *   Icon, resolveIcon                               — one inline-SVG multi-source Icon (Phosphor primary — D5)
  *   ResizeHandle                                    — drag-resize strip
  *   cn, useModalKeys                                — utilities
@@ -32,11 +32,45 @@ export { FormField } from './FormField.js';
 export { PageShell } from './PageShell.js';
 export { cn } from './cn.js';
 
-export { default as Popover } from './Popover.js';
-export { usePopover } from './use-popover.js';
-export type { PopoverAnchor, PopoverPosition, UsePopoverOptions, UsePopoverReturn } from './use-popover.js';
-export { default as Select } from './Select.js';
-export type { SelectItem, SelectProps } from './Select.js';
+export {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverDescription,
+} from './components/ui/popover.js';
+
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from './components/ui/select.js';
+
+export {
+  DropdownMenu,
+  DropdownMenuPortal,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from './components/ui/dropdown-menu.js';
 
 export { Icon } from './Icon.js';
 export type { IconProps } from './Icon.js';

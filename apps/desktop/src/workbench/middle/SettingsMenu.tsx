@@ -9,8 +9,8 @@
  * TelemetryModeService is the single source of truth for cloud.telemetryMode.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { Icon, usePopover, Popover } from '@basebench/ui';
+import { useEffect, useState } from 'react';
+import { Icon, Popover, PopoverTrigger, PopoverContent } from '@basebench/ui';
 import { useContextKey, useService } from '../../platform/services/hooks';
 import {
   ActivityBarDensityServiceId,
@@ -98,14 +98,7 @@ export default function SettingsMenu() {
   const [density, setDensity] = useState<Density>(() => densitySvc.getDensity());
   const [activeScale, setActiveScale] = useState<FontScale>(() => fontScaleSvc.getScale());
 
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  const popover = usePopover({
-    placement: 'right-end',
-    gap: 12,
-    estimatedWidth: 232,
-    estimatedHeight: 320,
-  });
+  const [open, setOpen] = useState(false);
 
   // Subscribe to theme/dark/font/density/telemetry/cloud-session changes.
   useEffect(() => {
@@ -141,15 +134,6 @@ export default function SettingsMenu() {
     };
   }, [themeSvc, fontSvc, densitySvc, telemetrySvc, cloudSessionSvc, refreshSettingsSvc, displaySettingsSvc, meetingProvidersSvc, idleLockSvc, fontScaleSvc]);
 
-  // Reset to root view each time popover opens.
-  const prevOpen = useRef(false);
-  useEffect(() => {
-    if (popover.isOpen && !prevOpen.current) {
-      setPanelView('root');
-    }
-    prevOpen.current = popover.isOpen;
-  }, [popover.isOpen]);
-
   // Reconnect to sync handler — delegates to CloudSessionService.
   const handleReconnect = async () => {
     setReconnectLoading(true);
@@ -181,24 +165,28 @@ export default function SettingsMenu() {
   return (
     <>
       <div className="settings-menu-container">
-        <button
-          ref={btnRef}
+        <Popover
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o);
+            if (o) setPanelView('root'); // reset drill-down each time it opens
+          }}
+          modal
+        >
+        <PopoverTrigger
           className="settings-gear-btn"
-          onClick={() => (popover.isOpen ? popover.close() : popover.open(btnRef.current!))}
           aria-label="Settings"
-          aria-expanded={popover.isOpen}
           title="Settings"
         >
           <Icon name="settings" size={24} />
-        </button>
+        </PopoverTrigger>
 
-        <Popover
-          isOpen={popover.isOpen}
-          position={popover.position}
-          setPopoverElement={popover.setPopoverElement}
-          role="menu"
+        <PopoverContent
+          side="right"
+          align="end"
+          sideOffset={12}
           aria-label="Settings"
-          className="settings-popover"
+          className="settings-popover w-auto p-0 gap-0 bg-transparent rounded-none shadow-none ring-0"
         >
           {panelView === 'root' && (
             <>
@@ -706,7 +694,7 @@ export default function SettingsMenu() {
                   className="settings-danger-btn"
                   role="menuitem"
                   onClick={() => {
-                    popover.close();
+                    setOpen(false);
                     setShowDeleteAccount(true);
                   }}
                 >
@@ -718,6 +706,7 @@ export default function SettingsMenu() {
               </div>
             </>
           )}
+        </PopoverContent>
         </Popover>
       </div>
 

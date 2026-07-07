@@ -1,13 +1,14 @@
 /**
- * AccountSelect — themed listbox replacing a native <select> for the sign-in
- * account picker. Thin wrapper over the shared <Select> primitive.
+ * AccountSelect — themed listbox for the sign-in account picker.
  *
- * Public props unchanged so LoginModal needs no edits.
+ * A recipe composing the standard Base UI Select compound over domain data
+ * (WorkspaceMeta → {value, label}). Public props unchanged so LoginModal needs
+ * no edits. Trigger is full-width to sit flush with the passphrase field; base
+ * styling (rounded-3xl bg-input/50) matches the shared Input primitive.
  */
 
 import type { WorkspaceMeta } from '../../../electron/shared/lock-protocol';
-import { Select } from '@basebench/ui';
-import './AccountSelect.css';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@basebench/ui';
 
 interface AccountSelectProps {
   id?: string;
@@ -26,17 +27,26 @@ export default function AccountSelect({
   onChange,
   triggerRef,
 }: AccountSelectProps) {
+  const items = accounts.map((a) => ({ value: a.workspaceId, label: a.nickname }));
+
   return (
-    <div className="account-select">
-      <Select
-        id={id}
-        items={accounts.map((a) => ({ id: a.workspaceId, label: a.nickname }))}
-        value={value}
-        onChange={onChange}
-        triggerRef={triggerRef}
-        aria-label="Account"
-        className="account-select__trigger"
-      />
-    </div>
+    <Select
+      items={items}
+      value={value}
+      onValueChange={(v) => {
+        if (v != null) onChange(v as string);
+      }}
+    >
+      <SelectTrigger id={id} ref={triggerRef} className="w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {accounts.map((a) => (
+          <SelectItem key={a.workspaceId} value={a.workspaceId}>
+            {a.nickname}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
