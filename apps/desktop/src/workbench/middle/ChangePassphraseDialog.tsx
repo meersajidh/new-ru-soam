@@ -163,10 +163,10 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
         )}
 
         {newPassphrase.length > 0 && newPassphrase.length < 12 && (
-          <p className="text-xs text-error m-0 flex items-center gap-1.5">At least 12 characters required.</p>
+          <p className="text-xs text-destructive m-0 flex items-center gap-1.5">At least 12 characters required.</p>
         )}
         {newPassphrase.length >= 12 && newScore < 3 && (
-          <p className="text-xs text-error m-0 flex items-center gap-1.5">Passphrase too weak.</p>
+          <p className="text-xs text-destructive m-0 flex items-center gap-1.5">Passphrase too weak.</p>
         )}
 
         {/* Confirm */}
@@ -184,7 +184,7 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
           />
         </FormField>
 
-        {generalError && <p className="text-xs text-error m-0 flex items-center gap-1.5">{generalError}</p>}
+        {generalError && <p className="text-xs text-destructive m-0 flex items-center gap-1.5">{generalError}</p>}
 
         <DialogFooter className="mt-1">
           <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>

@@ -27,14 +27,14 @@
 /* ── Content card ────────────────────────────────────────────────────────── */
 
 .setup-content {
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
+  background: var(--popover);
+  border: 1px solid var(--border);
   @apply rounded-card;
   @apply p-8;
   box-shadow:
     var(--shadow-card),
     0 0 calc(40px * var(--glow-mul))
-      color-mix(in oklch, var(--color-accent) calc(5% * var(--glow-mul)), transparent);
+      color-mix(in oklch, var(--primary) calc(5% * var(--glow-mul)), transparent);
   min-height: 320px;
 }
 
@@ -114,7 +114,7 @@
 .recovery {
   @apply border border-border-warning-strong;
   border-radius: 12px;
-  background: var(--color-surface-elevated);
+  background: var(--popover);
   overflow: hidden;
   box-shadow:
     0 0 0 4px var(--color-tint-warning-subtle),
@@ -179,8 +179,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface-panel);
+  border-top: 1px solid var(--border);
+  background: var(--card);
   @apply gap-2.5;
 }
 
@@ -194,7 +194,7 @@
   align-items: center;
   @apply gap-1.5;
   background: transparent;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   @apply rounded-full;
   @apply text-fg-secondary text-xs font-medium;
   padding: 6px 14px;
@@ -207,7 +207,7 @@
 
 .recovery-btn:hover {
   @apply bg-tint-neutral-subtle text-fg-primary;
-  border-color: var(--color-fg-muted);
+  border-color: var(--muted-foreground);
 }
 
 .recovery-footnote {
@@ -223,7 +223,7 @@
   cursor: pointer;
   line-height: 1.55;
   padding: 12px 14px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 10px;
   transition: border-color 0.12s;
 }
@@ -236,7 +236,7 @@
   flex-shrink: 0;
   margin-top: 2px;
   cursor: pointer;
-  accent-color: var(--color-accent);
+  accent-color: var(--primary);
 }
 
 /* ── Trust strip ─────────────────────────────────────────────────────────── */
@@ -252,14 +252,14 @@
   align-items: center;
   @apply gap-2.5;
   padding: 12px 14px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 10px;
   @apply bg-surface-sunken-medium text-xs text-fg-secondary;
   line-height: 1.35;
 }
 
 .setup-trust-badge .ico {
-  color: var(--color-accent);
+  color: var(--primary);
   display: inline-flex;
 }
 
@@ -273,16 +273,16 @@
   width: 88px;
   height: 88px;
   border-radius: 50%;
-  border: 2px solid var(--color-accent);
+  border: 2px solid var(--primary);
   display: grid;
   place-items: center;
-  color: var(--color-accent);
+  color: var(--primary);
   margin: 4px auto 0;
   box-shadow:
-    0 0 0 8px color-mix(in oklch, var(--color-accent) calc(10% * var(--glow-mul)), transparent),
+    0 0 0 8px color-mix(in oklch, var(--primary) calc(10% * var(--glow-mul)), transparent),
     0 0 calc(40px * var(--glow-mul))
-      color-mix(in oklch, var(--color-accent) calc(40% * var(--glow-mul)), transparent);
-  background: color-mix(in oklch, var(--color-accent) calc(8% * var(--glow-mul)), transparent);
+      color-mix(in oklch, var(--primary) calc(40% * var(--glow-mul)), transparent);
+  background: color-mix(in oklch, var(--primary) calc(8% * var(--glow-mul)), transparent);
 }
 
 /* NOTE(type): 26px → text-xl (24px, −2px default-down). letter-spacing -0.01em kept explicit
@@ -302,7 +302,7 @@
 }
 
 .setup-finish-desc strong {
-  color: var(--color-accent);
+  color: var(--primary);
   @apply font-semibold;
 }
 
@@ -324,8 +324,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-panel);
+  border: 1px solid var(--border);
+  background: var(--card);
   @apply text-fg-secondary;
   display: grid;
   place-items: center;
@@ -337,8 +337,8 @@
 }
 
 .setup-help-btn:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--primary);
+  color: var(--primary);
   @apply bg-tint-accent-subtle;
 }
 

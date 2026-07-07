@@ -12,7 +12,7 @@
 
 .resize-handle:hover,
 .resize-handle:active {
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
 }
 
 /* ── Grip pill ──────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@
   top: 50%;
   transform: translate(-50%, -50%);
   border-radius: 999px;
-  background: var(--color-border);
+  background: var(--border);
   opacity: 0.4;
   pointer-events: none;
   transition:
@@ -38,7 +38,7 @@
 
 .resize-handle:hover .resize-handle__grip,
 .resize-handle:active .resize-handle__grip {
-  background: var(--color-accent);
+  background: var(--primary);
   opacity: 1;
 }
 

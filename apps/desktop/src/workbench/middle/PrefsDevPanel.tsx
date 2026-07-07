@@ -115,7 +115,7 @@ export default function PrefsDevPanel({ onClose }: Props) {
             </form>
 
             <div className="mt-4">
-              <p className="text-xs font-semibold text-fg-secondary mb-2" style={{ letterSpacing: '0.02em' }}>
+              <p className="text-xs font-semibold text-muted-foreground mb-2" style={{ letterSpacing: '0.02em' }}>
                 Stored prefs{list.isFetching ? ' (refetching…)' : ''}
               </p>
               {list.isLoading && <p className="t-description">Loading…</p>}
@@ -132,7 +132,7 @@ export default function PrefsDevPanel({ onClose }: Props) {
                   {list.data.map((row) => (
                     <li
                       key={row.key}
-                      className="grid grid-cols-[1fr_1fr_auto] gap-2 py-1 px-2 bg-surface-elevated rounded-sm font-mono text-xs"
+                      className="grid grid-cols-[1fr_1fr_auto] gap-2 py-1 px-2 bg-popover rounded-sm font-mono text-xs"
                     >
                       <span>{row.key}</span>
                       <span>{row.value}</span>

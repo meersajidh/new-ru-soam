@@ -15,8 +15,8 @@
 .kbs {
   width: 720px;
   max-width: calc(100vw - 2rem);
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
+  background: var(--popover);
+  border: 1px solid var(--border);
   @apply rounded-md shadow-overlay;
   display: flex;
   flex-direction: column;
@@ -27,7 +27,7 @@
 .kbs-input {
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
   @apply text-fg-primary text-sm;
   outline: none;
   @apply px-4 py-3;
@@ -59,7 +59,7 @@
 }
 
 .kbs-row:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
 }
 
 .kbs-cmd {
@@ -87,11 +87,11 @@
 .kbs-chip {
   @apply text-xs;
   font-family: inherit;
-  background: var(--color-surface-base);
-  border: 1px solid var(--color-border);
+  background: var(--background);
+  border: 1px solid var(--border);
   @apply rounded-sm;
   padding: 1px 6px;
-  color: var(--color-fg-secondary);
+  color: var(--muted-foreground);
 }
 
 .kbs-unbound {
@@ -106,7 +106,7 @@
   min-width: 160px;
   justify-content: flex-end;
   padding: 2px 6px;
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--primary);
   @apply rounded-sm;
   outline: none;
 }
@@ -124,24 +124,24 @@
 .kbs-badge {
   @apply text-xs rounded-sm;
   padding: 0 6px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   @apply text-fg-muted;
 }
 
 .kbs-badge--user {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .kbs-btn {
   background: transparent;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   @apply rounded-sm text-xs text-fg-secondary;
   padding: 1px 8px;
   cursor: default;
 }
 
 .kbs-btn:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }

@@ -4,8 +4,8 @@
 .part-titlebar {
   flex: 0 0 auto;
   height: 36px;
-  background: var(--color-surface-panel);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: stretch;
   user-select: none;
@@ -36,7 +36,7 @@
   align-items: center;
   justify-content: center;
   -webkit-app-region: no-drag;
-  color: var(--color-fg-primary);
+  color: var(--foreground);
 }
 
 /* Menu strip */
@@ -59,7 +59,7 @@
 
 .tb-menu-item:hover,
 .tb-menu-item--open {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
@@ -83,12 +83,12 @@
 }
 
 .tb-icon-btn:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
 .tb-icon-btn.is-active {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
@@ -106,8 +106,8 @@
   margin: 5px 0;
   /* original: padding: 0 8px 0 10px — asymmetric; keep raw. 8px≈px-2, 10px≈px-2 */
   padding: 0 8px 0 10px;
-  background: var(--color-surface-base);
-  border: 1px solid var(--color-border);
+  background: var(--background);
+  border: 1px solid var(--border);
   min-width: 360px;
   max-width: 520px;
   cursor: text;
@@ -115,7 +115,7 @@
 }
 
 .quick-open:hover {
-  border-color: var(--color-fg-muted);
+  border-color: var(--muted-foreground);
 }
 
 .quick-open .lead {
@@ -134,7 +134,7 @@
 
 .quick-open .meta {
   @apply font-mono text-xs text-fg-muted bg-surface-elevated;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 3px;
   /* original: padding: 1px 5px — 1px → p-0.5 vertical, 5px → p-1 horizontal (default-down) */
   @apply py-0.5 px-1;
@@ -155,7 +155,7 @@
 .tb-divider {
   width: 1px;
   height: 16px;
-  background: var(--color-border);
+  background: var(--border);
   @apply mx-1.5;
 }
 
@@ -177,10 +177,10 @@
 }
 
 .tb-win-btn:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
 }
 
 .tb-win-btn--close:hover {
-  background: var(--color-error);
+  background: var(--destructive);
   @apply text-fg-primary;
 }

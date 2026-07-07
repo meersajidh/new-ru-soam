@@ -12,8 +12,8 @@
   overflow: hidden;
   background: linear-gradient(
     180deg,
-    color-mix(in oklch, var(--color-surface-base) 94%, black) 0%,
-    var(--color-surface-base) 100%
+    color-mix(in oklch, var(--background) 94%, black) 0%,
+    var(--background) 100%
   );
   @apply py-12 px-5;
 }
@@ -41,7 +41,7 @@
   height: 100%;
   pointer-events: none;
   opacity: 0.08;
-  color: var(--color-fg-primary);
+  color: var(--foreground);
 }
 
 .login-modal-overlay__arcs path,
@@ -55,8 +55,8 @@
 .login-modal-card {
   position: relative;
   z-index: 1;
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
+  background: var(--popover);
+  border: 1px solid var(--border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-modal);
   width: min(460px, 100%);
@@ -83,9 +83,9 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  background: var(--color-accent);
-  box-shadow: 0 6px 20px -6px color-mix(in oklch, var(--color-accent) 55%, transparent);
-  color: var(--color-accent-fg);
+  background: var(--primary);
+  box-shadow: 0 6px 20px -6px color-mix(in oklch, var(--primary) 55%, transparent);
+  color: var(--primary-foreground);
 }
 
 .login-modal-wordmark-group {
@@ -191,12 +191,12 @@
 
 .login-modal-submit {
   width: 100% !important;
-  background: var(--color-fg-primary) !important;
-  color: var(--color-surface-base) !important;
+  background: var(--foreground) !important;
+  color: var(--background) !important;
   /* Match .text-input: 10px radius + 1px (transparent) border so the fill insets
      identically and the button reads exactly as wide as the passphrase field. */
   border-radius: 10px !important;
-  box-shadow: 0 2px 8px -2px color-mix(in oklch, var(--color-fg-primary) 30%, transparent) !important;
+  box-shadow: 0 2px 8px -2px color-mix(in oklch, var(--foreground) 30%, transparent) !important;
   /* Override the pill / green box-shadow from Button variant="primary" */
   border: 1px solid transparent !important;
   font-weight: 600;
@@ -211,12 +211,12 @@
 }
 
 .login-modal-submit:hover:not(:disabled) {
-  background: color-mix(in oklch, var(--color-fg-primary) 88%, transparent) !important;
+  background: color-mix(in oklch, var(--foreground) 88%, transparent) !important;
 }
 
 .login-modal-submit:active:not(:disabled) {
-  background: color-mix(in oklch, var(--color-fg-primary) 80%, transparent) !important;
-  box-shadow: 0 1px 4px -1px color-mix(in oklch, var(--color-fg-primary) 20%, transparent) !important;
+  background: color-mix(in oklch, var(--foreground) 80%, transparent) !important;
+  box-shadow: 0 1px 4px -1px color-mix(in oklch, var(--foreground) 20%, transparent) !important;
 }
 
 .login-modal-submit:disabled {
@@ -242,13 +242,13 @@
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
-  text-decoration-color: color-mix(in oklch, var(--color-fg-muted) 50%, transparent);
+  text-decoration-color: color-mix(in oklch, var(--muted-foreground) 50%, transparent);
   transition: color 0.15s ease, text-decoration-color 0.15s ease;
 }
 
 .login-modal-recovery-link:hover {
   @apply text-fg-secondary;
-  text-decoration-color: var(--color-fg-secondary);
+  text-decoration-color: var(--muted-foreground);
 }
 
 .login-modal-create-link {
@@ -270,7 +270,7 @@
 
 .login-modal-divider {
   height: 1px;
-  background: var(--color-border);
+  background: var(--border);
   margin: 0 calc(-1 * 0.5rem);
 }
 

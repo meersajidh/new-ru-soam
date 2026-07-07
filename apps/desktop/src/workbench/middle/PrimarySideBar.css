@@ -4,14 +4,14 @@
 .part-sidebar {
   position: relative;
   flex: 0 0 auto;
-  background: var(--color-surface-panel);
+  background: var(--card);
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .part-sidebar-primary {
-  border-right: 1px solid var(--color-border);
+  border-right: 1px solid var(--border);
 }
 
 .sidebar-empty-state {
@@ -26,8 +26,8 @@
   align-items: center;
   padding: 0 12px;
   height: var(--header-height);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-panel);
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
 }
 
 .sidebar-header-title {
@@ -35,7 +35,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-fg-muted);
+  color: var(--muted-foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

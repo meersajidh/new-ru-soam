@@ -17,7 +17,7 @@
 .notif-toast {
   pointer-events: all;
   @apply bg-surface-elevated rounded-md text-fg-primary text-sm;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-overlay);
   display: flex;
   align-items: flex-start;
@@ -33,7 +33,7 @@
 
 .notif-toast[data-severity='error'] {
   border-left-width: 3px;
-  border-left-color: var(--color-error);
+  border-left-color: var(--destructive);
 }
 .notif-toast[data-severity='warning'] {
   border-left-width: 3px;
@@ -109,14 +109,14 @@
   max-height: 480px;
   z-index: 850;
   @apply bg-surface-panel rounded-md flex flex-col;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-overlay);
   overflow: hidden;
 }
 
 .notif-panel__header {
   @apply flex items-center justify-between px-4 py-2.5;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
   flex: 0 0 auto;
 }
 
@@ -211,7 +211,7 @@
 .notif-item__action-btn {
   @apply text-xs text-fg-secondary rounded-sm px-2 py-1;
   background: transparent;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   cursor: pointer;
   transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
 }

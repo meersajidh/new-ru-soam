@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--color-surface-base);
+  background: var(--background);
   @apply text-fg-primary;
 }
 
@@ -14,48 +14,48 @@
   align-items: center;
   justify-content: space-between;
   @apply gap-2 px-3 py-2 text-xs text-fg-muted;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .ru-edit-toolbar {
   display: flex;
   align-items: center;
   @apply gap-3 px-3 py-2;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface-base);
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
   flex-wrap: wrap;
 }
 
 .ru-edit-toolbar-group {
   display: flex;
   @apply gap-0.5 px-1;
-  border-right: 1px solid var(--color-border);
+  border-right: 1px solid var(--border);
 }
 .ru-edit-toolbar-group:last-child { border-right: 0; }
 
 .ru-edit-toolbar-btn {
-  background: var(--color-surface-elevated);
+  background: var(--popover);
   @apply text-fg-primary;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 3px;
   @apply py-0.5 px-2 text-xs;
   font: inherit;
   cursor: pointer;
   min-width: 28px;
 }
-.ru-edit-toolbar-btn:hover { background: var(--color-surface-active); }
+.ru-edit-toolbar-btn:hover { background: var(--accent); }
 .ru-edit-toolbar-btn:active { transform: translateY(1px); }
 .ru-edit-toolbar-btn.ru-edit-toolbar-btn--active,
 .ru-edit-toolbar-btn[aria-pressed="true"] {
-  background: var(--color-accent-subtle, var(--color-surface-active));
-  border-color: var(--color-accent, var(--color-fg-primary));
-  color: var(--color-accent, var(--color-fg-primary));
+  background: var(--color-accent-subtle, var(--accent));
+  border-color: var(--color-accent, var(--foreground));
+  color: var(--color-accent, var(--foreground));
 }
 .ru-edit-toolbar-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-.ru-edit-toolbar-btn:disabled:hover { background: var(--color-surface-elevated); }
+.ru-edit-toolbar-btn:disabled:hover { background: var(--popover); }
 
 .ru-edit-scratch-resource {
   @apply font-mono;
@@ -102,7 +102,7 @@
 }
 .ru-edit-host .ProseMirror h3 { @apply text-base font-semibold; }
 .ru-edit-host .ProseMirror blockquote {
-  border-left: 3px solid var(--color-border);
+  border-left: 3px solid var(--border);
   @apply pl-3 text-fg-muted;
 }
 /* NOTE(type): code font-size 0.92em → text-xs per table. */
@@ -126,17 +126,17 @@
 
 /* Trigger highlight: the /abbrev text while popup is open */
 .ru-snippet-trigger {
-  background: var(--color-surface-active);
+  background: var(--accent);
   border-radius: 2px;
   @apply text-fg-primary;
-  outline: 1px solid var(--color-accent);
+  outline: 1px solid var(--primary);
   outline-offset: 1px;
 }
 
 /* Completion popup */
 .ru-snippet-popup {
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
+  background: var(--popover);
+  border: 1px solid var(--border);
   @apply rounded-md shadow-overlay;
   min-width: 200px;
   max-width: 360px;
@@ -158,7 +158,7 @@
 
 .ru-snippet-popup-item:hover,
 .ru-snippet-popup-item--selected {
-  background: var(--color-surface-active);
+  background: var(--accent);
 }
 
 .ru-snippet-popup-abbrev {
@@ -208,8 +208,8 @@
 
 /* Picklist dropdown (appended to body, positioned fixed) */
 .ru-snippet-picklist-dropdown {
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
+  background: var(--popover);
+  border: 1px solid var(--border);
   @apply rounded-md shadow-overlay;
   max-height: 200px;
   min-width: 160px;
@@ -226,5 +226,5 @@
 
 .ru-snippet-picklist-item:hover,
 .ru-snippet-picklist-item--selected {
-  background: var(--color-surface-active);
+  background: var(--accent);
 }

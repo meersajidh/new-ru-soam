@@ -29,13 +29,13 @@
 }
 
 .settings-gear-btn:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
   transform: rotate(15deg);
 }
 
 .settings-gear-btn[aria-expanded='true'] {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
@@ -45,8 +45,8 @@
   width: 232px;
   max-width: min(232px, calc(100vw - 72px));
   max-height: calc(100vh - 72px);
-  background: color-mix(in srgb, var(--color-surface-elevated) 96%, black 4%);
-  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  background: color-mix(in srgb, var(--popover) 96%, black 4%);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
   @apply rounded-xl shadow-overlay;
   overflow: auto;
   backdrop-filter: blur(10px);
@@ -59,7 +59,7 @@
   padding: 0.625rem 0.75rem 0.5rem;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-surface-active) 50%, transparent),
+    color-mix(in srgb, var(--accent) 50%, transparent),
     transparent
   );
 }
@@ -71,7 +71,7 @@
 .settings-popover-divider {
   height: 1px;
   margin: 0.25rem 0.5rem;
-  background: color-mix(in srgb, var(--color-border) 70%, transparent);
+  background: color-mix(in srgb, var(--border) 70%, transparent);
 }
 
 /* ── Panel header (back button + title) ───────────────────────────────────── */
@@ -81,7 +81,7 @@
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.5rem 0.25rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   margin-bottom: 0.125rem;
 }
 
@@ -101,7 +101,7 @@
 }
 
 .settings-back-btn:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
@@ -132,12 +132,12 @@
 }
 
 .settings-nav-row:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
 .settings-nav-row:active {
-  background: color-mix(in srgb, var(--color-surface-active) 140%, transparent);
+  background: color-mix(in srgb, var(--accent) 140%, transparent);
 }
 
 .settings-nav-label {
@@ -191,7 +191,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   background: transparent;
   @apply text-fg-secondary text-xs rounded-lg;
   padding: 0.375rem 0;
@@ -203,13 +203,13 @@
 }
 
 .settings-mode-btn:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
 .settings-mode-btn[data-active] {
-  background: var(--color-surface-active);
-  border-color: var(--color-accent);
+  background: var(--accent);
+  border-color: var(--primary);
   @apply text-fg-primary font-medium;
 }
 
@@ -231,7 +231,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-accent);
+  background: var(--primary);
   transition:
     border-color 0.12s,
     transform 0.1s;
@@ -245,14 +245,14 @@
 }
 
 .settings-theme-swatch[data-active] {
-  border-color: var(--color-fg-primary);
+  border-color: var(--foreground);
 }
 
 .settings-swatch-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--color-accent-fg);
+  background: var(--primary-foreground);
   opacity: 0.7;
 }
 
@@ -282,12 +282,12 @@
 }
 
 .settings-font-row:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
 .settings-font-row[data-active] {
-  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
   @apply text-fg-primary font-medium;
 }
 
@@ -333,18 +333,18 @@
   height: 20px;
   border-radius: 9px;
   border: solid;
-  background: color-mix(in srgb, var(--color-border) 120%, transparent);
+  background: color-mix(in srgb, var(--border) 120%, transparent);
   cursor: pointer;
   padding: 0;
   transition: background 0.18s ease;
 }
 
 .settings-switch[data-on] {
-  background: var(--color-accent);
+  background: var(--primary);
 }
 
 .settings-switch:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
@@ -356,7 +356,7 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--color-fg-primary);
+  background: var(--foreground);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   transition: transform 0.18s ease;
 }
@@ -395,7 +395,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 5px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   background: transparent;
   @apply text-fg-secondary text-sm;
   cursor: pointer;
@@ -407,7 +407,7 @@
 }
 
 .settings-stepper-btn:hover:not(:disabled) {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
@@ -417,7 +417,7 @@
 }
 
 .settings-stepper-btn:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--primary);
   outline-offset: 1px;
 }
 
@@ -457,7 +457,7 @@
   gap: 0.5rem;
   width: 100%;
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   @apply text-fg-secondary text-sm rounded-lg px-2.5 py-1.5;
   cursor: pointer;
   text-align: left;
@@ -468,7 +468,7 @@
 }
 
 .settings-reconnect-btn:hover:not(:disabled) {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
@@ -511,7 +511,7 @@
 }
 
 .settings-danger-btn:hover {
-  background: color-mix(in srgb, var(--color-error) 14%, transparent);
+  background: color-mix(in srgb, var(--destructive) 14%, transparent);
 }
 
 .settings-danger-icon {
@@ -538,7 +538,7 @@
   gap: 6px;
   padding: 3px 6px;
   border-radius: 6px;
-  background: var(--color-surface-active);
+  background: var(--accent);
   min-height: 24px;
 }
 
@@ -580,7 +580,7 @@
 }
 
 .settings-provider-remove-btn:hover {
-  background: color-mix(in srgb, var(--color-error) 18%, transparent);
+  background: color-mix(in srgb, var(--destructive) 18%, transparent);
   @apply text-error;
 }
 
@@ -595,8 +595,8 @@
   flex: 1 1 0;
   height: 22px;
   border-radius: 5px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
-  background: var(--color-surface-base);
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  background: var(--background);
   @apply text-fg-primary;
   font-size: 0.6875rem;
   padding: 0 6px;
@@ -606,7 +606,7 @@
 }
 
 .settings-provider-input:focus {
-  border-color: var(--color-accent);
+  border-color: var(--primary);
 }
 
 .settings-provider-input::placeholder {
@@ -618,7 +618,7 @@
   height: 22px;
   padding: 0 8px;
   border-radius: 5px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   background: transparent;
   @apply text-fg-secondary;
   font-size: 0.6875rem;
@@ -630,7 +630,7 @@
 }
 
 .settings-provider-add-btn:hover:not(:disabled) {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 

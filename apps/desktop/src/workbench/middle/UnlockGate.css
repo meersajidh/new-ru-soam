@@ -7,13 +7,13 @@
   align-items: center;
   justify-content: center;
   flex: 1 1 auto;
-  background: var(--color-surface-base);
+  background: var(--background);
   @apply p-8;
 }
 
 .unlock-gate-card {
-  background: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
+  background: var(--popover);
+  border: 1px solid var(--border);
   @apply rounded-md shadow-card p-8;
   width: 400px;
   max-width: 100%;
@@ -50,7 +50,7 @@
 .unlock-recovery-toggle {
   background: transparent;
   border: none;
-  color: var(--color-accent);
+  color: var(--primary);
   cursor: pointer;
   @apply text-xs;
   padding: 0;
@@ -66,8 +66,8 @@
 /* Recovery code textarea entry */
 .recovery-entry-area {
   width: 100%;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   @apply rounded-sm text-fg-primary font-mono text-xs;
   min-height: 80px;
   outline: none;
@@ -78,5 +78,5 @@
 }
 
 .recovery-entry-area:focus {
-  border-color: var(--color-border-focus);
+  border-color: var(--ring);
 }

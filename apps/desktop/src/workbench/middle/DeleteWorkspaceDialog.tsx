@@ -130,7 +130,7 @@ export default function DeleteWorkspaceDialog({ nickname, onClose }: Props) {
         </FormField>
 
         {generalError && (
-          <p className="text-xs text-error m-0 flex items-center gap-1.5">{generalError}</p>
+          <p className="text-xs text-destructive m-0 flex items-center gap-1.5">{generalError}</p>
         )}
 
         <DialogFooter className="mt-1">

@@ -4,8 +4,8 @@
 .part-statusbar {
   flex: 0 0 auto;
   height: 24px;
-  background: var(--color-surface-panel);
-  border-top: 1px solid var(--color-border);
+  background: var(--card);
+  border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   @apply px-2;
@@ -40,7 +40,7 @@
 }
 
 .statusbar-entry:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
@@ -68,7 +68,7 @@
 .sb-divider {
   width: 1px;
   height: 14px;
-  background: var(--color-border);
+  background: var(--border);
   @apply mx-1.5;
   display: inline-block;
 }
@@ -76,8 +76,8 @@
 /* NOTE(aesthetic): .sb-badge uses 9px → text-xs (12px, +3px). Badge is
    tightly packed; 12px may expand height. Flagged for dogfood spot-check. */
 .sb-badge {
-  background: var(--color-accent);
-  color: var(--color-accent-fg);
+  background: var(--primary);
+  color: var(--primary-foreground);
   @apply font-mono text-xs font-semibold;
   min-width: 14px;
   height: 14px;

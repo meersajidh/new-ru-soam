@@ -11,8 +11,8 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--color-accent);
-  color: var(--color-accent-fg);
+  background: var(--primary);
+  color: var(--primary-foreground);
   border: none;
   cursor: pointer;
   @apply text-xs font-semibold shadow-sm;
@@ -35,8 +35,8 @@
   width: 248px;
   max-width: min(248px, calc(100vw - 72px));
   max-height: calc(100vh - 72px);
-  background: color-mix(in srgb, var(--color-surface-elevated) 96%, black 4%);
-  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  background: color-mix(in srgb, var(--popover) 96%, black 4%);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
   @apply rounded-xl shadow-overlay;
   overflow: auto;
   backdrop-filter: blur(10px);
@@ -50,7 +50,7 @@
   padding: 0.75rem 0.75rem 0.625rem;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-surface-active) 60%, transparent),
+    color-mix(in srgb, var(--accent) 60%, transparent),
     transparent
   );
 }
@@ -74,8 +74,8 @@
   width: 28px;
   height: 28px;
   border-radius: 9999px;
-  background: var(--color-accent);
-  color: var(--color-accent-fg);
+  background: var(--primary);
+  color: var(--primary-foreground);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -97,7 +97,7 @@
 .user-avatar-menu-divider {
   height: 1px;
   margin: 0.125rem 0.5rem;
-  background: color-mix(in srgb, var(--color-border) 70%, transparent);
+  background: color-mix(in srgb, var(--border) 70%, transparent);
 }
 
 .user-avatar-menu-item {
@@ -116,7 +116,7 @@
 }
 
 .user-avatar-menu-item:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
@@ -144,7 +144,7 @@
 }
 
 .user-avatar-menu-item--destructive:hover {
-  background: color-mix(in srgb, var(--color-error) 14%, transparent);
+  background: color-mix(in srgb, var(--destructive) 14%, transparent);
   @apply text-error;
 }
 

@@ -25,15 +25,15 @@
 }
 
 .strength-bar.on {
-  background: var(--color-accent);
+  background: var(--primary);
   box-shadow: 0 0 calc(8px * var(--glow-mul))
-    color-mix(in oklch, var(--color-accent) calc(60% * var(--glow-mul)), transparent);
+    color-mix(in oklch, var(--primary) calc(60% * var(--glow-mul)), transparent);
 }
 
 .strength-bar.on-weak {
-  background: var(--color-error);
+  background: var(--destructive);
   box-shadow: 0 0 calc(8px * var(--glow-mul))
-    color-mix(in oklch, var(--color-error) calc(55% * var(--glow-mul)), transparent);
+    color-mix(in oklch, var(--destructive) calc(55% * var(--glow-mul)), transparent);
 }
 
 .strength-bar.on-mid {

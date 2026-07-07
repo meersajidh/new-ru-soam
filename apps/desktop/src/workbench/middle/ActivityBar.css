@@ -3,8 +3,8 @@
 /* ActivityBar */
 .part-activitybar {
   flex: 0 0 48px;
-  background: var(--color-surface-panel);
-  border-right: 1px solid var(--color-border);
+  background: var(--card);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -42,7 +42,7 @@
   border: none;
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--color-fg-muted);
+  color: var(--muted-foreground);
   cursor: pointer;
   transition:
     background 120ms ease,
@@ -53,24 +53,24 @@
 
 .activitybar-item:hover {
   background: var(--color-tint-neutral-soft);
-  color: var(--color-fg-secondary);
+  color: var(--muted-foreground);
 }
 
 .activitybar-item:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-border-focus);
-  color: var(--color-fg-secondary);
+  box-shadow: 0 0 0 2px var(--ring);
+  color: var(--muted-foreground);
 }
 
 /* Active item: neutral light/dark fill (NOT accent-filled), full-strength icon —
    the accent reads only on the prominent left-edge bar (VS Code activity-bar style). */
 .activitybar-item--active {
-  color: var(--color-fg-primary);
-  /* background: var(--color-surface-active); */
+  color: var(--foreground);
+  /* background: var(--accent); */
 }
 
 .activitybar-item--active:hover {
-  background: var(--color-surface-active);
-  color: var(--color-fg-primary);
+  background: var(--accent);
+  color: var(--foreground);
 }
 
 /* Active indicator — full-height accent bar flush to the activity-bar's left
@@ -83,7 +83,7 @@
   bottom: 0;
   width: 2px;
   border-radius: 0 1px 1px 0;
-  background: var(--color-accent);
+  background: var(--primary);
 }
 
 /* ── Density overrides ────────────────────────────────────────────────────── */

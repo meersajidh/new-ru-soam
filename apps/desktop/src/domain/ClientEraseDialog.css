@@ -12,8 +12,8 @@
   width: 36px;
   height: 36px;
   border-radius: 9999px;
-  background: color-mix(in srgb, var(--color-error) 14%, transparent);
-  color: var(--color-error);
+  background: color-mix(in srgb, var(--destructive) 14%, transparent);
+  color: var(--destructive);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -26,8 +26,8 @@
 }
 
 .client-erase-warning {
-  background: color-mix(in srgb, var(--color-error) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-error) 28%, transparent);
+  background: color-mix(in srgb, var(--destructive) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--destructive) 28%, transparent);
   @apply rounded-md;
   padding: 0.75rem 1rem;
   display: flex;

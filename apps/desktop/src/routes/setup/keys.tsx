@@ -267,7 +267,7 @@ function SetupKeysContent() {
           {step1Loading ? 'Signing in…' : 'Continue with Google'}
         </button>
         {step1Error && (
-          <p className="text-xs text-error m-0 flex items-center gap-1.5">{step1Error}</p>
+          <p className="text-xs text-destructive m-0 flex items-center gap-1.5">{step1Error}</p>
         )}
         {addNew && (
           // <div className="setup-actions border-2">
@@ -354,10 +354,10 @@ function SetupKeysContent() {
         {state.passphrase.length > 0 && <StrengthMeter score={passStrength} />}
 
         {state.passphrase.length > 0 && !lengthOk && (
-          <p className="text-xs text-error m-0 flex items-center gap-1.5">Passphrase must be at least 12 characters.</p>
+          <p className="text-xs text-destructive m-0 flex items-center gap-1.5">Passphrase must be at least 12 characters.</p>
         )}
         {state.passphrase.length >= 12 && !scoreOk && (
-          <p className="text-xs text-error m-0 flex items-center gap-1.5">
+          <p className="text-xs text-destructive m-0 flex items-center gap-1.5">
             Passphrase is too weak. Please choose something harder to guess.
           </p>
         )}
@@ -375,9 +375,9 @@ function SetupKeysContent() {
         </FormField>
 
         {confirmPassphrase.length > 0 && state.passphrase !== confirmPassphrase && (
-          <p className="text-xs text-error m-0 flex items-center gap-1.5">Passphrases do not match.</p>
+          <p className="text-xs text-destructive m-0 flex items-center gap-1.5">Passphrases do not match.</p>
         )}
-        {passphraseError && <p className="text-xs text-error m-0 flex items-center gap-1.5">{passphraseError}</p>}
+        {passphraseError && <p className="text-xs text-destructive m-0 flex items-center gap-1.5">{passphraseError}</p>}
 
         <div className="setup-actions">
           <Button
@@ -492,7 +492,7 @@ function SetupKeysContent() {
           Your account <strong>{state.nickname || 'Practice'}</strong> is ready. Everything you
           write here is encrypted on this device and never leaves it without your passphrase.
         </p>
-        {finishError && <p className="text-xs text-error m-0 flex items-center gap-1.5">{finishError}</p>}
+        {finishError && <p className="text-xs text-destructive m-0 flex items-center gap-1.5">{finishError}</p>}
         <div className="setup-actions justify-center">
           {finishError && finishError.includes('expired') && (
             <Button

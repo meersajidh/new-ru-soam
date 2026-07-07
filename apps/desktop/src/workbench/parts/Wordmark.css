@@ -7,7 +7,7 @@
   letter-spacing: -0.025em;
   line-height: 1;
   text-shadow: 0 0 calc(24px * var(--glow-mul))
-    color-mix(in oklch, var(--color-accent) calc(80% * var(--glow-mul)), transparent);
+    color-mix(in oklch, var(--primary) calc(80% * var(--glow-mul)), transparent);
   display: inline-flex;
   align-items: baseline;
   gap: 0;

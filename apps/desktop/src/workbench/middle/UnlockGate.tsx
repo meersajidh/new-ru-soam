@@ -234,7 +234,7 @@ export default function UnlockGate({ forceResetMode = false }: UnlockGateProps =
 
         {mode === 'recovery' && (
           <form className="unlock-gate-form" onSubmit={handleRecoveryUnlock}>
-            <label htmlFor="recovery-entry" className="text-xs font-semibold text-fg-secondary block" style={{ letterSpacing: '0.02em' }}>
+            <label htmlFor="recovery-entry" className="text-xs font-semibold text-muted-foreground block" style={{ letterSpacing: '0.02em' }}>
               Recovery code (12 words, space-separated)
             </label>
             <textarea

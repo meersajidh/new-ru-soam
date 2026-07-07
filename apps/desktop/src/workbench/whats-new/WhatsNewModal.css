@@ -37,7 +37,7 @@
 
 .wn-kind-label {
   @apply text-xs font-medium;
-  color: var(--color-accent);
+  color: var(--primary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -68,7 +68,7 @@
 
 .wn-close-btn {
   @apply text-sm font-medium text-fg-primary bg-surface-elevated rounded-md px-4 py-2;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease;
 }

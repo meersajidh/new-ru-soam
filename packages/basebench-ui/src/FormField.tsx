@@ -1,3 +1,4 @@
+import { Field } from '@base-ui/react/field';
 import { cn } from './cn';
 
 interface FormFieldProps {
@@ -8,20 +9,30 @@ interface FormFieldProps {
   className?: string;
 }
 
+/**
+ * FormField — a recipe over the Base UI `Field` primitive (ADR-421 F4 4e).
+ *
+ * Composes `Field.Root` / `Field.Label` / `Field.Error` (standard primitives,
+ * no bespoke wrapper API beyond the stable label+control+error shape used by
+ * ~9 call sites). `invalid` drives Root validity; `Field.Error match` force-shows
+ * the caller-supplied string with Base UI's accessible error wiring. Control is
+ * caller-supplied `children` associated via explicit `htmlFor`/`id`.
+ */
 export function FormField({ label, htmlFor, error, children, className }: FormFieldProps) {
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <label
+    <Field.Root invalid={Boolean(error)} className={cn('flex flex-col gap-1.5', className)}>
+      <Field.Label
         htmlFor={htmlFor}
-        className="text-xs font-semibold text-fg-secondary block"
-        style={{ letterSpacing: '0.02em' }}
+        className="block text-xs font-semibold tracking-[0.02em] text-muted-foreground"
       >
         {label}
-      </label>
+      </Field.Label>
       {children}
       {error && (
-        <p className="text-xs text-error m-0 flex items-center gap-1.5">{error}</p>
+        <Field.Error match className="m-0 flex items-center gap-1.5 text-xs text-destructive">
+          {error}
+        </Field.Error>
       )}
-    </div>
+    </Field.Root>
   );
 }

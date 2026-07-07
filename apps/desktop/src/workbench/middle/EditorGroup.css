@@ -18,8 +18,8 @@
   flex-direction: row;
   overflow-x: auto;
   overflow-y: hidden;
-  background: var(--color-surface-panel);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
   scrollbar-width: none;
   min-height: var(--header-height);
 }
@@ -32,8 +32,8 @@
   align-items: center;
   @apply gap-1 px-2 text-xs text-fg-muted;
   height: var(--header-height);
-  background: var(--color-surface-panel);
-  border-right: 1px solid var(--color-border);
+  background: var(--card);
+  border-right: 1px solid var(--border);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -42,12 +42,12 @@
 }
 
 .editor-tab:hover {
-  background: var(--color-surface-elevated);
+  background: var(--popover);
   @apply text-fg-secondary;
 }
 
 .editor-tab--active {
-  background: var(--color-surface-base);
+  background: var(--background);
   @apply text-fg-primary;
 }
 
@@ -56,15 +56,15 @@
   position: absolute;
   inset: 0 0 auto 0;
   height: 2px;
-  background: var(--color-accent);
+  background: var(--primary);
 }
 
 .editor-group--focused .editor-tab--active::before {
-  background: var(--color-accent);
+  background: var(--primary);
 }
 
 .editor-group:not(.editor-group--focused) .editor-tab--active::before {
-  background: var(--color-fg-muted);
+  background: var(--muted-foreground);
 }
 
 .editor-tab-title {
@@ -106,7 +106,7 @@
 }
 
 .editor-tab-close:hover {
-  background: var(--color-surface-active);
+  background: var(--accent);
   @apply text-fg-primary;
 }
 
@@ -144,5 +144,5 @@
   width: 100%;
   height: 100%;
   border: 0;
-  background: var(--color-surface-base);
+  background: var(--background);
 }

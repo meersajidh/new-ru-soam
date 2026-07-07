@@ -389,7 +389,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
                 placeholder="Enter your passphrase"
               />
               {unlockError && (
-                <p className="text-xs text-error m-0 flex items-center gap-1.5">{unlockError}</p>
+                <p className="text-xs text-destructive m-0 flex items-center gap-1.5">{unlockError}</p>
               )}
             </div>
 
@@ -469,7 +469,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
                 placeholder="Enter your passphrase"
               />
               {unlockError && (
-                <p className="text-xs text-error m-0 flex items-center gap-1.5">{unlockError}</p>
+                <p className="text-xs text-destructive m-0 flex items-center gap-1.5">{unlockError}</p>
               )}
             </div>
 
@@ -511,7 +511,7 @@ export default function LoginModal({ mode, forceResetMode = false }: LoginModalP
           <form className="login-modal-form" onSubmit={handleRecoveryUnlock}>
             <label
               htmlFor="recovery-entry"
-              className="text-xs font-semibold text-fg-secondary block"
+              className="text-xs font-semibold text-muted-foreground block"
               style={{ letterSpacing: '0.02em' }}
             >
               Recovery code (12 words, space-separated)

@@ -27,20 +27,20 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-surface-panel);
+  background: var(--card);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--border);
   @apply rounded-sm;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-fg-muted);
+  background: var(--muted-foreground);
 }
 
 /* Themed scrollbars — Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-border) var(--color-surface-panel);
+  scrollbar-color: var(--border) var(--card);
 }
 
 html,

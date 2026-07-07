@@ -31,7 +31,7 @@
       var(--color-tint-accent-subtle) 0 1px,
       transparent 1px 14px
     );
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
 }
 
 .editor-empty-title {
@@ -47,6 +47,6 @@
   @apply font-mono text-xs bg-surface-elevated text-fg-primary;
   /* original: padding: 1px 5px; border-radius: 3px — keeping raw (non-scale values) */
   padding: 1px 5px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: 3px;
 }

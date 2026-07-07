@@ -3,7 +3,7 @@
 /* Editor Area */
 .part-editor-area {
   flex: 1 1 auto;
-  background: var(--color-surface-base);
+  background: var(--background);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -31,5 +31,5 @@
 
 .editor-split-divider {
   flex: 0 0 1px;
-  background: var(--color-border);
+  background: var(--border);
 }

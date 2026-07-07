@@ -8,9 +8,9 @@
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 42%, color-mix(in oklch, var(--color-accent) 5%, transparent), transparent 32%),
-    linear-gradient(180deg, color-mix(in oklch, var(--color-surface-base) 92%, black), var(--color-surface-base));
-  color: var(--color-fg-primary);
+    radial-gradient(circle at 50% 42%, color-mix(in oklch, var(--primary) 5%, transparent), transparent 32%),
+    linear-gradient(180deg, color-mix(in oklch, var(--background) 92%, black), var(--background));
+  color: var(--foreground);
   opacity: 0;
   /* Avoid flashing the splash on fast cold boots. */
   animation: rs-splash-fade-in 180ms ease 300ms forwards;
@@ -26,7 +26,7 @@
   width: 100%;
   height: 100%;
   opacity: 0.06;
-  color: var(--color-fg-primary);
+  color: var(--foreground);
 }
 
 .loading-splash__background path {
@@ -49,7 +49,7 @@
 .loading-splash__mark {
   display: grid;
   place-items: center;
-  color: var(--color-fg-primary);
+  color: var(--foreground);
   opacity: 0.92;
 }
 
@@ -59,7 +59,7 @@
   font-size: 0.75rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--color-fg-muted);
+  color: var(--muted-foreground);
 }
 
 .loading-splash__rail {
@@ -68,7 +68,7 @@
   height: 2px;
   overflow: hidden;
   border-radius: 999px;
-  background: color-mix(in oklch, var(--color-border) 80%, transparent);
+  background: color-mix(in oklch, var(--border) 80%, transparent);
 }
 
 .loading-splash__rail-fill {
@@ -76,7 +76,7 @@
   inset: 0 auto 0 0;
   width: 38%;
   border-radius: inherit;
-  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
   animation: rs-loadbar 1.6s linear infinite;
 }
 
