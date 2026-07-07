@@ -121,7 +121,8 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [ADR-417](ADRs/417-menu-and-keybinding-contributions.md) — Menu + keybinding contributions, context-menu primitive, renderer↔view action channel. _(Accepted)_
 - [ADR-418](ADRs/418-bundle-trust-tiers.md) — Bundle trust tiers: First-Party-Host vs Bundle-Host (structural PHI hard-deny for untrusted code). _(Accepted)_
 - [ADR-419](ADRs/419-bundle-view-tech-stack.md) — Bundle-view tech stack: React + TanStack Query + TanStack Router + Tailwind (same stack as the shell), self-bundled per bundle into the ADR-411 iframe; replaces hand-authored vanilla views + the `__viewQuery` wrapper. _(Accepted)_
-- [ADR-420](ADRs/420-design-system-component-boundary.md) — Design-system component boundary: owned home per render surface (shell `@basebench/ui` + view `@ru-soam/view-kit`), lint-enforced; first O194 slice. _(Accepted)_
+- [ADR-420](ADRs/420-design-system-component-boundary.md) — Design-system component boundary: owned home per render surface (shell `@basebench/ui` + view `@ru-soam/view-kit`), lint-enforced; first O194 slice. _(**Superseded by ADR-421** — two-kit / two-Icon structure reversed; discipline (3-tier / rule-of-three / gallery) retained by ADR-421 D10)_
+- [ADR-421](ADRs/421-design-system-foundation-shadcn.md) — Design-system foundation: shadcn preset + CSS-var token contract + Base UI + **one** unified base kit (`@basebench/ui` = shadcn `packages/ui`) both surfaces import; single multi-source SVG Icon (Phosphor primary); build/source unified, trust/render origins untouched. Supersedes ADR-420; amends ADR-413/411/419. _(Accepted)_
 
 #### Domain (500–599)
 

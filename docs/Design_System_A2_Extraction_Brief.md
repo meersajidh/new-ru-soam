@@ -1,6 +1,8 @@
 # A2 Extraction Brief (ADR-420 → implementer handoff)
 
-**Status:** Ready to execute. ADR-420 Accepted 2026-07-06. Not started.
+> **⚠️ SUPERSEDED 2026-07-07 by ADR-421.** ADR-420's two-kit / two-Icon model is replaced by ONE unified `@basebench/ui` on the **shadcn standard** (CSS-var token contract + Base UI + preset), both surfaces, single multi-source SVG Icon. This brief's **committed slices (S1/S1b/S2/S4a/S3) remain valid** as the foundation the new sequence builds on — but the **remaining plan changes**: **S4b (below) → F5** (static fragments built on the *unified* `@basebench/ui`, shadcn-styled, **not** on `@ru-soam/view-kit`), and the whole run continues as **F1–F6** in `docs/ADRs/421-design-system-foundation-shadcn.md`. Read ADR-421 for the current plan; slices 1–3 below are historical (already landed).
+
+**Status:** S1, S1b, S2, S4a, S3 DONE + committed 2026-07-06 (`d2464aa`, `36421da`, `8c47a74`, `c88733a`). **Remaining work re-founded by ADR-421: S4b → F5 (view fragments on the unified kit), A3 gallery → F6.** F1 (theme-model collapse, adopt preset `b6tOtw19k`) is NEXT — paused, awaiting go.
 **Authority:** `docs/ADRs/420-design-system-component-boundary.md` (the decisions), `docs/Guides/design-system.md` (the discipline), `docs/Design_System_Inventory.md` (the file-level map — §2a/§2b/§3b).
 **Note for next session:** this is a multi-step, cross-cutting move with a mass import rewrite + a new workspace package + native/vite/tsconfig wiring — do NOT one-shot it. Land it in the 4 slices below, each independently green (`pnpm --filter ru-soam compile && lint`), each its own commit. Slice 1 (shell pkg) and Slice 4 (view backfill) are independent — either can go first.
 
@@ -82,6 +84,8 @@
 ---
 
 ## Slice 4 — Backfill `@ru-soam/view-kit` fragments + kill hand-drawn icons
+
+> **↳ SUPERSEDED by ADR-421 F5.** S4a (kill hand-drawn icons) already landed. The remaining S4b fragment backfill (EmptyState/Card/Badge/KvRow/Section) is **rehomed**: build in the **unified `@basebench/ui`** (shadcn-styled, token-only, both surfaces), not `@ru-soam/view-kit`. Intent unchanged (shared fragments, delete duplication); home + substrate changed. See ADR-421 F5.
 
 **Goal:** add the proven-shared view fragments to `@ru-soam/view-kit`; delete per-bundle copies; replace hand-drawn SVG icons with `<Icon>`.
 

@@ -7,6 +7,14 @@
 
 This is a **living tracking doc**. Check items off as they land. Two workstreams (Lane A design system, Lane B testing) share one foundation step and one convergence point — sequencing is the whole point of this document.
 
+> **⚠️ PIVOT 2026-07-07 — ADR-421 re-founds Lane A's design-system half.** The two-kit / two-Icon structure (ADR-420) is **superseded**: one unified base kit `@basebench/ui` on the **shadcn standard** (CSS-var token contract + Base UI + shareable preset), consumed by **both** render surfaces (build/source unified; **trust/render origins + CSP + PHI untouched**), with a single multi-source SVG Icon (Phosphor primary). New sequence = **F1–F6** in ADR-421. Effect on this doc:
+> - **A1 inventory** — duplication data still valid; two-kit model superseded.
+> - **Committed S1 / S1b / S2 / S4a / S3** — kept as the **foundation F1–F6 builds on** (S1 pkg → shadcn `packages/ui`; its primitive *internals* re-based in F4; S1b kept; S2 lint retuned; S4a Icon source swaps codicon→Phosphor; S3 lint kept+extended).
+> - **S4b → F5** — never started; rebuilt as static fragments on the unified kit.
+> - **A3 gallery → F6** — toggles theme × mode (not 3-axis).
+> - **Lane B (testing) — unaffected**, orthogonal, complete. **§6b O194 note — unchanged.**
+> Authority: `docs/ADRs/421-design-system-foundation-shadcn.md`.
+
 ---
 
 ## 1. Why (motivation)
@@ -33,8 +41,8 @@ The codebase is at ~85% platform / ~35% product. Two forces make now the right t
 ### Lane A — Design-system organization (O516, builds on O194)
 
 - **A1 Inventory** — enumerate current UI primitives; classify genuinely-shared vs one-off. Output = a table of candidates with current location + proposed home.
-- **A2 Extract** — pull shared primitives into an owned boundary (`@ru-soam/view-kit` and/or `basebench` base pkg per O194). **Requires ADR** — new module boundary (range 400–499). One-way dependency, lint-enforced, consistent with ADR-106 base/domain split.
-- **A3 Dev gallery route** — dev-only TanStack route (e.g. `/dev/design-system`) rendering extracted primitives in the *real* renderer: real theme/DI/fonts, real Tailwind, live axis toggles (palette × luminance × font-set). Truthful visual review in-context — the 80% of Storybook value at ~1 day cost.
+- **A2 Extract** — pull shared primitives into an owned boundary. **_Re-founded by ADR-421 (F1–F6):_** one unified `@basebench/ui` on the shadcn standard, imported by **both** surfaces (not per-surface kits). **Required ADR done** — ADR-420 (boundary) then ADR-421 (shadcn foundation, supersedes). One-way dependency, lint-enforced, consistent with ADR-106.
+- **A3 Dev gallery route** — dev-only TanStack route (e.g. `/dev/design-system`) rendering extracted primitives in the *real* renderer: real theme/DI/fonts, real Tailwind, live axis toggles (**theme × mode** post-ADR-421; view primitives in a real `view://` iframe frame). Truthful visual review in-context. **_Now F6._**
 
 ### Lane B — Automated-test foundation (O517)
 
@@ -88,8 +96,8 @@ Lane A and Lane B are independent up to the convergence point. Tier-1/1b tests d
 | B0 | Wire `vitest run` into CI gate (beside compile + lint) | B0 config | no | ☑ Done (`dependabot_ci.yml` "Run tests" step) |
 | A1 | Primitive inventory table (shared vs one-off) | — | no | ☑ Done (`docs/Design_System_Inventory.md`) — 2 render surfaces; shell kit (~11 primitives) → `basebench` (reconcile O194), view fragments (EmptyState/Card/Badge/KvRow/Section + kill hand-drawn SVG icons) → existing `@ru-soam/view-kit`, RuEdit already owned |
 | A2 | ADR: view-kit / base-pkg module boundary | A1 | **yes (400s)** | ☑ Done (`ADR-420` Accepted 2026-07-06) — shell kit → new `@basebench/ui` (1st O194 slice, born brand-correct), view fragments additive into `@ru-soam/view-kit`, 2 lint rules, 2-Icon permanent |
-| A2 | Extract primitives into owned boundary | A2 ADR | — | ☐ Not started — brief ready: `docs/Design_System_A2_Extraction_Brief.md` |
-| A3 | Dev gallery route (`/dev/design-system`) | A2 | no | ☐ Not started |
+| A2 | Extract primitives into owned boundary | A2 ADR | — | ◐ **Re-founded by ADR-421 → F1–F6.** S1 (@basebench/ui + 13 primitives), S1b (ResizeHandle split + grip), S2 (boundary-import lint), S4a (codicons replace hand-drawn svg), S3 (no-raw-svg lint) DONE + committed (`d2464aa`/`36421da`/`8c47a74`/`c88733a`) = **foundation F1–F6 builds on**. **S4b → F5** (view fragments now on the unified `@basebench/ui`, not view-kit). NEXT = **F1** (theme-model collapse, adopt preset `b6tOtw19k`) — *paused, awaiting go*. Brief: `docs/Design_System_A2_Extraction_Brief.md`; authority: ADR-421 |
+| A3 | Dev gallery route (`/dev/design-system`) | A2 | no | ☐ Not started → **becomes F6** (ADR-421); toggles theme × mode, view primitives in real iframe frame |
 | B1 | Tier-1 pure-logic tests (fan-out) | B0 | no | ☑ Done — units: `when-clause`, keybinding serialize, store.write predicate core (`store-write-validate.ts`), schedule `schedule-lib` (4 grid classes), migration-dedup union-find (`migration-dedup.mjs`), sessions provider-sync core (`sessions-sync.mjs`: derive/collect/composite/orphan/reconcile), cloud rotation-delay clamp (`session-rotation.ts`), Practice attention/intake read-derivation (`attention-intake.mjs`: deriveObligations/mapIntakeCompleteness/deriveDisplayName). All dogfood-PASSED where a live path exists (cloud rotation = pure extraction, path PARKED). 105 vitest cases across 8 files; compile + lint green |
 | B2 | Tier-1b invariant-guard tests | B0 | no | ☑ Done — real-gate guards: registry PHI-by-trustClass + CQRS-kind + PHI-lock (`capability/registry.test.ts`, drives real `invokeCapability`); identity-client wire shape — account_id never client-asserted + telemetry events PHI-free (`cloud/identity-client.test.ts`, stubbed fetch); telemetry PHI-free construction (`cloud/telemetry-event.ts` extracted from `emit()` + `telemetry-event.test.ts`). trustClass-not-self-declared + keys-Main-only = covered-by-construction (see note). 23 cases; 128 vitest total; compile + lint green |
 | C | Tier-2 component/DOM tests | A2 + B0 | no | ☐ Not started |

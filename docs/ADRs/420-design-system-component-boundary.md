@@ -1,10 +1,10 @@
 # Design-system component boundary
 
 **ID:** ADR-420
-**Status:** Accepted
+**Status:** Superseded (by ADR-421, 2026-07-07)
 **Date:** 2026-07-06
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** ADR-421 (Accepted 2026-07-07) — reverses D1 (two-kit) + D4 (two-Icon): one unified `@basebench/ui` both surfaces, single multi-source SVG Icon, shadcn standard substrate. D6 discipline (3-tier / rule-of-three / gallery) is **retained** by ADR-421 D10.
 **Related:** ADR-106 (base/domain layers — the boundary this sits inside), ADR-411 Am1 + ADR-419 (bundle-view origin/CSP/tech-stack — why the view surface is separate), ADR-413 Am1 (theming + two-Icon contract), ADR-414 (RuEdit already-owned primitive), ADR-412 (renderer services). Reconciles O194 (base-pkg physical extraction), O195 (Layer sweep), O196 (brand→`basebench` rename). Guide: `docs/Guides/design-system.md`. Inventory: `docs/Design_System_Inventory.md`. Plan: `docs/Design_System_And_Testing_Refactor.md` (Lane A / A2).
 
 > This ADR is the **A2** step of Lane A. A1 (inventory) is done and un-gated;
