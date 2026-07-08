@@ -11,7 +11,6 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
 }
 button {
   font: inherit;
@@ -180,13 +179,6 @@ body {
 }
 .cal-pick-name {
   @apply flex-1 truncate text-foreground text-sm;
-}
-.cal-badge {
-  @apply shrink-0 font-semibold text-muted-foreground whitespace-nowrap text-3xs;
-  letter-spacing: 0.04em;
-  border-radius: 3px;
-  padding: 1px 5px;
-  background: color-mix(in srgb, var(--muted-foreground) 10%, transparent);
 }
 .cal-pick-empty {
   @apply text-center text-muted-foreground italic text-xs;

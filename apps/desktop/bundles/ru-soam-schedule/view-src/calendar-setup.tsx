@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ViewRoot, useSoamView, useViewQuery, useViewChannel } from '@ru-soam/view-kit';
 import type { BoundProxy } from '@ru-soam/view-kit';
-import { Icon } from '@basebench/ui';
+import { Icon, Badge } from '@basebench/ui';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -595,8 +595,16 @@ function CalendarSetup() {
               >
                 {/* Calendar name is non-PHI provider metadata */}
                 <div className="cal-pick-name">{cal.name ?? cal.providerCalendarId}</div>
-                {!!cal.isPrimary && <span className="cal-badge">Primary</span>}
-                {!!cal.readOnly && <span className="cal-badge">Read-only</span>}
+                {!!cal.isPrimary && (
+                  <Badge size="xs" className="bg-muted font-semibold text-muted-foreground">
+                    Primary
+                  </Badge>
+                )}
+                {!!cal.readOnly && (
+                  <Badge size="xs" className="bg-muted font-semibold text-muted-foreground">
+                    Read-only
+                  </Badge>
+                )}
               </div>
             ))}
         </div>

@@ -10,7 +10,8 @@ import {
   useViewChannel,
 } from '@ru-soam/view-kit';
 import type { BoundProxy } from '@ru-soam/view-kit';
-import { Icon } from '@basebench/ui';
+import { Icon, Badge } from '@basebench/ui';
+import { ClassBadge } from './ClassBadge';
 import {
   type CalendarEvent,
   type ChipLabelMode,
@@ -321,9 +322,7 @@ function EventCard({ ev, selected, chipLabelMode, onClick }: EventCardProps) {
         </div>
         {subline && <div className="event-modality">{subline}</div>}
       </div>
-      <div className={`event-kind-badge ${classClass(ev)}`}>
-        {classLabel(ev)}
-      </div>
+      <ClassBadge ev={ev} />
     </div>
   );
 }
@@ -869,7 +868,7 @@ function EventPopover({ ev, anchorRect, onClose, onOpenSidePanel }: PopoverProps
         <div className="popover-header">
           <div className={`popover-kind-strip ${classClass(ev)}`} />
           <div className="popover-title">{ev.title || '(No title)'}</div>
-          <div className={`event-kind-badge ${classClass(ev)}`}>{classLabel(ev)}</div>
+          <ClassBadge ev={ev} />
           <button className="popover-close" type="button" onClick={onClose} aria-label="Close">
             <Icon name="close" size={14} />
           </button>
@@ -887,7 +886,9 @@ function EventPopover({ ev, anchorRect, onClose, onOpenSidePanel }: PopoverProps
                 <>
                   <strong>{fmtTimeRange(ev)}</strong>
                   {durMin > 0 && (
-                    <span className="popover-duration-badge">{fmtDuration(durMin)}</span>
+                    <Badge variant="outline" size="sm" className="ml-1.5 bg-background text-muted-foreground">
+                      {fmtDuration(durMin)}
+                    </Badge>
                   )}
                 </>
               )}
@@ -901,7 +902,9 @@ function EventPopover({ ev, anchorRect, onClose, onOpenSidePanel }: PopoverProps
                 <Icon name="layers" size={13} />
               </span>
               <div className="popover-row-text">
-                <span className="popover-cal-badge">{ev.calendarName}</span>
+                <Badge variant="outline" size="sm" className="text-muted-foreground">
+                  {ev.calendarName}
+                </Badge>
               </div>
             </div>
           )}
@@ -1546,9 +1549,14 @@ function Schedule() {
           </button>
         </div>
         <span className="range-label">{range.label}</span>
-        <div className="phi-chip" title="PHI Safety Score — high (read-only provider, no cloud sync)">
+        <Badge
+          variant="outline"
+          size="sm"
+          title="PHI Safety Score — high (read-only provider, no cloud sync)"
+          className="gap-1.5 border-success/40 bg-success/10 font-semibold text-success"
+        >
           <span className="phi-chip-dot"></span>High PHI safety
-        </div>
+        </Badge>
         <span className="header-divider" aria-hidden="true"></span>
         <div className="view-switcher">
           {(['agenda', 'day', 'week', 'month'] as const).map((v) => (

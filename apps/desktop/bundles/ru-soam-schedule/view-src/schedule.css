@@ -21,7 +21,6 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
 }
 button {
   font: inherit;
@@ -250,19 +249,6 @@ body {
 .popover-row-text strong {
   @apply font-medium text-foreground;
 }
-.popover-duration-badge {
-  @apply inline-block font-medium text-muted-foreground bg-background text-2xs;
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  border-radius: 3px;
-  padding: 1px 5px;
-  margin-left: 6px;
-}
-.popover-cal-badge {
-  @apply text-muted-foreground text-2xs;
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  border-radius: 3px;
-  padding: 1px 5px;
-}
 .popover-join-label {
   @apply font-semibold text-muted-foreground text-2xs;
   margin-bottom: 2px;
@@ -388,15 +374,7 @@ body {
   @apply hidden;
 }
 
-/* ── PHI chip ────────────────────────────────────── */
-.phi-chip {
-  @apply inline-flex items-center gap-[5px] shrink-0 rounded-md font-semibold select-none cursor-default text-2xs;
-  padding: 3px 9px;
-  letter-spacing: 0.02em;
-  color: var(--color-success);
-  border: 1px solid color-mix(in srgb, var(--color-success) 40%, transparent);
-  background: color-mix(in srgb, var(--color-success) 10%, transparent);
-}
+/* ── PHI chip dot (chip itself now @basebench/ui Badge) ─ */
 .phi-chip-dot {
   @apply shrink-0 rounded-full bg-success;
   width: 6px;
@@ -560,56 +538,6 @@ body {
 .event-modality {
   @apply truncate text-muted-foreground text-2xs;
   margin-top: 2px;
-}
-.event-kind-badge {
-  @apply shrink-0 font-bold uppercase whitespace-nowrap text-4xs;
-  letter-spacing: 0.06em;
-  padding: 3px 8px;
-  border-radius: 100px;
-  color: var(--muted-foreground);
-  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  background: color-mix(in srgb, var(--background) 60%, transparent);
-}
-.event-kind-badge.kind-session {
-  color: var(--primary);
-  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
-  background: color-mix(in srgb, var(--primary) 8%, transparent);
-}
-.event-kind-badge.kind-personal {
-  color: var(--color-info);
-  border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
-  background: color-mix(in srgb, var(--color-info) 8%, transparent);
-}
-.event-kind-badge.kind-admin {
-  color: var(--color-warning);
-  border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
-  background: color-mix(in srgb, var(--color-warning) 8%, transparent);
-}
-
-/* ── Classification modifier classes (SD-11) ─────── */
-.event-kind-badge.cls-client {
-  color: var(--color-success);
-  border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
-  background: color-mix(in srgb, var(--color-success) 8%, transparent);
-}
-.event-kind-badge.cls-probable {
-  color: var(--color-warning);
-  border-color: color-mix(in srgb, var(--color-warning) 40%, transparent);
-  background: color-mix(in srgb, var(--color-warning) 8%, transparent);
-}
-.event-kind-badge.cls-not {
-  color: var(--muted-foreground);
-  border-color: color-mix(in srgb, var(--border) 60%, transparent);
-  background: color-mix(in srgb, var(--background) 40%, transparent);
-  opacity: 0.6;
-}
-.event-kind-badge.cls-personal {
-  color: var(--color-info);
-  border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
-  background: color-mix(in srgb, var(--color-info) 8%, transparent);
-}
-.event-kind-badge.cls-unclassified {
-  /* inherits base .event-kind-badge styles — no override */
 }
 
 /* ── Time-grid classification badge ──────────────── */
