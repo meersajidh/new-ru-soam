@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { ViewRoot, useSoamView, useCapQuery, useCapMutation } from '@ru-soam/view-kit';
 import { Icon } from '@basebench/ui';
+import { StatusBadge } from './StatusBadge';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -101,9 +102,7 @@ function MeetingRow({ meeting: m, clientName, onOpen }: MeetingRowProps) {
           <span className="text-3xs text-muted-foreground capitalize leading-[1.3]">
             {m.kind || 'session'}
           </span>
-          <span className={`status-badge ${m.status || 'scheduled'}`}>
-            {(m.status || 'scheduled').replace('_', ' ')}
-          </span>
+          <StatusBadge status={m.status || 'scheduled'} />
           {m.modality === 'online' && (
             <span
               className="inline-flex items-center text-muted-foreground shrink-0"

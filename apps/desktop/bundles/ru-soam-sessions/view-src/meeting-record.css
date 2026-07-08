@@ -10,7 +10,6 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
 }
 button {
   font: inherit;
@@ -84,27 +83,6 @@ body {
   @apply font-medium capitalize text-muted-foreground bg-popover rounded-sm text-2xs;
   padding: 2px 7px;
 }
-.status-badge {
-  @apply font-medium capitalize rounded-sm text-2xs;
-  padding: 2px 7px;
-}
-.status-badge.scheduled {
-  color: var(--color-success);
-  background: color-mix(in srgb, var(--color-success) 15%, transparent);
-}
-.status-badge.completed {
-  color: var(--muted-foreground);
-  background: color-mix(in srgb, var(--color-success) 10%, transparent);
-}
-.status-badge.cancelled {
-  color: var(--destructive);
-  background: color-mix(in srgb, var(--destructive) 12%, transparent);
-}
-.status-badge.no_show {
-  color: var(--color-warning);
-  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
-}
-
 /* ── Open client record btn ──────────────────────── */
 .open-client-btn {
   @apply flex items-center gap-[5px] text-primary cursor-pointer text-xs;

@@ -17,7 +17,6 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
 }
 
 html,
@@ -85,33 +84,6 @@ body {
 }
 
 /* Status badge — pill; color variants below. */
-.status-badge {
-  @apply inline-flex items-center font-semibold uppercase text-4xs;
-  padding: 1px 6px;
-  border-radius: 10px;
-  letter-spacing: 0.04em;
-}
-.status-badge.scheduled {
-  color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 13%, transparent);
-  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
-}
-.status-badge.completed {
-  color: var(--muted-foreground);
-  background: color-mix(in srgb, var(--muted-foreground) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--muted-foreground) 25%, transparent);
-}
-.status-badge.cancelled {
-  color: var(--destructive);
-  background: color-mix(in srgb, var(--destructive) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--destructive) 25%, transparent);
-}
-.status-badge.no_show {
-  color: var(--color-warning);
-  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-warning) 25%, transparent);
-}
-
 /* Empty-state circular graphic. */
 .empty-graphic {
   @apply flex items-center justify-center rounded-full;

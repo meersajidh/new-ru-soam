@@ -4,6 +4,7 @@ import './meeting-record.css';
 import { createRoot } from 'react-dom/client';
 import { ViewRoot, useSoamView, useViewQuery, useCapQuery, useCapMutation } from '@ru-soam/view-kit';
 import { Icon } from '@basebench/ui';
+import { StatusBadge } from './StatusBadge';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -161,7 +162,7 @@ function MeetingRecord() {
         <div className="rec-client-name">{headerName}</div>
         <div className="rec-header-meta">
           <span className="rec-kind">{kind}</span>
-          <span className={`status-badge ${status}`}>{status.replace('_', ' ')}</span>
+          <StatusBadge status={status} />
         </div>
         {patientId && (
           <button className="open-client-btn" type="button" onClick={handleOpenClient}>
