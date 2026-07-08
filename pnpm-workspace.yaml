@@ -48,7 +48,7 @@ catalogs:
   router:
     '@tanstack/react-router': ^1.170.8
     '@tanstack/router-cli': ^1.167.10
-    '@tanstack/router-plugin': ^1.168.11
+    '@tanstack/router-plugin': ^1.168.18
     '@tanstack/router-devtools': ^1.167.0
 
 # Flat real-dir node_modules — NOT pnpm's default isolated/symlinked linker.
