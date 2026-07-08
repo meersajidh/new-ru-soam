@@ -20,9 +20,9 @@ packages:
 # TanStack Router/devtools (desktop-only, not shared).
 catalog:
   typescript: ^6.0.3
-  react: ^19.2.6
+  react: ^19.2.7
   react-dom: ^19.2.6
-  '@types/react': ^19.2.14
+  '@types/react': ^19.2.17
   '@types/react-dom': ^19.2.3
   '@tanstack/react-query': ^5.100.9
   '@tanstack/react-query-devtools': ^5.100.9
