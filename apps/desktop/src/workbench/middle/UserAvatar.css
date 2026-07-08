@@ -56,13 +56,13 @@
 }
 
 .user-avatar-menu-nickname {
-  @apply text-sm font-semibold text-fg-primary;
+  @apply text-sm font-semibold text-foreground;
   margin: 0;
   line-height: 1.2;
 }
 
 .user-avatar-menu-email {
-  @apply text-xs text-fg-muted;
+  @apply text-xs text-muted-foreground;
   margin: 0;
   margin-top: 2px;
   overflow: hidden;
@@ -107,7 +107,7 @@
   width: 100%;
   background: transparent;
   border: none;
-  @apply text-fg-secondary text-sm rounded-lg px-2.5 py-1.5;
+  @apply text-muted-foreground text-sm rounded-lg px-2.5 py-1.5;
   cursor: pointer;
   text-align: left;
   transition:
@@ -117,11 +117,11 @@
 
 .user-avatar-menu-item:hover {
   background: var(--accent);
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 
 .user-avatar-menu-item:hover .user-avatar-menu-item-icon {
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 
 .user-avatar-menu-item-icon {
@@ -130,7 +130,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   flex: 0 0 auto;
 }
 
@@ -140,16 +140,16 @@
 }
 
 .user-avatar-menu-item--destructive {
-  @apply text-error;
+  @apply text-destructive;
 }
 
 .user-avatar-menu-item--destructive:hover {
   background: color-mix(in srgb, var(--destructive) 14%, transparent);
-  @apply text-error;
+  @apply text-destructive;
 }
 
 .user-avatar-menu-item--destructive:hover .user-avatar-menu-item-icon {
-  @apply text-error;
+  @apply text-destructive;
 }
 
 .user-avatar-menu-footer {
@@ -162,9 +162,9 @@
 }
 
 .user-avatar-menu-dev-label {
-  @apply text-fg-muted font-semibold tracking-wide;
+  @apply text-muted-foreground font-semibold tracking-wide;
 }
 
 .user-avatar-menu-dev-copy {
-  @apply text-fg-secondary font-mono;
+  @apply text-muted-foreground font-mono;
 }

@@ -5,6 +5,6 @@
   flex-direction: column;
   height: 100%;
   background: var(--background);
-  @apply text-fg-primary text-sm;
+  @apply text-foreground text-sm;
   line-height: 1.5;
 }

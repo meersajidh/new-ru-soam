@@ -28,14 +28,14 @@
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border);
-  @apply text-fg-primary text-sm;
+  @apply text-foreground text-sm;
   outline: none;
   @apply px-4 py-3;
   width: 100%;
 }
 
 .cmd-palette-input::placeholder {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
 }
 
 .cmd-palette-list {
@@ -46,7 +46,7 @@
 }
 
 .cmd-palette-empty {
-  @apply text-fg-muted text-xs px-4 py-3;
+  @apply text-muted-foreground text-xs px-4 py-3;
 }
 
 .cmd-palette-item {
@@ -66,10 +66,10 @@
 }
 
 .cmd-palette-category {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
   margin-right: 2px;
 }
 
 .cmd-palette-title {
-  @apply text-fg-primary;
+  @apply text-foreground;
 }

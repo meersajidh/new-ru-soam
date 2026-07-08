@@ -14,26 +14,26 @@
  * ──────────────────────────────────────────────────────────────────────────── */
 
 /* Hero / display — wordmark, splash, page-defining headlines. */
-.t-h1          { @apply text-2xl font-semibold text-fg-primary; }
+.t-h1          { @apply text-2xl font-semibold text-foreground; }
 
 /* Section titles — modal titles, route titles, banner titles. */
-.t-h2          { @apply text-xl font-semibold text-fg-primary; }
+.t-h2          { @apply text-xl font-semibold text-foreground; }
 
 /* Sub-section / group titles — inside a card or panel. */
-.t-h3          { @apply text-lg font-semibold text-fg-primary; }
+.t-h3          { @apply text-lg font-semibold text-foreground; }
 
 /* Body — the default for any block of UI text. */
-.t-body        { @apply text-sm text-fg-primary; }
-.t-body-strong { @apply text-sm font-medium text-fg-primary; }
+.t-body        { @apply text-sm text-foreground; }
+.t-body-strong { @apply text-sm font-medium text-foreground; }
 
 /* Description — body-tier explanatory copy under a heading. */
-.t-description { @apply text-sm text-fg-secondary; }
+.t-description { @apply text-sm text-muted-foreground; }
 
 /* Caption — small uppercase or lowercase metadata, labels, badges. */
-.t-caption     { @apply text-xs text-fg-muted; }
+.t-caption     { @apply text-xs text-muted-foreground; }
 
 /* Mono — monospaced numeric / code data. */
-.t-mono        { @apply text-xs font-mono text-fg-primary; }
+.t-mono        { @apply text-xs font-mono text-foreground; }
 
 /* Inline mono — short code/key tokens inside a body paragraph. */
-.t-mono-inline { @apply text-xs font-mono rounded-sm bg-surface-elevated px-1; }
+.t-mono-inline { @apply text-xs font-mono rounded-sm bg-popover px-1; }

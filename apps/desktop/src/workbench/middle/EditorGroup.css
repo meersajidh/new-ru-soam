@@ -30,7 +30,7 @@
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  @apply gap-1 px-2 text-xs text-fg-muted;
+  @apply gap-1 px-2 text-xs text-muted-foreground;
   height: var(--header-height);
   background: var(--card);
   border-right: 1px solid var(--border);
@@ -43,12 +43,12 @@
 
 .editor-tab:hover {
   background: var(--popover);
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
 
 .editor-tab--active {
   background: var(--background);
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 
 .editor-tab--active::before {
@@ -78,7 +78,7 @@
 }
 
 .editor-tab-description {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   font-size: 0.75rem;
   margin-left: 0.25rem;
   overflow: hidden;
@@ -94,7 +94,7 @@
   height: 16px;
   border: none;
   background: transparent;
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -107,7 +107,7 @@
 
 .editor-tab-close:hover {
   background: var(--accent);
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 
 .editor-tab-close-dot { display: none; }
@@ -115,7 +115,7 @@
 
 .editor-tab-close--dirty .editor-tab-close-dot {
   display: inline;
-  @apply text-xs text-accent;
+  @apply text-xs text-primary;
 }
 .editor-tab-close--dirty .editor-tab-close-x { display: none; }
 

@@ -27,7 +27,7 @@
   font-size: 0.6875rem; /* 11px */
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   z-index: 2;
   pointer-events: none;
   user-select: none;
@@ -99,7 +99,7 @@
   font-size: 0.6875rem; /* 11px */
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   margin: 0;
   line-height: 1;
 }
@@ -119,7 +119,7 @@
   font-weight: 600;
   letter-spacing: -0.018em;
   line-height: 1.15;
-  @apply text-fg-primary;
+  @apply text-foreground;
   margin: 0;
   display: flex;
   align-items: center;
@@ -130,12 +130,12 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
 
 .login-modal-subtitle {
   font-size: 0.875rem; /* 14px */
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
   margin: 0;
   line-height: 1.4;
 }
@@ -166,7 +166,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
 
 .login-modal-forgot-link {
@@ -175,7 +175,7 @@
   padding: 0;
   font-size: 0.75rem;
   font-weight: 500;
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -184,7 +184,7 @@
 }
 
 .login-modal-forgot-link:hover {
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
 
 /* ── Submit CTA — full-width, near-black ── */
@@ -238,7 +238,7 @@
   border: none;
   padding: 0;
   font-size: 0.75rem;
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -247,7 +247,7 @@
 }
 
 .login-modal-recovery-link:hover {
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
   text-decoration-color: var(--muted-foreground);
 }
 
@@ -256,14 +256,14 @@
   border: none;
   padding: 0;
   font-size: 0.75rem;
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   cursor: pointer;
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 .login-modal-create-link:hover {
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
 
 /* ── Thin divider ── */
@@ -288,7 +288,7 @@
   font-size: 0.625rem; /* 10px */
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   display: flex;
   align-items: center;
   gap: 0.5em;
@@ -297,11 +297,11 @@
 .login-modal-trust__bullet {
   font-size: 0.4rem;
   line-height: 1;
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
 }
 
 .login-modal-trust__glyph {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   flex-shrink: 0;
   opacity: 0.6;
 }

@@ -146,7 +146,7 @@
 }
 
 .recovery-banner-body {
-  @apply text-fg-primary text-xs;
+  @apply text-foreground text-xs;
   line-height: 1.5;
 }
 
@@ -164,13 +164,13 @@
 }
 
 .recovery-index {
-  @apply text-fg-muted text-xs font-medium;
+  @apply text-muted-foreground text-xs font-medium;
   min-width: 20px;
   text-align: right;
 }
 
 .recovery-text {
-  @apply text-fg-primary font-medium;
+  @apply text-foreground font-medium;
   letter-spacing: 0.02em;
 }
 
@@ -196,7 +196,7 @@
   background: transparent;
   border: 1px solid var(--border);
   @apply rounded-full;
-  @apply text-fg-secondary text-xs font-medium;
+  @apply text-muted-foreground text-xs font-medium;
   padding: 6px 14px;
   cursor: pointer;
   transition:
@@ -206,12 +206,12 @@
 }
 
 .recovery-btn:hover {
-  @apply bg-tint-neutral-subtle text-fg-primary;
+  @apply bg-tint-neutral-subtle text-foreground;
   border-color: var(--muted-foreground);
 }
 
 .recovery-footnote {
-  @apply text-xs text-fg-muted;
+  @apply text-xs text-muted-foreground;
 }
 
 /* ── Acknowledge checkbox ────────────────────────────────────────────────── */
@@ -219,7 +219,7 @@
 .setup-checkbox-label {
   display: flex;
   align-items: flex-start;
-  @apply gap-3 text-xs text-fg-secondary bg-surface-sunken-soft;
+  @apply gap-3 text-xs text-muted-foreground bg-surface-sunken-soft;
   cursor: pointer;
   line-height: 1.55;
   padding: 12px 14px;
@@ -254,7 +254,7 @@
   padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  @apply bg-surface-sunken-medium text-xs text-fg-secondary;
+  @apply bg-surface-sunken-medium text-xs text-muted-foreground;
   line-height: 1.35;
 }
 
@@ -264,7 +264,7 @@
 }
 
 .setup-trust-badge strong {
-  @apply text-fg-primary font-semibold;
+  @apply text-foreground font-semibold;
 }
 
 /* ── Finish screen ───────────────────────────────────────────────────────── */
@@ -296,7 +296,7 @@
 
 .setup-finish-desc {
   text-align: center;
-  @apply text-fg-secondary text-sm;
+  @apply text-muted-foreground text-sm;
   margin: 0 auto;
   max-width: 44ch;
 }
@@ -311,11 +311,11 @@
 .setup-foot {
   text-align: center;
   padding: 20px 24px 28px;
-  @apply text-xs text-fg-muted;
+  @apply text-xs text-muted-foreground;
 }
 
 .setup-foot strong {
-  @apply text-fg-secondary font-medium;
+  @apply text-muted-foreground font-medium;
 }
 
 /* ── Help button ─────────────────────────────────────────────────────────── */
@@ -326,7 +326,7 @@
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--card);
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
   display: grid;
   place-items: center;
   cursor: pointer;

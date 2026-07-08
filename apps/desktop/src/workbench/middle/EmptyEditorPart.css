@@ -13,14 +13,14 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  @apply gap-3.5 text-fg-muted p-12;
+  @apply gap-3.5 text-muted-foreground p-12;
   text-align: center;
 }
 
 .editor-empty-mark {
   width: 96px;
   height: 96px;
-  @apply rounded-md bg-surface-panel;
+  @apply rounded-md bg-card;
   background-image: repeating-linear-gradient(
       45deg,
       var(--color-tint-accent-soft) 0 1px,
@@ -35,7 +35,7 @@
 }
 
 .editor-empty-title {
-  @apply font-display text-lg text-fg-secondary font-semibold;
+  @apply font-display text-lg text-muted-foreground font-semibold;
   margin: 0;
 }
 
@@ -44,7 +44,7 @@
 }
 
 .editor-empty-key {
-  @apply font-mono text-xs bg-surface-elevated text-fg-primary;
+  @apply font-mono text-xs bg-popover text-foreground;
   /* original: padding: 1px 5px; border-radius: 3px — keeping raw (non-scale values) */
   padding: 1px 5px;
   border: 1px solid var(--border);

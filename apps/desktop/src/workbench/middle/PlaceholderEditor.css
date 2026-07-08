@@ -9,6 +9,6 @@
 }
 
 .editor-placeholder-label {
-  @apply text-fg-muted text-xs font-mono;
+  @apply text-muted-foreground text-xs font-mono;
   margin: 0;
 }

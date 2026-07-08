@@ -28,14 +28,14 @@
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border);
-  @apply text-fg-primary text-sm;
+  @apply text-foreground text-sm;
   outline: none;
   @apply px-4 py-3;
   width: 100%;
 }
 
 .kbs-input::placeholder {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
 }
 
 .kbs-list {
@@ -46,7 +46,7 @@
 }
 
 .kbs-empty {
-  @apply text-fg-muted text-xs px-4 py-3;
+  @apply text-muted-foreground text-xs px-4 py-3;
 }
 
 .kbs-row {
@@ -70,11 +70,11 @@
 }
 
 .kbs-cat {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
 }
 
 .kbs-title {
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 
 .kbs-key {
@@ -95,7 +95,7 @@
 }
 
 .kbs-unbound {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
   font-style: italic;
 }
 
@@ -112,7 +112,7 @@
 }
 
 .kbs-recorder-hint {
-  @apply text-fg-muted text-xs;
+  @apply text-muted-foreground text-xs;
 }
 
 .kbs-actions {
@@ -125,7 +125,7 @@
   @apply text-xs rounded-sm;
   padding: 0 6px;
   border: 1px solid var(--border);
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
 }
 
 .kbs-badge--user {
@@ -136,12 +136,12 @@
 .kbs-btn {
   background: transparent;
   border: 1px solid var(--border);
-  @apply rounded-sm text-xs text-fg-secondary;
+  @apply rounded-sm text-xs text-muted-foreground;
   padding: 1px 8px;
   cursor: default;
 }
 
 .kbs-btn:hover {
   background: var(--accent);
-  @apply text-fg-primary;
+  @apply text-foreground;
 }

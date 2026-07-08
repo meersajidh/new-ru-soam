@@ -14,7 +14,7 @@
 }
 
 .workspace-switcher__chevron {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   flex-shrink: 0;
   transition: transform 0.15s ease;
   margin-left: 1px;
@@ -28,7 +28,7 @@
    Opens upward (StatusBar at window bottom); Popover positions it via
    usePopover edge-flip so top is already set correctly. */
 .workspace-switcher__list {
-  @apply bg-surface-elevated rounded-md text-sm;
+  @apply bg-popover rounded-md text-sm;
   padding: 0.3125rem;
   margin: 0;
   list-style: none;
@@ -42,7 +42,7 @@
 
 /* Section header */
 .workspace-switcher__list-header {
-  @apply text-xs text-fg-muted;
+  @apply text-xs text-muted-foreground;
   padding: 0.25rem 0.625rem 0.375rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -51,7 +51,7 @@
 
 /* Options */
 .workspace-switcher__option {
-  @apply text-fg-secondary rounded-sm;
+  @apply text-muted-foreground rounded-sm;
   display: flex;
   align-items: center;
   gap: 0.375rem;
@@ -62,16 +62,16 @@
 
 .workspace-switcher__option--active,
 .workspace-switcher__option:hover {
-  @apply bg-tint-neutral-soft text-fg-primary;
+  @apply bg-tint-neutral-soft text-foreground;
 }
 
 .workspace-switcher__option--current {
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 
 /* Check column */
 .workspace-switcher__option-check {
-  @apply text-accent;
+  @apply text-primary;
   display: flex;
   align-items: center;
   justify-content: center;

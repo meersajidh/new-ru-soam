@@ -24,7 +24,7 @@
 
 /* NOTE(type): 22px → text-lg (20px, −2px default-down). */
 .unlock-gate-title {
-  @apply font-display text-lg font-semibold text-fg-primary;
+  @apply font-display text-lg font-semibold text-foreground;
   margin: 0;
   display: flex;
   align-items: center;
@@ -32,7 +32,7 @@
 }
 
 .unlock-gate-nickname {
-  @apply text-xs text-fg-muted;
+  @apply text-xs text-muted-foreground;
   margin: 0;
 }
 
@@ -43,7 +43,7 @@
 }
 
 .unlock-gate-error {
-  @apply text-xs text-error;
+  @apply text-xs text-destructive;
   margin: 0;
 }
 
@@ -68,7 +68,7 @@
   width: 100%;
   background: var(--card);
   border: 1px solid var(--border);
-  @apply rounded-sm text-fg-primary font-mono text-xs;
+  @apply rounded-sm text-foreground font-mono text-xs;
   min-height: 80px;
   outline: none;
   @apply px-3 py-2;

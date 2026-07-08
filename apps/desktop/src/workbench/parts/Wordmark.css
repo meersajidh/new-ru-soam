@@ -3,7 +3,7 @@
 /* ── Wordmark ────────────────────────────────────────────────────────────── */
 
 .setup-wordmark {
-  @apply font-display text-2xl font-semibold text-accent;
+  @apply font-display text-2xl font-semibold text-primary;
   letter-spacing: -0.025em;
   line-height: 1;
   text-shadow: 0 0 calc(24px * var(--glow-mul))

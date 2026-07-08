@@ -12,7 +12,7 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  @apply text-xs font-medium text-fg-muted;
+  @apply text-xs font-medium text-muted-foreground;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   margin: 0;
@@ -24,7 +24,7 @@
 }
 
 .progress-counter .now {
-  @apply text-accent font-semibold;
+  @apply text-primary font-semibold;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 0 calc(8px * var(--glow-mul))
     color-mix(in oklch, var(--primary) calc(60% * var(--glow-mul)), transparent);
@@ -100,7 +100,7 @@
   border: 1.25px solid var(--border);
   display: grid;
   place-items: center;
-  @apply text-fg-muted font-mono text-xs font-semibold;
+  @apply text-muted-foreground font-mono text-xs font-semibold;
   font-variant-numeric: tabular-nums;
   background: var(--background);
   transition:
@@ -111,7 +111,7 @@
 }
 
 .step-label {
-  @apply text-xs font-medium text-fg-muted;
+  @apply text-xs font-medium text-muted-foreground;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -126,7 +126,7 @@
 }
 
 .step--done .step-label {
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
 
 .step--active .step-node {

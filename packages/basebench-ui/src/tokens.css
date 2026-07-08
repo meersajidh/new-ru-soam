@@ -20,7 +20,7 @@
  * @theme tree-shake gotcha (CLAUDE.md): hand-written CSS must reference real
  * `:root`/class custom props — layer-1 contract vars + the layer-3 real-`:root`
  * shim block are plain props (never `@theme`-only), so `var(--card)` /
- * `var(--color-surface-panel)` always resolve.
+ * `var(--card)` always resolve.
  *
  * BRIDGE (renderer→view): ThemeService.TOKEN_NAMES snapshots the layer-3
  * `--color-*` real props via getComputedStyle (mode already baked in), pushes
@@ -117,14 +117,15 @@
   --warning: oklch(0.80 0.13 75);
 }
 
-/* ── Layer 2b: shadcn CANONICAL color utilities (ADR-421 F4) ──────────────────
-   Maps the base-luma contract vars → Tailwind's `--color-*` namespace so the
-   kit's shadcn/Base UI components generate `bg-primary` / `text-muted-foreground`
-   / `border-destructive` / `ring-ring` etc. `inline` = utilities reference the
-   contract var directly, so they mode-switch via `.dark` (no static snapshot).
-   `--color-accent` is DELIBERATELY absent: the legacy shim below owns it
-   (= --primary, the app's amber, ~45 sites) so shadcn `bg-accent` resolves to
-   amber for now (slightly-wrong hover); the accent rename is F5 shim work. */
+/* ── Layer 2: canonical color utilities (ADR-421 F5) ─────────────────────────
+   Maps the base-luma contract vars → Tailwind's `--color-*` namespace so BOTH
+   the kit's shadcn/Base UI components AND our shell/view CSS generate
+   `bg-primary` / `text-muted-foreground` / `border-border` / `ring-ring` etc.
+   `inline` = utilities reference the contract var directly, so they mode-switch
+   via `.dark` (no static snapshot). `--color-accent` = the base-luma NEUTRAL
+   `--accent` (== `--muted`) — shadcn's muted hover surface; the app's brand
+   amber is `--color-primary`. (F5 shim kill: the bespoke `--color-*` alias
+   namespace + bridge readback shim are gone; consumers are on the contract.) */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -138,45 +139,33 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
 }
 
 @theme {
-  /* ── Layer 3: shim — bespoke `--color-*` utility namespace, rebased on the
-     contract. Existing components (bg-surface-panel, text-fg-primary, …) keep
-     rendering; values now come from base-luma and mode-switch via `.dark`
-     through the var indirection. Migrated off in F5. ── */
+  /* ── Layer 3: extension tokens — semantic/tint/shadow/type/spacing/radius that
+     shadcn has no contract slot for. Rebased on the base-luma contract (layer 1
+     + the layer-2 `@theme inline` map). The bespoke `--color-*` ALIAS namespace
+     (surface-, fg-, border, accent, error) is GONE (F5 shim kill) — those all map
+     1:1 onto the contract, so consumers use `bg-card` / `text-foreground` /
+     `border-border` / `bg-primary` / `text-destructive` directly now. ── */
 
-  /* Surfaces */
-  --color-surface-base:     var(--background);
-  --color-surface-panel:    var(--card);
-  --color-surface-elevated: var(--popover);
-  --color-surface-active:   var(--accent);
-
-  /* Foreground */
-  --color-fg-primary:   var(--foreground);
-  --color-fg-secondary: var(--muted-foreground);
-  --color-fg-muted:     var(--muted-foreground);
-
-  /* Borders */
-  --color-border:       var(--border);
-  --color-border-focus: var(--ring);
-
-  /* Accent — our "accent" is the brand primary (shadcn `accent` is a muted
-     hover surface; do not confuse — that maps to --color-surface-active above). */
-  --color-accent:         var(--primary);
-  --color-accent-fg:      var(--primary-foreground);
+  /* Brand-accent state variants (hover/pressed) — derived off the contract
+     primary; our brand "accent" is `--color-primary`, not shadcn's neutral
+     `--color-accent`. */
   --color-accent-hover:   color-mix(in oklch, var(--primary) 88%, white 12%);
   --color-accent-pressed: color-mix(in oklch, var(--primary) 82%, black 18%);
 
-  /* Semantic */
+  /* Semantic — no shadcn contract slot (error folds onto `--destructive`, so
+     use `text-destructive` etc. for errors; info/success/warning stay ours). */
   --color-info:    var(--info);
   --color-success: var(--success);
   --color-warning: var(--warning);
-  --color-error:   var(--destructive);
 
   /* Fonts — base-luma folds display into a single sans. Inter Tight is the
      self-hosted interim (via @fontsource, index.css); swap to exact Inter when
@@ -194,11 +183,11 @@
   /* Semantic tints — N% of color over transparent.
      5-step scale: subtle → soft → medium → strong → bold.
      Add new steps here before using new percentages elsewhere. */
-  --color-tint-accent-subtle:  color-mix(in oklch, var(--color-accent)  10%, transparent);
-  --color-tint-accent-soft:    color-mix(in oklch, var(--color-accent)  20%, transparent);
-  --color-tint-accent-medium:  color-mix(in oklch, var(--color-accent)  35%, transparent);
-  --color-tint-accent-strong:  color-mix(in oklch, var(--color-accent)  55%, transparent);
-  --color-tint-accent-bold:    color-mix(in oklch, var(--color-accent)  75%, transparent);
+  --color-tint-accent-subtle:  color-mix(in oklch, var(--primary)  10%, transparent);
+  --color-tint-accent-soft:    color-mix(in oklch, var(--primary)  20%, transparent);
+  --color-tint-accent-medium:  color-mix(in oklch, var(--primary)  35%, transparent);
+  --color-tint-accent-strong:  color-mix(in oklch, var(--primary)  55%, transparent);
+  --color-tint-accent-bold:    color-mix(in oklch, var(--primary)  75%, transparent);
 
   --color-tint-info-subtle:    color-mix(in oklch, var(--color-info)    15%, transparent);
   --color-tint-info-medium:    color-mix(in oklch, var(--color-info)    35%, transparent);
@@ -216,9 +205,9 @@
   --color-tint-warning-medium: color-mix(in oklch, var(--color-warning) 40%, transparent);
   --color-tint-warning-strong: color-mix(in oklch, var(--color-warning) 60%, transparent);
 
-  --color-tint-error-subtle:   color-mix(in oklch, var(--color-error)   12%, transparent);
-  --color-tint-error-medium:   color-mix(in oklch, var(--color-error)   35%, transparent);
-  --color-tint-error-strong:   color-mix(in oklch, var(--color-error)   60%, transparent);
+  --color-tint-error-subtle:   color-mix(in oklch, var(--destructive)   12%, transparent);
+  --color-tint-error-medium:   color-mix(in oklch, var(--destructive)   35%, transparent);
+  --color-tint-error-strong:   color-mix(in oklch, var(--destructive)   60%, transparent);
 
   /* Scrim — opaque-black overlay/modal backdrops.
      Two intensities: overlay (lighter, for transient overlays like the
@@ -236,39 +225,39 @@
      Subtle ambient surfaces (ghost-button bg, progress rail base, etc.)
      that have no semantic color attached. Scale is intentionally short —
      neutral surfaces should stay quiet. */
-  --color-tint-neutral-subtle: color-mix(in oklch, var(--color-fg-primary)  4%, transparent);
-  --color-tint-neutral-soft:   color-mix(in oklch, var(--color-fg-primary) 10%, transparent);
-  --color-tint-neutral-medium: color-mix(in oklch, var(--color-fg-primary) 12%, transparent);
+  --color-tint-neutral-subtle: color-mix(in oklch, var(--foreground)  4%, transparent);
+  --color-tint-neutral-soft:   color-mix(in oklch, var(--foreground) 10%, transparent);
+  --color-tint-neutral-medium: color-mix(in oklch, var(--foreground) 12%, transparent);
 
   /* Tinted borders — color-tinted variants of --color-border.
      `--color-border-hover` is the standard hover-state border (uses fg-muted as
      the tint source, not a semantic color, since hover affordance is
      neutral). Warning variants tint the border with the semantic warning
      color for severity-marked surfaces. */
-  --color-border-hover:           color-mix(in oklch, var(--color-fg-muted) 50%, var(--color-border));
-  --color-border-warning-soft:    color-mix(in oklch, var(--color-warning)  40%, var(--color-border));
-  --color-border-warning-strong:  color-mix(in oklch, var(--color-warning)  60%, var(--color-border));
+  --color-border-hover:           color-mix(in oklch, var(--muted-foreground) 50%, var(--border));
+  --color-border-warning-soft:    color-mix(in oklch, var(--color-warning)  40%, var(--border));
+  --color-border-warning-strong:  color-mix(in oklch, var(--color-warning)  60%, var(--border));
 
   /* Subtle border — alpha-faded variant of --color-border, used for
      secondary structural lines (e.g. inner grid cells) where the full
      border weight would be too loud. */
-  --color-border-subtle: color-mix(in oklch, var(--color-border) 60%, transparent);
+  --color-border-subtle: color-mix(in oklch, var(--border) 60%, transparent);
 
   /* Form input surfaces — opaque blend of panel into base.
      `:focus` uses a slightly darker variant for state reinforcement
      alongside the accent border + glow. */
-  --color-surface-input:        color-mix(in oklch, var(--color-surface-panel) 80%, var(--color-surface-base));
-  --color-surface-input-focus:  color-mix(in oklch, var(--color-surface-panel) 70%, var(--color-surface-base));
+  --color-surface-input:        color-mix(in oklch, var(--card) 80%, var(--background));
+  --color-surface-input-focus:  color-mix(in oklch, var(--card) 70%, var(--background));
 
   /* Sunken surfaces — translucent panel over the host bg.
      Used for inset grids, ghost buttons, trust badges. Two intensities. */
-  --color-surface-sunken-soft:   color-mix(in oklch, var(--color-surface-panel) 50%, transparent);
-  --color-surface-sunken-medium: color-mix(in oklch, var(--color-surface-panel) 60%, transparent);
+  --color-surface-sunken-soft:   color-mix(in oklch, var(--card) 50%, transparent);
+  --color-surface-sunken-medium: color-mix(in oklch, var(--card) 60%, transparent);
 
   /* Recessed surface — translucent base over the host bg.
      Darker than --color-surface-sunken-*; used for inner cells that sit inside
      an already-sunken container (e.g. recovery-word inside recovery-grid). */
-  --color-surface-recessed: color-mix(in oklch, var(--color-surface-base) 60%, transparent);
+  --color-surface-recessed: color-mix(in oklch, var(--background) 60%, transparent);
 
   /* Disable Tailwind's default text scale so only the project's 6 steps
      resolve. Any `text-3xl` etc. references become a no-op — flag in review. */
@@ -321,33 +310,14 @@
   --radius-md: var(--radius);
 }
 
-/* Bridge-snapshot shim — REAL `:root` props mirroring the shim `--color-*` /
-   `--font-*` names the iframe bridge snapshots (ThemeService.TOKEN_NAMES +
-   FontService.FONT_VAR_NAMES). The `@theme` copies above PAINT correctly but
-   read back "" via getComputedStyle (the @theme tree-shake/readback gotcha),
-   which zeroed the bridge appearance snapshot → bundle views fell to their
-   cold-start defaults. These plain props resolve `var(--…)` through the
-   contract, so getComputedStyle returns real values; mode-switch rides the
-   contract indirection (no `.dark` duplicate needed). Retired with the shim in
-   F5 once the snapshot reads contract leaves directly. */
+/* Font tokens as REAL `:root` props. The `@theme` copies below PAINT but read
+   back "" via getComputedStyle (the @theme tree-shake/readback gotcha), and both
+   hand-written `var(--font-sans)` CSS and the iframe font bridge
+   (FontService.FONT_VAR_NAMES) need real resolved values. Fonts are mode-
+   independent, so no `.dark` duplicate. (The colour-alias bridge shim that used
+   to sit here is GONE — F5 shim kill; the bridge now snapshots the contract
+   leaves directly, which are real `:root`/`.dark` props that read back fine.) */
 :root {
-  --color-surface-base:     var(--background);
-  --color-surface-panel:    var(--card);
-  --color-surface-elevated: var(--popover);
-  --color-surface-active:   var(--accent);
-  --color-fg-primary:   var(--foreground);
-  --color-fg-secondary: var(--muted-foreground);
-  --color-fg-muted:     var(--muted-foreground);
-  --color-border:       var(--border);
-  --color-border-focus: var(--ring);
-  --color-accent:         var(--primary);
-  --color-accent-fg:      var(--primary-foreground);
-  --color-accent-hover:   color-mix(in oklch, var(--primary) 88%, white 12%);
-  --color-accent-pressed: color-mix(in oklch, var(--primary) 82%, black 18%);
-  --color-info:    var(--info);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-error:   var(--destructive);
   --font-sans: 'Inter Tight Variable', 'Inter Tight', system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, Consolas, 'Courier New', monospace;
   --font-display: var(--font-sans);

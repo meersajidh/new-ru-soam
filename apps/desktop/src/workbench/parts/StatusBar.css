@@ -28,7 +28,7 @@
 }
 
 .statusbar-entry {
-  @apply text-xs text-fg-secondary rounded-sm;
+  @apply text-xs text-muted-foreground rounded-sm;
   padding: 3px 8px;
   cursor: default;
   display: inline-flex;
@@ -41,7 +41,7 @@
 
 .statusbar-entry:hover {
   background: var(--accent);
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 
 .statusbar-entry--icon-only {
@@ -62,7 +62,7 @@
 }
 
 .statusbar-entry.statusbar-entry--error {
-  @apply text-error;
+  @apply text-destructive;
 }
 
 .sb-divider {

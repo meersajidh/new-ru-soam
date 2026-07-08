@@ -50,7 +50,7 @@
 .tb-menu-item {
   display: inline-flex;
   align-items: center;
-  @apply px-2 text-xs text-fg-secondary rounded-sm;
+  @apply px-2 text-xs text-muted-foreground rounded-sm;
   background: transparent;
   border: none;
   cursor: default;
@@ -60,7 +60,7 @@
 .tb-menu-item:hover,
 .tb-menu-item--open {
   background: var(--accent);
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 
 /* Nav + icon buttons */
@@ -75,7 +75,7 @@
   height: 26px;
   border: none;
   background: transparent;
-  @apply text-fg-muted rounded-sm;
+  @apply text-muted-foreground rounded-sm;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -84,12 +84,12 @@
 
 .tb-icon-btn:hover {
   background: var(--accent);
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 
 .tb-icon-btn.is-active {
   background: var(--accent);
-  @apply text-fg-primary;
+  @apply text-foreground;
 }
 
 .tb-icon-btn:disabled {
@@ -101,7 +101,7 @@
 .quick-open {
   display: flex;
   align-items: center;
-  @apply gap-2 text-xs text-fg-secondary rounded-md;
+  @apply gap-2 text-xs text-muted-foreground rounded-md;
   height: 26px;
   margin: 5px 0;
   /* original: padding: 0 8px 0 10px — asymmetric; keep raw. 8px≈px-2, 10px≈px-2 */
@@ -119,12 +119,12 @@
 }
 
 .quick-open .lead {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   display: inline-flex;
 }
 
 .quick-open .label {
-  @apply text-fg-primary font-mono text-xs;
+  @apply text-foreground font-mono text-xs;
   flex: 1;
   text-align: left;
   overflow: hidden;
@@ -133,7 +133,7 @@
 }
 
 .quick-open .meta {
-  @apply font-mono text-xs text-fg-muted bg-surface-elevated;
+  @apply font-mono text-xs text-muted-foreground bg-popover;
   border: 1px solid var(--border);
   border-radius: 3px;
   /* original: padding: 1px 5px — 1px → p-0.5 vertical, 5px → p-1 horizontal (default-down) */
@@ -141,7 +141,7 @@
 }
 
 .quick-open .trail {
-  @apply text-fg-muted;
+  @apply text-muted-foreground;
   display: inline-flex;
 }
 
@@ -169,7 +169,7 @@
   width: 46px;
   border: none;
   background: transparent;
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -182,5 +182,5 @@
 
 .tb-win-btn--close:hover {
   background: var(--destructive);
-  @apply text-fg-primary;
+  @apply text-foreground;
 }

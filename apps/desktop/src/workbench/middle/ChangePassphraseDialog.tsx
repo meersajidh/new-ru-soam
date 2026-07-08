@@ -82,7 +82,7 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
 
   const scoreLabels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
   const scoreColors = [
-    'var(--color-error)',
+    'var(--destructive)',
     'var(--color-warning)',
     'var(--color-warning)',
     'var(--color-success)',
@@ -151,12 +151,12 @@ export default function ChangePassphraseDialog({ onClose }: Props) {
                   key={i}
                   className="strength-bar"
                   style={{
-                    background: i < newScore ? scoreColors[newScore - 1] : 'var(--color-border)',
+                    background: i < newScore ? scoreColors[newScore - 1] : 'var(--border)',
                   }}
                 />
               ))}
             </div>
-            <span className="strength-label" style={{ color: newScore > 0 ? scoreColors[newScore - 1] : 'var(--color-fg-muted)' }}>
+            <span className="strength-label" style={{ color: newScore > 0 ? scoreColors[newScore - 1] : 'var(--muted-foreground)' }}>
               {scoreLabels[newScore]}
             </span>
           </div>

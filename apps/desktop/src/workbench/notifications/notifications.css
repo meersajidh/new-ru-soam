@@ -16,7 +16,7 @@
 
 .notif-toast {
   pointer-events: all;
-  @apply bg-surface-elevated rounded-md text-fg-primary text-sm;
+  @apply bg-popover rounded-md text-foreground text-sm;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-overlay);
   display: flex;
@@ -28,7 +28,7 @@
 }
 
 .notif-toast:hover {
-  @apply bg-surface-active;
+  @apply bg-muted;
 }
 
 .notif-toast[data-severity='error'] {
@@ -47,9 +47,9 @@
 .notif-toast__icon {
   flex: 0 0 auto;
   margin-top: 1px;
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
-.notif-toast[data-severity='error']   .notif-toast__icon { @apply text-error; }
+.notif-toast[data-severity='error']   .notif-toast__icon { @apply text-destructive; }
 .notif-toast[data-severity='warning'] .notif-toast__icon { @apply text-warning; }
 .notif-toast[data-severity='alarm']   .notif-toast__icon { @apply text-warning; }
 
@@ -60,14 +60,14 @@
 }
 
 .notif-toast__title {
-  @apply text-sm font-medium text-fg-primary;
+  @apply text-sm font-medium text-foreground;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .notif-toast__msg {
-  @apply text-xs text-fg-secondary;
+  @apply text-xs text-muted-foreground;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -75,7 +75,7 @@
 
 .notif-toast__dismiss {
   flex: 0 0 auto;
-  @apply text-fg-muted rounded-sm;
+  @apply text-muted-foreground rounded-sm;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -89,7 +89,7 @@
 }
 
 .notif-toast__dismiss:hover {
-  @apply bg-tint-neutral-soft text-fg-primary;
+  @apply bg-tint-neutral-soft text-foreground;
 }
 
 /* ── Panel overlay + flyout ───────────────────────────────────────────────── */
@@ -108,7 +108,7 @@
   width: 360px;
   max-height: 480px;
   z-index: 850;
-  @apply bg-surface-panel rounded-md flex flex-col;
+  @apply bg-card rounded-md flex flex-col;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-overlay);
   overflow: hidden;
@@ -121,7 +121,7 @@
 }
 
 .notif-panel__title {
-  @apply text-sm font-medium text-fg-primary;
+  @apply text-sm font-medium text-foreground;
 }
 
 .notif-panel__header-actions {
@@ -129,7 +129,7 @@
 }
 
 .notif-panel__header-btn {
-  @apply text-xs text-fg-muted rounded-sm px-2 py-1;
+  @apply text-xs text-muted-foreground rounded-sm px-2 py-1;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -137,7 +137,7 @@
 }
 
 .notif-panel__header-btn:hover {
-  @apply bg-tint-neutral-soft text-fg-secondary;
+  @apply bg-tint-neutral-soft text-muted-foreground;
 }
 
 .notif-panel__list {
@@ -147,7 +147,7 @@
 }
 
 .notif-panel__empty {
-  @apply text-sm text-fg-muted px-4 py-6 text-center;
+  @apply text-sm text-muted-foreground px-4 py-6 text-center;
 }
 
 /* ── Notification item ────────────────────────────────────────────────────── */
@@ -177,16 +177,16 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  @apply bg-accent;
+  @apply bg-primary;
   flex-shrink: 0;
 }
 
 .notif-item__icon {
   flex: 0 0 auto;
   margin-top: 2px;
-  @apply text-fg-secondary;
+  @apply text-muted-foreground;
 }
-.notif-item__icon[data-severity='error']   { @apply text-error; }
+.notif-item__icon[data-severity='error']   { @apply text-destructive; }
 .notif-item__icon[data-severity='warning'] { @apply text-warning; }
 .notif-item__icon[data-severity='alarm']   { @apply text-warning; }
 
@@ -197,11 +197,11 @@
 }
 
 .notif-item__title {
-  @apply text-sm font-medium text-fg-primary;
+  @apply text-sm font-medium text-foreground;
 }
 
 .notif-item__msg {
-  @apply text-xs text-fg-secondary;
+  @apply text-xs text-muted-foreground;
 }
 
 .notif-item__actions {
@@ -209,7 +209,7 @@
 }
 
 .notif-item__action-btn {
-  @apply text-xs text-fg-secondary rounded-sm px-2 py-1;
+  @apply text-xs text-muted-foreground rounded-sm px-2 py-1;
   background: transparent;
   border: 1px solid var(--border);
   cursor: pointer;
@@ -217,16 +217,16 @@
 }
 
 .notif-item__action-btn:hover {
-  @apply bg-tint-accent-subtle border-accent text-accent;
+  @apply bg-tint-accent-subtle border-primary text-primary;
 }
 
 .notif-item__time {
-  @apply text-xs text-fg-muted mt-0.5;
+  @apply text-xs text-muted-foreground mt-0.5;
 }
 
 .notif-item__dismiss {
   flex: 0 0 auto;
-  @apply text-fg-muted rounded-sm;
+  @apply text-muted-foreground rounded-sm;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -245,6 +245,6 @@
 }
 
 .notif-item__dismiss:hover {
-  @apply bg-tint-neutral-soft text-fg-primary;
+  @apply bg-tint-neutral-soft text-foreground;
   opacity: 1;
 }

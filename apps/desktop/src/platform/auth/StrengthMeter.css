@@ -43,5 +43,5 @@
 }
 
 .strength-label {
-  @apply text-xs text-fg-muted;
+  @apply text-xs text-muted-foreground;
 }

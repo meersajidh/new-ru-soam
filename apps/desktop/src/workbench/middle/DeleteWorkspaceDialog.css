@@ -21,7 +21,7 @@
 }
 
 .delete-workspace-title {
-  @apply text-base font-semibold text-fg-primary;
+  @apply text-base font-semibold text-foreground;
   margin: 0;
 }
 
@@ -36,16 +36,16 @@
 }
 
 .delete-workspace-warning-headline {
-  @apply text-sm font-semibold text-error;
+  @apply text-sm font-semibold text-destructive;
   margin: 0;
 }
 
 .delete-workspace-warning-body {
-  @apply text-sm text-fg-secondary;
+  @apply text-sm text-muted-foreground;
   margin: 0;
   line-height: 1.5;
 }
 
 .delete-workspace-warning-body strong {
-  @apply text-fg-primary font-semibold;
+  @apply text-foreground font-semibold;
 }

@@ -12,7 +12,7 @@
 }
 
 .panel-empty-state {
-  @apply p-4 text-fg-muted text-xs;
+  @apply p-4 text-muted-foreground text-xs;
   margin: 0;
 }
 
