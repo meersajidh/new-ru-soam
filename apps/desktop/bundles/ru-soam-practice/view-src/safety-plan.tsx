@@ -4,7 +4,7 @@ import './safety-plan.css';
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ViewRoot, useViewQuery, useCapQuery, useCapMutation } from '@ru-soam/view-kit';
-import { Icon } from '@basebench/ui';
+import { Icon, Card as UiCard, CardContent } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -140,24 +140,30 @@ function SafetyPlan() {
 
       {/* Scroll area */}
       <div id="sp-scroll">
-        <div id="sp-card" data-maturity-id="safety-plan-editor">
-          {planQuery.isPending && (
-            <div className="text-muted-foreground text-xs">Loading…</div>
-          )}
-          {/*
-           * Key on updatedAt so the form re-mounts (re-seeds state) after a
-           * successful save or external store change that changes the plan.
-           * TanStack Query structuralSharing keeps the same reference when data
-           * is deeply equal, so spurious refetches do NOT trigger a re-mount.
-           */}
-          {planQuery.isSuccess && (
-            <SafetyPlanForm
-              key={plan?.updatedAt ?? 'none'}
-              plan={plan ?? null}
-              clientId={clientId}
-            />
-          )}
-        </div>
+        <UiCard
+          size="sm"
+          data-maturity-id="safety-plan-editor"
+          className="max-w-[640px] rounded-2xl"
+        >
+          <CardContent className="flex flex-col gap-5">
+            {planQuery.isPending && (
+              <div className="text-muted-foreground text-xs">Loading…</div>
+            )}
+            {/*
+             * Key on updatedAt so the form re-mounts (re-seeds state) after a
+             * successful save or external store change that changes the plan.
+             * TanStack Query structuralSharing keeps the same reference when data
+             * is deeply equal, so spurious refetches do NOT trigger a re-mount.
+             */}
+            {planQuery.isSuccess && (
+              <SafetyPlanForm
+                key={plan?.updatedAt ?? 'none'}
+                plan={plan ?? null}
+                clientId={clientId}
+              />
+            )}
+          </CardContent>
+        </UiCard>
       </div>
     </>
   );

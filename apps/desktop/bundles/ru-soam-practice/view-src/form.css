@@ -10,11 +10,10 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
 }
 html,
 body {
-  @apply font-sans text-sm h-full overflow-hidden bg-background text-foreground;
+  @apply font-sans text-sm h-full overflow-hidden bg-muted text-foreground;
   line-height: 1.5;
 }
 #root {
@@ -27,14 +26,6 @@ body {
   padding: 24px 28px 40px;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
-}
-
-/* ── Card ────────────────────────────────────────── */
-#form-card {
-  @apply overflow-hidden bg-popover;
-  max-width: 560px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
 }
 
 /* ── Card header ─────────────────────────────────── */

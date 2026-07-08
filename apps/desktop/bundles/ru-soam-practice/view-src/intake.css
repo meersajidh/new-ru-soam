@@ -10,7 +10,6 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
 }
 button {
   font: inherit;
@@ -24,7 +23,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 body {
-  @apply font-sans text-sm bg-background text-foreground;
+  @apply font-sans text-sm bg-muted text-foreground;
   line-height: 1.5;
 }
 #root {
@@ -70,14 +69,6 @@ body {
   padding: 24px 28px 48px;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
-}
-
-/* ── Card ────────────────────────────────────────── */
-#ic-card {
-  @apply flex flex-col gap-[6px] rounded-md bg-popover;
-  max-width: 560px;
-  padding: 20px 24px 24px;
-  border: 1px solid var(--border);
 }
 
 /* ── Progress header ─────────────────────────────── */

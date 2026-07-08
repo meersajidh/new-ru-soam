@@ -11,7 +11,6 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
 }
 button {
   font: inherit;
@@ -25,7 +24,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 body {
-  @apply font-sans text-sm bg-background text-foreground;
+  @apply font-sans text-sm bg-muted text-foreground;
   line-height: 1.5;
 }
 #root {
@@ -71,14 +70,6 @@ body {
   padding: 24px 28px 48px;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
-}
-
-/* ── Form card ───────────────────────────────────── */
-#sp-card {
-  @apply flex flex-col gap-5 rounded-md bg-popover;
-  max-width: 640px;
-  padding: 24px 28px 28px;
-  border: 1px solid var(--border);
 }
 
 /* ── Section heading ─────────────────────────────── */

@@ -9,7 +9,7 @@ import {
   useCapQuery,
   type SoamView,
 } from '@ru-soam/view-kit';
-import { Icon } from '@basebench/ui';
+import { Icon, Card as UiCard, CardContent } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -131,24 +131,30 @@ function Intake() {
 
       {/* Scroll area */}
       <div id="ic-scroll">
-        <div id="ic-card" data-maturity-id="intake-checklist">
-          {/* Loading state — only while first fetch is in flight */}
-          {completenessQuery.isPending && (
-            <div className="text-muted-foreground text-xs">Loading…</div>
-          )}
-          {/* Data card — only when completeness query succeeded with data */}
-          {data != null && (
-            <IntakeCard
-              data={data}
-              hasMeeting={hasMeeting}
-              derivedDone={derivedDone}
-              derivedTotal={derivedTotal}
-              clientId={clientId}
-              clientTitle={clientTitle ?? clientId}
-              soamView={soamView}
-            />
-          )}
-        </div>
+        <UiCard
+          size="sm"
+          data-maturity-id="intake-checklist"
+          className="max-w-[560px] rounded-2xl"
+        >
+          <CardContent className="flex flex-col gap-[6px]">
+            {/* Loading state — only while first fetch is in flight */}
+            {completenessQuery.isPending && (
+              <div className="text-muted-foreground text-xs">Loading…</div>
+            )}
+            {/* Data card — only when completeness query succeeded with data */}
+            {data != null && (
+              <IntakeCard
+                data={data}
+                hasMeeting={hasMeeting}
+                derivedDone={derivedDone}
+                derivedTotal={derivedTotal}
+                clientId={clientId}
+                clientTitle={clientTitle ?? clientId}
+                soamView={soamView}
+              />
+            )}
+          </CardContent>
+        </UiCard>
         {/* Empty state — query succeeded but returned null/falsy */}
         {completenessQuery.isSuccess && (data == null || !data) && (
           <div id="ic-empty" className="visible">

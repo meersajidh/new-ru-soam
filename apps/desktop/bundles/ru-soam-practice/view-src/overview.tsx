@@ -10,7 +10,16 @@ import {
   useViewChannel,
   useCapQuery,
 } from '@ru-soam/view-kit';
-import { Icon } from '@basebench/ui';
+import {
+  Icon,
+  Card as UiCard,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+  CardAction,
+  Badge,
+} from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -295,8 +304,8 @@ function Header({ record, profile, lifecycle, consent, nextMeeting }: HeaderProp
         <h1 className="ov-name">{record.displayName}</h1>
         <div className="ov-id-sub">{identityLine}</div>
         <div className="ov-problems">
-          {stageLabel && <span className="ov-chip">{stageLabel}</span>}
-          {diag && <span className="ov-chip is-primary">{diag}</span>}
+          {stageLabel && <Badge variant="outline">{stageLabel}</Badge>}
+          {diag && <Badge variant="secondary">{diag}</Badge>}
         </div>
       </div>
       <div className="ov-badges">
@@ -339,15 +348,23 @@ interface CardProps {
 
 function Card({ iconName, title, source, foot, maturityId, children }: CardProps) {
   return (
-    <section className="ov-card" data-maturity-id={maturityId}>
-      <header className="ov-card-head">
-        <Icon name={iconName} size={13} />
-        <span className="ov-card-title">{title}</span>
-        {source && <span className="ov-card-source">{source}</span>}
-      </header>
-      <div className="ov-card-body">{children}</div>
-      {foot && <footer className="ov-card-foot">{foot}</footer>}
-    </section>
+    <UiCard size="sm" data-maturity-id={maturityId} className="rounded-2xl">
+      <CardHeader>
+        <CardTitle className="flex min-w-0 items-center gap-[7px] text-xs font-semibold text-foreground [&_svg]:text-muted-foreground">
+          <Icon name={iconName} size={13} />
+          <span className="truncate">{title}</span>
+        </CardTitle>
+        {source && (
+          <CardAction>
+            <Badge variant="outline" className="text-2xs tracking-wider uppercase">
+              {source}
+            </Badge>
+          </CardAction>
+        )}
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+      {foot && <CardFooter>{foot}</CardFooter>}
+    </UiCard>
   );
 }
 
@@ -390,17 +407,17 @@ function GoalsBody() {
   return (
     <div>
       {MOCK.goals.map((g) => {
-        const statusCls =
+        const statusVariant =
           g.status === 'On track'
-            ? 'st-ontrack'
+            ? 'secondary'
             : g.status === 'Slipping'
-              ? 'st-slipping'
-              : 'st-notstarted';
+              ? 'default'
+              : 'outline';
         return (
           <div className="goal-row" key={g.label}>
             <div className="goal-top">
               <span className="goal-label">{g.label}</span>
-              <span className={`goal-status ${statusCls}`}>{g.status}</span>
+              <Badge variant={statusVariant}>{g.status}</Badge>
             </div>
             <div className="goal-track">
               <span className="goal-fill" style={{ width: `${Math.round(g.progress * 100)}%` }} />

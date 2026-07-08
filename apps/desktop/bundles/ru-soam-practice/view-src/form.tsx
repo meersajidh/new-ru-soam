@@ -10,6 +10,7 @@ import {
   useCapQuery,
   type BoundProxy,
 } from '@ru-soam/view-kit';
+import { Card as UiCard } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -374,7 +375,7 @@ function CreateContent() {
 
   return (
     <div id="page">
-      <div id="form-card">
+      <UiCard className="max-w-[560px] gap-0 rounded-2xl py-0">
         <div id="card-header">
           <div id="card-avatar">{liveAvatar}</div>
           <div id="card-meta">
@@ -417,7 +418,7 @@ function CreateContent() {
             {saving ? 'Creating…' : 'Create Client'}
           </button>
         </div>
-      </div>
+      </UiCard>
     </div>
   );
 }
@@ -639,7 +640,7 @@ function EditContentInner({
 
   return (
     <div id="page">
-      <div id="form-card">
+      <UiCard className="max-w-[560px] gap-0 rounded-2xl py-0">
         <div id="card-header">
           <div id="card-avatar">{av}</div>
           <div id="card-meta">
@@ -683,7 +684,7 @@ function EditContentInner({
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
-      </div>
+      </UiCard>
     </div>
   );
 }
