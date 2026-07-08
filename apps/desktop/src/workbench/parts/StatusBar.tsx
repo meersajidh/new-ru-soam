@@ -1,5 +1,5 @@
 import './StatusBar.css';
-import { Icon } from '@basebench/ui';
+import { Icon, Badge } from '@basebench/ui';
 import { useStatusBarEntries, useService } from '../../platform/services/hooks';
 import { CommandServiceId } from '../../platform/services/ids';
 import type { StatusBarEntry } from '../../platform/statusbar/statusbar-service';
@@ -45,7 +45,9 @@ function EntryNode({ entry, onCommand }: EntryNodeProps) {
       {iconNode}
       {entry.text && <span>{entry.text}</span>}
       {entry.badge != null && entry.badge > 0 && (
-        <span className="sb-badge">{entry.badge}</span>
+        <Badge size="xs" className={`min-w-[14px] font-mono font-semibold${entry.text ? '' : ' ml-1'}`}>
+          {entry.badge}
+        </Badge>
       )}
     </>
   );

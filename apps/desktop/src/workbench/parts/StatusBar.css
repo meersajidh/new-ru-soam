@@ -49,10 +49,6 @@
   padding: 3px 6px;
 }
 
-.statusbar-entry--icon-only .sb-badge {
-  margin-left: 4px;
-}
-
 .statusbar-entry.statusbar-entry--ok {
   @apply text-success;
 }
@@ -73,18 +69,3 @@
   display: inline-block;
 }
 
-/* NOTE(aesthetic): .sb-badge uses 9px → text-xs (12px, +3px). Badge is
-   tightly packed; 12px may expand height. Flagged for dogfood spot-check. */
-.sb-badge {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  @apply font-mono text-xs font-semibold;
-  min-width: 14px;
-  height: 14px;
-  @apply px-1;
-  border-radius: 7px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}

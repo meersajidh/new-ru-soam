@@ -1,5 +1,6 @@
 import './KeyboardShortcuts.css';
 import { useEffect, useRef, useState } from 'react';
+import { Badge } from '@basebench/ui';
 import { useService } from '../../platform/services/hooks';
 import { ContextKeyServiceId, KeybindingServiceId } from '../../platform/services/ids';
 import type { IKeybindingService, EffectiveBinding } from '../../platform/keybinding/keybinding-service';
@@ -176,9 +177,13 @@ export default function KeyboardShortcuts() {
                 </span>
                 <span className="kbs-actions">
                   {r.source && (
-                    <span className={`kbs-badge kbs-badge--${r.source}`}>
+                    <Badge
+                      variant="outline"
+                      size="sm"
+                      className={r.source === 'user' ? 'border-primary text-primary' : ''}
+                    >
                       {r.source === 'user' ? 'User' : r.source === 'bundle' ? 'Bundle' : 'Default'}
-                    </span>
+                    </Badge>
                   )}
                   {recordingFor !== r.command && (
                     <button
