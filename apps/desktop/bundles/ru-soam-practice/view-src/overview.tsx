@@ -310,19 +310,34 @@ function Header({ record, profile, lifecycle, consent, nextMeeting }: HeaderProp
       </div>
       <div className="ov-badges">
         {consent?.advanceDirectiveStatus && (
-          <span className="ov-badge ok" data-maturity-id="badge-advance-directive">
+          <Badge
+            variant="outline"
+            size="xs"
+            data-maturity-id="badge-advance-directive"
+            className="h-auto gap-1.5 rounded-full border-success/35 bg-success/10 px-[9px] py-1 text-3xs text-success [&>svg]:size-3!"
+          >
             <Icon name="note" size={12} /> AD: {consent.advanceDirectiveStatus}
-          </span>
+          </Badge>
         )}
         {consent?.capacityStatus && (
-          <span className="ov-badge ok" data-maturity-id="badge-capacity">
+          <Badge
+            variant="outline"
+            size="xs"
+            data-maturity-id="badge-capacity"
+            className="h-auto gap-1.5 rounded-full border-success/35 bg-success/10 px-[9px] py-1 text-3xs text-success [&>svg]:size-3!"
+          >
             <Icon name="pass" size={12} /> {consent.capacityStatus}
-          </span>
+          </Badge>
         )}
         {consent?.teleConsentMode && (
-          <span className="ov-badge ok" data-maturity-id="badge-tele-consent">
+          <Badge
+            variant="outline"
+            size="xs"
+            data-maturity-id="badge-tele-consent"
+            className="h-auto gap-1.5 rounded-full border-success/35 bg-success/10 px-[9px] py-1 text-3xs text-success [&>svg]:size-3!"
+          >
             <Icon name="video" size={12} /> Tele: {consent.teleConsentMode}
-          </span>
+          </Badge>
         )}
       </div>
       {nm && (

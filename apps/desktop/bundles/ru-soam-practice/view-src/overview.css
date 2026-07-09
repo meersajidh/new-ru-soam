@@ -269,18 +269,6 @@ body {
 .ov-next-meeting-value {
   @apply text-muted-foreground;
 }
-.ov-badge {
-  @apply inline-flex items-center gap-[5px] whitespace-nowrap text-3xs;
-  padding: 4px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-}
-.ov-badge.ok {
-  color: var(--color-success);
-  border-color: color-mix(in srgb, var(--color-success) 35%, transparent);
-  background: color-mix(in srgb, var(--color-success) 9%, transparent);
-}
-
 /* ── Cards ───────────────────────────────────────── */
 .ov-grid {
   @apply grid gap-4;

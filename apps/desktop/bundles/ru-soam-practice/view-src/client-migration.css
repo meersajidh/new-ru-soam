@@ -11,7 +11,6 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
 }
 button {
   font: inherit;
@@ -221,20 +220,6 @@ body {
   @apply flex items-center gap-2;
   margin-top: 4px;
 }
-.badge {
-  @apply inline-flex items-center gap-1 shrink-0 font-semibold text-3xs;
-  letter-spacing: 0.03em;
-  padding: 1px 6px;
-  border-radius: 3px;
-}
-.badge--none {
-  color: var(--muted-foreground);
-  background: color-mix(in srgb, var(--muted-foreground) 12%, transparent);
-}
-.badge--candidates {
-  color: var(--color-warning);
-  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
-}
 .candidate-event-count {
   @apply text-muted-foreground text-2xs;
 }
@@ -415,14 +400,6 @@ body {
 }
 .dedup-cluster-card:last-child {
   border-bottom: none;
-}
-.badge--dedup-contact {
-  color: var(--color-info);
-  background: color-mix(in srgb, var(--color-info) 12%, transparent);
-}
-.badge--dedup-heuristic {
-  color: var(--color-warning);
-  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
 }
 .dedup-members {
   @apply flex flex-col gap-[3px];

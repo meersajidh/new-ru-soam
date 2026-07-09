@@ -11,7 +11,6 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
 }
 html,
 body {
@@ -344,27 +343,6 @@ body {
   @apply flex flex-wrap gap-1;
   margin-top: 3px;
 }
-.obligation-chip {
-  @apply inline-flex items-center font-medium cursor-pointer font-sans text-3xs;
-  padding: 2px 7px;
-  border-radius: 10px;
-  color: var(--color-warning);
-  background: color-mix(in srgb, var(--color-warning) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
-  transition: background 130ms ease;
-}
-.obligation-chip:hover {
-  background: color-mix(in srgb, var(--color-warning) 24%, transparent);
-}
-.obligation-chip.chip-intake {
-  color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 14%, transparent);
-  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
-}
-.obligation-chip.chip-intake:hover {
-  background: color-mix(in srgb, var(--primary) 24%, transparent);
-}
-
 /* ── Attention row ───────────────────────────────── */
 .attention-row {
   @apply flex flex-col rounded-sm cursor-pointer outline-none select-none;

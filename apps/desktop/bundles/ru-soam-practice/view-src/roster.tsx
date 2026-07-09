@@ -4,7 +4,7 @@ import './roster.css';
 import { useRef, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ViewRoot, useSoamView, useCapQuery } from '@ru-soam/view-kit';
-import { Icon } from '@basebench/ui';
+import { Badge, Icon } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -472,10 +472,16 @@ function Roster() {
                   </div>
                   <div className="obligation-chips">
                     {row.obligations.map((ob) => (
-                      <button
+                      <Badge
                         key={ob.key}
-                        type="button"
-                        className={`obligation-chip${ob.key === 'intake_incomplete' ? ' chip-intake' : ''}`}
+                        render={<button type="button" />}
+                        variant="outline"
+                        size="xs"
+                        className={`h-auto cursor-pointer rounded-[10px] px-[7px] py-0.5 text-3xs font-medium ${
+                          ob.key === 'intake_incomplete'
+                            ? 'border-primary/30 bg-primary/15 text-primary hover:bg-primary/25'
+                            : 'border-warning/30 bg-warning/15 text-warning hover:bg-warning/25'
+                        }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (ob.key === 'intake_incomplete') {
@@ -492,7 +498,7 @@ function Roster() {
                         }}
                       >
                         {ob.label}
-                      </button>
+                      </Badge>
                     ))}
                   </div>
                 </div>

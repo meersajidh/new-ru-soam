@@ -10,7 +10,7 @@ import {
   useCapQuery,
   type BoundProxy,
 } from '@ru-soam/view-kit';
-import { Icon } from '@basebench/ui';
+import { Badge, Icon } from '@basebench/ui';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -236,9 +236,19 @@ function CandidateCard({
 
         <div className="candidate-meta">
           {hasCandidates ? (
-            <span className="badge badge--candidates">Possible match</span>
+            <Badge
+              size="xs"
+              className="h-auto gap-1 rounded-[3px] px-1.5 py-px text-3xs font-semibold tracking-[0.03em] bg-warning/15 text-warning"
+            >
+              Possible match
+            </Badge>
           ) : (
-            <span className="badge badge--none">Unknown</span>
+            <Badge
+              size="xs"
+              className="h-auto gap-1 rounded-[3px] px-1.5 py-px text-3xs font-semibold tracking-[0.03em] bg-muted-foreground/12 text-muted-foreground"
+            >
+              Unknown
+            </Badge>
           )}
           {eventRefs > 0 && (
             <span className="candidate-event-count">
@@ -337,9 +347,14 @@ function DedupCluster({
   return (
     <div className="dedup-cluster-card">
       <div>
-        <span className={'badge ' + (cluster.reason === 'contact' ? 'badge--dedup-contact' : 'badge--dedup-heuristic')}>
+        <Badge
+          size="xs"
+          className={`h-auto gap-1 rounded-[3px] px-1.5 py-px text-3xs font-semibold tracking-[0.03em] ${
+            cluster.reason === 'contact' ? 'bg-info/15 text-info' : 'bg-warning/15 text-warning'
+          }`}
+        >
           {cluster.reason === 'contact' ? 'Grouped in your Google Contacts' : 'Similar name or shared phone'}
-        </span>
+        </Badge>
       </div>
 
       <div className="dedup-members">
