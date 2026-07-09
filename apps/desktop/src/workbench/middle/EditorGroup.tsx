@@ -4,6 +4,7 @@ import { EditorServiceId, MenuServiceId } from '../../platform/services/ids';
 import PlaceholderEditor from './PlaceholderEditor';
 import BundleViewIframe from './BundleViewIframe';
 import ScratchRuEdit from './ScratchRuEdit';
+import DesignSystemGallery from '../dev-gallery/DesignSystemGallery';
 
 interface Props {
   groupId: string;
@@ -124,6 +125,10 @@ function renderEditor(resource: string, instanceId: string, entityId?: string | 
     }
     if (url.protocol === 'ru-edit-scratch:') {
       return <ScratchRuEdit key={instanceId} resource={resource} instanceId={instanceId} />;
+    }
+    // Dev-only: the design-system gallery opens as an editor tab (ADR-421 F6).
+    if (url.protocol === 'devtool:' && url.hostname === 'design-system') {
+      return <DesignSystemGallery key={instanceId} />;
     }
   } catch {
     /* fall through */

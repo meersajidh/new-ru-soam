@@ -62,6 +62,17 @@ export function registerPlatformCommands(
     { category: 'Developer' },
   );
 
+  // Dev-only: the design-system gallery (ADR-421 F6). Registered only under
+  // import.meta.env.DEV so it never appears in the command palette in prod.
+  if (import.meta.env.DEV) {
+    commands.register(
+      'workbench.developer.openDesignGallery',
+      'Developer: Open Design System Gallery',
+      () => editor.open('devtool://design-system', { title: 'Design System' }),
+      { category: 'Developer' },
+    );
+  }
+
   commands.register(
     'developer.bundles.pingEcho',
     'Developer: Ping echo-test bundle',
