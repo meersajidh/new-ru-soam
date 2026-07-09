@@ -54,6 +54,8 @@ Product work (Practice / Schedule / Sessions / Migration) branched off platform 
 |---|---|---|---|---|
 | **View-stack migration** (ADR-419 / O497) | 14 bundle views vanilla→React + strict CSP + Tailwind | **Complete + committed** (`1dea7cd`) | ~95% | Only open: O512 (untrusted TP-Host CSP tier). |
 | View-layer refactor (O466) | Shared `__viewBoot` seam | **Done + committed** | 100% | Sibling debt: aspects.html section-split (not started). |
+| **Design-system foundation** (ADR-421 / O516) | ONE `@basebench/ui` on shadcn standard (CSS-var contract + Base UI + single multi-source SVG Icon), both surfaces; named-theme×mode | **Complete + committed** (F1–F6) | 100% | Supersedes ADR-420. Gallery = dev-only editor tab (`workbench.developer.openDesignGallery`). Guide: `docs/Guides/design-system.md`. Residual: O518 (Base UI submenu-on-modal), O519 (aspects.tsx Section/KvRow debt), O520 (gallery view-iframe leg). |
+| **Testing foundation** (O517) | Vitest projects + test pyramid + CI gate | **Complete + committed** (B0/B1/B2) | 100% of foundation | T1 pure-logic + T1b invariant guards landed; `pnpm test` in CI (behavior gate ≠ type gate). T2 component/DOM (jsdom) + T3 E2E (Playwright+`_electron`) deferred. Guide: `docs/Guides/testing.md`. |
 | **Cloud backend** (Ph 11a) | Identity svc | **Live + committed, PARKED** | 50% of cloud | Sync half (11b) unbuilt. O468 purge = gate before telemetry ships on. O476 System-B consent. |
 | OAuth port | Google OAuth client | **Done** (client) | ~60% | O309a server-verify folded into Cloud 11a (done); O309b licensing deferred. |
 | Release / update (ADR-204 / 308) | electron-updater, R2, NSIS + deb | **v0.1.9 shipped**, mature | ~90% | Deferred OIs: signing, APT-repo, beta-UI, version-floor, backup-migration. |

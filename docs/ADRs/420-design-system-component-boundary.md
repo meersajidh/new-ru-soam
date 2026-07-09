@@ -5,7 +5,7 @@
 **Date:** 2026-07-06
 **Supersedes:** —
 **Superseded by:** ADR-421 (Accepted 2026-07-07) — reverses D1 (two-kit) + D4 (two-Icon): one unified `@basebench/ui` both surfaces, single multi-source SVG Icon, shadcn standard substrate. D6 discipline (3-tier / rule-of-three / gallery) is **retained** by ADR-421 D10.
-**Related:** ADR-106 (base/domain layers — the boundary this sits inside), ADR-411 Am1 + ADR-419 (bundle-view origin/CSP/tech-stack — why the view surface is separate), ADR-413 Am1 (theming + two-Icon contract), ADR-414 (RuEdit already-owned primitive), ADR-412 (renderer services). Reconciles O194 (base-pkg physical extraction), O195 (Layer sweep), O196 (brand→`basebench` rename). Guide: `docs/Guides/design-system.md`. Inventory: `docs/Design_System_Inventory.md`. Plan: `docs/Design_System_And_Testing_Refactor.md` (Lane A / A2).
+**Related:** ADR-106 (base/domain layers — the boundary this sits inside), ADR-411 Am1 + ADR-419 (bundle-view origin/CSP/tech-stack — why the view surface is separate), ADR-413 Am1 (theming + two-Icon contract), ADR-414 (RuEdit already-owned primitive), ADR-412 (renderer services). Reconciles O194 (base-pkg physical extraction), O195 (Layer sweep), O196 (brand→`basebench` rename). Guide: `docs/Guides/design-system.md`. (Superseded by ADR-421 — see there for the current foundation; the interim inventory/plan/brief docs this ADR referenced were removed on completion 2026-07-09.)
 
 > This ADR is the **A2** step of Lane A. A1 (inventory) is done and un-gated;
 > A3 (dev gallery route) and the actual code move follow acceptance of this ADR.
@@ -14,7 +14,7 @@
 
 ## Context
 
-The codebase is ~85% platform / ~35% product. Shared UI primitives are scattered and un-owned: a de-facto shell UI kit accreted under `platform/ui` + `platform/popover` + `platform/menu` + a stray `workbench/middle/ResizeHandle`, and bundle `view-src` re-derives the same shapes by hand (EmptyState in 11 files, Card ×25, Badge ×14, KvRow ×7, plus hand-drawn inline `<svg>` icons bypassing the existing `<Icon>`). Each new Activity re-derives conventions; left alone this compounds into sprawl. A1 quantified this (`docs/Design_System_Inventory.md`).
+The codebase is ~85% platform / ~35% product. Shared UI primitives are scattered and un-owned: a de-facto shell UI kit accreted under `platform/ui` + `platform/popover` + `platform/menu` + a stray `workbench/middle/ResizeHandle`, and bundle `view-src` re-derives the same shapes by hand (EmptyState in 11 files, Card ×25, Badge ×14, KvRow ×7, plus hand-drawn inline `<svg>` icons bypassing the existing `<Icon>`). Each new Activity re-derives conventions; left alone this compounds into sprawl. (A1 quantified this in an inventory doc, since removed on completion — superseded by ADR-421.)
 
 Two facts frame the decision:
 

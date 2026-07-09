@@ -125,20 +125,24 @@
 
 ## Test Command
 
-No automated test suite yet. Verify changes with type-check + lint:
+Three gates — type, behavior, dogfood. Guide: `docs/Guides/testing.md`.
 
 ```bash
-# Type-check the whole workspace (project references via tsc -b).
+# TYPE gate — type-check the whole workspace (project references via tsc -b).
 # As of O497 this ALSO type-checks every bundle's view-src/*.tsx: each
 # bundles/*/view-src/tsconfig.json is a reference in apps/desktop/tsconfig.json
 # (the solution file tsc -b builds). Vite/esbuild view builds DO NOT type-check
 # — never trust a green `build:views` as a type-check; always run compile.
 pnpm --filter ru-soam compile && pnpm --filter @ru-soam/editor compile
 
+# BEHAVIOR gate — Vitest (projects mode: desktop/editor/domain/view-kit, node env,
+# colocated *.test.ts). Vitest ≠ type gate (esbuild transform, no tsc). O517.
+pnpm test
+
 # Lint the desktop app (covers bundles/*/view-src too)
 pnpm --filter ru-soam lint
 
-# Smoke-run the app (dogfood verification — Implementation_Plan.md uses
+# DOGFOOD — smoke-run the app (Implementation_Plan.md uses
 # "you can open the app and see X work" as the exit criterion for each phase)
 just dev-desktop
 ```

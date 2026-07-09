@@ -61,6 +61,6 @@ jobs:
 
       # Behavior gate (Vitest). Separate from the type gate above — Vitest uses
       # esbuild transform, not tsc, so it does not enforce project-refs /
-      # erasableSyntaxOnly. See docs/Design_System_And_Testing_Refactor.md (B0).
+      # erasableSyntaxOnly. See docs/Guides/testing.md.
       - name: Run tests
         run: pnpm test

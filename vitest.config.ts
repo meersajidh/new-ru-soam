@@ -2,8 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 // Vitest "projects" mode mirrors the pnpm workspace: one project per package
 // that (will) hold tests. `environment: 'node'` everywhere for now — no jsdom
-// until the design-system extraction (Lane A2) unblocks clean component/DOM
-// tests (Tier-2). See docs/Design_System_And_Testing_Refactor.md.
+// tests (Tier-2), which are not yet in scope. See docs/Guides/testing.md.
 //
 // Vitest is the BEHAVIOR gate; `pnpm compile` stays the TYPE gate — esbuild
 // transform here does NOT enforce tsc project-refs / erasableSyntaxOnly /
