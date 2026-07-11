@@ -12,13 +12,19 @@
  */
 
 import { build } from 'vite';
-import { readdirSync, existsSync } from 'node:fs';
-import { resolve, dirname, basename } from 'node:path';
+import { readdirSync, existsSync, writeFileSync } from 'node:fs';
+import { resolve, dirname, basename, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(__dirname, '..');
 const bundlesDir = resolve(desktopRoot, 'bundles');
+
+// DEV: signal Main to reload the renderer so bundle-view iframes refetch their
+// view:// assets. Views are static files (no process, no HMR); Main fs.watch-es
+// this file (see electron/main/index.ts VIEW_TRIGGER).
+const VIEW_TRIGGER = join(tmpdir(), 'ru-soam-view-reload');
 
 /** Find all bundles that have a vite.views.config.ts. */
 function findViewConfigs() {
@@ -65,6 +71,8 @@ export async function buildAllViews({ watch = false } = {}) {
                 name: 'views-log',
                 closeBundle() {
                   console.log(`[views:${bundleName}] rebuilt`);
+                  // Nudge Main to reload the renderer → iframes refetch view:// assets.
+                  writeFileSync(VIEW_TRIGGER, Date.now().toString());
                 },
               },
             ]

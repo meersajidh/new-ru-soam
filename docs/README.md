@@ -155,6 +155,7 @@ Companion guides ([core-concepts](Guides/core-concepts.md), [feature-development
 - [Feature development](Guides/feature-development.md) — Checklist for adding a feature without re-litigating the architecture each time.
 - [Disposable pattern](Guides/disposable-pattern.md) — Platform-wide convention for cleanup.
 - [Data encryption, key management, and recovery](Guides/data-encryption-and-recovery.md) — Operational companion to ADR-302/303/304/306.
+- [New-project scaffold](Guides/New_Project_Scaffold.md) — How `apps/desktop` is wired (Vite + React + `electron` devDep, four-process build, dev orchestrator, prod packaging, native ABI rebuild) and how it differs from electron-vite / electron-forge.
 
 ### Product
 

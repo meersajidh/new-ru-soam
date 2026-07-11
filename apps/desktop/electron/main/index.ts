@@ -66,6 +66,10 @@ if (process.platform === 'linux') {
 const DEV = !app.isPackaged;
 const DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 const PRELOAD_TRIGGER = path.join(os.tmpdir(), 'ru-soam-preload-reload');
+// DEV: touched by scripts/build-views.mjs on each bundle-view rebuild. Views are
+// static assets served over view:// (no process, no HMR) — a full renderer reload
+// refetches them. See scripts/dev.mjs and build-views.mjs.
+const VIEW_TRIGGER = path.join(os.tmpdir(), 'ru-soam-view-reload');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.setName('Ru-Soam');
@@ -373,6 +377,9 @@ app.whenReady().then(() => {
   if (DEV) {
     fs.writeFileSync(PRELOAD_TRIGGER, '');
     fs.watch(PRELOAD_TRIGGER, () => mainWindow?.webContents.reload());
+    // Bundle views rebuilt → reload renderer so iframes refetch view:// assets.
+    fs.writeFileSync(VIEW_TRIGGER, '');
+    fs.watch(VIEW_TRIGGER, () => mainWindow?.webContents.reload());
   }
 
   mainWindow = createWorkbenchWindow({ devServerUrl: DEV_SERVER_URL, isDev: DEV });

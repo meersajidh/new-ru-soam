@@ -1,6 +1,6 @@
 import { createServer, build } from 'vite';
 import { spawn } from 'child_process';
-import { writeFileSync } from 'fs';
+import { writeFileSync, watch } from 'fs';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -19,6 +19,43 @@ let electronProcess = null;
 
 function touchPreloadTrigger() {
   writeFileSync(PRELOAD_TRIGGER, Date.now().toString());
+}
+
+/**
+ * Watch bundle command-logic + manifests and LOG that a manual restart is
+ * required. Neither is hot-reloadable today:
+ *  - bundles/<id>/index.mjs runs INSIDE the running fp-host process (loaded via
+ *    activateBundle) → the process holds stale module-cached code (O521).
+ *  - bundles/<id>/manifest.json fans out at boot into migrations (applied to an
+ *    already-open encrypted DB) + a one-shot renderer contribution seed → a
+ *    correct hot-apply is a real feature, not a watcher tweak (O522).
+ * Until O521/O522 land, just surface the need to restart instead of failing
+ * silently-stale. DEV-only.
+ */
+function installBundleSourceWatcher() {
+  const bundlesDir = path.join(root, 'bundles');
+  const lastLogged = new Map();
+  const throttle = (key) => {
+    const now = Date.now();
+    if (now - (lastLogged.get(key) ?? 0) < 500) return true;
+    lastLogged.set(key, now);
+    return false;
+  };
+  watch(bundlesDir, { recursive: true }, (_event, filename) => {
+    if (!filename) return;
+    const base = path.basename(filename);
+    if (base === 'index.mjs') {
+      if (throttle(filename)) return;
+      console.log(
+        `[bundles] ${filename} changed — bundle logic runs in the fp-host; RESTART REQUIRED (just dev-desktop). Hot-recycle deferred: O521.`,
+      );
+    } else if (base === 'manifest.json') {
+      if (throttle(filename)) return;
+      console.log(
+        `[bundles] ${filename} changed — manifest drives boot migrations + contribution seed; RESTART REQUIRED (just dev-desktop). Hot-reload deferred: O522.`,
+      );
+    }
+  });
 }
 
 function pipeLines(stream, prefix) {
@@ -100,7 +137,9 @@ async function main() {
       {
         name: 'fp-host-log',
         closeBundle() {
-          console.log('[fp-host] rebuilt');
+          console.log(
+            '[fp-host] runtime rebuilt — the live fp-host process holds stale code; RESTART REQUIRED (just dev-desktop). Hot-recycle deferred: O521.',
+          );
         },
       },
     ],
@@ -110,6 +149,9 @@ async function main() {
   // built view-assets. Watchers continue in background after initial build.
   await buildAllViews({ watch: true });
   console.log('[views] initial build done; watching for changes');
+
+  // Watch bundle index.mjs + manifest.json to LOG restart-required (O521/O522).
+  installBundleSourceWatcher();
 
   await build({
     configFile: path.join(root, 'vite.main.config.ts'),
