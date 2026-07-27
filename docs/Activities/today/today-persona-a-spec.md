@@ -112,10 +112,13 @@ Base-luma tokens (warm neutral, burnt-amber accent), Inter Tight, radius 0.625re
 
 ## 8. Open / deferred
 
-- **H0 invariance** — untested; personas B/C next. The **thin agenda-rail** is the most
-  likely thing to break on a dense psychiatrist day (10–14 sessions).
-- **`measure_due` (H6)** — MBC/screener-cadence obligation, not yet in `deriveObligations`
-  (O-today-6); relevant to B/C.
+- **H0 invariance** — **CONFIRMED for persona B (psychiatrist, 2026-07-15).** Same 3-zone
+  frame carried a dense 12-session day with no structural change; the **thin agenda-rail
+  HELD 12 rows** (the feared break did not happen). Persona C (assessment/sparse) still open
+  but low-risk. See `prototypes/canvas-persona-b/OBSERVATIONS.md` + `today-discovery.md`.
+- **`measure_due` (H6)** — validated on persona B; earns first-class placement (dashed
+  PROPOSED chip reads clean). Not yet in `deriveObligations` → **O-today-6** now actionable;
+  add `measure_due` (MBC PHQ-9/GAD-7 cadence) and consider `med_recon_due` (psychiatry).
 - **Up-next focus card** — port from V1 (see §5).
 - **Snooze / Except persistence** — new persisted shape; belongs to the loop-mechanics
   platform ADR, not Today's (O-today-5).

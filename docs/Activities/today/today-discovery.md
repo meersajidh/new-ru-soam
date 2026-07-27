@@ -86,6 +86,21 @@ Deliberately narrowed so the first prototype tests something, not everything.
 **Structure + dose are now settled for persona A → consolidated into the reference spec:
 `docs/Activities/today/today-persona-a-spec.md`.**
 
+**Persona B (psychiatrist) — H0 CONFIRMED [DECIDED 2026-07-15].** Held the persona-A
+structure frozen, swapped to a dense 12-session psychiatrist day + clinical/legal debt mix
+(med-recon, PHQ-9/GAD-7 screener-due, controlled-med consent, drug-interaction Safety). The
+**same 3-zone attention-led frame carried it with zero structural change** → **H0 holds;
+Today is one content-driven surface, not per-type (O-today-1 resolved for A+B).** Two
+specific results: (1) the **thin agenda rail HELD 12 rows** readable/glanceable (wide +
+narrow) — the persona-A spec §8 dense-day caveat did **not** materialize, drop it; (2) the
+proposed **`measure_due` + `med_recon_due`** kinds (dashed PROPOSED chip) read clean and sit
+naturally in "To complete" → **act on O-today-6** (extend `deriveObligations`). Head-to-head
++ method gotcha (canvas `x-import` components don't paint in headless; judge fidelity from
+canvas preview + source) in `prototypes/canvas-persona-b/OBSERVATIONS.md`. Open nit:
+canvas's 760px narrow squeezed 3 cols instead of stacking the rail — a bundle-build
+breakpoint concern, not a design decision. **Persona C (assessment/sparse) optional before
+the bundle spike — low risk of falsifying H0 (opposite stress of B).**
+
 The rest of this doc (research, model, personas B/C, full hypothesis set) stands as
 the broader discovery; §0.1 is what iteration 1 actually builds.
 

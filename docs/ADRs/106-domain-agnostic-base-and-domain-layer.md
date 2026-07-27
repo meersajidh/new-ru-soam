@@ -276,3 +276,42 @@ platform / first-party / third-party) stays orthogonal to trust zone (how privil
 principle. See the [Two-Axis Architecture guide](../Guides/architecture-two-axes.md) §8 and
 ADR-506 §9. (No structural change to the existing base ← domain lint; the extensions tier
 is formalised here and built when third-party bundle loading ships.)
+
+## Amendment 2 (2026-07-17) — rung 3 taken ahead of its trigger; the goal changed
+
+The separation ladder above (§"Separation mechanism") staged physical extraction and
+**explicitly resisted rung 3** (separate repository) pre-need: its stated trigger is *"a
+separate team or release cadence owns the base,"* and it warned that rung 3 *"forks the
+load-bearing native-module packaging pipeline (ADR-204 Amendment 3) and doubles release/CI
+cost for zero isolation benefit while one team ships one product."*
+
+As of 2026-07-17, **`basebench` is being founded as its own repository** (at
+`/home/meer/Repos/msh/basebench`) — rung 3 — with **rung 2 skipped** (O194 never executed)
+and **neither ladder trigger fired**: still one team, one product, one cadence. This
+amendment records the override so the corpus does not silently contradict the plan.
+
+**What changed is the goal, not the analysis.** The ladder's cost/benefit was written to
+answer *"how do we prevent calcification?"* — for which rung 1 (folder + lint) suffices and
+rungs 2–3 are premature. The new goal is different: **build `basebench` as a reusable
+framework in its own right** (framework + CLI — basebench ADR-001), for which owning the
+runtime, toolchain, and native-module packaging is the *point*, not an incidental cost. The
+ladder's rung-3 objection is therefore **accepted knowingly, not refuted**: basebench ADR-001
+§3 ("whoever ships the native modules pins the runtime") walks directly into the
+native-module-pipeline fork the ladder flagged, and does so deliberately.
+
+Consequences:
+
+- The rung-3 trigger in §"Separation mechanism" is **superseded** for `basebench`. The ladder
+  remains the correct framing for *calcification* risk; it is simply no longer the operative
+  decision, because the driver is now framework reuse.
+- **ru-soam is unaffected until basebench can carry the base.** Nothing in this repo moves on
+  this amendment. The migration is staged, gradual, and owned by
+  `docs/Plans/migrate-onto-basebench.md`; ru-soam remains the shipping product and the
+  reference implementation (N=1) throughout.
+- The base/domain **logical** boundary and one-way lint rule (the parts that prevent
+  calcification) are unchanged and still enforced here.
+- ADR numbering does **not** carry across: basebench numbers its ADRs sequentially from 001 in
+  its own space; ru-soam ADRs migrate one at a time, as the code they govern lands, renumbered
+  with a source→basebench ID mapping (basebench's plan owns that mapping). This ADR is **not**
+  itself migrating — the base/domain split is a ru-soam-era decision that basebench inherits by
+  construction, not by copy.
